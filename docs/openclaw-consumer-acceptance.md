@@ -49,8 +49,12 @@ Run this order for a local acceptance pass:
    - `core_proxy_execute=false`
    - `commit_execution=false`
 4. Call `GET /help` and confirm route discovery includes:
+   - flat `routes[]` rows with `method`, `path`, `purpose`, and `group`
    - `GET /proposals`
    - `GET /proposals/{proposal_id}`
+   - `GET /term`, whose purpose explains term detail uses list row `id` and
+     infers `taxonomy` when possible
+   - `route_groups` for human-readable grouped route labels
    - disabled approval and rejection stubs
    - direct-read shortcuts
 5. Call `GET /capabilities` and use only real `ability_id` values returned by
@@ -61,6 +65,7 @@ Run this order for a local acceptance pass:
    - `GET /media?per_page=1`
 7. Run at least one diagnostics shortcut:
    - `GET /active-plugins-detail`
+   - `GET /plugin-conflict-diagnostics` when testing plugin conflicts
    - `GET /current-user-permissions`
    - `GET /database-info`
    Confirm diagnostics details come from
@@ -68,6 +73,15 @@ Run this order for a local acceptance pass:
    `wp-diagnostics-summary`.
    With default `include_log_contents=false`, log contents are not explicitly
    requested and must not be marked missing.
+   With default `include_inactive_plugins=false`, inactive plugin rows are not
+   requested and must not be marked missing. The plugin conflict shortcut must
+   request `include_inactive_plugins=true` and return grouped plugin details for
+   `plugins.active`, `plugins.inactive`, `plugins.update_available`,
+   `plugins.must_use`, and `plugins.dropins`.
+   Use `error_log.summary.fatal_count`, `error_log.summary.error_count`,
+   `error_log.summary.warning_count`, `error_log.summary.deprecated_count`,
+   `error_log.summary.notice_count`, and `error_log.summary.by_severity` for
+   severity display even when log contents are not included.
    When log inspection is explicitly requested, call
    `GET /recent-error-log-tail` and display `error_log.tail_entries` plus
    `error_log.summary.by_severity`.

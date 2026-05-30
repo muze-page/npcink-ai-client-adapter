@@ -151,8 +151,8 @@ final class Controller {
 				array(
 					array(
 						'methods'             => WP_REST_Server::READABLE,
-						'callback'            => function ( WP_REST_Request $request ) use ( $ability_id, $default_input ) {
-							return $this->run_read_ability( $ability_id, $this->shortcut_input( $request, $default_input ), $this->request_log_context( $request, $ability_id ) );
+						'callback'            => function ( WP_REST_Request $request ) use ( $route, $ability_id, $default_input ) {
+							return $this->run_read_ability( $ability_id, $this->shortcut_input( $request, $route, $default_input ), $this->request_log_context( $request, $ability_id ) );
 						},
 						'permission_callback' => array( $this, 'can_use_adapter' ),
 					),
@@ -410,6 +410,8 @@ final class Controller {
 	 * @return WP_REST_Response
 	 */
 	public function help(): WP_REST_Response {
+		$route_groups = $this->help_route_groups();
+
 		return new WP_REST_Response(
 			array(
 				'adapter'       => 'magick-ai-adapter',
@@ -420,30 +422,8 @@ final class Controller {
 					'capability'  => 'manage_options',
 					'header'      => 'Authorization: Basic base64(username:application_password)',
 				),
-				'routes'        => array(
-					'connection'      => array(
-						'GET /health',
-						'GET /help',
-						'GET /capabilities',
-					),
-					'read_shortcuts'  => $this->help_read_shortcuts(),
-					'generic_read'    => array(
-						'POST /run-read-ability',
-					),
-					'provider_log_correlation' => array(
-						'POST /ai-provider-log-correlation-smoke',
-					),
-					'proposal_status' => array(
-						'GET /proposals',
-						'GET /proposals/{proposal_id}',
-					),
-					'governance'      => array(
-						'POST /proposals',
-						'POST /proposals/{proposal_id}/approve',
-						'POST /proposals/{proposal_id}/reject',
-						'POST /proposals/{proposal_id}/commit-preflight',
-					),
-				),
+				'routes'        => $this->help_routes_flat( $route_groups ),
+				'route_groups'  => $route_groups,
 				'core_required_scopes' => array(
 					'proposal_status'  => 'proposals:read',
 					'proposal_create'  => 'proposals:create',
@@ -493,6 +473,113 @@ final class Controller {
 			),
 			200
 		);
+	}
+
+	/**
+	 * Returns human-readable route groups for help output.
+	 *
+	 * @return array<string,array<int,string>>
+	 */
+	private function help_route_groups(): array {
+		return array(
+			'connection'      => array(
+				'GET /health',
+				'GET /help',
+				'GET /capabilities',
+			),
+			'read_shortcuts'  => $this->help_read_shortcuts(),
+			'generic_read'    => array(
+				'POST /run-read-ability',
+			),
+			'provider_log_correlation' => array(
+				'POST /ai-provider-log-correlation-smoke',
+			),
+			'proposal_status' => array(
+				'GET /proposals',
+				'GET /proposals/{proposal_id}',
+			),
+			'governance'      => array(
+				'POST /proposals',
+				'POST /proposals/{proposal_id}/approve',
+				'POST /proposals/{proposal_id}/reject',
+				'POST /proposals/{proposal_id}/commit-preflight',
+			),
+		);
+	}
+
+	/**
+	 * Returns machine-readable route help rows.
+	 *
+	 * @param array<string,array<int,string>> $route_groups Route groups.
+	 * @return array<int,array<string,string>>
+	 */
+	private function help_routes_flat( array $route_groups ): array {
+		$routes = array();
+
+		foreach ( $route_groups as $group => $labels ) {
+			foreach ( $labels as $label ) {
+				$routes[] = $this->help_route_row( (string) $label, (string) $group );
+			}
+		}
+
+		return $routes;
+	}
+
+	/**
+	 * Builds one machine-readable route help row from a label.
+	 *
+	 * @param string $label Route label, such as GET /health.
+	 * @param string $group Route group.
+	 * @return array<string,string>
+	 */
+	private function help_route_row( string $label, string $group ): array {
+		$parts  = preg_split( '/\s+/', trim( $label ), 2 );
+		$method = isset( $parts[0] ) ? strtoupper( (string) $parts[0] ) : '';
+		$path   = isset( $parts[1] ) ? (string) $parts[1] : '';
+
+		return array(
+			'method'  => $method,
+			'path'    => $path,
+			'purpose' => $this->help_route_purpose( $method, $path, $group ),
+			'group'   => $group,
+		);
+	}
+
+	/**
+	 * Returns a concise route purpose for agent route discovery.
+	 *
+	 * @param string $method Route method.
+	 * @param string $path Route path.
+	 * @param string $group Route group.
+	 * @return string
+	 */
+	private function help_route_purpose( string $method, string $path, string $group ): string {
+		$key      = $method . ' ' . $path;
+		$purposes = array(
+			'GET /health' => 'Check adapter health and connection state.',
+			'GET /help' => 'Discover adapter routes and handoff guidance.',
+			'GET /capabilities' => 'List Core capabilities and governance guidance.',
+			'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
+			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
+			'GET /proposals' => 'List Core proposal statuses for polling.',
+			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
+			'POST /proposals' => 'Create a Core proposal for governed work.',
+			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
+			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
+			'POST /proposals/{proposal_id}/commit-preflight' => 'Run Core commit preflight without executing final writes.',
+			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
+			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
+		);
+
+		if ( isset( $purposes[ $key ] ) ) {
+			return $purposes[ $key ];
+		}
+
+		if ( 'read_shortcuts' === $group && '' !== $path ) {
+			return 'Run the direct-read shortcut for ' . ltrim( $path, '/' ) . '.';
+		}
+
+		return 'Call adapter route ' . trim( $key ) . '.';
 	}
 
 	/**
@@ -953,6 +1040,10 @@ final class Controller {
 				'ability_id'     => $ops_ability,
 				'default_input'  => self::ops_diagnostics_input(),
 			),
+			'plugin-conflict-diagnostics' => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_plugin_conflict_input(),
+			),
 			'current-user-permissions' => array(
 				'ability_id'     => $ops_ability,
 				'default_input'  => self::ops_diagnostics_input(),
@@ -983,14 +1074,7 @@ final class Controller {
 			),
 			'recent-error-log-tail' => array(
 				'ability_id'     => $ops_ability,
-				'default_input'  => self::ops_diagnostics_input(
-					array(
-						'include_log_contents' => true,
-						'tail_lines'           => 50,
-						'severity'             => array( 'fatal', 'error', 'warning' ),
-						'since_minutes'        => 1440,
-					)
-				),
+				'default_input'  => self::ops_diagnostics_log_input(),
 			),
 			'database-info'         => array(
 				'ability_id'     => $ops_ability,
@@ -1077,9 +1161,43 @@ final class Controller {
 	private static function ops_diagnostics_input( array $overrides = array() ): array {
 		return array_merge(
 			array(
-				'include_log_contents' => false,
+				'include_log_contents'     => false,
+				'include_active_plugins'   => true,
+				'include_inactive_plugins' => false,
+				'include_plugin_updates'   => true,
+				'include_must_use_plugins' => true,
+				'include_dropins'          => true,
+				'max_plugins_per_group'    => 100,
 			),
 			$overrides
+		);
+	}
+
+	/**
+	 * Builds operations diagnostics input for plugin conflict troubleshooting.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private static function ops_diagnostics_plugin_conflict_input(): array {
+		return self::ops_diagnostics_input(
+			array(
+				'include_inactive_plugins' => true,
+				'max_plugins_per_group'    => 200,
+			)
+		);
+	}
+
+	/**
+	 * Builds explicit operations diagnostics input for bounded log inspection.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private static function ops_diagnostics_log_input(): array {
+		return array(
+			'include_log_contents' => true,
+			'tail_lines'           => 50,
+			'severity'             => array( 'fatal', 'error', 'warning' ),
+			'since_minutes'        => 1440,
 		);
 	}
 
@@ -1108,18 +1226,67 @@ final class Controller {
 			'detail_route'           => 'GET /wp-ops-diagnostics-detail',
 			'detail_ability_id'      => 'magick-ai-abilities/wp-ops-diagnostics-detail',
 			'default_input'          => self::ops_diagnostics_input(),
-			'explicit_log_input'     => self::ops_diagnostics_input(
-				array(
-					'include_log_contents' => true,
-					'tail_lines'           => 50,
-					'severity'             => array( 'fatal', 'error', 'warning' ),
-					'since_minutes'        => 1440,
-				)
-			),
+			'plugin_conflict_input'  => self::ops_diagnostics_plugin_conflict_input(),
+			'explicit_log_input'     => self::ops_diagnostics_log_input(),
+			'inactive_plugins_absent_reason' => 'inactive plugin rows are not requested by default',
 			'log_contents_absent_reason' => 'not explicitly requested',
+			'plugin_group_fields'    => array(
+				'plugins.groups_included',
+				'plugins.max_plugins_per_group',
+				'plugins.available_count',
+				'plugins.active_count',
+				'plugins.inactive_count',
+				'plugins.update_available_count',
+				'plugins.mu_count',
+				'plugins.dropin_count',
+				'plugins.active',
+				'plugins.inactive',
+				'plugins.update_available',
+				'plugins.must_use',
+				'plugins.dropins',
+			),
+			'plugin_row_fields'      => array(
+				'slug',
+				'plugin_file',
+				'name',
+				'version',
+				'author',
+				'status',
+				'network_active',
+				'must_use',
+				'requires_wp',
+				'requires_php',
+				'dependencies',
+				'dependency_count',
+				'is_magick_ai',
+				'update_available',
+				'latest_version',
+			),
 			'error_log_fields'       => array(
-				'error_log.tail_entries',
+				'error_log.contents_included',
+				'error_log.log_exists',
+				'error_log.log_readable',
+				'error_log.log_size_bytes',
+				'error_log.log_modified_gmt',
+				'error_log.summary',
 				'error_log.summary.by_severity',
+			),
+			'error_log_summary_fields' => array(
+				'returned_lines',
+				'fatal_count',
+				'error_count',
+				'warning_count',
+				'deprecated_count',
+				'notice_count',
+				'info_count',
+				'unknown_count',
+				'latest_fatal_at',
+				'latest_error_at',
+				'latest_warning_at',
+				'latest_deprecated_at',
+				'latest_notice_at',
+				'summary_source',
+				'by_severity',
 			),
 		);
 	}
@@ -1178,11 +1345,12 @@ final class Controller {
 	/**
 	 * Returns input for a GET shortcut.
 	 *
-	 * @param WP_REST_Request $request Request.
+	 * @param WP_REST_Request   $request Request.
+	 * @param string            $route Shortcut route.
 	 * @param array<string,mixed> $default_input Route default input.
 	 * @return array<string,mixed>
 	 */
-	private function shortcut_input( WP_REST_Request $request, array $default_input = array() ): array {
+	private function shortcut_input( WP_REST_Request $request, string $route, array $default_input = array() ): array {
 		$input = array_merge( $default_input, $this->object_param( $request, 'input' ) );
 
 		foreach ( $request->get_query_params() as $key => $value ) {
@@ -1195,6 +1363,36 @@ final class Controller {
 			}
 
 			$input[ sanitize_key( $key ) ] = $this->sanitize_input_value( $value );
+		}
+
+		return $this->normalize_shortcut_input( $route, $input );
+	}
+
+	/**
+	 * Normalizes shortcut inputs where adapter route contracts differ from upstream ability inputs.
+	 *
+	 * @param string              $route Shortcut route.
+	 * @param array<string,mixed> $input Input.
+	 * @return array<string,mixed>
+	 */
+	private function normalize_shortcut_input( string $route, array $input ): array {
+		if ( 'term' !== $route ) {
+			return $input;
+		}
+
+		if ( array_key_exists( 'term_id', $input ) && ! array_key_exists( 'id', $input ) ) {
+			$input['id'] = absint( $input['term_id'] );
+		}
+
+		unset( $input['term_id'] );
+
+		if ( ! array_key_exists( 'taxonomy', $input ) || '' === trim( (string) $input['taxonomy'] ) ) {
+			$term = array_key_exists( 'id', $input ) ? get_term( absint( $input['id'] ) ) : null;
+			if ( is_object( $term ) && ! is_wp_error( $term ) && '' !== (string) ( $term->taxonomy ?? '' ) ) {
+				$input['taxonomy'] = sanitize_key( (string) $term->taxonomy );
+			} else {
+				$input['taxonomy'] = 'category';
+			}
 		}
 
 		return $input;

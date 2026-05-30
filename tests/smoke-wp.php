@@ -27,6 +27,28 @@ function maa_adapter_smoke_assert( bool $condition, string $message ): void {
 }
 
 /**
+ * Checks whether help route rows include a route.
+ *
+ * @param array<string,mixed> $help Help response.
+ * @param string              $method HTTP method.
+ * @param string              $path Route path.
+ * @return bool
+ */
+function maa_adapter_smoke_help_has_route( array $help, string $method, string $path ): bool {
+	foreach ( (array) ( $help['routes'] ?? array() ) as $route ) {
+		if ( ! is_array( $route ) ) {
+			continue;
+		}
+
+		if ( $method === (string) ( $route['method'] ?? '' ) && $path === (string) ( $route['path'] ?? '' ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Dispatches an adapter REST request.
  *
  * @param string              $method HTTP method.
@@ -88,8 +110,12 @@ function maa_adapter_smoke_rest_result( string $method, string $route, array $pa
 	wp_set_current_user( 1 );
 
 	$request = new WP_REST_Request( $method, $route );
-	foreach ( $params as $key => $value ) {
-		$request->set_param( $key, $value );
+	if ( 'GET' === strtoupper( $method ) ) {
+		$request->set_query_params( $params );
+	} else {
+		foreach ( $params as $key => $value ) {
+			$request->set_param( $key, $value );
+		}
 	}
 
 	$response = rest_do_request( $request );
@@ -127,12 +153,21 @@ maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $health['approva
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $health ), 'adapter health exposes Core app token configured state without token value' );
 maa_adapter_smoke_assert( isset( $health['read_shortcuts']['media'] ), 'adapter health exposes expanded read shortcuts' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['active-plugins-detail'] ?? '' ), 'adapter active plugins shortcut uses ops diagnostics detail' );
+maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['plugin-conflict-diagnostics'] ?? '' ), 'adapter plugin conflict shortcut uses ops diagnostics detail' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['recent-error-log-tail'] ?? '' ), 'adapter explicit log shortcut uses ops diagnostics detail' );
 maa_adapter_smoke_assert( 'magick-ai/list-posts' === (string) ( $health['read_shortcuts']['posts'] ?? '' ), 'adapter health exposes posts shortcut' );
 maa_adapter_smoke_assert( 'magick-ai/get-post-context' === (string) ( $health['read_shortcuts']['post-context'] ?? '' ), 'adapter health exposes post context shortcut' );
 maa_adapter_smoke_assert( 'magick-ai/list-users' === (string) ( $health['read_shortcuts']['users'] ?? '' ), 'adapter health exposes users shortcut' );
 maa_adapter_smoke_assert( 'magick-ai/get-menu' === (string) ( $health['read_shortcuts']['menu'] ?? '' ), 'adapter health exposes menu shortcut' );
 maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_log_contents'] ?? true ), 'adapter health exposes diagnostics default without log contents' );
+maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_active_plugins'] ?? false ), 'adapter health exposes active plugin rows by default' );
+maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_inactive_plugins'] ?? true ), 'adapter health does not request inactive plugin rows by default' );
+maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_plugin_updates'] ?? false ), 'adapter health requests plugin update rows by default' );
+maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_must_use_plugins'] ?? false ), 'adapter health requests must-use plugin rows by default' );
+maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_dropins'] ?? false ), 'adapter health requests dropin rows by default' );
+maa_adapter_smoke_assert( 100 === (int) ( $health['diagnostics']['default_input']['max_plugins_per_group'] ?? 0 ), 'adapter health exposes default plugin group row limit' );
+maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['plugin_conflict_input']['include_inactive_plugins'] ?? false ), 'adapter health exposes deep plugin conflict inactive rows input' );
+maa_adapter_smoke_assert( 200 === (int) ( $health['diagnostics']['plugin_conflict_input']['max_plugins_per_group'] ?? 0 ), 'adapter health exposes deep plugin conflict row limit' );
 maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['explicit_log_input']['include_log_contents'] ?? false ), 'adapter health exposes explicit diagnostics log input' );
 maa_adapter_smoke_assert( in_array( 'adapter_request_id', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes provider log adapter request id context' );
 maa_adapter_smoke_assert( in_array( 'ai_provider', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes provider context field' );
@@ -143,16 +178,37 @@ maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_gui
 maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes proposal status routes' );
 
 $help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
-maa_adapter_smoke_assert( in_array( 'GET /proposals', (array) ( $help['routes']['proposal_status'] ?? array() ), true ), 'adapter help exposes proposal list route' );
-maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $help['routes']['proposal_status'] ?? array() ), true ), 'adapter help exposes proposal detail route' );
-maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve', (array) ( $help['routes']['governance'] ?? array() ), true ), 'adapter help exposes approval disabled stub route' );
-maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/reject', (array) ( $help['routes']['governance'] ?? array() ), true ), 'adapter help exposes rejection disabled stub route' );
-maa_adapter_smoke_assert( in_array( 'POST /ai-provider-log-correlation-smoke', (array) ( $help['routes']['provider_log_correlation'] ?? array() ), true ), 'adapter help exposes provider log correlation smoke route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals/{proposal_id}' ), 'adapter help exposes proposal detail route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/approve' ), 'adapter help exposes approval disabled stub route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/reject' ), 'adapter help exposes rejection disabled stub route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-provider-log-correlation-smoke' ), 'adapter help exposes provider log correlation smoke route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
+maa_adapter_smoke_assert( in_array( 'GET /plugin-conflict-diagnostics', (array) ( $help['route_groups']['read_shortcuts'] ?? array() ), true ), 'adapter help keeps grouped read shortcut routes for humans' );
 maa_adapter_smoke_assert( false === (bool) ( $help['approval_proxy_enabled'] ?? true ), 'adapter help keeps approval proxy disabled' );
 maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $help['approval_surface'] ?? '' ), 'adapter help exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $help ), 'adapter help exposes Core app token configured state without token value' );
 maa_adapter_smoke_assert( false === (bool) ( $help['non_goals']['approval_proxy_enabled'] ?? true ), 'adapter help keeps approval proxy disabled' );
 maa_adapter_smoke_assert( false === (bool) ( $help['non_goals']['reject_proxy_enabled'] ?? true ), 'adapter help keeps rejection proxy disabled' );
+
+$smoke_terms = get_terms(
+	array(
+		'taxonomy'   => 'category',
+		'hide_empty' => false,
+		'number'     => 1,
+	)
+);
+maa_adapter_smoke_assert( ! is_wp_error( $smoke_terms ) && ! empty( $smoke_terms ), 'WordPress has a category term for adapter term detail smoke' );
+$smoke_term  = $smoke_terms[0];
+$term_detail = maa_adapter_smoke_rest(
+	'GET',
+	'/magick-ai-adapter/v1/term',
+	array(
+		'id' => (int) $smoke_term->term_id,
+	)
+);
+maa_adapter_smoke_assert( 'magick-ai/get-term' === (string) ( $term_detail['ability_id'] ?? '' ), 'adapter resolves term detail from list id' );
 
 $capabilities = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/capabilities' );
 $by_id        = maa_adapter_smoke_capabilities_by_id( $capabilities );
@@ -174,8 +230,30 @@ maa_adapter_smoke_assert( is_array( $diagnostics['result'] ?? null ), 'diagnosti
 $active_plugins = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/active-plugins-detail' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $active_plugins['ability_id'] ?? '' ), 'adapter runs active plugins diagnostic shortcut through ops detail' );
 maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins'] ?? null ), 'active plugins diagnostic returns plugin details object' );
+$plugin_result = (array) ( $active_plugins['result']['plugins'] ?? array() );
+maa_adapter_smoke_assert( is_array( $plugin_result['groups_included'] ?? null ), 'active plugins diagnostic returns plugin group inclusion metadata' );
+maa_adapter_smoke_assert( true === (bool) ( $plugin_result['groups_included']['active'] ?? false ), 'active plugins diagnostic includes active plugin rows by default' );
+maa_adapter_smoke_assert( false === (bool) ( $plugin_result['groups_included']['inactive'] ?? true ), 'active plugins diagnostic does not request inactive plugin rows by default' );
+maa_adapter_smoke_assert( 100 === (int) ( $plugin_result['max_plugins_per_group'] ?? 0 ), 'active plugins diagnostic uses default plugin group limit' );
+foreach ( array( 'available_count', 'active_count', 'inactive_count', 'update_available_count', 'mu_count', 'dropin_count' ) as $plugin_count_field ) {
+	maa_adapter_smoke_assert( array_key_exists( $plugin_count_field, $plugin_result ), 'active plugins diagnostic returns plugin count field: ' . $plugin_count_field );
+}
 maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['active'] ?? null ), 'active plugins diagnostic returns active plugin details' );
+maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['inactive'] ?? null ), 'active plugins diagnostic preserves inactive plugin group as an array even when not requested' );
 maa_adapter_smoke_assert( array_key_exists( 'update_available', (array) ( $active_plugins['result']['plugins'] ?? array() ) ), 'active plugins diagnostic returns plugin update details' );
+maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['must_use'] ?? null ), 'active plugins diagnostic returns must-use plugin group' );
+maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['dropins'] ?? null ), 'active plugins diagnostic returns dropin plugin group' );
+if ( isset( $active_plugins['result']['plugins']['active'][0] ) && is_array( $active_plugins['result']['plugins']['active'][0] ) ) {
+	foreach ( array( 'slug', 'plugin_file', 'name', 'version', 'author', 'status', 'network_active', 'must_use', 'requires_wp', 'requires_php', 'dependencies', 'dependency_count', 'is_magick_ai', 'update_available', 'latest_version' ) as $plugin_row_field ) {
+		maa_adapter_smoke_assert( array_key_exists( $plugin_row_field, $active_plugins['result']['plugins']['active'][0] ), 'active plugin row returns field: ' . $plugin_row_field );
+	}
+}
+
+$plugin_conflict = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/plugin-conflict-diagnostics' );
+maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $plugin_conflict['ability_id'] ?? '' ), 'adapter runs plugin conflict diagnostic shortcut through ops detail' );
+maa_adapter_smoke_assert( true === (bool) ( $plugin_conflict['result']['plugins']['groups_included']['inactive'] ?? false ), 'plugin conflict diagnostic requests inactive plugin rows' );
+maa_adapter_smoke_assert( 200 === (int) ( $plugin_conflict['result']['plugins']['max_plugins_per_group'] ?? 0 ), 'plugin conflict diagnostic uses deep plugin group limit' );
+maa_adapter_smoke_assert( is_array( $plugin_conflict['result']['plugins']['inactive'] ?? null ), 'plugin conflict diagnostic returns inactive plugin rows array' );
 
 $current_user_permissions = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/current-user-permissions' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $current_user_permissions['ability_id'] ?? '' ), 'adapter runs current user permissions diagnostic shortcut through ops detail' );
@@ -185,7 +263,10 @@ maa_adapter_smoke_assert( array_key_exists( 'capabilities', (array) ( $current_u
 $recent_error_log = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/recent-error-log' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $recent_error_log['ability_id'] ?? '' ), 'adapter runs default error log diagnostic through ops detail' );
 maa_adapter_smoke_assert( false === (bool) ( $recent_error_log['result']['error_log']['contents_included'] ?? true ), 'default error log diagnostic does not include log contents' );
-maa_adapter_smoke_assert( array_key_exists( 'tail_entries', (array) ( $recent_error_log['result']['error_log'] ?? array() ) ), 'default error log diagnostic still exposes tail entries field' );
+maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary'] ?? null ), 'default error log diagnostic exposes severity summary without log contents' );
+foreach ( array( 'returned_lines', 'fatal_count', 'error_count', 'warning_count', 'deprecated_count', 'notice_count', 'info_count', 'unknown_count', 'summary_source' ) as $summary_field ) {
+	maa_adapter_smoke_assert( array_key_exists( $summary_field, $recent_error_log['result']['error_log']['summary'] ), 'default error log summary returns field: ' . $summary_field );
+}
 maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary']['by_severity'] ?? null ), 'default error log diagnostic exposes severity summary' );
 
 $recent_error_log_tail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/recent-error-log-tail' );

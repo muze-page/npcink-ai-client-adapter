@@ -108,11 +108,19 @@ an Application Password is available.
 ## Read Shortcuts
 
 Shortcut routes forward GET query parameters as ability input. Use only inputs
-accepted by the underlying ability schema.
+accepted by the underlying ability schema. For term details, use the `id` field
+returned by term list routes; the adapter infers `taxonomy` from the term id
+when possible, and also accepts `term_id` as an alias for `id`. Pass `taxonomy`
+when the caller already knows it.
 
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info"
+```
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/term?id=1"
 ```
 
 Troubleshooting diagnostics:
@@ -122,14 +130,44 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/active-plugins-detail"
 ```
 
+The default diagnostics input requests active plugins, update rows, must-use
+plugins, dropins, and log severity summaries, but it does not request inactive
+plugin rows:
+
+```json
+{
+  "include_log_contents": false,
+  "include_active_plugins": true,
+  "include_inactive_plugins": false,
+  "include_plugin_updates": true,
+  "include_must_use_plugins": true,
+  "include_dropins": true,
+  "max_plugins_per_group": 100
+}
+```
+
+For plugin conflict troubleshooting, explicitly request inactive plugin rows:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/plugin-conflict-diagnostics"
+```
+
+That route sends `include_inactive_plugins=true` and
+`max_plugins_per_group=200`.
+
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/recent-error-log"
 ```
 
-`recent-error-log` uses `{"include_log_contents":false}`. Treat log contents as
-not explicitly requested, not missing. When the user explicitly asks to inspect
-logs, request the bounded redacted tail:
+`recent-error-log` uses `include_log_contents=false`. Treat log contents as
+not explicitly requested, not missing. Use `error_log.summary.fatal_count`,
+`error_log.summary.error_count`, `error_log.summary.warning_count`,
+`error_log.summary.deprecated_count`, `error_log.summary.notice_count`, and
+`error_log.summary.by_severity` for severity display without fetching content.
+When the user explicitly asks to inspect logs, request the bounded redacted
+tail:
 
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
@@ -147,8 +185,8 @@ That route sends:
 }
 ```
 
-Prefer `error_log.tail_entries` and `error_log.summary.by_severity` for display.
-The `contents` array is compatibility redline text.
+Display `error_log.tail_entries` and `contents` only when
+`contents_included=true`. The `contents` array is compatibility redline text.
 
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
@@ -163,7 +201,8 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
 All P0/P1/P2 diagnostics detail shortcuts call
 `magick-ai-abilities/wp-ops-diagnostics-detail`. Do not use
 `wp-diagnostics-summary` to decide whether plugin details, user permissions, or
-log details are missing. Adapter does not add Magick AI runtime, MCP, or cloud
+log details are missing. Default inactive plugin rows are not missing; they are
+default not requested. Adapter does not add Magick AI runtime, MCP, or cloud
 state to the WordPress diagnostics mapping.
 
 Content context reads:

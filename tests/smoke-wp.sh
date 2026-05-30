@@ -78,5 +78,8 @@ if [[ ! -e "$plugin_dir" ]]; then
 	ln -s "$ROOT_DIR" "$plugin_dir"
 fi
 
-run_wp plugin activate magick-ai-adapter >/dev/null
+if [[ "$(run_wp plugin status magick-ai-adapter --field=status 2>/dev/null || true)" == "inactive" ]]; then
+	run_wp plugin activate magick-ai-adapter >/dev/null
+fi
+
 run_wp eval-file "$ROOT_DIR/tests/smoke-wp.php"

@@ -187,6 +187,7 @@ Read shortcuts:
 - `GET /wp-json/magick-ai-adapter/v1/wp-diagnostics-summary`
 - `GET /wp-json/magick-ai-adapter/v1/wp-ops-diagnostics-detail`
 - `GET /wp-json/magick-ai-adapter/v1/active-plugins-detail`
+- `GET /wp-json/magick-ai-adapter/v1/plugin-conflict-diagnostics`
 - `GET /wp-json/magick-ai-adapter/v1/recent-error-log`
 - `GET /wp-json/magick-ai-adapter/v1/recent-error-log-tail`
 - `GET /wp-json/magick-ai-adapter/v1/current-user-permissions`
@@ -215,7 +216,7 @@ Read shortcuts:
 - `GET /wp-json/magick-ai-adapter/v1/taxonomy-terms`
 - `GET /wp-json/magick-ai-adapter/v1/categories`
 - `GET /wp-json/magick-ai-adapter/v1/tags`
-- `GET /wp-json/magick-ai-adapter/v1/term`
+- `GET /wp-json/magick-ai-adapter/v1/term?id={terms.result.items[].id}`
 - `GET /wp-json/magick-ai-adapter/v1/comments`
 - `GET /wp-json/magick-ai-adapter/v1/users`
 - `GET /wp-json/magick-ai-adapter/v1/menu`
@@ -251,7 +252,29 @@ details are missing. All P0/P1/P2 troubleshooting detail shortcuts call
 Default detail input:
 
 ```json
-{ "include_log_contents": false }
+{
+  "include_log_contents": false,
+  "include_active_plugins": true,
+  "include_inactive_plugins": false,
+  "include_plugin_updates": true,
+  "include_must_use_plugins": true,
+  "include_dropins": true,
+  "max_plugins_per_group": 100
+}
+```
+
+Deep plugin conflict input:
+
+```json
+{
+  "include_log_contents": false,
+  "include_active_plugins": true,
+  "include_inactive_plugins": true,
+  "include_plugin_updates": true,
+  "include_must_use_plugins": true,
+  "include_dropins": true,
+  "max_plugins_per_group": 200
+}
 ```
 
 Explicit log inspection input:
@@ -266,17 +289,25 @@ Explicit log inspection input:
 ```
 
 When `include_log_contents=false`, log contents are not missing; mark them as
-not explicitly requested. OpenClaw should prefer `error_log.tail_entries` and
-`error_log.summary.by_severity`; `contents` is only compatibility redline text.
-Adapter must not implement `include_log_tail` compatibility. Adapter also must
-not mix Magick AI runtime, MCP, or cloud status into this WordPress diagnostics
-mapping.
+not explicitly requested. OpenClaw should use `error_log.summary` for
+`fatal_count`, `error_count`, `warning_count`, `deprecated_count`,
+`notice_count`, `summary_source`, and `error_log.summary.by_severity` without
+forcing log contents. Only display `error_log.tail_entries` or `contents` after
+explicit log inspection. Inactive plugin rows are not requested by default and
+must not be marked missing; use the deep plugin conflict input when the user
+needs inactive plugin rows. Adapter must not implement `include_log_tail`
+compatibility. Adapter also must not mix Magick AI runtime, MCP, or cloud status
+into this WordPress diagnostics mapping.
 
 The diagnostics detail response is expected to preserve these fields when the
 ability returns them:
 
-- P0: `plugins.active`, `plugins.inactive`, `plugins.update_available`,
-  `plugins.must_use`, `plugins.dropins`, `current_user`, `error_log`
+- P0: `plugins.groups_included`, `plugins.max_plugins_per_group`,
+  `plugins.available_count`, `plugins.active_count`,
+  `plugins.inactive_count`, `plugins.update_available_count`,
+  `plugins.mu_count`, `plugins.dropin_count`, `plugins.active`,
+  `plugins.inactive`, `plugins.update_available`, `plugins.must_use`,
+  `plugins.dropins`, `current_user`, `error_log`
 - P1: `php.extensions.loaded`, `php.extensions.common_status`,
   `object_cache`, `rewrite`, `database`, `server`
 - P2: `https`, `content_types`, `roles`, `widgets`, `block_theme`, `search`,
@@ -290,8 +321,14 @@ Plugin rows should be displayed with `slug`, `plugin_file`, `name`, `version`,
 `user_id`, `user_login`, `display_name`, `roles`, `capabilities`,
 `common_capabilities`, and `magick_ai_permissions`. Error-log rows should
 display `contents_included`, `log_exists`, `log_readable`, `log_size_bytes`,
-`log_modified_gmt`, `tail_entries`, `summary.by_severity`, `severity_filter`,
-and `since_minutes`.
+`log_modified_gmt`, `summary`, `summary.returned_lines`,
+`summary.fatal_count`, `summary.error_count`, `summary.warning_count`,
+`summary.deprecated_count`, `summary.notice_count`, `summary.info_count`,
+`summary.unknown_count`, `summary.latest_fatal_at`, `summary.latest_error_at`,
+`summary.latest_warning_at`, `summary.latest_deprecated_at`,
+`summary.latest_notice_at`, `summary.summary_source`,
+`summary.by_severity`, `severity_filter`, and `since_minutes`. Display
+`tail_entries` and `contents` only when `contents_included=true`.
 
 Content shortcuts forward query parameters into the ability input, including
 `magick-ai/list-posts` filters (`author_id`, `taxonomy`, `term_id`,

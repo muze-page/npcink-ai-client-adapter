@@ -40,6 +40,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/wp-diagnostics-summary`
 - `GET /wp-json/magick-ai-adapter/v1/wp-ops-diagnostics-detail`
 - `GET /wp-json/magick-ai-adapter/v1/active-plugins-detail`
+- `GET /wp-json/magick-ai-adapter/v1/plugin-conflict-diagnostics`
 - `GET /wp-json/magick-ai-adapter/v1/recent-error-log`
 - `GET /wp-json/magick-ai-adapter/v1/recent-error-log-tail`
 - `GET /wp-json/magick-ai-adapter/v1/current-user-permissions`
@@ -68,7 +69,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/taxonomy-terms`
 - `GET /wp-json/magick-ai-adapter/v1/categories`
 - `GET /wp-json/magick-ai-adapter/v1/tags`
-- `GET /wp-json/magick-ai-adapter/v1/term`
+- `GET /wp-json/magick-ai-adapter/v1/term?id={terms.result.items[].id}`
 - `GET /wp-json/magick-ai-adapter/v1/comments`
 - `GET /wp-json/magick-ai-adapter/v1/users`
 - `GET /wp-json/magick-ai-adapter/v1/menu`
@@ -104,7 +105,31 @@ detail shortcuts call `magick-ai-abilities/wp-ops-diagnostics-detail`.
 Default diagnostics detail input is:
 
 ```json
-{ "include_log_contents": false }
+{
+  "include_log_contents": false,
+  "include_active_plugins": true,
+  "include_inactive_plugins": false,
+  "include_plugin_updates": true,
+  "include_must_use_plugins": true,
+  "include_dropins": true,
+  "max_plugins_per_group": 100
+}
+```
+
+For deep plugin conflict troubleshooting, use
+`GET /wp-json/magick-ai-adapter/v1/plugin-conflict-diagnostics` or send the
+equivalent input:
+
+```json
+{
+  "include_log_contents": false,
+  "include_active_plugins": true,
+  "include_inactive_plugins": true,
+  "include_plugin_updates": true,
+  "include_must_use_plugins": true,
+  "include_dropins": true,
+  "max_plugins_per_group": 200
+}
 ```
 
 When OpenClaw explicitly asks to inspect logs, use `recent-error-log-tail` or
@@ -120,12 +145,20 @@ send the equivalent input:
 ```
 
 When `include_log_contents=false`, log contents are not missing; mark them as
-not explicitly requested. OpenClaw should display `error_log.tail_entries` and
-`error_log.summary.by_severity` when contents are requested. The compatibility
-`contents` array is only redline text for display. The diagnostics abilities own
-redaction and schema boundaries. Adapter does not read arbitrary files, expose
-database names/table names, collect secrets, invent diagnostics data, or mix
-Magick AI runtime, MCP, or cloud state into the WordPress diagnostics mapping.
+not explicitly requested. OpenClaw should use `error_log.summary` for
+`fatal_count`, `error_count`, `warning_count`, `deprecated_count`,
+`notice_count`, `summary_source`, and `error_log.summary.by_severity` even when
+contents are not included. Only display `error_log.tail_entries` or `contents`
+after the user explicitly asks for logs. Inactive plugin rows are not requested
+by default; show them as default not requested, not missing. Plugin details are
+grouped by `plugins.active`, `plugins.inactive`, `plugins.update_available`,
+`plugins.must_use`, and `plugins.dropins`, with `plugins.groups_included` and
+`plugins.max_plugins_per_group` describing which groups were requested. The
+compatibility `contents` array is only redline text for display. The
+diagnostics abilities own redaction and schema boundaries. Adapter does not
+read arbitrary files, expose database names/table names, collect secrets,
+invent diagnostics data, or mix Magick AI runtime, MCP, or cloud state into the
+WordPress diagnostics mapping.
 
 Content shortcuts pass query parameters through to the underlying ability input,
 including the current `magick-ai/list-posts` filters, richer
@@ -165,6 +198,8 @@ The page shows:
 - a `Create OpenClaw handoff` action that creates a WordPress Application
   Password for the current administrator and shows it once;
 - supported read shortcut routes and their real `ability_id` values;
+- flat `GET /help` route rows under `routes`, plus human-readable
+  `route_groups`;
 - Application Password handoff steps;
 - copyable health and proposal example requests;
 - proposal list/detail routes for OpenClaw status polling;
