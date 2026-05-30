@@ -34,11 +34,35 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/help`
 - `GET /wp-json/magick-ai-adapter/v1/capabilities`
 - `POST /wp-json/magick-ai-adapter/v1/run-read-ability`
+- `POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke`
 - `GET /wp-json/magick-ai-adapter/v1/site-info`
 - `GET /wp-json/magick-ai-adapter/v1/site-summary`
 - `GET /wp-json/magick-ai-adapter/v1/wp-diagnostics-summary`
+- `GET /wp-json/magick-ai-adapter/v1/wp-ops-diagnostics-detail`
+- `GET /wp-json/magick-ai-adapter/v1/active-plugins-detail`
+- `GET /wp-json/magick-ai-adapter/v1/recent-error-log`
+- `GET /wp-json/magick-ai-adapter/v1/recent-error-log-tail`
+- `GET /wp-json/magick-ai-adapter/v1/current-user-permissions`
+- `GET /wp-json/magick-ai-adapter/v1/php-extensions`
+- `GET /wp-json/magick-ai-adapter/v1/object-cache-status`
+- `GET /wp-json/magick-ai-adapter/v1/database-info`
+- `GET /wp-json/magick-ai-adapter/v1/rewrite-rules-status`
+- `GET /wp-json/magick-ai-adapter/v1/cron-events-detail`
+- `GET /wp-json/magick-ai-adapter/v1/ssl-https-status`
+- `GET /wp-json/magick-ai-adapter/v1/custom-post-types`
+- `GET /wp-json/magick-ai-adapter/v1/roles-capabilities`
+- `GET /wp-json/magick-ai-adapter/v1/widgets-sidebars`
+- `GET /wp-json/magick-ai-adapter/v1/block-theme-assets`
+- `GET /wp-json/magick-ai-adapter/v1/search-index-status`
+- `GET /wp-json/magick-ai-adapter/v1/server-info`
+- `GET /wp-json/magick-ai-adapter/v1/integrations-status`
+- `GET /wp-json/magick-ai-adapter/v1/seo-summary`
+- `GET /wp-json/magick-ai-adapter/v1/security-summary`
+- `GET /wp-json/magick-ai-adapter/v1/performance-summary`
 - `GET /wp-json/magick-ai-adapter/v1/workflow-recipes`
 - `GET /wp-json/magick-ai-adapter/v1/workflow-recipe?recipe_id=workflow/...`
+- `GET /wp-json/magick-ai-adapter/v1/posts`
+- `GET /wp-json/magick-ai-adapter/v1/post-context`
 - `GET /wp-json/magick-ai-adapter/v1/media`
 - `GET /wp-json/magick-ai-adapter/v1/terms`
 - `GET /wp-json/magick-ai-adapter/v1/taxonomy-terms`
@@ -46,6 +70,8 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/tags`
 - `GET /wp-json/magick-ai-adapter/v1/term`
 - `GET /wp-json/magick-ai-adapter/v1/comments`
+- `GET /wp-json/magick-ai-adapter/v1/users`
+- `GET /wp-json/magick-ai-adapter/v1/menu`
 - `GET /wp-json/magick-ai-adapter/v1/internal-link-targets`
 - `GET /wp-json/magick-ai-adapter/v1/post-stats`
 - `GET /wp-json/magick-ai-adapter/v1/post-revisions`
@@ -70,13 +96,59 @@ GET shortcut query parameters are forwarded as ability `input`. For example,
 `/media?per_page=10&has_empty_alt=1` becomes read input for
 `magick-ai/list-media`.
 
+Diagnostics shortcuts are Adapter aliases over existing direct-read abilities
+from `magick-ai-abilities`; Adapter does not collect these facts itself.
+`wp-diagnostics-summary` is only a quick overview. P0/P1/P2 troubleshooting
+detail shortcuts call `magick-ai-abilities/wp-ops-diagnostics-detail`.
+
+Default diagnostics detail input is:
+
+```json
+{ "include_log_contents": false }
+```
+
+When OpenClaw explicitly asks to inspect logs, use `recent-error-log-tail` or
+send the equivalent input:
+
+```json
+{
+  "include_log_contents": true,
+  "tail_lines": 50,
+  "severity": ["fatal", "error", "warning"],
+  "since_minutes": 1440
+}
+```
+
+When `include_log_contents=false`, log contents are not missing; mark them as
+not explicitly requested. OpenClaw should display `error_log.tail_entries` and
+`error_log.summary.by_severity` when contents are requested. The compatibility
+`contents` array is only redline text for display. The diagnostics abilities own
+redaction and schema boundaries. Adapter does not read arbitrary files, expose
+database names/table names, collect secrets, invent diagnostics data, or mix
+Magick AI runtime, MCP, or cloud state into the WordPress diagnostics mapping.
+
+Content shortcuts pass query parameters through to the underlying ability input,
+including the current `magick-ai/list-posts` filters, richer
+`magick-ai/get-post-context` output, term sample-post flags, user
+`author_profile`, comment post context, media `attached_to`/`usage`, and
+`magick-ai/get-menu` tree output.
+
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
-and `openclaw_thread_id` into AI Request Logs context through the
-`wpai_request_log_context` filter while an ability is running. POST
-`/run-read-ability` accepts the same values in a top-level `log_context`
-object. This lets AI Request Logs execution rows correlate with Core proposal
-and commit-preflight audit records without merging the two log systems.
+`openclaw_thread_id`, `ability_id`, `adapter_request_id`, `adapter_route`,
+`ai_provider`, `ai_model`, `governance_source=magick-ai-core`, and nested
+`magick_ai_core.proposal_id` / `magick_ai_core.correlation_id` into AI Request
+Logs context through the `wpai_request_log_context` filter while an ability or
+bounded provider smoke request is running. POST `/run-read-ability` accepts
+these values in a top-level `log_context` object. This lets AI Request Logs
+execution rows correlate with Core proposal and commit-preflight audit records
+without merging the two log systems.
+
+Core Governance Audit is the governance log. WordPress `ai` plugin AI Request
+Logs are the provider request log. Adapter carries identifiers between them but
+does not put provider credentials, prompts, responses, token details, or AI
+Request Logs into Core.
+AI Request Logs are the provider request log.
 
 ## OpenClaw Connection UI
 
@@ -108,6 +180,9 @@ For local setup steps, see
 
 For productized OpenClaw acceptance, use
 [`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).
+
+The Cloud connector boundary and next implementation sequence are documented in
+[`docs/cloud-connector-boundary.md`](docs/cloud-connector-boundary.md).
 
 ## OpenClaw Integration
 
@@ -172,8 +247,21 @@ proposal payloads, error responses, or documentation examples.
 When OpenClaw has a Core `proposal_id` or commit-preflight `correlation_id`, it
 should pass those values to Adapter read or future execution requests as
 `log_context` or query parameters. Adapter will include them under
-`magick_ai_adapter` in AI Request Logs context and also expose top-level
-`proposal_id` and `correlation_id` context fields for quick inspection.
+`magick_ai_adapter`, top-level context fields, and nested `magick_ai_core`
+context for provider request log correlation.
+
+For local readiness smoke, administrators can call:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"magick-ai/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
+  "https://example.test/wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke"
+```
+
+If the AI Request Logs provider column is blank for a local connector, inspect
+the Adapter context fields instead: `ai_provider=ollama` and
+`ai_model=qwen3.5:0.8b`.
 
 `POST /proposals/{proposal_id}/approve` and
 `POST /proposals/{proposal_id}/reject` are disabled stubs. They return HTTP 403

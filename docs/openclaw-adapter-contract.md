@@ -66,15 +66,48 @@ For read routes and future execution handoff routes, OpenClaw may pass:
 - `correlation_id`;
 - `external_thread_id`;
 - `openclaw_thread_id`;
+- `adapter_request_id`;
+- `adapter_route`;
+- `ai_provider`;
+- `ai_model`;
 - a top-level `log_context` object on POST `/run-read-ability`.
 
 Adapter must not forward those reserved query fields as ability input. While an
 ability is running, Adapter adds the sanitized values to AI Request Logs via the
 `wpai_request_log_context` filter. The AI log context receives a
-`magick_ai_adapter` object and top-level `proposal_id` and `correlation_id`
-when present. This lets operators correlate AI Request Logs execution rows with
-Core proposal/audit/preflight records without merging tables or making Core an
-AI request logger.
+`magick_ai_adapter` object, top-level provider correlation fields, and nested
+`magick_ai_core.proposal_id` / `magick_ai_core.correlation_id` when present.
+
+Every real provider call owned by Adapter must write at least:
+
+```text
+proposal_id
+correlation_id
+ability_id
+adapter_request_id
+adapter_route
+ai_provider
+ai_model
+governance_source=magick-ai-core
+```
+
+Core Governance Audit is the governance log. WordPress `ai` plugin AI Request
+Logs are the provider request log. Adapter carries identifiers between them but
+does not store provider credentials, prompts, responses, token details, or AI
+Request Logs in Core. If the AI Request Logs provider column is blank for a
+local connector, OpenClaw should inspect Adapter context fields such as
+`ai_provider=ollama` and `ai_model=qwen3.5:0.8b`.
+AI Request Logs are the provider request log.
+
+For local readiness smoke, Adapter exposes:
+
+```text
+POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke
+```
+
+This route is bounded to proving WordPress AI Client / provider request log
+correlation. It is not workflow runtime, MCP runtime, model routing policy, or
+final WordPress mutation.
 
 ## Proposal Status Read Proxy
 
@@ -152,8 +185,31 @@ Read shortcuts:
 - `GET /wp-json/magick-ai-adapter/v1/site-info`
 - `GET /wp-json/magick-ai-adapter/v1/site-summary`
 - `GET /wp-json/magick-ai-adapter/v1/wp-diagnostics-summary`
+- `GET /wp-json/magick-ai-adapter/v1/wp-ops-diagnostics-detail`
+- `GET /wp-json/magick-ai-adapter/v1/active-plugins-detail`
+- `GET /wp-json/magick-ai-adapter/v1/recent-error-log`
+- `GET /wp-json/magick-ai-adapter/v1/recent-error-log-tail`
+- `GET /wp-json/magick-ai-adapter/v1/current-user-permissions`
+- `GET /wp-json/magick-ai-adapter/v1/php-extensions`
+- `GET /wp-json/magick-ai-adapter/v1/object-cache-status`
+- `GET /wp-json/magick-ai-adapter/v1/database-info`
+- `GET /wp-json/magick-ai-adapter/v1/rewrite-rules-status`
+- `GET /wp-json/magick-ai-adapter/v1/cron-events-detail`
+- `GET /wp-json/magick-ai-adapter/v1/ssl-https-status`
+- `GET /wp-json/magick-ai-adapter/v1/custom-post-types`
+- `GET /wp-json/magick-ai-adapter/v1/roles-capabilities`
+- `GET /wp-json/magick-ai-adapter/v1/widgets-sidebars`
+- `GET /wp-json/magick-ai-adapter/v1/block-theme-assets`
+- `GET /wp-json/magick-ai-adapter/v1/search-index-status`
+- `GET /wp-json/magick-ai-adapter/v1/server-info`
+- `GET /wp-json/magick-ai-adapter/v1/integrations-status`
+- `GET /wp-json/magick-ai-adapter/v1/seo-summary`
+- `GET /wp-json/magick-ai-adapter/v1/security-summary`
+- `GET /wp-json/magick-ai-adapter/v1/performance-summary`
 - `GET /wp-json/magick-ai-adapter/v1/workflow-recipes`
 - `GET /wp-json/magick-ai-adapter/v1/workflow-recipe?recipe_id=workflow/...`
+- `GET /wp-json/magick-ai-adapter/v1/posts`
+- `GET /wp-json/magick-ai-adapter/v1/post-context`
 - `GET /wp-json/magick-ai-adapter/v1/media`
 - `GET /wp-json/magick-ai-adapter/v1/terms`
 - `GET /wp-json/magick-ai-adapter/v1/taxonomy-terms`
@@ -161,6 +217,8 @@ Read shortcuts:
 - `GET /wp-json/magick-ai-adapter/v1/tags`
 - `GET /wp-json/magick-ai-adapter/v1/term`
 - `GET /wp-json/magick-ai-adapter/v1/comments`
+- `GET /wp-json/magick-ai-adapter/v1/users`
+- `GET /wp-json/magick-ai-adapter/v1/menu`
 - `GET /wp-json/magick-ai-adapter/v1/internal-link-targets`
 - `GET /wp-json/magick-ai-adapter/v1/post-stats`
 - `GET /wp-json/magick-ai-adapter/v1/post-revisions`
@@ -178,6 +236,70 @@ Read shortcuts:
 Generic read:
 
 - `POST /wp-json/magick-ai-adapter/v1/run-read-ability`
+
+Diagnostics shortcuts must remain aliases over `magick-ai-abilities`
+direct-read abilities. Adapter must not collect plugin details, error-log
+details, current-user capabilities, PHP extension state, database details,
+rewrite state, cron details, roles, widgets, block-theme details, or search
+status itself.
+
+`wp-diagnostics-summary` is only a quick overview. OpenClaw must not use it to
+decide whether plugin details, current-user permission details, or error-log
+details are missing. All P0/P1/P2 troubleshooting detail shortcuts call
+`magick-ai-abilities/wp-ops-diagnostics-detail`.
+
+Default detail input:
+
+```json
+{ "include_log_contents": false }
+```
+
+Explicit log inspection input:
+
+```json
+{
+  "include_log_contents": true,
+  "tail_lines": 50,
+  "severity": ["fatal", "error", "warning"],
+  "since_minutes": 1440
+}
+```
+
+When `include_log_contents=false`, log contents are not missing; mark them as
+not explicitly requested. OpenClaw should prefer `error_log.tail_entries` and
+`error_log.summary.by_severity`; `contents` is only compatibility redline text.
+Adapter must not implement `include_log_tail` compatibility. Adapter also must
+not mix Magick AI runtime, MCP, or cloud status into this WordPress diagnostics
+mapping.
+
+The diagnostics detail response is expected to preserve these fields when the
+ability returns them:
+
+- P0: `plugins.active`, `plugins.inactive`, `plugins.update_available`,
+  `plugins.must_use`, `plugins.dropins`, `current_user`, `error_log`
+- P1: `php.extensions.loaded`, `php.extensions.common_status`,
+  `object_cache`, `rewrite`, `database`, `server`
+- P2: `https`, `content_types`, `roles`, `widgets`, `block_theme`, `search`,
+  `integrations`, `seo_summary`, `security_summary`, `performance_summary`,
+  `cron_events.events`
+
+Plugin rows should be displayed with `slug`, `plugin_file`, `name`, `version`,
+`author`, `status`, `network_active`, `must_use`, `requires_wp`,
+`requires_php`, `dependencies`, `dependency_count`, `is_magick_ai`,
+`update_available`, and `latest_version`. Current-user rows should display
+`user_id`, `user_login`, `display_name`, `roles`, `capabilities`,
+`common_capabilities`, and `magick_ai_permissions`. Error-log rows should
+display `contents_included`, `log_exists`, `log_readable`, `log_size_bytes`,
+`log_modified_gmt`, `tail_entries`, `summary.by_severity`, `severity_filter`,
+and `since_minutes`.
+
+Content shortcuts forward query parameters into the ability input, including
+`magick-ai/list-posts` filters (`author_id`, `taxonomy`, `term_id`,
+`term_slug`, `date_after`, `date_before`, `modified_after`,
+`modified_before`, `orderby`, `order`), term sample-post flags
+(`include_sample_posts`, `sample_post_limit`), user `author_profile`, comment
+post context, media `attached_to`/`usage`, and `magick-ai/get-menu` tree output.
+Adapter does not reshape those fields.
 
 Governance:
 

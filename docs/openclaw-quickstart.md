@@ -115,6 +115,74 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info"
 ```
 
+Troubleshooting diagnostics:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/active-plugins-detail"
+```
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/recent-error-log"
+```
+
+`recent-error-log` uses `{"include_log_contents":false}`. Treat log contents as
+not explicitly requested, not missing. When the user explicitly asks to inspect
+logs, request the bounded redacted tail:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/recent-error-log-tail"
+```
+
+That route sends:
+
+```json
+{
+  "include_log_contents": true,
+  "tail_lines": 50,
+  "severity": ["fatal", "error", "warning"],
+  "since_minutes": 1440
+}
+```
+
+Prefer `error_log.tail_entries` and `error_log.summary.by_severity` for display.
+The `contents` array is compatibility redline text.
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/current-user-permissions"
+```
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/database-info"
+```
+
+All P0/P1/P2 diagnostics detail shortcuts call
+`magick-ai-abilities/wp-ops-diagnostics-detail`. Do not use
+`wp-diagnostics-summary` to decide whether plugin details, user permissions, or
+log details are missing. Adapter does not add Magick AI runtime, MCP, or cloud
+state to the WordPress diagnostics mapping.
+
+Content context reads:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/posts?author_id=1&orderby=modified&order=desc"
+```
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/terms?taxonomy=category&include_sample_posts=1&sample_post_limit=3"
+```
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/menu?location=primary"
+```
+
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/media?per_page=1"
@@ -127,6 +195,10 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
 
 If a route returns `magick_ai_adapter_proposal_required`, stop and use the
 proposal flow instead of trying to execute the ability directly.
+
+Diagnostics shortcuts are aliases over `magick-ai-abilities` direct-read
+abilities. Adapter does not read arbitrary files, inspect database tables
+directly, or own redaction policy.
 
 ## Proposal-Required Write Flow
 
@@ -190,6 +262,28 @@ For `POST /run-read-ability`, send the same values in a top-level
 `log_context` object. Adapter copies these values into AI Request Logs context
 through `wpai_request_log_context`; it does not merge AI Request Logs with Core
 audit, and it does not forward those reserved fields as ability input.
+
+Core Governance Audit is the governance log. WordPress `ai` plugin AI Request
+Logs are the provider request log. Adapter carries `proposal_id`,
+`correlation_id`, `ability_id`, `adapter_request_id`, `adapter_route`,
+`ai_provider`, `ai_model`, `governance_source=magick-ai-core`, and nested
+`magick_ai_core` identifiers into AI Request Logs context. It does not put
+provider credentials, prompts, responses, token details, or AI Request Logs into
+Core.
+AI Request Logs are the provider request log.
+
+Local Ollama readiness smoke after Core approval and Adapter commit-preflight:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"magick-ai/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke"
+```
+
+Then open AI Request Logs and search the same `proposal_id` or
+`correlation_id`. If the provider column is blank for local Ollama, use the
+Adapter context fields `ai_provider=ollama` and `ai_model=qwen3.5:0.8b`.
 
 Approval and rejection endpoints are visible only as disabled stubs:
 

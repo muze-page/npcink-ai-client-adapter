@@ -63,6 +63,14 @@ Run this order for a local acceptance pass:
    - `GET /active-plugins-detail`
    - `GET /current-user-permissions`
    - `GET /database-info`
+   Confirm diagnostics details come from
+   `magick-ai-abilities/wp-ops-diagnostics-detail`, not from
+   `wp-diagnostics-summary`.
+   With default `include_log_contents=false`, log contents are not explicitly
+   requested and must not be marked missing.
+   When log inspection is explicitly requested, call
+   `GET /recent-error-log-tail` and display `error_log.tail_entries` plus
+   `error_log.summary.by_severity`.
 8. Create a governed write proposal with `POST /proposals`.
 9. Query status through Adapter:
    - `GET /proposals?limit=10`
@@ -74,7 +82,13 @@ Run this order for a local acceptance pass:
 13. Confirm Core still returns `commit_execution=false`.
 14. Pass `proposal_id` and `correlation_id` into later reads as query fields or
     as POST `/run-read-ability` `log_context`.
-15. Confirm correlation in:
+15. Call `POST /ai-provider-log-correlation-smoke` with local Ollama
+    `ai_provider=ollama` and `ai_model=qwen3.5:0.8b`.
+16. Confirm the AI Request Logs row has `status=success` and context fields:
+    `proposal_id`, `correlation_id`, `ability_id`, `adapter_request_id`,
+    `adapter_route`, `ai_provider`, `ai_model`,
+    `governance_source=magick-ai-core`, and nested `magick_ai_core`.
+17. Confirm correlation in:
     - Core Governance Audit, filtered by `proposal_id` or `correlation_id`;
     - AI Request Logs, using Adapter context fields.
 
@@ -197,6 +211,10 @@ OpenClaw consumer acceptance is complete when:
   all verified through Adapter;
 - Core audit and AI Request Logs can be correlated with `proposal_id` or
   `correlation_id`;
+- Core Governance Audit remains the governance log, and WordPress `ai` plugin
+  AI Request Logs remain the provider request log;
+- AI Request Logs context records `ai_provider=ollama` and
+  `ai_model=qwen3.5:0.8b` even if the provider column is blank;
 - disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
   proposal state;
 - `commit_execution=false` remains true at preflight;

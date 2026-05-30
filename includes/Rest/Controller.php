@@ -98,15 +98,61 @@ final class Controller {
 			)
 		);
 
-		foreach ( self::read_shortcuts() as $route => $ability_id ) {
+		register_rest_route(
+			self::NAMESPACE,
+			'/ai-provider-log-correlation-smoke',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'ai_provider_log_correlation_smoke' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'proposal_id'    => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'correlation_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'ability_id'     => array(
+							'type'              => 'string',
+							'default'           => 'magick-ai-adapter/provider-log-correlation-smoke',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'ai_provider'    => array(
+							'type'              => 'string',
+							'default'           => 'ollama',
+							'sanitize_callback' => 'sanitize_key',
+						),
+						'ai_model'       => array(
+							'type'              => 'string',
+							'default'           => 'qwen3.5:0.8b',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'prompt'         => array(
+							'type'              => 'string',
+							'default'           => 'Reply with exactly: OK',
+							'sanitize_callback' => 'sanitize_textarea_field',
+						),
+					),
+				),
+			)
+		);
+
+		foreach ( self::read_shortcut_definitions() as $route => $definition ) {
+			$ability_id    = (string) ( $definition['ability_id'] ?? '' );
+			$default_input = is_array( $definition['default_input'] ?? null ) ? $definition['default_input'] : array();
 			register_rest_route(
 				self::NAMESPACE,
 				'/' . $route,
 				array(
 					array(
 						'methods'             => WP_REST_Server::READABLE,
-						'callback'            => function ( WP_REST_Request $request ) use ( $ability_id ) {
-							return $this->run_read_ability( $ability_id, $this->shortcut_input( $request ), $this->request_log_context( $request, $ability_id ) );
+						'callback'            => function ( WP_REST_Request $request ) use ( $ability_id, $default_input ) {
+							return $this->run_read_ability( $ability_id, $this->shortcut_input( $request, $default_input ), $this->request_log_context( $request, $ability_id ) );
 						},
 						'permission_callback' => array( $this, 'can_use_adapter' ),
 					),
@@ -296,6 +342,14 @@ final class Controller {
 					'correlation_id',
 					'external_thread_id',
 					'openclaw_thread_id',
+					'ability_id',
+					'adapter_request_id',
+					'adapter_route',
+					'ai_provider',
+					'ai_model',
+					'governance_source',
+					'magick_ai_core.proposal_id',
+					'magick_ai_core.correlation_id',
 				),
 				'core_app_token_required_scopes' => array(
 					'capabilities:read',
@@ -307,6 +361,7 @@ final class Controller {
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
 				),
+				'diagnostics'             => $this->diagnostics_contract(),
 				'supported_guidance'     => array(
 					'read'  => array(
 						'governance_mode'   => 'direct_read',
@@ -375,6 +430,9 @@ final class Controller {
 					'generic_read'    => array(
 						'POST /run-read-ability',
 					),
+					'provider_log_correlation' => array(
+						'POST /ai-provider-log-correlation-smoke',
+					),
 					'proposal_status' => array(
 						'GET /proposals',
 						'GET /proposals/{proposal_id}',
@@ -403,6 +461,16 @@ final class Controller {
 						'openclaw_thread_id',
 					),
 					'target'         => 'wpai_request_log_context',
+					'required_fields' => array(
+						'proposal_id',
+						'correlation_id',
+						'ability_id',
+						'adapter_request_id',
+						'adapter_route',
+						'ai_provider',
+						'ai_model',
+						'governance_source',
+					),
 				),
 				'core_app_token_required_scopes' => array(
 					'capabilities:read',
@@ -414,6 +482,7 @@ final class Controller {
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
 				),
+				'diagnostics'    => $this->diagnostics_contract(),
 				'non_goals'     => array(
 					'approval_proxy_enabled' => false,
 					'reject_proxy_enabled'   => false,
@@ -462,6 +531,84 @@ final class Controller {
 				'recipe_id' => (string) $request->get_param( 'recipe_id' ),
 			),
 			$this->request_log_context( $request, 'magick-ai-abilities/get-workflow-recipe' )
+		);
+	}
+
+	/**
+	 * Runs a bounded local provider request to prove AI Request Logs correlation.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function ai_provider_log_correlation_smoke( WP_REST_Request $request ) {
+		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_ai_client_unavailable',
+				__( 'WordPress AI Client is not available.', 'magick-ai-adapter' ),
+				array( 'status' => 501 )
+			);
+		}
+
+		$ability_id  = (string) $request->get_param( 'ability_id' );
+		$ai_provider = sanitize_key( (string) $request->get_param( 'ai_provider' ) );
+		$ai_model    = sanitize_text_field( (string) $request->get_param( 'ai_model' ) );
+		$prompt      = sanitize_textarea_field( (string) $request->get_param( 'prompt' ) );
+
+		if ( '' === $ai_provider || '' === $ai_model ) {
+			return new WP_Error(
+				'magick_ai_adapter_ai_provider_model_required',
+				__( 'AI provider and model are required for provider log correlation smoke.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$log_context                = $this->request_log_context( $request, $ability_id );
+		$log_context['ai_provider'] = $ai_provider;
+		$log_context['ai_model']    = $ai_model;
+		$log_context                = $this->sanitize_log_context( $log_context );
+
+		$result = $this->with_ai_request_log_context(
+			$log_context,
+			static function () use ( $prompt, $ai_provider, $ai_model ) {
+				$builder = wp_ai_client_prompt( $prompt );
+
+				if ( is_callable( array( $builder, 'using_provider' ) ) ) {
+					$builder = $builder->using_provider( $ai_provider );
+				}
+
+				if ( is_callable( array( $builder, 'using_model_preference' ) ) ) {
+					$builder = $builder->using_model_preference( array( $ai_provider, $ai_model ) );
+				}
+
+				if ( is_callable( array( $builder, 'using_max_tokens' ) ) ) {
+					$builder = $builder->using_max_tokens( 16 );
+				}
+
+				if ( is_callable( array( $builder, 'using_temperature' ) ) ) {
+					$builder = $builder->using_temperature( 0.0 );
+				}
+
+				return $builder->generate_text();
+			}
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'status'             => 'success',
+				'provider_call'      => 'wp_ai_client_prompt',
+				'ai_provider'        => $ai_provider,
+				'ai_model'           => $ai_model,
+				'governance_source'  => 'magick-ai-core',
+				'log_context'        => $log_context,
+				'response_preview'   => $this->text_preview( (string) $result ),
+				'core_proxy_execute' => false,
+				'commit_execution'   => false,
+			),
+			200
 		);
 	}
 
@@ -622,12 +769,28 @@ final class Controller {
 			return $this->dispatch_upstream( $method, $route, $params, $query_params );
 		}
 
+		return $this->with_ai_request_log_context(
+			$log_context,
+			function () use ( $method, $route, $params, $query_params ) {
+				return $this->dispatch_upstream( $method, $route, $params, $query_params );
+			}
+		);
+	}
+
+	/**
+	 * Runs a callback while adding adapter governance context to AI logs.
+	 *
+	 * @param array<string,mixed> $log_context Log context.
+	 * @param callable            $callback Callback.
+	 * @return mixed
+	 */
+	private function with_ai_request_log_context( array $log_context, callable $callback ) {
 		$previous                          = $this->current_request_log_context;
 		$this->current_request_log_context = $log_context;
 		add_filter( 'wpai_request_log_context', array( $this, 'append_ai_request_log_context' ), 10, 3 );
 
 		try {
-			return $this->dispatch_upstream( $method, $route, $params, $query_params );
+			return $callback();
 		} finally {
 			remove_filter( 'wpai_request_log_context', array( $this, 'append_ai_request_log_context' ), 10 );
 			$this->current_request_log_context = $previous;
@@ -649,10 +812,14 @@ final class Controller {
 
 		$context['magick_ai_adapter'] = $this->current_request_log_context;
 
-		foreach ( array( 'proposal_id', 'correlation_id' ) as $key ) {
+		foreach ( array( 'proposal_id', 'correlation_id', 'ability_id', 'adapter_request_id', 'adapter_route', 'ai_provider', 'ai_model', 'governance_source' ) as $key ) {
 			if ( isset( $this->current_request_log_context[ $key ] ) ) {
 				$context[ $key ] = $this->current_request_log_context[ $key ];
 			}
+		}
+
+		if ( isset( $this->current_request_log_context['magick_ai_core'] ) && is_array( $this->current_request_log_context['magick_ai_core'] ) ) {
+			$context['magick_ai_core'] = $this->current_request_log_context['magick_ai_core'];
 		}
 
 		return $context;
@@ -761,31 +928,158 @@ final class Controller {
 	 * @return array<string,string>
 	 */
 	public static function read_shortcuts(): array {
+		$shortcuts = array();
+		foreach ( self::read_shortcut_definitions() as $route => $definition ) {
+			$shortcuts[ $route ] = (string) ( $definition['ability_id'] ?? '' );
+		}
+
+		return $shortcuts;
+	}
+
+	/**
+	 * Returns supported read shortcut definitions.
+	 *
+	 * @return array<string,array{ability_id:string,default_input?:array<string,mixed>}>
+	 */
+	private static function read_shortcut_definitions(): array {
+		$summary_ability = 'magick-ai-abilities/wp-diagnostics-summary';
+		$ops_ability     = 'magick-ai-abilities/wp-ops-diagnostics-detail';
+
 		return array(
-			'site-info'              => 'magick-ai/site-info',
-			'site-summary'           => 'magick-ai-abilities/site-summary',
-			'wp-diagnostics-summary' => 'magick-ai-abilities/wp-diagnostics-summary',
-			'workflow-recipes'       => 'magick-ai-abilities/list-workflow-recipes',
-			'media'                  => 'magick-ai/list-media',
-			'terms'                  => 'magick-ai/list-terms',
-			'taxonomy-terms'         => 'magick-ai/list-taxonomy-terms',
-			'categories'             => 'magick-ai/list-categories',
-			'tags'                   => 'magick-ai/list-tags',
-			'term'                   => 'magick-ai/get-term',
-			'comments'               => 'magick-ai/list-comments',
-			'internal-link-targets'   => 'magick-ai/resolve-internal-link-targets',
-			'post-stats'             => 'magick-ai/get-post-stats',
-			'post-revisions'         => 'magick-ai/list-revisions',
-			'post-meta'              => 'magick-ai/get-post-meta',
-			'pages'                  => 'magick-ai/list-pages',
-			'page'                   => 'magick-ai/get-page',
-			'page-structure'         => 'magick-ai/inspect-page-structure',
-			'pages-tree'             => 'magick-ai/list-pages-tree',
-			'content-inventory-health' => 'magick-ai/get-content-inventory-health',
-			'site-operations-dashboard' => 'magick-ai/get-site-operations-dashboard',
-			'publishing-calendar-context' => 'magick-ai/get-publishing-calendar-context',
-			'media-inventory-health' => 'magick-ai/get-media-inventory-health',
-			'taxonomy-inventory-health' => 'magick-ai/get-taxonomy-inventory-health',
+			'site-info'              => array( 'ability_id' => 'magick-ai/site-info' ),
+			'site-summary'           => array( 'ability_id' => 'magick-ai-abilities/site-summary' ),
+			'wp-diagnostics-summary' => array( 'ability_id' => $summary_ability ),
+			'active-plugins-detail'  => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'current-user-permissions' => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'php-extensions'        => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'object-cache-status'   => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'rewrite-rules-status'  => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'ssl-https-status'      => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'wp-ops-diagnostics-detail' => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'recent-error-log'      => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'recent-error-log-tail' => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(
+					array(
+						'include_log_contents' => true,
+						'tail_lines'           => 50,
+						'severity'             => array( 'fatal', 'error', 'warning' ),
+						'since_minutes'        => 1440,
+					)
+				),
+			),
+			'database-info'         => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'cron-events-detail'    => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'custom-post-types'     => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'roles-capabilities'    => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'widgets-sidebars'      => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'block-theme-assets'    => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'search-index-status'   => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'server-info'           => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'integrations-status'   => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'seo-summary'           => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'security-summary'      => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'performance-summary'   => array(
+				'ability_id'     => $ops_ability,
+				'default_input'  => self::ops_diagnostics_input(),
+			),
+			'workflow-recipes'       => array( 'ability_id' => 'magick-ai-abilities/list-workflow-recipes' ),
+			'posts'                  => array( 'ability_id' => 'magick-ai/list-posts' ),
+			'post-context'           => array( 'ability_id' => 'magick-ai/get-post-context' ),
+			'media'                  => array( 'ability_id' => 'magick-ai/list-media' ),
+			'terms'                  => array( 'ability_id' => 'magick-ai/list-terms' ),
+			'taxonomy-terms'         => array( 'ability_id' => 'magick-ai/list-taxonomy-terms' ),
+			'categories'             => array( 'ability_id' => 'magick-ai/list-categories' ),
+			'tags'                   => array( 'ability_id' => 'magick-ai/list-tags' ),
+			'term'                   => array( 'ability_id' => 'magick-ai/get-term' ),
+			'comments'               => array( 'ability_id' => 'magick-ai/list-comments' ),
+			'users'                  => array( 'ability_id' => 'magick-ai/list-users' ),
+			'menu'                   => array( 'ability_id' => 'magick-ai/get-menu' ),
+			'internal-link-targets'   => array( 'ability_id' => 'magick-ai/resolve-internal-link-targets' ),
+			'post-stats'             => array( 'ability_id' => 'magick-ai/get-post-stats' ),
+			'post-revisions'         => array( 'ability_id' => 'magick-ai/list-revisions' ),
+			'post-meta'              => array( 'ability_id' => 'magick-ai/get-post-meta' ),
+			'pages'                  => array( 'ability_id' => 'magick-ai/list-pages' ),
+			'page'                   => array( 'ability_id' => 'magick-ai/get-page' ),
+			'page-structure'         => array( 'ability_id' => 'magick-ai/inspect-page-structure' ),
+			'pages-tree'             => array( 'ability_id' => 'magick-ai/list-pages-tree' ),
+			'content-inventory-health' => array( 'ability_id' => 'magick-ai/get-content-inventory-health' ),
+			'site-operations-dashboard' => array( 'ability_id' => 'magick-ai/get-site-operations-dashboard' ),
+			'publishing-calendar-context' => array( 'ability_id' => 'magick-ai/get-publishing-calendar-context' ),
+			'media-inventory-health' => array( 'ability_id' => 'magick-ai/get-media-inventory-health' ),
+			'taxonomy-inventory-health' => array( 'ability_id' => 'magick-ai/get-taxonomy-inventory-health' ),
+		);
+	}
+
+	/**
+	 * Builds default operations diagnostics input.
+	 *
+	 * @param array<string,mixed> $overrides Input overrides.
+	 * @return array<string,mixed>
+	 */
+	private static function ops_diagnostics_input( array $overrides = array() ): array {
+		return array_merge(
+			array(
+				'include_log_contents' => false,
+			),
+			$overrides
 		);
 	}
 
@@ -801,6 +1095,33 @@ final class Controller {
 		}
 
 		return $routes;
+	}
+
+	/**
+	 * Returns the OpenClaw diagnostics shortcut contract.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function diagnostics_contract(): array {
+		return array(
+			'summary_route'          => 'GET /wp-diagnostics-summary',
+			'detail_route'           => 'GET /wp-ops-diagnostics-detail',
+			'detail_ability_id'      => 'magick-ai-abilities/wp-ops-diagnostics-detail',
+			'default_input'          => self::ops_diagnostics_input(),
+			'explicit_log_input'     => self::ops_diagnostics_input(
+				array(
+					'include_log_contents' => true,
+					'tail_lines'           => 50,
+					'severity'             => array( 'fatal', 'error', 'warning' ),
+					'since_minutes'        => 1440,
+				)
+			),
+			'log_contents_absent_reason' => 'not explicitly requested',
+			'error_log_fields'       => array(
+				'error_log.tail_entries',
+				'error_log.summary.by_severity',
+			),
+		);
 	}
 
 	/**
@@ -823,15 +1144,33 @@ final class Controller {
 	private function request_log_context( WP_REST_Request $request, string $ability_id ): array {
 		$context = $this->object_param( $request, 'log_context' );
 
-		foreach ( array( 'proposal_id', 'correlation_id', 'external_thread_id', 'openclaw_thread_id' ) as $key ) {
+		foreach ( array( 'proposal_id', 'correlation_id', 'external_thread_id', 'openclaw_thread_id', 'adapter_request_id', 'adapter_route', 'ai_provider', 'ai_model' ) as $key ) {
 			$value = $request->get_param( $key );
 			if ( null !== $value && '' !== (string) $value ) {
 				$context[ $key ] = $value;
 			}
 		}
 
-		$context['ability_id'] = sanitize_text_field( $ability_id );
-		$context['via']        = 'magick-ai-adapter';
+		$context['ability_id']        = sanitize_text_field( $ability_id );
+		$context['adapter_request_id'] = isset( $context['adapter_request_id'] ) && '' !== (string) $context['adapter_request_id']
+			? sanitize_text_field( (string) $context['adapter_request_id'] )
+			: wp_generate_uuid4();
+		$context['adapter_route']      = isset( $context['adapter_route'] ) && '' !== (string) $context['adapter_route']
+			? sanitize_text_field( (string) $context['adapter_route'] )
+			: $request->get_route();
+		$context['governance_source']  = 'magick-ai-core';
+		$context['via']                = 'magick-ai-adapter';
+
+		$magick_ai_core = is_array( $context['magick_ai_core'] ?? null ) ? $context['magick_ai_core'] : array();
+		if ( isset( $context['proposal_id'] ) && '' !== (string) $context['proposal_id'] ) {
+			$magick_ai_core['proposal_id'] = $context['proposal_id'];
+		}
+		if ( isset( $context['correlation_id'] ) && '' !== (string) $context['correlation_id'] ) {
+			$magick_ai_core['correlation_id'] = $context['correlation_id'];
+		}
+		if ( ! empty( $magick_ai_core ) ) {
+			$context['magick_ai_core'] = $magick_ai_core;
+		}
 
 		return $this->sanitize_log_context( $context );
 	}
@@ -840,10 +1179,11 @@ final class Controller {
 	 * Returns input for a GET shortcut.
 	 *
 	 * @param WP_REST_Request $request Request.
+	 * @param array<string,mixed> $default_input Route default input.
 	 * @return array<string,mixed>
 	 */
-	private function shortcut_input( WP_REST_Request $request ): array {
-		$input = $this->object_param( $request, 'input' );
+	private function shortcut_input( WP_REST_Request $request, array $default_input = array() ): array {
+		$input = array_merge( $default_input, $this->object_param( $request, 'input' ) );
 
 		foreach ( $request->get_query_params() as $key => $value ) {
 			if ( in_array( $key, array( 'input', 'rest_route', '_wpnonce' ), true ) ) {
@@ -888,6 +1228,21 @@ final class Controller {
 		}
 
 		return sanitize_text_field( wp_unslash( (string) $value ) );
+	}
+
+	/**
+	 * Returns a short text preview for smoke responses.
+	 *
+	 * @param string $text Text.
+	 * @return string
+	 */
+	private function text_preview( string $text ): string {
+		$text = trim( wp_strip_all_tags( $text ) );
+		if ( function_exists( 'mb_substr' ) ) {
+			return mb_substr( $text, 0, 200 );
+		}
+
+		return substr( $text, 0, 200 );
 	}
 
 	/**
