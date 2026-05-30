@@ -1,0 +1,18 @@
+{
+  "name": "magick-ai/magick-ai-adapter",
+  "description": "Thin OpenClaw adapter for Magick AI Core and WordPress Abilities API.",
+  "type": "wordpress-plugin",
+  "license": "proprietary",
+  "require": {
+    "php": ">=7.4"
+  },
+  "scripts": {
+    "lint:php": "find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l",
+    "test": "php tests/run.php",
+    "smoke:wp": "bash tests/smoke-wp.sh",
+    "test:all": [
+      "@lint:php",
+      "@test"
+    ]
+  }
+}
