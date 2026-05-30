@@ -185,6 +185,7 @@ foreach (
 		'execute final write mutations',
 		'Settings -> OpenClaw Connection',
 		'docs/openclaw-quickstart.md',
+		'docs/openclaw-consumer-acceptance.md',
 		'Create OpenClaw handoff',
 		'only its hash',
 		'Application Password handoff',
@@ -296,6 +297,31 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $contract, $required ), 'Adapter contract contains required text: ' . $required );
+}
+
+$acceptance = maa_adapter_read( $root . '/docs/openclaw-consumer-acceptance.md' );
+foreach (
+	array(
+		'OpenClaw Consumer Acceptance',
+		'OpenClaw must not connect directly to Magick AI Core for productized use.',
+		'GET /health',
+		'GET /help',
+		'GET /capabilities',
+		'GET /proposals',
+		'GET /proposals/{proposal_id}',
+		'POST /proposals',
+		'POST /proposals/{proposal_id}/commit-preflight',
+		'active-plugins-detail',
+		'current-user-permissions',
+		'database-info',
+		'Core Governance Audit',
+		'AI Request Logs',
+		'magick_ai_adapter_approval_proxy_disabled',
+		'commit_execution=false',
+		'no new runtime ownership',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $acceptance, $required ), 'OpenClaw acceptance doc contains required text: ' . $required );
 }
 
 $agents = maa_adapter_read( $root . '/AGENTS.md' );

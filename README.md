@@ -106,6 +106,9 @@ only its hash.
 For local setup steps, see
 [`docs/openclaw-quickstart.md`](docs/openclaw-quickstart.md).
 
+For productized OpenClaw acceptance, use
+[`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).
+
 ## OpenClaw Integration
 
 Initial connection:

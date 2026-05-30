@@ -5,6 +5,11 @@ Status: initial productization contract.
 Magick AI Adapter gives OpenClaw a focused WordPress REST surface without
 turning Magick AI Core into an execution proxy.
 
+The productized acceptance checklist lives in
+[`openclaw-consumer-acceptance.md`](openclaw-consumer-acceptance.md). Keep this
+contract as the boundary definition and use the acceptance checklist for
+OpenClaw connection verification.
+
 OpenClaw only connects to Adapter. Core is Adapter's governance service for
 proposal storage, approval status, commit preflight, and audit attribution.
 Core admin is the human approval surface; Adapter is not the default approval

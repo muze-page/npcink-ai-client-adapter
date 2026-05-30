@@ -15,6 +15,10 @@ through Magick AI Adapter. The adapter remains a thin channel layer:
 - `core_proxy_execute=false`;
 - `commit_execution=false`.
 
+For the acceptance checklist that productized OpenClaw clients should run
+before relying on the connection, see
+[`openclaw-consumer-acceptance.md`](openclaw-consumer-acceptance.md).
+
 ## Local WordPress Access
 
 Current LocalWP development site:

@@ -1,0 +1,203 @@
+# OpenClaw Consumer Acceptance
+
+Status: active acceptance checklist
+Date: 2026-05-30
+
+## Purpose
+
+This document defines the minimum productized OpenClaw acceptance loop for
+Magick AI Adapter.
+
+The goal is to prove that OpenClaw can use one Adapter connection for useful
+WordPress work while preserving the current project split:
+
+- Adapter is the OpenClaw-facing WordPress REST channel.
+- Core is the governance authority for proposals, approvals, preflight, and
+  audit.
+- Abilities are the canonical source of ability schemas, callbacks, and
+  direct-read execution.
+- AI Request Logs stay owned by the WordPress `ai` plugin and are correlated
+  with Core audit by `proposal_id` and `correlation_id`.
+
+## Required Runtime Shape
+
+OpenClaw connects to:
+
+```text
+https://magick-ai.local/wp-json/magick-ai-adapter/v1
+```
+
+OpenClaw must not connect directly to Magick AI Core for productized use. Core
+may still be used by developers for direct governance testing, but productized
+OpenClaw setup starts at Adapter.
+
+Authentication uses a dedicated WordPress Application Password over WordPress
+REST Basic Auth. Adapter must not store the raw Application Password.
+
+## Acceptance Flow
+
+Run this order for a local acceptance pass:
+
+1. Create or confirm a dedicated Application Password from
+   `Settings -> OpenClaw Connection`.
+2. Call `GET /health`.
+3. Require these health values:
+   - `core_capabilities=true`
+   - `abilities_catalog=true`
+   - `approval_proxy_enabled=false`
+   - `approval_surface=magick_ai_core_admin`
+   - `core_proxy_execute=false`
+   - `commit_execution=false`
+4. Call `GET /help` and confirm route discovery includes:
+   - `GET /proposals`
+   - `GET /proposals/{proposal_id}`
+   - disabled approval and rejection stubs
+   - direct-read shortcuts
+5. Call `GET /capabilities` and use only real `ability_id` values returned by
+   Core guidance.
+6. Run at least one direct-read shortcut:
+   - `GET /site-info`
+   - `GET /site-summary`
+   - `GET /media?per_page=1`
+7. Run at least one diagnostics shortcut:
+   - `GET /active-plugins-detail`
+   - `GET /current-user-permissions`
+   - `GET /database-info`
+8. Create a governed write proposal with `POST /proposals`.
+9. Query status through Adapter:
+   - `GET /proposals?limit=10`
+   - `GET /proposals/{proposal_id}`
+10. Approve or reject the pending proposal in
+    `WordPress -> Tools -> Magick AI Core`.
+11. If rejected, OpenClaw stops and shows the Core status.
+12. If approved, call `POST /proposals/{proposal_id}/commit-preflight`.
+13. Confirm Core still returns `commit_execution=false`.
+14. Pass `proposal_id` and `correlation_id` into later reads as query fields or
+    as POST `/run-read-ability` `log_context`.
+15. Confirm correlation in:
+    - Core Governance Audit, filtered by `proposal_id` or `correlation_id`;
+    - AI Request Logs, using Adapter context fields.
+
+## Example Commands
+
+Health:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/health"
+```
+
+Capabilities:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/capabilities"
+```
+
+Direct read:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info"
+```
+
+Diagnostics read:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/active-plugins-detail"
+```
+
+Create proposal:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -d '{"ability_id":"magick-ai/create-draft","title":"OpenClaw draft acceptance","summary":"OpenClaw requests a governed draft proposal during acceptance.","input":{"title":"OpenClaw acceptance draft","dry_run":true,"commit":false},"preview":{"dry_run":true,"commit":false},"caller":{"external_thread_id":"OPENCLAW_ACCEPTANCE_THREAD"}}' \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals"
+```
+
+Query proposal status:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID"
+```
+
+Commit preflight after Core approval:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  -X POST \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/commit-preflight"
+```
+
+Correlation read:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
+```
+
+## Expected Failure Behavior
+
+OpenClaw must stop and report the reason when Adapter or Core returns:
+
+- `401` for missing or invalid WordPress REST authentication;
+- `403` for missing WordPress capability or disabled approval proxy;
+- `404` for missing proposal;
+- `429` when Core app-key rate policy rejects an internal Core request;
+- `magick_ai_adapter_proposal_required` when a caller tries to execute a
+  proposal-required ability as a direct read;
+- `magick_ai_adapter_approval_proxy_disabled` when a caller tries to approve or
+  reject through Adapter.
+
+The disabled approval and rejection stubs are part of the acceptance surface.
+They prove that OpenClaw can discover the routes while still routing human
+decisions to Core admin.
+
+## Non-Goals
+
+This acceptance pass must not add or require:
+
+- Adapter approval or rejection proxying;
+- final WordPress write execution;
+- Core `/execute` or `/proxy-execute`;
+- MCP runtime;
+- workflow runtime, queues, retries, or schedulers;
+- provider credential storage;
+- prompt, preset, model router, or product workflow ownership in Adapter.
+
+## Verification Gates
+
+After changing Adapter, run:
+
+```bash
+composer test:all
+composer smoke:wp
+git diff --check
+```
+
+After changing Core cross-reference docs, run:
+
+```bash
+composer test:all
+git diff --check
+```
+
+Run `composer smoke:wp` in Core only when Core behavior changes. A docs-only
+Core cross-reference does not need a Core WordPress smoke pass.
+
+## Completion Criteria
+
+OpenClaw consumer acceptance is complete when:
+
+- health, help, capabilities, direct read, diagnostics read, proposal create,
+  proposal list/detail, Core admin approval/rejection, and commit preflight are
+  all verified through Adapter;
+- Core audit and AI Request Logs can be correlated with `proposal_id` or
+  `correlation_id`;
+- disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
+  proposal state;
+- `commit_execution=false` remains true at preflight;
+- no new runtime ownership is added to Core, Adapter, or Abilities.
