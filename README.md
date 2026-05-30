@@ -9,6 +9,9 @@ It gives OpenClaw one WordPress REST namespace that can:
 - create Core proposals for write or destructive operations;
 - call Core commit preflight after WordPress approval.
 
+OpenClaw only connects to Adapter. Magick AI Core is the governance service
+behind Adapter, and Core admin is the human approval surface.
+
 It does not define abilities, store approval state, run workflows, approve
 proposals, or execute final write mutations by itself.
 
@@ -28,14 +31,178 @@ All routes require `manage_options` through normal WordPress REST
 authentication, such as an administrator Application Password.
 
 - `GET /wp-json/magick-ai-adapter/v1/health`
+- `GET /wp-json/magick-ai-adapter/v1/help`
 - `GET /wp-json/magick-ai-adapter/v1/capabilities`
 - `POST /wp-json/magick-ai-adapter/v1/run-read-ability`
+- `GET /wp-json/magick-ai-adapter/v1/site-info`
 - `GET /wp-json/magick-ai-adapter/v1/site-summary`
 - `GET /wp-json/magick-ai-adapter/v1/wp-diagnostics-summary`
 - `GET /wp-json/magick-ai-adapter/v1/workflow-recipes`
 - `GET /wp-json/magick-ai-adapter/v1/workflow-recipe?recipe_id=workflow/...`
+- `GET /wp-json/magick-ai-adapter/v1/media`
+- `GET /wp-json/magick-ai-adapter/v1/terms`
+- `GET /wp-json/magick-ai-adapter/v1/taxonomy-terms`
+- `GET /wp-json/magick-ai-adapter/v1/categories`
+- `GET /wp-json/magick-ai-adapter/v1/tags`
+- `GET /wp-json/magick-ai-adapter/v1/term`
+- `GET /wp-json/magick-ai-adapter/v1/comments`
+- `GET /wp-json/magick-ai-adapter/v1/internal-link-targets`
+- `GET /wp-json/magick-ai-adapter/v1/post-stats`
+- `GET /wp-json/magick-ai-adapter/v1/post-revisions`
+- `GET /wp-json/magick-ai-adapter/v1/post-meta`
+- `GET /wp-json/magick-ai-adapter/v1/pages`
+- `GET /wp-json/magick-ai-adapter/v1/page`
+- `GET /wp-json/magick-ai-adapter/v1/page-structure`
+- `GET /wp-json/magick-ai-adapter/v1/pages-tree`
+- `GET /wp-json/magick-ai-adapter/v1/content-inventory-health`
+- `GET /wp-json/magick-ai-adapter/v1/site-operations-dashboard`
+- `GET /wp-json/magick-ai-adapter/v1/publishing-calendar-context`
+- `GET /wp-json/magick-ai-adapter/v1/media-inventory-health`
+- `GET /wp-json/magick-ai-adapter/v1/taxonomy-inventory-health`
+- `GET /wp-json/magick-ai-adapter/v1/proposals`
+- `GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}`
 - `POST /wp-json/magick-ai-adapter/v1/proposals`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/reject`
 - `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/commit-preflight`
+
+GET shortcut query parameters are forwarded as ability `input`. For example,
+`/media?per_page=10&has_empty_alt=1` becomes read input for
+`magick-ai/list-media`.
+
+Reserved governance correlation query parameters are not forwarded as ability
+input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
+and `openclaw_thread_id` into AI Request Logs context through the
+`wpai_request_log_context` filter while an ability is running. POST
+`/run-read-ability` accepts the same values in a top-level `log_context`
+object. This lets AI Request Logs execution rows correlate with Core proposal
+and commit-preflight audit records without merging the two log systems.
+
+## OpenClaw Connection UI
+
+WordPress administrators can open:
+
+```text
+Settings -> OpenClaw Connection
+```
+
+The page shows:
+
+- Adapter base URL, health URL, and capabilities URL;
+- Core and WordPress Abilities API connection status;
+- a `Create OpenClaw handoff` action that creates a WordPress Application
+  Password for the current administrator and shows it once;
+- supported read shortcut routes and their real `ability_id` values;
+- Application Password handoff steps;
+- copyable health and proposal example requests;
+- proposal list/detail routes for OpenClaw status polling;
+- a handoff prompt for OpenClaw.
+
+The page does not save adapter credentials, approval state, ability definitions,
+workflow state, or final write policy. The handoff action creates a normal
+WordPress Application Password and displays the raw value once; WordPress stores
+only its hash.
+
+For local setup steps, see
+[`docs/openclaw-quickstart.md`](docs/openclaw-quickstart.md).
+
+## OpenClaw Integration
+
+Initial connection:
+
+1. Create a dedicated WordPress administrator Application Password for the
+   OpenClaw environment.
+2. Give OpenClaw the site URL, adapter base URL, username, and Application
+   Password through the approved secret channel.
+3. OpenClaw calls `GET /health` and verifies:
+   - `core_capabilities=true`
+   - `abilities_catalog=true`
+   - `approval_proxy_enabled=false`
+   - `approval_surface=magick_ai_core_admin`
+   - `core_proxy_execute=false`
+   - `commit_execution=false`
+4. OpenClaw calls `GET /capabilities` and uses Core guidance as the only
+   governance truth for each `ability_id`.
+5. OpenClaw may call `GET /help` to discover adapter route labels and current
+   non-goals.
+
+Read-only execution:
+
+1. Use a shortcut route when one exists, or call `POST /run-read-ability`.
+2. The adapter re-checks Core for the real `ability_id`.
+3. The adapter runs only rows where
+   `governance_mode=direct_read` and `execution_surface=wp_abilities_rest`.
+4. The adapter calls WordPress Abilities API and returns the result envelope.
+
+Proposal-required write flow:
+
+1. OpenClaw reads `/capabilities` and selects a real ability where Core reports
+   `governance_mode=proposal_required`.
+2. OpenClaw calls `POST /proposals` with the real `ability_id`, `input`,
+   `preview`, and `caller` metadata.
+3. Core stores the proposal and WordPress approval state.
+4. OpenClaw polls `GET /proposals/{proposal_id}` through the adapter until Core
+   returns an approved or rejected status. `GET /proposals?limit=...` is
+   available for list views.
+5. If `status=pending`, OpenClaw prompts the user to approve or reject in
+   `WordPress -> Magick AI Core`.
+6. If `status=rejected`, OpenClaw stops and shows the rejection state or reason
+   returned by Core.
+7. If `status=approved`, OpenClaw calls
+   `POST /proposals/{proposal_id}/commit-preflight` only after
+   approval.
+8. The adapter relays Core preflight and preserves `commit_execution=false`.
+9. Any final WordPress mutation remains outside this adapter and must not run
+   without Core preflight.
+
+Proposal list/detail are read-only Core proxies. They preserve Core response
+fields such as `proposal_id`, `ability_id`, `status`, `title`, `summary`,
+`input`, `preview`, `caller`, `created_at`, `updated_at`, and detail
+`audit_timeline` when Core returns it. Adapter may be configured with a Core app
+token through `MAGICK_AI_ADAPTER_CORE_APP_TOKEN` or the
+`magick_ai_adapter_core_app_token` option. When configured, Adapter sends that
+token only on internal Core REST requests and does not print it. That key must
+include `proposals:read` for proposal status, plus the other scopes needed by
+the Core routes Adapter calls. The adapter must not print Core tokens in logs,
+proposal payloads, error responses, or documentation examples.
+
+When OpenClaw has a Core `proposal_id` or commit-preflight `correlation_id`, it
+should pass those values to Adapter read or future execution requests as
+`log_context` or query parameters. Adapter will include them under
+`magick_ai_adapter` in AI Request Logs context and also expose top-level
+`proposal_id` and `correlation_id` context fields for quick inspection.
+
+`POST /proposals/{proposal_id}/approve` and
+`POST /proposals/{proposal_id}/reject` are disabled stubs. They return HTTP 403
+with `code=magick_ai_adapter_approval_proxy_disabled`,
+`approval_proxy_enabled=false`, and
+`approval_surface=magick_ai_core_admin`. Approval is handled in Magick AI Core admin.
+The adapter does not forward these routes to Core and does not require a
+default Core key with approval or rejection scopes. A trusted approval proxy is
+future ADR territory only.
+
+Example health request:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://example.test/wp-json/magick-ai-adapter/v1/health"
+```
+
+Example proposal request:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
+  "https://example.test/wp-json/magick-ai-adapter/v1/proposals"
+```
+
+Example proposal status request:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  "https://example.test/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID"
+```
 
 ## OpenClaw Flow
 
@@ -51,9 +218,12 @@ Write or destructive abilities:
 1. OpenClaw calls Adapter `/capabilities`.
 2. If `governance_mode=proposal_required`, OpenClaw calls Adapter
    `/proposals`.
-3. WordPress administrator approves or rejects in Core.
-4. OpenClaw calls Adapter `/proposals/{proposal_id}/commit-preflight`.
-5. Adapter relays Core `commit_execution=false`.
+3. OpenClaw polls Adapter `/proposals/{proposal_id}` for Core status.
+4. If pending, OpenClaw sends the user to WordPress -> Magick AI Core admin.
+5. If rejected, OpenClaw stops and shows the status. If approved, OpenClaw calls
+   Adapter `/proposals/{proposal_id}/commit-preflight` after
+   approval.
+6. Adapter relays Core `commit_execution=false`.
 
 ## Non-Goals
 
