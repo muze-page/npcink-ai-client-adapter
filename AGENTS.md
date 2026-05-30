@@ -26,6 +26,9 @@ It does not own:
 - If a feature needs approval state, change `magick-ai-core`.
 - If a feature needs workflow runtime or long-running task orchestration, write
   a boundary note before implementing it here.
+- If a feature connects local WordPress to Cloud, follow
+  `docs/cloud-connector-boundary.md`: Adapter is the connector, while Cloud owns
+  hosted execution, stats, diagnostics, and analysis truth.
 - Use WordPress REST authentication and capability checks.
 - Run `composer test:all` before committing.
 
