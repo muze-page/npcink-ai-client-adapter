@@ -1162,8 +1162,6 @@ final class Controller {
 	}
 
 	/**
-	 * Validates that an ability is allowed for adapter execution.
-	 *
 	 * @param string $proposal_id Proposal id.
 	 * @param string $ability_id Ability id.
 	 * @return true|WP_Error

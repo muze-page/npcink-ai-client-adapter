@@ -3,6 +3,31 @@
 Status: active acceptance checklist
 Date: 2026-05-30
 
+## Latest Acceptance Result
+
+Adapter commit `4ad2a0c Finalize OpenClaw Adapter handoff surface` completed
+OpenClaw Adapter consumer readiness.
+
+Verified commands:
+
+```bash
+composer test:all
+composer smoke:wp
+git diff --check
+git diff --check HEAD~1..HEAD
+```
+
+An equivalent HTTP client acceptance pass also completed successfully. That
+pass connected to Adapter for the OpenClaw-facing flow and verified
+`/health`, `/help`, `/capabilities`, direct read, diagnostics, proposal
+create/list/detail, `approve-and-execute`, `commit-preflight`, final
+`magick-ai/trash-post` execution, returned `proposal_id`, `correlation_id`,
+`ability_id`, and `adapter_request_id`, plus Core Audit and AI Request Logs
+correlation.
+
+The next change to OpenClaw routes, the Adapter execution allowlist, or log
+correlation fields must rerun this acceptance checklist.
+
 ## Purpose
 
 This document defines the minimum productized OpenClaw acceptance loop for
