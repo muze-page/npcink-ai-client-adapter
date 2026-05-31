@@ -3,9 +3,11 @@
 .gitignore
 .DS_Store
 AGENTS.md
+README.md
 build
 composer.json
 composer.lock
+docs
 phpcs.xml
 phpcs.xml.dist
 phpstan.neon
