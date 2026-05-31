@@ -18,7 +18,8 @@ action.
 
 ## Dependencies
 
-- WordPress 6.9+ with WordPress Abilities API routes available.
+- WordPress 7.0+ with WordPress Abilities API routes available.
+- PHP 8.0+.
 - `magick-ai-abilities` for canonical ability definitions and callbacks.
 - `magick-ai-core` for governance, proposal approval, commit preflight, and
   audit.
