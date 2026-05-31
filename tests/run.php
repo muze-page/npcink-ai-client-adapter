@@ -260,7 +260,8 @@ foreach (
 $connection_page = maa_adapter_read( $root . '/includes/Admin/Connection_Page.php' );
 foreach (
 	array(
-		'OpenClaw Connection',
+		'Magick AI Adapter',
+		'Adapter',
 		'OpenClaw Handoff Created',
 		'Create OpenClaw handoff',
 		'add_submenu_page',
@@ -302,6 +303,9 @@ foreach (
 ) {
 	maa_adapter_assert( false !== strpos( $connection_page, $required ), 'Connection page contains required text: ' . $required );
 }
+maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'magick-ai-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
+maa_adapter_assert( false !== strpos( $connection_page, "__( 'Magick AI Adapter', 'magick-ai-adapter' ),\n\t\t\t__( 'Adapter', 'magick-ai-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
+maa_adapter_assert( false === strpos( $connection_page, 'magick-ai-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
 
 $readme = maa_adapter_read( $root . '/README.md' );
 foreach (
@@ -312,7 +316,7 @@ foreach (
 		'create Core proposals',
 		'does not define abilities',
 		'execute final write mutations',
-		'Magick AI -> OpenClaw Connection',
+		'Magick AI -> Adapter',
 		'docs/openclaw-quickstart.md',
 		'docs/openclaw-consumer-acceptance.md',
 		'Create OpenClaw handoff',
@@ -527,7 +531,7 @@ foreach (
 		'magick-ai-core',
 		'core_proxy_execute',
 		'commit_execution',
-		'Magick AI -> OpenClaw Connection',
+		'Magick AI -> Adapter',
 		'Application Password Handoff',
 		'Proposal Status Read Proxy',
 			'Approval Disabled Stub Contract',

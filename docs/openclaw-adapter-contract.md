@@ -254,7 +254,7 @@ explicit.
 
 Connection:
 
-- WordPress admin: `Magick AI -> OpenClaw Connection`
+- WordPress admin: `Magick AI -> Adapter`
 - `GET /wp-json/magick-ai-adapter/v1/health`
 - `GET /wp-json/magick-ai-adapter/v1/help`
 
@@ -440,7 +440,7 @@ OpenClaw should connect with a dedicated administrator Application Password for
 the local PoC. Narrower adapter identity and scope can be added after the first
 product flow is proven.
 
-The OpenClaw Connection admin page may display endpoint URLs, health state,
+The Magick AI Adapter admin page may display endpoint URLs, health state,
 example requests, and a handoff prompt. It may create a normal WordPress
 Application Password for the current administrator and show the raw password
 once in a handoff page. It must not store raw Application Passwords in adapter

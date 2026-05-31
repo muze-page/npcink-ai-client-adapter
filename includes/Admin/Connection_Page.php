@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Connection_Page {
 	const PARENT_MENU_SLUG = 'magick-ai';
-	const MENU_SLUG        = 'magick-ai-adapter-openclaw';
+	const MENU_SLUG        = 'magick-ai-adapter';
 	const MENU_CAPABILITY  = 'manage_options';
 	const CREATE_ACTION    = 'magick_ai_adapter_create_openclaw_password';
 
@@ -34,8 +34,8 @@ final class Connection_Page {
 
 		add_submenu_page(
 			self::PARENT_MENU_SLUG,
-			__( 'OpenClaw Connection', 'magick-ai-adapter' ),
-			__( 'OpenClaw Connection', 'magick-ai-adapter' ),
+			__( 'Magick AI Adapter', 'magick-ai-adapter' ),
+			__( 'Adapter', 'magick-ai-adapter' ),
 			self::MENU_CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render' ),
@@ -109,7 +109,7 @@ final class Connection_Page {
 				<tbody>
 					<?php
 					$this->render_overview_row( __( 'Governance', 'magick-ai-adapter' ), __( 'Review proposals, approval decisions, commit preflight, audit, and Core app keys.', 'magick-ai-adapter' ), 'magick-ai-core' );
-					$this->render_overview_row( __( 'OpenClaw Connection', 'magick-ai-adapter' ), __( 'Connect OpenClaw through the Adapter surface.', 'magick-ai-adapter' ), self::MENU_SLUG );
+					$this->render_overview_row( __( 'Adapter', 'magick-ai-adapter' ), __( 'Connect OpenClaw through the Adapter surface.', 'magick-ai-adapter' ), self::MENU_SLUG );
 					$this->render_overview_row( __( 'Cloud Connection', 'magick-ai-adapter' ), __( 'Connect this site to Magick AI Cloud without moving local control-plane truth.', 'magick-ai-adapter' ), 'magick-ai-cloud' );
 					$this->render_overview_row( __( 'Ability Packages', 'magick-ai-adapter' ), __( 'Verify WordPress Abilities API packages and demo ability controls.', 'magick-ai-adapter' ), 'magick-ai-abilities-test' );
 					?>
@@ -186,7 +186,7 @@ final class Connection_Page {
 		$can_create_password = $this->can_create_application_password();
 		?>
 		<div class="wrap magick-ai-adapter-connection">
-			<h1><?php echo esc_html__( 'OpenClaw Connection', 'magick-ai-adapter' ); ?></h1>
+			<h1><?php echo esc_html__( 'Magick AI Adapter', 'magick-ai-adapter' ); ?></h1>
 			<p class="description"><?php echo esc_html__( 'Connection details for the Magick AI Adapter REST surface. This page is read-only and does not store credentials.', 'magick-ai-adapter' ); ?></p>
 
 			<style>
@@ -560,7 +560,7 @@ final class Connection_Page {
 						</tr>
 					</tbody>
 				</table>
-				<p class="actions"><a class="button" href="<?php echo esc_url( menu_page_url( self::MENU_SLUG, false ) ); ?>"><?php echo esc_html__( 'Back to OpenClaw Connection', 'magick-ai-adapter' ); ?></a></p>
+				<p class="actions"><a class="button" href="<?php echo esc_url( menu_page_url( self::MENU_SLUG, false ) ); ?>"><?php echo esc_html__( 'Back to Magick AI Adapter', 'magick-ai-adapter' ); ?></a></p>
 			</main>
 		</body>
 		</html>

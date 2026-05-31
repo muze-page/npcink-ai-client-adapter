@@ -198,12 +198,12 @@ does not put provider credentials, prompts, responses, token details, or AI
 Request Logs into Core.
 AI Request Logs are the provider request log.
 
-## OpenClaw Connection UI
+## Magick AI Adapter UI
 
 WordPress administrators can open:
 
 ```text
-Magick AI -> OpenClaw Connection
+Magick AI -> Adapter
 ```
 
 The page shows:

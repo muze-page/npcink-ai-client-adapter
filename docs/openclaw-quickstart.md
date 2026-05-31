@@ -66,7 +66,7 @@ GET https://magick-ai.local/wp-json/magick-ai-adapter/v1/capabilities
 WordPress admin connection page:
 
 ```text
-Magick AI -> OpenClaw Connection
+Magick AI -> Adapter
 ```
 
 The page includes a `Create OpenClaw handoff` button. It creates a normal

@@ -64,7 +64,7 @@ REST Basic Auth. Adapter must not store the raw Application Password.
 Run this order for a local acceptance pass:
 
 1. Create or confirm a dedicated Application Password from
-   `Magick AI -> OpenClaw Connection`.
+   `Magick AI -> Adapter`.
 2. Call `GET /health`.
 3. Require these health values:
    - `core_capabilities=true`
