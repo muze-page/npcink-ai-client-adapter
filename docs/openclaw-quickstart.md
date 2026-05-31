@@ -7,9 +7,10 @@ through Magick AI Adapter. The adapter remains a thin channel layer:
 
 - OpenClaw only connects to Adapter;
 - Magick AI Core is Adapter's governance service behind the scenes;
-- Core approval admin is the human governance surface;
+- Core remains the approval, preflight, and audit truth source;
 - read operations go through WordPress Abilities API;
-- write-like operations create Core proposals and stop at commit preflight;
+- write-like operations create Core proposals and may use Adapter's
+  approve-and-execute user action for one allowlisted execution;
 - `approval_proxy_enabled=false`;
 - `approval_surface=magick_ai_core_admin`;
 - `core_proxy_execute=false`;
@@ -101,7 +102,9 @@ an Application Password is available.
    - `approval_surface=magick_ai_core_admin`
    - `core_proxy_execute=false`
    - `commit_execution=false`
-3. Call `GET /help` to confirm route discovery includes proposal list/detail.
+3. Call `GET /help` to confirm route discovery includes proposal list/detail,
+   `POST /proposals/from-plan`, `POST /proposals/{proposal_id}/execute`, and
+   `POST /proposals/{proposal_id}/approve-and-execute`.
 4. Call `GET /capabilities`.
 5. Use the returned Core guidance as the only governance truth.
 
@@ -121,6 +124,24 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/term?id=1"
+```
+
+Planning shortcuts return plan data only. Treat `write_actions` and `preview`
+as proposal input, not as completed writes:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/content-inventory-fix-plan?per_page=1&max_actions=1"
+```
+
+Send the returned plan to Core through Adapter when a proposal should be
+created:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -d '{"plan_ability_id":"magick-ai/build-content-inventory-fix-plan","plan":{"batch_id":"example","issue_types":[],"requires_approval":true,"commit_execution":false,"dry_run":true,"action_count":0,"write_actions":[],"preview":[],"risk":{"level":"medium"}},"plan_input":{"per_page":1},"caller":{"external_thread_id":"OPENCLAW_THREAD"}}' \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/from-plan"
 ```
 
 Troubleshooting diagnostics:
@@ -272,11 +293,14 @@ These are read-only Core status proxies. They preserve proposal fields such as
 `caller`, `created_at`, `updated_at`, and detail `audit_timeline` when Core
 returns it.
 
-5. If `status=pending`, prompt the user to approve or reject the proposal in
-   `WordPress -> Magick AI Core`. Do not call Core directly from OpenClaw.
+5. If `status=pending`, use the unified OpenClaw action
+   `POST /proposals/{proposal_id}/approve-and-execute` for allowlisted
+   execution, or use `WordPress -> Magick AI Core` for split approval decisions.
+   Do not call Core directly from OpenClaw.
 6. If `status=rejected`, stop and show the rejection state or reason returned
    by Core.
-7. If `status=approved`, call commit preflight:
+7. If using the lower-level split path and `status=approved`, call commit
+   preflight:
 
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
@@ -284,8 +308,40 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/commit-preflight"
 ```
 
-8. Stop at Core's preflight response. The adapter does not approve proposals and
-   does not execute final WordPress writes.
+8. Stop at Core's preflight response unless the ability is in Adapter's current
+   approved proposal execution allowlist. Core still returns
+   `commit_execution=false`.
+9. For approved proposal execution, only `magick-ai/trash-post` is currently
+   supported. The preferred user path is one Adapter/OpenClaw action:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  -X POST \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/approve-and-execute"
+```
+
+Adapter calls Core approve when the proposal is pending, calls Core
+commit-preflight, verifies `approval_commit_authorized=true` and
+`commit_execution=false`, then executes one WordPress Abilities API call. Core
+remains the governance backend for proposal state, approval, preflight, and
+audit.
+10. The lower-level execution route is available only for already approved
+   proposals:
+
+```bash
+curl -sS --user "1:APPLICATION_PASSWORD" \
+  -X POST \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/execute"
+```
+
+Adapter fetches the Core proposal, runs Core commit-preflight again, requires
+`approval_commit_authorized=true`, requires `commit_execution=false`, passes
+Core `approval_context`, and executes one proposal through WordPress Abilities
+API. The adapter does not create its own governance state.
+For abilities outside that execution allowlist, Adapter does not execute final
+WordPress writes.
+Future execution abilities must be added one by one to the Adapter allowlist
+with dedicated smoke coverage; this is not a generic proxy-execute surface.
 
 ## Log Correlation
 
@@ -311,7 +367,10 @@ provider credentials, prompts, responses, token details, or AI Request Logs into
 Core.
 AI Request Logs are the provider request log.
 
-Local Ollama readiness smoke after Core approval and Adapter commit-preflight:
+Provider log readiness smoke after Core approval and Adapter commit-preflight.
+This example uses local Ollama when `qwen3.5:0.8b` is available; otherwise use
+a configured text generation provider/model from
+`GET /ai/v1/providers?capability=text_generation`:
 
 ```bash
 curl -sS --user "1:APPLICATION_PASSWORD" \
@@ -321,8 +380,8 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
 ```
 
 Then open AI Request Logs and search the same `proposal_id` or
-`correlation_id`. If the provider column is blank for local Ollama, use the
-Adapter context fields `ai_provider=ollama` and `ai_model=qwen3.5:0.8b`.
+`correlation_id`. If the provider column is blank, use the Adapter context
+fields for the explicit `ai_provider` and `ai_model` sent to the smoke route.
 
 Approval and rejection endpoints are visible only as disabled stubs:
 
@@ -334,9 +393,22 @@ POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/reject
 They return HTTP 403 with
 `code=magick_ai_adapter_approval_proxy_disabled`,
 `approval_proxy_enabled=false`, and
-`approval_surface=magick_ai_core_admin`. Approval is handled in Magick AI Core admin.
-Adapter does not forward these calls to Core and OpenClaw does not get
-default approval power.
+`approval_surface=magick_ai_core_admin`. Use
+`POST /proposals/{proposal_id}/approve-and-execute` for the Adapter unified
+user action, or Magick AI Core admin for split approval decisions. Adapter does
+not forward the standalone stub calls to Core and OpenClaw does not get generic
+approval power.
+
+Failure code handling:
+
+- `magick_ai_adapter_approval_proxy_disabled`: call approve-and-execute or use
+  Core admin for split approval.
+- `magick_ai_adapter_execute_ability_not_allowed`: stop; the proposal ability
+  is outside Adapter's execution allowlist.
+- `magick_ai_adapter_proposal_rejected`: stop and show the Core rejection.
+- `magick_ai_adapter_preflight_not_authorized` or
+  `magick_ai_adapter_preflight_item_blocked`: stop and show Core preflight
+  details.
 
 If a direct Core app token is used for Core-side integration tests or a future
 trusted handoff, the key must include `proposals:read` for list/detail status.

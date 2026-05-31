@@ -18,7 +18,7 @@ cloud product backend.
 | --- | --- | --- |
 | `magick-ai-abilities` | Canonical WordPress ability definitions, schemas, callbacks, permissions, dry-run previews, and read-only workflow recipe metadata. | Cloud calls, model routing, queues, billing, quota, approval state, audit truth, workflow runtime, or final writes. |
 | `magick-ai-core` | Governance, ability intake, proposal records, approval/rejection, commit preflight, scoped app keys, rate limits, and audit records. | Ability definitions, cloud execution, task queues, model routing, product workflows, or final write execution. |
-| `magick-ai-adapter` | OpenClaw-facing REST routes, WordPress Application Password handoff, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, and bounded Cloud connector routes. | Ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, or final write authority. |
+| `magick-ai-adapter` | OpenClaw-facing REST routes, WordPress Application Password handoff, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, one allowlisted approve-and-execute orchestration path, and bounded Cloud connector routes. | Ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, generic approve/reject proxying, or final write authority. |
 | `magick-ai-cloud` | Hosted runtime, Cloud API, worker execution, run status, provider telemetry, usage/stats, health, entitlement, quota, diagnostics, and Cloud-side analysis generation. | WordPress control plane, local ability truth, local approval truth, OpenClaw projection truth, or WordPress writes. |
 
 ## Recommended Cloud Flow
@@ -95,8 +95,10 @@ or proposal input for local review.
    - pending change;
    - structured recommendation.
 
-4. Final WordPress writes remain local and governed. Adapter must not become
-   the final write executor unless a future ADR explicitly changes that
+4. Final WordPress writes remain local and governed. Adapter may execute only a
+   narrow allowlisted ability after Core approval and Core commit-preflight
+   through the explicit approve-and-execute path. Adapter must not become a
+   generic final write executor unless a future ADR explicitly changes that
    boundary.
 
 ## Allowed Adapter Cloud Routes
@@ -159,8 +161,9 @@ Do not add these to Adapter:
 
 6. Add tests for boundary invariants:
    - Adapter has no queue or scheduler truth;
-   - Cloud connector routes do not approve proposals;
-   - Cloud connector routes do not execute final writes;
+   - Cloud connector routes do not expose standalone approve/reject proxying;
+   - Cloud connector routes do not execute final writes outside Adapter's
+     Core-approved allowlisted path;
    - write-like Cloud outputs require Core proposal/preflight handoff.
 
 ## Decision Summary

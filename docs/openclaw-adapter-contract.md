@@ -12,8 +12,9 @@ OpenClaw connection verification.
 
 OpenClaw only connects to Adapter. Core is Adapter's governance service for
 proposal storage, approval status, commit preflight, and audit attribution.
-Core admin is the human approval surface; Adapter is not the default approval
-subject.
+Adapter may expose the productized OpenClaw user action for
+approve-and-execute, but Core remains the governance truth source behind that
+action.
 
 ## Dependencies
 
@@ -43,17 +44,88 @@ The adapter executes those reads through:
 
 It does not execute abilities marked `proposal_required`.
 
+## Read-Only Planning Contract
+
+The adapter may execute these planning abilities only when Core reports them as
+direct reads:
+
+- `magick-ai/build-content-inventory-fix-plan`
+- `magick-ai/build-test-content-cleanup-plan`
+- `magick-ai/build-media-inventory-fix-plan`
+
+Their outputs are plan data, not execution results. Adapter must preserve
+`batch_id`, `issue_types`, `post_ids`, `attachment_ids`, `write_actions`,
+`preview`, `risk`, `requires_approval`, `commit_execution`, `dry_run`,
+`manual_review`, `skipped_destructive_candidates`, `issue_counts`, and
+`action_count`.
+
+`commit_execution=false` means no write happened, `dry_run=true` means preview
+only, and `requires_approval=true` means the plan must be handed to Core or the
+host governance layer. Adapter must not execute, approve, or promote
+destructive candidates such as `magick-ai/delete-media-permanently`,
+`magick-ai/delete-post-permanently`, `magick-ai/delete-term`,
+`magick-ai/trash-post`, `magick-ai/trash-comment`, or
+`magick-ai/spam-comment`.
+
 ## Governed Write Contract
 
 For write or destructive abilities, the adapter relays to Core:
 
 ```text
 POST /wp-json/magick-ai-core/v1/proposals
+POST /wp-json/magick-ai-core/v1/proposals/from-plan
 POST /wp-json/magick-ai-core/v1/proposals/{proposal_id}/commit-preflight
 ```
 
-The adapter does not approve proposals and does not execute final WordPress
-mutations.
+The adapter does not store proposal governance state. It may call Core approval
+only as part of the explicit unified approve-and-execute action.
+
+## Unified Approve And Execute Contract
+
+Adapter exposes one user-facing action for the minimal destructive execution
+loop:
+
+```text
+POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
+```
+
+For a pending `magick-ai/trash-post` proposal, Adapter fetches the proposal
+from Core, calls Core approve, calls Core commit-preflight, verifies Core's
+approval context and executable preflight result, then executes one WordPress
+Abilities API call. For an already approved proposal, Adapter skips only the
+Core approve step and still runs commit-preflight before execution.
+
+The response must include `proposal_id`, `post_id`, `ability_id`,
+`correlation_id`, `status_before`, whether Adapter performed approval, Core
+`commit_execution=false`, and the execution result. Rejected proposals,
+non-allowlisted abilities, and preflight failures must not execute.
+
+## Approved Proposal Execution Contract
+
+Adapter may execute one approved Core proposal only through:
+
+```text
+POST /wp-json/magick-ai-adapter/v1/execute-approved-proposal
+POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/execute
+POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
+```
+
+The current allowlist is intentionally narrow:
+
+- `magick-ai/trash-post`
+
+For each execution request, Adapter must fetch the Core proposal, call Core
+commit-preflight, require `approval_commit_authorized=true`, require
+`commit_execution=false`, pass Core `approval_context` to WordPress Abilities
+API, and return `proposal_id`, `correlation_id`, and `ability_id` with the
+ability result.
+
+Adapter must not generate its own approval state, skip Core commit-preflight,
+skip `approval_context`, execute unapproved proposals outside the unified
+action, execute preflight failures, or batch silently execute destructive
+actions. Future execution abilities must be added one by one to the allowlist
+with dedicated smoke coverage; Adapter must not become a generic proxy-execute
+surface.
 
 ## AI Request Log Correlation
 
@@ -95,8 +167,9 @@ Core Governance Audit is the governance log. WordPress `ai` plugin AI Request
 Logs are the provider request log. Adapter carries identifiers between them but
 does not store provider credentials, prompts, responses, token details, or AI
 Request Logs in Core. If the AI Request Logs provider column is blank for a
-local connector, OpenClaw should inspect Adapter context fields such as
-`ai_provider=ollama` and `ai_model=qwen3.5:0.8b`.
+local connector, OpenClaw should inspect Adapter context fields for the
+explicit `ai_provider` and `ai_model` sent to the provider smoke route. Local
+Ollama examples use `ai_model=qwen3.5:0.8b` when that model is available.
 AI Request Logs are the provider request log.
 
 For local readiness smoke, Adapter exposes:
@@ -157,20 +230,24 @@ Default response:
 ```json
 {
   "code": "magick_ai_adapter_approval_proxy_disabled",
-  "message": "Approval is handled in Magick AI Core admin.",
+  "message": "Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Magick AI Core admin for split approval decisions.",
   "approval_proxy_enabled": false,
-  "approval_surface": "magick_ai_core_admin"
+  "approval_surface": "magick_ai_core_admin",
+  "unified_action_route": "POST /proposals/{proposal_id}/approve-and-execute"
 }
 ```
 
 The disabled stubs must not forward to Core approval or rejection routes. The
 default Core app key used by Adapter must not require approval or rejection
 scopes. OpenClaw and agents must not receive default approval power through
-Adapter.
+standalone approve/reject proxy routes.
 
-Future trusted approval proxying can only be added as an explicit, disabled by
-default, ADR-backed feature with a trusted host policy and independent approval
-and rejection scopes. This contract does not implement that forwarding.
+The supported Adapter-side approval action is the unified
+`approve-and-execute` route. Adapter must not expose a generic approve/reject
+proxy without a separate explicit trusted-host policy and ADR-backed feature.
+The disabled stubs and top-level health contract preserve
+`approval_surface=magick_ai_core_admin` to make the standalone proxy boundary
+explicit.
 
 ## First Product Routes
 
@@ -229,9 +306,12 @@ Read shortcuts:
 - `GET /wp-json/magick-ai-adapter/v1/page-structure`
 - `GET /wp-json/magick-ai-adapter/v1/pages-tree`
 - `GET /wp-json/magick-ai-adapter/v1/content-inventory-health`
+- `GET /wp-json/magick-ai-adapter/v1/content-inventory-fix-plan`
+- `GET /wp-json/magick-ai-adapter/v1/test-content-cleanup-plan`
 - `GET /wp-json/magick-ai-adapter/v1/site-operations-dashboard`
 - `GET /wp-json/magick-ai-adapter/v1/publishing-calendar-context`
 - `GET /wp-json/magick-ai-adapter/v1/media-inventory-health`
+- `GET /wp-json/magick-ai-adapter/v1/media-inventory-fix-plan`
 - `GET /wp-json/magick-ai-adapter/v1/taxonomy-inventory-health`
 
 Generic read:
@@ -344,9 +424,13 @@ Governance:
 - `GET /wp-json/magick-ai-adapter/v1/proposals`
 - `GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}`
 - `POST /wp-json/magick-ai-adapter/v1/proposals`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/from-plan`
 - `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve`
 - `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/reject`
 - `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/commit-preflight`
+- `POST /wp-json/magick-ai-adapter/v1/execute-approved-proposal`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/execute`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute`
 
 ## Security
 
@@ -388,11 +472,14 @@ Connection check order:
 2. `GET /help`.
 3. `GET /capabilities`.
 4. direct-read shortcut or `POST /run-read-ability`.
-5. proposal-required `POST /proposals`.
-6. proposal status polling with `GET /proposals/{proposal_id}`.
-7. pending proposal decisions handled in `WordPress -> Magick AI Core`.
-8. rejected proposal stops the flow.
-9. approved proposal `POST /proposals/{proposal_id}/commit-preflight`.
+5. optional plan handoff with `POST /proposals/from-plan`.
+6. proposal-required `POST /proposals`.
+7. proposal status polling with `GET /proposals/{proposal_id}`.
+8. unified user action with `POST /proposals/{proposal_id}/approve-and-execute`
+   for allowlisted execution, or split approval in Core admin.
+9. rejected proposal stops the flow.
+10. approved proposal split path uses
+    `POST /proposals/{proposal_id}/commit-preflight`.
 
 ## Proposal-Required Write Flow
 
@@ -403,24 +490,35 @@ OpenClaw must treat Core as the only proposal and approval truth:
 2. Send `POST /proposals` with the real `ability_id`, dry-run style `input`,
    rendered or structured `preview`, and `caller` metadata.
 3. Poll `GET /proposals/{proposal_id}` through the adapter for Core status.
-4. If `status=pending`, prompt the user to approve or reject in
-   `WordPress -> Magick AI Core`.
+4. If `status=pending` and the user chooses the unified OpenClaw action, call
+   `POST /proposals/{proposal_id}/approve-and-execute`. Adapter calls Core
+   approve, then Core commit-preflight, then one allowlisted execution.
 5. If `status=rejected`, stop and show the rejection state or reason returned
    by Core.
-6. If `status=approved`, call
+6. If using the lower-level split path and `status=approved`, call
    `POST /proposals/{proposal_id}/commit-preflight`.
-7. Stop at the returned Core preflight decision.
+7. Stop at the returned Core preflight decision unless the ability is
+   allowlisted for Adapter execution, currently only `magick-ai/trash-post`.
 
 Adapter invariants:
 
-- It does not approve or reject.
+- It can call Core approve only inside
+  `POST /proposals/{proposal_id}/approve-and-execute`.
 - It does not store proposal state.
-- It does not execute final WordPress mutations.
+- It does not expose a generic approve/reject proxy.
+- It does not execute final WordPress mutations outside the allowlisted
+  approve-and-execute or approved-proposal execution path.
 - It preserves `core_proxy_execute=false`.
 - It preserves `commit_execution=false`.
 - It exposes `approval_proxy_enabled=false`.
-- It exposes `approval_surface=magick_ai_core_admin`.
+- It keeps Core as the approval, preflight, and audit truth source.
 
-Future approval or rejection proxying is out of this default contract. It may
-only be added as a separate explicit trusted-host policy and ADR-backed feature,
-disabled by default, with independent Core scopes for approval and rejection.
+For read-only planning abilities, OpenClaw may instead send the returned plan
+to `POST /proposals/from-plan`. Adapter only forwards the plan to Core and
+preserves Core's result; Core owns plan intake, proposal creation, blocked
+items, approval state, and audit truth.
+
+Future standalone approval or rejection proxying is out of this default
+contract. It may only be added as a separate explicit trusted-host policy and
+ADR-backed feature, disabled by default, with independent Core scopes for
+approval and rejection.

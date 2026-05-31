@@ -31,6 +31,12 @@ It does not own:
   hosted execution, stats, diagnostics, and analysis truth.
 - Use WordPress REST authentication and capability checks.
 - Run `composer test:all` before committing.
+- For Plugin Check / PCP, use `composer plugin-check:release` so checks target
+  the release/package surface defined by `.distignore`; do not delete
+  development-only files such as `tests/` or `AGENTS.md` from the source tree
+  just to satisfy a full-worktree scan.
+- Use `composer package:release` to build the release zip from that same
+  `.distignore` boundary.
 
 ## Current Integration Contract
 

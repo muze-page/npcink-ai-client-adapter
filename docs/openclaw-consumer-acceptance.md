@@ -52,6 +52,9 @@ Run this order for a local acceptance pass:
    - flat `routes[]` rows with `method`, `path`, `purpose`, and `group`
    - `GET /proposals`
    - `GET /proposals/{proposal_id}`
+   - `POST /proposals/from-plan`
+   - `POST /proposals/{proposal_id}/execute`
+   - `POST /proposals/{proposal_id}/approve-and-execute`
    - `GET /term`, whose purpose explains term detail uses list row `id` and
      infers `taxonomy` when possible
    - `route_groups` for human-readable grouped route labels
@@ -86,23 +89,48 @@ Run this order for a local acceptance pass:
    `GET /recent-error-log-tail` and display `error_log.tail_entries` plus
    `error_log.summary.by_severity`.
 8. Create a governed write proposal with `POST /proposals`.
-9. Query status through Adapter:
+9. Run a planning ability such as
+   `magick-ai/build-content-inventory-fix-plan`,
+   `magick-ai/build-test-content-cleanup-plan`, or
+   `magick-ai/build-media-inventory-fix-plan`. Confirm Adapter preserves
+   `write_actions`, `preview`, `risk`, `requires_approval`,
+   `commit_execution=false`, and `dry_run=true`, and does not treat
+   `write_actions` or destructive candidates as executed work.
+10. If a plan should become proposals, call `POST /proposals/from-plan` and
+    confirm Adapter preserves Core's `proposal_count`, `proposals`,
+    `blocked_items`, and `commit_execution=false` result.
+11. Query status through Adapter:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`
-10. Approve or reject the pending proposal in
+12. For split-path coverage, approve or reject one pending proposal in
     `WordPress -> Tools -> Magick AI Core`.
-11. If rejected, OpenClaw stops and shows the Core status.
-12. If approved, call `POST /proposals/{proposal_id}/commit-preflight`.
-13. Confirm Core still returns `commit_execution=false`.
-14. Pass `proposal_id` and `correlation_id` into later reads as query fields or
+13. If rejected, OpenClaw stops and shows the Core status.
+14. If approved, call `POST /proposals/{proposal_id}/commit-preflight`.
+15. Confirm Core still returns `commit_execution=false`.
+16. For the unified user action, call
+    `POST /proposals/{proposal_id}/approve-and-execute` from Adapter/OpenClaw.
+    Confirm Adapter approved through Core when status was pending, ran Core
+    commit-preflight, returned `proposal_id`, `post_id`, `ability_id`, and
+    `correlation_id`, and moved the test post to `trash`.
+17. For lower-level approved proposal execution, use only the current
+    `magick-ai/trash-post` path and call
+    `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
+    preflight, passed `approval_context`, returned `proposal_id`,
+    `correlation_id`, and `ability_id`, and did not execute pending or
+    preflight-failed proposals.
+18. Confirm rejected proposals, non-allowlisted proposals, and preflight-blocked
+    proposals do not execute through approve-and-execute.
+19. Pass `proposal_id` and `correlation_id` into later reads as query fields or
     as POST `/run-read-ability` `log_context`.
-15. Call `POST /ai-provider-log-correlation-smoke` with local Ollama
-    `ai_provider=ollama` and `ai_model=qwen3.5:0.8b`.
-16. Confirm the AI Request Logs row has `status=success` and context fields:
+20. Call `POST /ai-provider-log-correlation-smoke` with a configured text
+    generation provider/model. Local examples use `ai_provider=ollama` and
+    `ai_model=qwen3.5:0.8b` when that model is available; otherwise use the
+    provider/model returned by `GET /ai/v1/providers?capability=text_generation`.
+21. Confirm the AI Request Logs row has `status=success` and context fields:
     `proposal_id`, `correlation_id`, `ability_id`, `adapter_request_id`,
     `adapter_route`, `ai_provider`, `ai_model`,
     `governance_source=magick-ai-core`, and nested `magick_ai_core`.
-17. Confirm correlation in:
+22. Confirm correlation in:
     - Core Governance Audit, filtered by `proposal_id` or `correlation_id`;
     - AI Request Logs, using Adapter context fields.
 
@@ -145,6 +173,15 @@ curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals"
 ```
 
+Create proposals from a read-only plan:
+
+```bash
+curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -d '{"plan_ability_id":"magick-ai/build-content-inventory-fix-plan","plan":{"batch_id":"acceptance","issue_types":[],"requires_approval":true,"commit_execution":false,"dry_run":true,"action_count":0,"write_actions":[],"preview":[],"risk":{"level":"medium"}},"plan_input":{"per_page":1},"caller":{"external_thread_id":"OPENCLAW_ACCEPTANCE_THREAD"}}' \
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/from-plan"
+```
+
 Query proposal status:
 
 ```bash
@@ -178,18 +215,27 @@ OpenClaw must stop and report the reason when Adapter or Core returns:
 - `magick_ai_adapter_proposal_required` when a caller tries to execute a
   proposal-required ability as a direct read;
 - `magick_ai_adapter_approval_proxy_disabled` when a caller tries to approve or
-  reject through Adapter.
+  reject through Adapter's standalone disabled stubs;
+- `magick_ai_adapter_execute_ability_not_allowed` when the proposal ability is
+  outside Adapter's execution allowlist;
+- `magick_ai_adapter_proposal_rejected` when approve-and-execute is attempted
+  after Core rejection;
+- `magick_ai_adapter_preflight_not_authorized` or
+  `magick_ai_adapter_preflight_item_blocked` when Core commit-preflight blocks
+  execution.
 
 The disabled approval and rejection stubs are part of the acceptance surface.
-They prove that OpenClaw can discover the routes while still routing human
-decisions to Core admin.
+They prove that OpenClaw can discover the routes while using
+`approve-and-execute` for the unified user action or Core admin for split
+approval decisions.
 
 ## Non-Goals
 
 This acceptance pass must not add or require:
 
-- Adapter approval or rejection proxying;
-- final WordPress write execution;
+- generic Adapter approval or rejection proxying;
+- final WordPress write execution outside the current allowlisted
+  approve-and-execute path;
 - Core `/execute` or `/proxy-execute`;
 - MCP runtime;
 - workflow runtime, queues, retries, or schedulers;
@@ -202,6 +248,8 @@ After changing Adapter, run:
 
 ```bash
 composer test:all
+composer plugin-check:release
+composer package:release
 composer smoke:wp
 git diff --check
 ```
@@ -221,15 +269,18 @@ Core cross-reference does not need a Core WordPress smoke pass.
 OpenClaw consumer acceptance is complete when:
 
 - health, help, capabilities, direct read, diagnostics read, proposal create,
-  proposal list/detail, Core admin approval/rejection, and commit preflight are
-  all verified through Adapter;
+  plan-to-proposal forwarding, proposal list/detail, disabled approve/reject
+  stubs, unified approve-and-execute, split Core admin approval/rejection, and
+  commit preflight are all verified through Adapter;
 - Core audit and AI Request Logs can be correlated with `proposal_id` or
   `correlation_id`;
 - Core Governance Audit remains the governance log, and WordPress `ai` plugin
   AI Request Logs remain the provider request log;
-- AI Request Logs context records `ai_provider=ollama` and
-  `ai_model=qwen3.5:0.8b` even if the provider column is blank;
+- AI Request Logs context records the explicit `ai_provider` and explicit
+  `ai_model` sent to the provider smoke even if the provider column is blank;
 - disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
   proposal state;
+- plan `write_actions` and `skipped_destructive_candidates` are never reported
+  as Adapter-executed mutations;
 - `commit_execution=false` remains true at preflight;
 - no new runtime ownership is added to Core, Adapter, or Abilities.

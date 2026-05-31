@@ -30,6 +30,29 @@ final class Controller {
 	private $current_request_log_context = array();
 
 	/**
+	 * Planning abilities accepted by the adapter plan-to-proposal bridge.
+	 *
+	 * Core enforces the same policy as governance truth; this adapter-side
+	 * allowlist prevents arbitrary plan payload forwarding before Core intake.
+	 *
+	 * @var array<string,bool>
+	 */
+	private static $allowed_plan_ability_ids = array(
+		'magick-ai/build-content-inventory-fix-plan' => true,
+		'magick-ai/build-test-content-cleanup-plan'  => true,
+		'magick-ai/build-media-inventory-fix-plan'   => true,
+	);
+
+	/**
+	 * Abilities this adapter may execute after Core approval and commit preflight.
+	 *
+	 * @var array<string,bool>
+	 */
+	private static $allowed_execute_ability_ids = array(
+		'magick-ai/trash-post' => true,
+	);
+
+	/**
 	 * Registers REST routes.
 	 *
 	 * @return void
@@ -234,6 +257,99 @@ final class Controller {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/proposals/from-plan',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_proposals_from_plan' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'plan_ability_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'plan'            => array(
+							'type'     => 'object',
+							'required' => true,
+						),
+						'plan_input'      => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'caller'          => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/execute-approved-proposal',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'execute_approved_proposal_route' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'proposal_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/execute',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'execute_approved_proposal_route' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'proposal_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/approve-and-execute',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'approve_and_execute_proposal_route' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'proposal_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'note'        => array(
+							'type'              => 'string',
+							'required'          => false,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)',
 			array(
 				array(
@@ -307,6 +423,7 @@ final class Controller {
 				),
 			)
 		);
+
 	}
 
 	/**
@@ -357,6 +474,16 @@ final class Controller {
 					'proposals:create',
 					'commit:preflight',
 				),
+				'approved_proposal_execution_routes' => array(
+					'POST /execute-approved-proposal',
+					'POST /proposals/{proposal_id}/execute',
+					'POST /proposals/{proposal_id}/approve-and-execute',
+				),
+				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'plan_proposal_routes' => array(
+					'POST /proposals/from-plan',
+				),
+				'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
@@ -381,6 +508,42 @@ final class Controller {
 					'write' => array(
 						'governance_mode'   => 'proposal_required',
 						'execution_surface' => 'adapter_after_core_preflight',
+					),
+					'approved_proposal_execution' => array(
+						'governance_mode'      => 'core_approved_commit_preflight_required',
+						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
+						'core_required_scope'  => 'commit:preflight',
+						'core_commit_execution' => false,
+						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+					),
+					'unified_approve_and_execute' => array(
+						'governance_mode'      => 'core_approval_then_adapter_execution',
+						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
+						'approval_surface'     => 'magick_ai_adapter_unified_action',
+						'core_commit_execution' => false,
+						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+					),
+					'plan_to_proposal' => array(
+						'governance_mode'   => 'direct_read_plan_to_core_proposals',
+						'execution_surface' => 'magick_ai_core_rest',
+						'core_required_scope' => 'proposals:create',
+						'core_route'        => 'POST /magick-ai-core/v1/proposals/from-plan',
+						'plan_fields_preserved' => array(
+							'batch_id',
+							'issue_types',
+							'post_ids',
+							'attachment_ids',
+							'write_actions',
+							'preview',
+							'risk',
+							'requires_approval',
+							'commit_execution',
+							'dry_run',
+							'manual_review',
+							'skipped_destructive_candidates',
+							'issue_counts',
+							'action_count',
+						),
 					),
 				),
 				'permission_capability'  => 'manage_options',
@@ -427,6 +590,7 @@ final class Controller {
 				'core_required_scopes' => array(
 					'proposal_status'  => 'proposals:read',
 					'proposal_create'  => 'proposals:create',
+					'proposal_from_plan' => 'proposals:create',
 					'commit_preflight' => 'commit:preflight',
 				),
 				'approval_proxy_enabled' => false,
@@ -458,6 +622,16 @@ final class Controller {
 					'proposals:create',
 					'commit:preflight',
 				),
+				'approved_proposal_execution_routes' => array(
+					'POST /execute-approved-proposal',
+					'POST /proposals/{proposal_id}/execute',
+					'POST /proposals/{proposal_id}/approve-and-execute',
+				),
+				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'plan_proposal_routes' => array(
+					'POST /proposals/from-plan',
+				),
+				'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
@@ -500,9 +674,13 @@ final class Controller {
 			),
 			'governance'      => array(
 				'POST /proposals',
+				'POST /proposals/from-plan',
 				'POST /proposals/{proposal_id}/approve',
 				'POST /proposals/{proposal_id}/reject',
 				'POST /proposals/{proposal_id}/commit-preflight',
+				'POST /execute-approved-proposal',
+				'POST /proposals/{proposal_id}/execute',
+				'POST /proposals/{proposal_id}/approve-and-execute',
 			),
 		);
 	}
@@ -564,9 +742,13 @@ final class Controller {
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
 			'POST /proposals' => 'Create a Core proposal for governed work.',
+			'POST /proposals/from-plan' => 'Forward a read-only plan output to Core plan-to-proposal intake.',
 			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/commit-preflight' => 'Run Core commit preflight without executing final writes.',
+			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight.',
+			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight.',
+			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one allowlisted proposal.',
 			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
 			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
 		);
@@ -657,7 +839,8 @@ final class Controller {
 		$result = $this->with_ai_request_log_context(
 			$log_context,
 			static function () use ( $prompt, $ai_provider, $ai_model ) {
-				$builder = wp_ai_client_prompt( $prompt );
+				$prompt_builder = 'wp_ai_client_prompt';
+				$builder        = $prompt_builder( $prompt );
 
 				if ( is_callable( array( $builder, 'using_provider' ) ) ) {
 					$builder = $builder->using_provider( $ai_provider );
@@ -739,9 +922,10 @@ final class Controller {
 		return new WP_REST_Response(
 			array(
 				'code'                   => 'magick_ai_adapter_approval_proxy_disabled',
-				'message'                => __( 'Approval is handled in Magick AI Core admin.', 'magick-ai-adapter' ),
+				'message'                => __( 'Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Magick AI Core admin for split approval decisions.', 'magick-ai-adapter' ),
 				'approval_proxy_enabled' => false,
 				'approval_surface'       => 'magick_ai_core_admin',
+				'unified_action_route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
 			),
 			403
 		);
@@ -754,22 +938,46 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_proposal( WP_REST_Request $request ) {
+		$ability_id = (string) $request->get_param( 'ability_id' );
 		$params = array(
-			'ability_id' => (string) $request->get_param( 'ability_id' ),
+			'ability_id' => $ability_id,
 			'title'      => (string) $request->get_param( 'title' ),
 			'summary'    => (string) $request->get_param( 'summary' ),
 			'input'      => $this->object_param( $request, 'input' ),
 			'preview'    => $this->object_param( $request, 'preview' ),
-			'caller'     => array_merge(
-				array(
-					'caller_type' => 'openclaw_adapter',
-					'via'         => 'magick-ai-adapter',
-				),
-				$this->object_param( $request, 'caller' )
-			),
+			'caller'     => $this->proposal_caller_context( $request, $ability_id ),
 		);
 
 		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals', $params );
+	}
+
+	/**
+	 * Creates Core proposals from a read-only plan output.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_proposals_from_plan( WP_REST_Request $request ) {
+		$plan_ability_id = sanitize_text_field( (string) $request->get_param( 'plan_ability_id' ) );
+		if ( ! isset( self::$allowed_plan_ability_ids[ $plan_ability_id ] ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_plan_ability_not_allowed',
+				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'magick-ai-adapter' ),
+				array(
+					'status'                   => 400,
+					'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
+				)
+			);
+		}
+
+		$params = array(
+			'plan_ability_id' => $plan_ability_id,
+			'plan'            => $this->object_param( $request, 'plan' ),
+			'plan_input'      => $this->object_param( $request, 'plan_input' ),
+			'caller'          => $this->proposal_caller_context( $request, $plan_ability_id ),
+		);
+
+		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/from-plan', $params );
 	}
 
 	/**
@@ -781,6 +989,335 @@ final class Controller {
 	public function commit_preflight( WP_REST_Request $request ) {
 		$proposal_id = (string) $request->get_param( 'proposal_id' );
 		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+	}
+
+	/**
+	 * Executes one approved Core proposal after commit preflight.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function execute_approved_proposal_route( WP_REST_Request $request ) {
+		$proposal_id = sanitize_text_field( (string) $request->get_param( 'proposal_id' ) );
+		if ( '' === $proposal_id ) {
+			return new WP_Error(
+				'magick_ai_adapter_proposal_id_required',
+				__( 'proposal_id is required.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$proposal = $this->get_core_proposal_data( $proposal_id );
+		if ( is_wp_error( $proposal ) ) {
+			return $proposal;
+		}
+
+		$execution = $this->execute_core_approved_proposal( $request, $proposal_id, $proposal );
+		if ( is_wp_error( $execution ) ) {
+			return $execution;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'status'             => 'executed',
+				'proposal_id'        => $proposal_id,
+				'correlation_id'     => $execution['correlation_id'],
+				'ability_id'         => $execution['ability_id'],
+				'adapter_request_id' => $execution['adapter_request_id'],
+				'approval_context'   => $execution['approval_context'],
+				'commit_execution'   => false,
+				'execution_surface'  => 'wp_abilities_rest',
+				'result'             => $execution['result'],
+			),
+			200
+		);
+	}
+
+	/**
+	 * Approves a pending proposal through Core and executes one allowlisted proposal.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function approve_and_execute_proposal_route( WP_REST_Request $request ) {
+		$proposal_id = sanitize_text_field( (string) $request->get_param( 'proposal_id' ) );
+		if ( '' === $proposal_id ) {
+			return new WP_Error(
+				'magick_ai_adapter_proposal_id_required',
+				__( 'proposal_id is required.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$proposal = $this->get_core_proposal_data( $proposal_id );
+		if ( is_wp_error( $proposal ) ) {
+			return $proposal;
+		}
+
+		$ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
+		$allowed = $this->validate_execute_ability( $proposal_id, $ability_id );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		$status_before       = sanitize_key( (string) ( $proposal['status'] ?? '' ) );
+		$approved_by_adapter = false;
+
+		if ( 'pending' === $status_before ) {
+			$note = sanitize_text_field( (string) $request->get_param( 'note' ) );
+			if ( '' === $note ) {
+				$note = __( 'Approved by Magick AI Adapter approve-and-execute.', 'magick-ai-adapter' );
+			}
+
+			$approved_response = $this->dispatch_upstream(
+				'POST',
+				'/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve',
+				array( 'note' => $note ),
+				false,
+				false,
+				false
+			);
+			if ( is_wp_error( $approved_response ) ) {
+				return $approved_response;
+			}
+
+			$approved = $approved_response->get_data();
+			if ( ! is_array( $approved ) || 'approved' !== (string) ( $approved['status'] ?? '' ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_core_approve_failed',
+					__( 'Core did not return an approved proposal state.', 'magick-ai-adapter' ),
+					array(
+						'status'      => 409,
+						'proposal_id' => $proposal_id,
+						'core_result' => $approved,
+					)
+				);
+			}
+
+			$approved_by_adapter = true;
+		} elseif ( 'approved' !== $status_before ) {
+			$code = 'rejected' === $status_before ? 'magick_ai_adapter_proposal_rejected' : 'magick_ai_adapter_proposal_not_executable';
+			return new WP_Error(
+				$code,
+				__( 'This proposal cannot be approved and executed from its current status.', 'magick-ai-adapter' ),
+				array(
+					'status'        => 409,
+					'proposal_id'   => $proposal_id,
+					'ability_id'    => $ability_id,
+					'status_before' => $status_before,
+				)
+			);
+		}
+
+		$execution = $this->execute_core_approved_proposal( $request, $proposal_id, $proposal );
+		if ( is_wp_error( $execution ) ) {
+			return $execution;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'success'               => true,
+				'proposal_id'           => $proposal_id,
+				'ability_id'            => $execution['ability_id'],
+				'post_id'               => $execution['post_id'],
+				'status_before'         => $status_before,
+				'approved_by_adapter'   => $approved_by_adapter,
+				'correlation_id'        => $execution['correlation_id'],
+				'adapter_request_id'    => $execution['adapter_request_id'],
+				'core_commit_execution' => false,
+				'approval_context'      => $execution['approval_context'],
+				'execution'             => array(
+					'success'            => true,
+					'post_status_before' => $execution['post_status_before'],
+					'post_status_after'  => $execution['post_status_after'],
+					'result'             => $execution['result'],
+				),
+			),
+			200
+		);
+	}
+
+	/**
+	 * Fetches a Core proposal and validates the response shape.
+	 *
+	 * @param string $proposal_id Proposal id.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function get_core_proposal_data( string $proposal_id ) {
+		$proposal_response = $this->dispatch_upstream( 'GET', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) );
+		if ( is_wp_error( $proposal_response ) ) {
+			return $proposal_response;
+		}
+
+		$proposal = $proposal_response->get_data();
+		if ( ! is_array( $proposal ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_invalid_core_proposal',
+				__( 'Core proposal response is invalid.', 'magick-ai-adapter' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		return $proposal;
+	}
+
+	/**
+	 * Validates that an ability is allowed for adapter execution.
+	 *
+	 * @param string $proposal_id Proposal id.
+	 * @param string $ability_id Ability id.
+	 * @return true|WP_Error
+	 */
+	private function validate_execute_ability( string $proposal_id, string $ability_id ) {
+		if ( isset( self::$allowed_execute_ability_ids[ $ability_id ] ) ) {
+			return true;
+		}
+
+		return new WP_Error(
+			'magick_ai_adapter_execute_ability_not_allowed',
+			__( 'This proposal ability is not allowed for adapter execution.', 'magick-ai-adapter' ),
+			array(
+				'status'                      => 403,
+				'proposal_id'                 => $proposal_id,
+				'ability_id'                  => $ability_id,
+				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+			)
+		);
+	}
+
+	/**
+	 * Executes an approved proposal after Core commit preflight.
+	 *
+	 * @param WP_REST_Request     $request Request.
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function execute_core_approved_proposal( WP_REST_Request $request, string $proposal_id, array $proposal ) {
+		$ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
+		$allowed    = $this->validate_execute_ability( $proposal_id, $ability_id );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		$input   = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		$post_id = absint( $input['post_id'] ?? 0 );
+		if ( 'magick-ai/trash-post' === $ability_id && 0 === $post_id ) {
+			return new WP_Error(
+				'magick_ai_adapter_post_id_required',
+				__( 'trash-post proposal input must include post_id.', 'magick-ai-adapter' ),
+				array(
+					'status'      => 400,
+					'proposal_id' => $proposal_id,
+					'ability_id'  => $ability_id,
+				)
+			);
+		}
+
+		$post_status_before = get_post_status( $post_id );
+		$post_status_before = false === $post_status_before ? '' : (string) $post_status_before;
+
+		$preflight_response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+		if ( is_wp_error( $preflight_response ) ) {
+			return $preflight_response;
+		}
+
+		$preflight = $preflight_response->get_data();
+		if ( ! is_array( $preflight ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_invalid_core_preflight',
+				__( 'Core commit preflight response is invalid.', 'magick-ai-adapter' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		$approval_context = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
+		if ( true !== (bool) ( $approval_context['approval_commit_authorized'] ?? false ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_preflight_not_authorized',
+				__( 'Core commit preflight did not authorize approval commit.', 'magick-ai-adapter' ),
+				array(
+					'status'      => 409,
+					'proposal_id' => $proposal_id,
+					'preflight'   => $preflight,
+				)
+			);
+		}
+
+		if ( false !== (bool) ( $preflight['commit_execution'] ?? true ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_core_execution_not_allowed',
+				__( 'Core commit preflight must not execute final writes.', 'magick-ai-adapter' ),
+				array(
+					'status'      => 409,
+					'proposal_id' => $proposal_id,
+					'preflight'   => $preflight,
+				)
+			);
+		}
+
+		if ( false === (bool) ( $preflight['proposal_item_preflight']['executable'] ?? true ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_preflight_item_blocked',
+				__( 'Core commit preflight did not mark the proposal item executable.', 'magick-ai-adapter' ),
+				array(
+					'status'      => 409,
+					'proposal_id' => $proposal_id,
+					'preflight'   => $preflight,
+				)
+			);
+		}
+
+		$correlation_id = sanitize_text_field( (string) ( $preflight['correlation_id'] ?? ( $approval_context['correlation_id'] ?? '' ) ) );
+		if ( '' === $correlation_id ) {
+			return new WP_Error(
+				'magick_ai_adapter_preflight_correlation_required',
+				__( 'Core commit preflight did not return a correlation id.', 'magick-ai-adapter' ),
+				array(
+					'status'      => 409,
+					'proposal_id' => $proposal_id,
+					'preflight'   => $preflight,
+				)
+			);
+		}
+
+		$ability_input = array(
+			'post_id' => $post_id,
+			'dry_run' => false,
+			'commit'  => true,
+		);
+
+		$route           = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
+		$request_context = $this->request_log_context( $request, $ability_id );
+		$context         = array_merge(
+			$approval_context,
+			$request_context,
+			array(
+				'ability_id'     => $ability_id,
+				'proposal_id'    => $proposal_id,
+				'post_id'        => $post_id,
+				'correlation_id' => $correlation_id,
+				'via'            => 'magick-ai-adapter',
+			)
+		);
+		$response = $this->dispatch_upstream_with_runtime_context( $context, 'POST', $route, array( 'input' => $ability_input ), false, true );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$post_status_after = get_post_status( $post_id );
+
+		return array(
+			'ability_id'          => $ability_id,
+			'post_id'             => $post_id,
+			'correlation_id'      => $correlation_id,
+			'adapter_request_id'  => (string) ( $context['adapter_request_id'] ?? '' ),
+			'approval_context'    => $approval_context,
+			'preflight'           => $preflight,
+			'post_status_before'  => $post_status_before,
+			'post_status_after'   => false === $post_status_after ? '' : (string) $post_status_after,
+			'result'              => $response->get_data(),
+		);
 	}
 
 	/**
@@ -849,6 +1386,7 @@ final class Controller {
 	 * @param string              $route REST route.
 	 * @param array<string,mixed> $params Params.
 	 * @param bool                $query_params Whether params should be query params.
+	 * @param bool                $json_body Whether params should be encoded as JSON body.
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private function dispatch_upstream_with_request_log_context( array $log_context, string $method, string $route, array $params = array(), bool $query_params = false ) {
@@ -862,6 +1400,34 @@ final class Controller {
 				return $this->dispatch_upstream( $method, $route, $params, $query_params );
 			}
 		);
+	}
+
+	/**
+	 * Dispatches an upstream request with host approval runtime context.
+	 *
+	 * @param array<string,mixed> $runtime_context Runtime context.
+	 * @param string              $method HTTP method.
+	 * @param string              $route REST route.
+	 * @param array<string,mixed> $params Params.
+	 * @param bool                $query_params Whether params should be query params.
+	 * @param bool                $json_body Whether params should be encoded as JSON body.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	private function dispatch_upstream_with_runtime_context( array $runtime_context, string $method, string $route, array $params = array(), bool $query_params = false, bool $json_body = false ) {
+		$previous = isset( $GLOBALS['magick_ai_runtime_wp_ability_context'] ) ? $GLOBALS['magick_ai_runtime_wp_ability_context'] : null;
+		$GLOBALS['magick_ai_runtime_wp_ability_context'] = array(
+			'context' => $this->sanitize_runtime_context( $runtime_context ),
+		);
+
+		try {
+			return $this->dispatch_upstream( $method, $route, $params, $query_params, $json_body );
+		} finally {
+			if ( null === $previous ) {
+				unset( $GLOBALS['magick_ai_runtime_wp_ability_context'] );
+			} else {
+				$GLOBALS['magick_ai_runtime_wp_ability_context'] = $previous;
+			}
+		}
 	}
 
 	/**
@@ -899,7 +1465,7 @@ final class Controller {
 
 		$context['magick_ai_adapter'] = $this->current_request_log_context;
 
-		foreach ( array( 'proposal_id', 'correlation_id', 'ability_id', 'adapter_request_id', 'adapter_route', 'ai_provider', 'ai_model', 'governance_source' ) as $key ) {
+		foreach ( array( 'proposal_id', 'correlation_id', 'ability_id', 'post_id', 'adapter_request_id', 'adapter_route', 'ai_provider', 'ai_model', 'governance_source' ) as $key ) {
 			if ( isset( $this->current_request_log_context[ $key ] ) ) {
 				$context[ $key ] = $this->current_request_log_context[ $key ];
 			}
@@ -945,11 +1511,13 @@ final class Controller {
 	 * @param string              $route REST route.
 	 * @param array<string,mixed> $params Params.
 	 * @param bool                $query_params Whether params should be query params.
+	 * @param bool                $json_body Whether params should be encoded as JSON body.
+	 * @param bool                $use_core_app_token Whether configured Core app token should be used.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private function dispatch_upstream( string $method, string $route, array $params = array(), bool $query_params = false ) {
+	private function dispatch_upstream( string $method, string $route, array $params = array(), bool $query_params = false, bool $json_body = false, bool $use_core_app_token = true ) {
 		$request = new WP_REST_Request( $method, $route );
-		$token   = $this->core_app_token();
+		$token   = $use_core_app_token ? $this->core_app_token() : '';
 		$user_id = get_current_user_id();
 
 		if ( '' !== $token && 0 === strpos( $route, '/magick-ai-core/v1/' ) ) {
@@ -959,6 +1527,9 @@ final class Controller {
 
 		if ( $query_params ) {
 			$request->set_query_params( $params );
+		} elseif ( $json_body ) {
+			$request->set_header( 'content-type', 'application/json' );
+			$request->set_body( (string) wp_json_encode( $params ) );
 		} else {
 			foreach ( $params as $key => $value ) {
 				$request->set_param( $key, $value );
@@ -1145,9 +1716,12 @@ final class Controller {
 			'page-structure'         => array( 'ability_id' => 'magick-ai/inspect-page-structure' ),
 			'pages-tree'             => array( 'ability_id' => 'magick-ai/list-pages-tree' ),
 			'content-inventory-health' => array( 'ability_id' => 'magick-ai/get-content-inventory-health' ),
+			'content-inventory-fix-plan' => array( 'ability_id' => 'magick-ai/build-content-inventory-fix-plan' ),
+			'test-content-cleanup-plan' => array( 'ability_id' => 'magick-ai/build-test-content-cleanup-plan' ),
 			'site-operations-dashboard' => array( 'ability_id' => 'magick-ai/get-site-operations-dashboard' ),
 			'publishing-calendar-context' => array( 'ability_id' => 'magick-ai/get-publishing-calendar-context' ),
 			'media-inventory-health' => array( 'ability_id' => 'magick-ai/get-media-inventory-health' ),
+			'media-inventory-fix-plan' => array( 'ability_id' => 'magick-ai/build-media-inventory-fix-plan' ),
 			'taxonomy-inventory-health' => array( 'ability_id' => 'magick-ai/get-taxonomy-inventory-health' ),
 		);
 	}
@@ -1343,6 +1917,24 @@ final class Controller {
 	}
 
 	/**
+	 * Returns caller metadata for Core proposal requests.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @param string          $ability_id Ability id.
+	 * @return array<string,mixed>
+	 */
+	private function proposal_caller_context( WP_REST_Request $request, string $ability_id ): array {
+		return array_merge(
+			array(
+				'caller_type' => 'openclaw_adapter',
+				'via'         => 'magick-ai-adapter',
+			),
+			$this->request_log_context( $request, $ability_id ),
+			$this->object_param( $request, 'caller' )
+		);
+	}
+
+	/**
 	 * Returns input for a GET shortcut.
 	 *
 	 * @param WP_REST_Request   $request Request.
@@ -1376,6 +1968,10 @@ final class Controller {
 	 * @return array<string,mixed>
 	 */
 	private function normalize_shortcut_input( string $route, array $input ): array {
+		if ( 'media-inventory-fix-plan' === $route && array_key_exists( 'include_delete_candidates', $input ) ) {
+			$input['include_delete_candidates'] = $this->boolean_input_value( $input['include_delete_candidates'] );
+		}
+
 		if ( 'term' !== $route ) {
 			return $input;
 		}
@@ -1429,6 +2025,25 @@ final class Controller {
 	}
 
 	/**
+	 * Normalizes common REST query boolean values.
+	 *
+	 * @param mixed $value Input value.
+	 * @return bool
+	 */
+	private function boolean_input_value( $value ): bool {
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) ) {
+			return 0 !== $value;
+		}
+
+		$normalized = strtolower( trim( (string) $value ) );
+		return in_array( $normalized, array( '1', 'true', 'yes', 'on' ), true );
+	}
+
+	/**
 	 * Returns a short text preview for smoke responses.
 	 *
 	 * @param string $text Text.
@@ -1454,6 +2069,28 @@ final class Controller {
 			$clean = array();
 			foreach ( $value as $key => $item ) {
 				$clean[ sanitize_key( (string) $key ) ] = $this->sanitize_log_context( $item );
+			}
+			return $clean;
+		}
+
+		if ( is_bool( $value ) || is_int( $value ) || is_float( $value ) || null === $value ) {
+			return $value;
+		}
+
+		return sanitize_text_field( wp_unslash( (string) $value ) );
+	}
+
+	/**
+	 * Sanitizes host runtime context while preserving field names.
+	 *
+	 * @param mixed $value Runtime context value.
+	 * @return mixed
+	 */
+	private function sanitize_runtime_context( $value ) {
+		if ( is_array( $value ) ) {
+			$clean = array();
+			foreach ( $value as $key => $item ) {
+				$clean[ sanitize_key( (string) $key ) ] = $this->sanitize_runtime_context( $item );
 			}
 			return $clean;
 		}

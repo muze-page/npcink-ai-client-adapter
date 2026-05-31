@@ -143,6 +143,113 @@ function maa_adapter_smoke_capabilities_by_id( array $capabilities ): array {
 	return $by_id;
 }
 
+/**
+ * Returns a configured AI text generation provider/model for smoke.
+ *
+ * @return array{provider:string,model:string}
+ */
+function maa_adapter_smoke_text_generation_model(): array {
+	$providers = maa_adapter_smoke_rest(
+		'GET',
+		'/ai/v1/providers',
+		array(
+			'capability' => 'text_generation',
+		)
+	);
+
+	$fallback = array(
+		'provider' => '',
+		'model'    => '',
+	);
+
+	foreach ( $providers as $provider ) {
+		if ( ! is_array( $provider ) ) {
+			continue;
+		}
+
+		$provider_id = (string) ( $provider['id'] ?? '' );
+		foreach ( (array) ( $provider['models'] ?? array() ) as $model ) {
+			if ( ! is_array( $model ) ) {
+				continue;
+			}
+
+			$model_id = (string) ( $model['id'] ?? '' );
+			if ( '' === $provider_id || '' === $model_id ) {
+				continue;
+			}
+
+			if ( 'ollama' === $provider_id && 'qwen3.5:0.8b' === $model_id ) {
+				return array(
+					'provider' => $provider_id,
+					'model'    => $model_id,
+				);
+			}
+
+			if ( '' === $fallback['provider'] ) {
+				$fallback = array(
+					'provider' => $provider_id,
+					'model'    => $model_id,
+				);
+			}
+		}
+	}
+
+	maa_adapter_smoke_assert( '' !== $fallback['provider'] && '' !== $fallback['model'], 'AI provider smoke found a configured text generation model' );
+	return $fallback;
+}
+
+/**
+ * Creates an unattached image attachment with missing metadata for media plan smoke.
+ *
+ * @return int
+ */
+function maa_adapter_smoke_create_media_plan_attachment(): int {
+	$uploads = wp_upload_dir();
+	$url     = is_array( $uploads ) && ! empty( $uploads['baseurl'] ) ? trailingslashit( (string) $uploads['baseurl'] ) . 'adapter-media-plan-smoke.jpg' : '';
+	$id      = wp_insert_attachment(
+		array(
+			'post_title'     => 'Adapter Media Plan Smoke',
+			'post_status'    => 'inherit',
+			'post_mime_type' => 'image/jpeg',
+			'post_parent'    => 0,
+			'post_excerpt'   => '',
+			'post_content'   => '',
+			'guid'           => $url,
+		),
+		'',
+		0,
+		true
+	);
+
+	maa_adapter_smoke_assert( ! is_wp_error( $id ) && (int) $id > 0, 'adapter smoke created media fixture attachment' );
+	update_post_meta( (int) $id, '_wp_attachment_image_alt', '' );
+	return (int) $id;
+}
+
+/**
+ * Creates a post fixture for approved proposal execution smoke.
+ *
+ * @return int
+ */
+function maa_adapter_smoke_create_trash_post_fixture(): int {
+	$post_id = wp_insert_post(
+		array(
+			'post_title'   => 'Adapter Approved Trash Smoke',
+			'post_content' => 'Adapter approved proposal execution smoke.',
+			'post_status'  => 'publish',
+			'post_type'    => 'post',
+		),
+		true
+	);
+
+	maa_adapter_smoke_assert( ! is_wp_error( $post_id ) && (int) $post_id > 0, 'adapter smoke created trash-post fixture' );
+	return (int) $post_id;
+}
+
+$maa_adapter_smoke_cleanup_proposal_ids = array();
+$maa_adapter_smoke_cleanup_attachment_ids = array();
+$maa_adapter_smoke_cleanup_post_ids = array();
+
 $health = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/health' );
 maa_adapter_smoke_assert( true === (bool) ( $health['core_capabilities'] ?? false ), 'adapter sees Core capabilities route' );
 maa_adapter_smoke_assert( true === (bool) ( $health['abilities_catalog'] ?? false ), 'adapter sees WordPress Abilities catalog route' );
@@ -176,10 +283,18 @@ maa_adapter_smoke_assert( in_array( 'magick_ai_core.correlation_id', (array) ( $
 maa_adapter_smoke_assert( 'wordpress_rest_application_password' === (string) ( $health['auth']['type'] ?? '' ), 'adapter health exposes Application Password auth handoff' );
 maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_guidance']['proposal_status']['core_required_scope'] ?? '' ), 'adapter health documents proposal status read scope' );
 maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes proposal status routes' );
+maa_adapter_smoke_assert( in_array( 'POST /proposals/from-plan', (array) ( $health['plan_proposal_routes'] ?? array() ), true ), 'adapter health exposes plan-to-proposal route' );
+maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approved proposal execution route' );
+maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approve-and-execute route' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
 
 $help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals/{proposal_id}' ), 'adapter help exposes proposal detail route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/from-plan' ), 'adapter help exposes plan-to-proposal route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/execute-approved-proposal' ), 'adapter help exposes execute-approved-proposal route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/execute' ), 'adapter help exposes proposal execute route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/approve-and-execute' ), 'adapter help exposes proposal approve-and-execute route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/approve' ), 'adapter help exposes approval disabled stub route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/reject' ), 'adapter help exposes rejection disabled stub route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-provider-log-correlation-smoke' ), 'adapter help exposes provider log correlation smoke route' );
@@ -217,7 +332,141 @@ maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/wp-diagnostics-summ
 maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/wp-ops-diagnostics-detail'] ), 'adapter exposes ops diagnostics capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/list-workflow-recipes'] ), 'adapter exposes workflow recipe list capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/get-workflow-recipe'] ), 'adapter exposes workflow recipe detail capability through Core' );
+maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-content-inventory-fix-plan'] ), 'adapter capabilities expose content inventory fix plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-test-content-cleanup-plan'] ), 'adapter capabilities expose test content cleanup plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-inventory-fix-plan'] ), 'adapter capabilities expose media inventory fix plan through Core' );
 maa_adapter_smoke_assert( 'direct_read' === (string) ( $by_id['magick-ai-abilities/site-summary']['governance_mode'] ?? '' ), 'site-summary is direct read' );
+
+$content_plan_response = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'input'      => array(
+			'per_page'    => 1,
+			'max_actions' => 1,
+		),
+	)
+);
+$content_plan = is_array( $content_plan_response['result']['data'] ?? null ) ? $content_plan_response['result']['data'] : array();
+maa_adapter_smoke_assert( array_key_exists( 'write_actions', $content_plan ), 'adapter plan read preserves write_actions' );
+maa_adapter_smoke_assert( array_key_exists( 'preview', $content_plan ), 'adapter plan read preserves preview' );
+maa_adapter_smoke_assert( array_key_exists( 'risk', $content_plan ), 'adapter plan read preserves risk' );
+maa_adapter_smoke_assert( true === (bool) ( $content_plan['requires_approval'] ?? false ), 'adapter plan read preserves requires_approval=true' );
+maa_adapter_smoke_assert( false === (bool) ( $content_plan['commit_execution'] ?? true ), 'adapter plan read preserves commit_execution=false' );
+maa_adapter_smoke_assert( true === (bool) ( $content_plan['dry_run'] ?? false ), 'adapter plan read preserves dry_run=true' );
+maa_adapter_smoke_assert( false === (bool) ( $content_plan_response['commit_execution'] ?? true ), 'adapter plan wrapper does not report execution' );
+
+$media_plan_response = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'magick-ai/build-media-inventory-fix-plan',
+		'input'      => array(
+			'per_page'                  => 1,
+			'max_actions'               => 1,
+			'include_delete_candidates' => false,
+		),
+	)
+);
+$media_plan = is_array( $media_plan_response['result']['data'] ?? null ) ? $media_plan_response['result']['data'] : array();
+maa_adapter_smoke_assert( array_key_exists( 'skipped_destructive_candidates', $media_plan ), 'adapter media plan preserves skipped destructive candidates field' );
+foreach ( (array) ( $media_plan['write_actions'] ?? array() ) as $media_action ) {
+	maa_adapter_smoke_assert( ! is_array( $media_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_action['target_ability_id'] ?? '' ), 'adapter media plan does not promote skipped deletes into write actions by default' );
+}
+
+$media_plan_shortcut = maa_adapter_smoke_rest(
+	'GET',
+	'/magick-ai-adapter/v1/media-inventory-fix-plan',
+	array(
+		'per_page'                  => 1,
+		'max_actions'               => 1,
+		'include_delete_candidates' => 'false',
+	)
+);
+$media_shortcut_plan = is_array( $media_plan_shortcut['result']['data'] ?? null ) ? $media_plan_shortcut['result']['data'] : array();
+foreach ( (array) ( $media_shortcut_plan['write_actions'] ?? array() ) as $media_shortcut_action ) {
+	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_delete_candidates=false as false' );
+}
+
+$unallowed_plan_bridge = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id' => 'magick-ai/site-info',
+		'plan'            => array(
+			'requires_approval' => true,
+			'commit_execution'  => false,
+			'dry_run'           => true,
+			'write_actions'     => array(),
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $unallowed_plan_bridge['status'], 'adapter rejects unallowed plan-to-proposal ability before Core forwarding' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' === (string) ( $unallowed_plan_bridge['data']['code'] ?? '' ), 'adapter unallowed plan rejection uses adapter error code' );
+
+$media_plan_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
+$maa_adapter_smoke_cleanup_attachment_ids[] = $media_plan_attachment_id;
+$media_e2e_input = array(
+	'attachment_ids'              => array( $media_plan_attachment_id ),
+	'issue_types'                 => array( 'missing_alt', 'missing_source', 'possibly_unattached' ),
+	'include_delete_candidates'   => false,
+	'max_actions'                 => 5,
+);
+$media_e2e_plan_response = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'magick-ai/build-media-inventory-fix-plan',
+		'input'      => $media_e2e_input,
+	)
+);
+$media_e2e_plan = is_array( $media_e2e_plan_response['result']['data'] ?? null ) ? $media_e2e_plan_response['result']['data'] : array();
+maa_adapter_smoke_assert( ! empty( $media_e2e_plan['write_actions'] ), 'adapter e2e media plan contains write_actions before proposal handoff' );
+maa_adapter_smoke_assert( ! empty( $media_e2e_plan['manual_review'] ), 'adapter e2e media plan contains manual_review rows before proposal handoff' );
+maa_adapter_smoke_assert( ! empty( $media_e2e_plan['skipped_destructive_candidates'] ), 'adapter e2e media plan contains skipped destructive candidates before proposal handoff' );
+foreach ( (array) ( $media_e2e_plan['write_actions'] ?? array() ) as $media_e2e_action ) {
+	maa_adapter_smoke_assert( ! is_array( $media_e2e_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_e2e_action['target_ability_id'] ?? '' ), 'adapter e2e media plan keeps delete-media-permanently out of write_actions by default' );
+}
+
+$plan_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'magick-ai/build-media-inventory-fix-plan',
+		'plan'               => $media_e2e_plan_response['result'],
+		'plan_input'         => $media_e2e_input,
+		'adapter_request_id' => 'adapter-plan-e2e-request',
+		'correlation_id'     => 'adapter-plan-e2e-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-plan-bridge-smoke',
+		),
+	)
+);
+maa_adapter_smoke_assert( 'magick-ai/build-media-inventory-fix-plan' === (string) ( $plan_bridge['plan_ability_id'] ?? '' ), 'adapter forwards plan-to-proposal route to Core' );
+maa_adapter_smoke_assert( false === (bool) ( $plan_bridge['commit_execution'] ?? true ), 'adapter plan-to-proposal response preserves commit_execution=false' );
+maa_adapter_smoke_assert( is_array( $plan_bridge['proposals'] ?? null ), 'adapter plan-to-proposal response preserves proposal list state' );
+maa_adapter_smoke_assert( (int) ( $plan_bridge['proposal_count'] ?? 0 ) >= 1, 'adapter e2e media plan creates Core proposal' );
+foreach ( (array) ( $plan_bridge['proposals'] ?? array() ) as $created_plan_proposal ) {
+	if ( is_array( $created_plan_proposal ) && '' !== (string) ( $created_plan_proposal['proposal_id'] ?? '' ) ) {
+		$maa_adapter_smoke_cleanup_proposal_ids[] = (string) $created_plan_proposal['proposal_id'];
+		maa_adapter_smoke_assert( 'magick-ai/delete-media-permanently' !== (string) ( $created_plan_proposal['ability_id'] ?? '' ), 'adapter e2e media plan keeps delete-media-permanently out of created proposals by default' );
+	}
+}
+$plan_proposal = is_array( $plan_bridge['proposals'][0] ?? null ) ? $plan_bridge['proposals'][0] : array();
+$plan_proposal_id = (string) ( $plan_proposal['proposal_id'] ?? '' );
+maa_adapter_smoke_assert( '' !== $plan_proposal_id, 'adapter e2e media plan returned a proposal id' );
+maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_proposal['caller']['adapter_request_id'] ?? '' ), 'adapter plan proposal caller carries adapter request id' );
+$plan_proposal_detail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $plan_proposal_id ) );
+maa_adapter_smoke_assert( $plan_proposal_id === (string) ( $plan_proposal_detail['proposal_id'] ?? '' ), 'adapter e2e plan proposal detail is readable through adapter' );
+maa_adapter_smoke_assert( is_array( $plan_proposal_detail['preview'] ?? null ), 'adapter e2e plan proposal detail preserves preview object' );
+maa_adapter_smoke_assert( is_array( $plan_proposal_detail['input'] ?? null ), 'adapter e2e plan proposal detail preserves write action input' );
+maa_adapter_smoke_assert( 'plan_to_proposal' === (string) ( $plan_proposal_detail['preview']['source']['type'] ?? '' ), 'adapter e2e plan proposal detail preserves source plan preview' );
+maa_adapter_smoke_assert( is_array( $plan_proposal_detail['preview']['plan_preview_row'] ?? null ), 'adapter e2e plan proposal detail preserves source plan preview row' );
+maa_adapter_smoke_assert( ! empty( $plan_proposal_detail['preview']['blocked_items']['manual_review'] ?? array() ), 'adapter e2e plan proposal detail preserves manual review rows' );
+maa_adapter_smoke_assert( ! empty( $plan_proposal_detail['preview']['blocked_items']['skipped_destructive_candidates'] ?? array() ), 'adapter e2e plan proposal detail preserves skipped destructive candidates' );
+maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_proposal_detail['caller']['adapter_request_id'] ?? '' ), 'adapter e2e proposal detail preserves adapter request id in caller' );
+maa_adapter_smoke_assert( 'adapter-plan-e2e-correlation' === (string) ( $plan_proposal_detail['caller']['correlation_id'] ?? '' ), 'adapter e2e proposal detail preserves correlation id in caller' );
 
 $site_summary = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/site-summary' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/site-summary' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-summary read ability' );
@@ -359,6 +608,246 @@ $write_run = maa_adapter_smoke_rest_result(
 );
 maa_adapter_smoke_assert( 403 === (int) $write_run['status'], 'adapter refuses direct execution for proposal-required ability' );
 
+$destructive_run = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'magick-ai/delete-media-permanently',
+		'input'      => array(
+			'attachment_id' => 0,
+			'dry_run'       => true,
+			'commit'        => false,
+		),
+	)
+);
+maa_adapter_smoke_assert( 403 === (int) $destructive_run['status'], 'adapter refuses direct execution for destructive ability' );
+
+$trash_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $trash_post_id;
+$trash_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-post',
+		'title'      => 'Adapter approved trash execution smoke',
+		'summary'    => 'Adapter executes one approved trash-post proposal after Core preflight.',
+		'input'      => array(
+			'post_id' => $trash_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'           => 'trash_post',
+			'post_id'          => $trash_post_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-approved-execution-smoke',
+		),
+	)
+);
+$trash_proposal_id = (string) ( $trash_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $trash_proposal_id;
+maa_adapter_smoke_assert( '' !== $trash_proposal_id, 'adapter creates trash-post proposal for approved execution smoke' );
+maa_adapter_smoke_assert( 'pending' === (string) ( $trash_proposal['status'] ?? '' ), 'adapter trash-post proposal starts pending' );
+
+$pending_execute = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/execute-approved-proposal',
+	array(
+		'proposal_id' => $trash_proposal_id,
+	)
+);
+maa_adapter_smoke_assert( 409 === (int) $pending_execute['status'], 'adapter execute refuses pending proposal' );
+maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $trash_post_id ), 'adapter pending execute leaves post published' );
+
+$approved_trash = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/approve',
+	array(
+		'note' => 'Approve adapter trash execution smoke.',
+	)
+);
+maa_adapter_smoke_assert( 'approved' === (string) ( $approved_trash['status'] ?? '' ), 'Core admin REST approval succeeds for adapter trash execution smoke' );
+
+$executed_trash = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/execute' );
+maa_adapter_smoke_assert( 'executed' === (string) ( $executed_trash['status'] ?? '' ), 'adapter executes approved trash-post proposal' );
+maa_adapter_smoke_assert( $trash_proposal_id === (string) ( $executed_trash['proposal_id'] ?? '' ), 'adapter execute response carries proposal id' );
+maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $executed_trash['ability_id'] ?? '' ), 'adapter execute response carries ability id' );
+maa_adapter_smoke_assert( '' !== (string) ( $executed_trash['correlation_id'] ?? '' ), 'adapter execute response carries correlation id' );
+maa_adapter_smoke_assert( '' !== (string) ( $executed_trash['adapter_request_id'] ?? '' ), 'adapter execute response carries adapter request id' );
+maa_adapter_smoke_assert( true === (bool) ( $executed_trash['approval_context']['approval_commit_authorized'] ?? false ), 'adapter execute response carries approval context' );
+maa_adapter_smoke_assert( false === (bool) ( $executed_trash['commit_execution'] ?? true ), 'adapter execute response preserves commit_execution=false' );
+maa_adapter_smoke_assert( true === (bool) ( $executed_trash['result']['trashed'] ?? false ), 'adapter execute trashes post' );
+maa_adapter_smoke_assert( false === (bool) ( $executed_trash['result']['dry_run'] ?? true ), 'adapter execute returns non-dry-run ability result' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $trash_post_id ), 'adapter approved execution moves post to trash' );
+
+$approve_execute_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $approve_execute_post_id;
+$approve_execute_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-post',
+		'title'      => 'Adapter unified approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one trash-post proposal.',
+		'input'      => array(
+			'post_id' => $approve_execute_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'           => 'trash_post',
+			'post_id'          => $approve_execute_post_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-unified-approve-execute-smoke',
+		),
+	)
+);
+$approve_execute_proposal_id = (string) ( $approve_execute_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $approve_execute_proposal_id;
+maa_adapter_smoke_assert( '' !== $approve_execute_proposal_id, 'adapter creates trash-post proposal for approve-and-execute smoke' );
+$approve_execute_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approve_execute_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['success'] ?? false ), 'adapter approve-and-execute succeeds for pending trash-post proposal' );
+maa_adapter_smoke_assert( $approve_execute_proposal_id === (string) ( $approve_execute_result['proposal_id'] ?? '' ), 'adapter approve-and-execute response carries proposal id' );
+maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $approve_execute_result['ability_id'] ?? '' ), 'adapter approve-and-execute response carries ability id' );
+maa_adapter_smoke_assert( $approve_execute_post_id === (int) ( $approve_execute_result['post_id'] ?? 0 ), 'adapter approve-and-execute response carries post id' );
+maa_adapter_smoke_assert( 'pending' === (string) ( $approve_execute_result['status_before'] ?? '' ), 'adapter approve-and-execute records pending status before approval' );
+maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['approved_by_adapter'] ?? false ), 'adapter approve-and-execute auto approves pending proposal through Core' );
+maa_adapter_smoke_assert( '' !== (string) ( $approve_execute_result['correlation_id'] ?? '' ), 'adapter approve-and-execute response carries correlation id' );
+maa_adapter_smoke_assert( false === (bool) ( $approve_execute_result['core_commit_execution'] ?? true ), 'adapter approve-and-execute preserves Core commit_execution=false' );
+maa_adapter_smoke_assert( 'publish' === (string) ( $approve_execute_result['execution']['post_status_before'] ?? '' ), 'adapter approve-and-execute records post status before execution' );
+maa_adapter_smoke_assert( 'trash' === (string) ( $approve_execute_result['execution']['post_status_after'] ?? '' ), 'adapter approve-and-execute records post status after execution' );
+maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['execution']['success'] ?? false ), 'adapter approve-and-execute execution result succeeds' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $approve_execute_post_id ), 'adapter approve-and-execute moves pending proposal post to trash' );
+
+$approved_skip_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $approved_skip_post_id;
+$approved_skip_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-post',
+		'title'      => 'Adapter approved skip smoke',
+		'summary'    => 'Adapter skips Core approve for already approved trash-post proposal.',
+		'input'      => array(
+			'post_id' => $approved_skip_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'           => 'trash_post',
+			'post_id'          => $approved_skip_post_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+	)
+);
+$approved_skip_proposal_id = (string) ( $approved_skip_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $approved_skip_proposal_id;
+maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/proposals/' . rawurlencode( $approved_skip_proposal_id ) . '/approve',
+	array(
+		'note' => 'Approve before Adapter approve-and-execute smoke.',
+	)
+);
+$approved_skip_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approved_skip_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $approved_skip_result['success'] ?? false ), 'adapter approve-and-execute succeeds for already approved proposal' );
+maa_adapter_smoke_assert( 'approved' === (string) ( $approved_skip_result['status_before'] ?? '' ), 'adapter approve-and-execute records approved status before execution' );
+maa_adapter_smoke_assert( false === (bool) ( $approved_skip_result['approved_by_adapter'] ?? true ), 'adapter approve-and-execute skips approve for already approved proposal' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $approved_skip_post_id ), 'adapter approve-and-execute moves already approved post to trash' );
+
+$rejected_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $rejected_post_id;
+$rejected_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-post',
+		'title'      => 'Adapter rejected approve execute smoke',
+		'summary'    => 'Adapter must not execute rejected trash-post proposal.',
+		'input'      => array(
+			'post_id' => $rejected_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'  => 'trash_post',
+			'post_id' => $rejected_post_id,
+		),
+	)
+);
+$rejected_proposal_id = (string) ( $rejected_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $rejected_proposal_id;
+maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/proposals/' . rawurlencode( $rejected_proposal_id ) . '/reject',
+	array(
+		'note' => 'Reject Adapter approve-and-execute smoke.',
+	)
+);
+$rejected_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $rejected_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $rejected_execute['status'], 'adapter approve-and-execute rejects rejected proposal' );
+maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $rejected_post_id ), 'adapter approve-and-execute does not execute rejected proposal' );
+
+$blocked_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $blocked_post_id;
+$blocked_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-post',
+		'title'      => 'Adapter blocked preflight smoke',
+		'summary'    => 'Adapter must not execute if Core commit-preflight blocks the item.',
+		'input'      => array(
+			'post_id' => $blocked_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'             => 'trash_post',
+			'post_id'            => $blocked_post_id,
+			'proposal_ready'     => false,
+			'preflight_blockers' => array(
+				array(
+					'code'   => 'adapter_smoke_blocker',
+					'reason' => 'Adapter smoke requires Core preflight failure.',
+				),
+			),
+		),
+	)
+);
+$blocked_proposal_id = (string) ( $blocked_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $blocked_proposal_id;
+$blocked_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $blocked_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $blocked_execute['status'], 'adapter approve-and-execute returns preflight failure' );
+maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $blocked_post_id ), 'adapter approve-and-execute does not execute preflight-blocked proposal' );
+
+$unallowed_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/create-draft',
+		'title'      => 'Adapter unallowed approve execute smoke',
+		'summary'    => 'Adapter must not approve-and-execute non-allowlisted proposals.',
+		'input'      => array(
+			'title'   => 'Adapter unallowed approve execute smoke',
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(),
+	)
+);
+$unallowed_proposal_id = (string) ( $unallowed_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $unallowed_proposal_id;
+$unallowed_approve_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $unallowed_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 403 === (int) $unallowed_approve_execute['status'], 'adapter approve-and-execute rejects non-allowlisted ability' );
+
 $proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
@@ -447,6 +936,7 @@ maa_adapter_smoke_assert( '' !== $correlation_id, 'adapter commit preflight retu
 maa_adapter_smoke_assert( false === (bool) ( $preflight['commit_execution'] ?? true ), 'adapter commit preflight keeps final execution disabled for provider log smoke' );
 maa_adapter_smoke_assert( $correlation_id === (string) ( $preflight['approval_context']['correlation_id'] ?? '' ), 'adapter commit preflight approval context carries matching correlation id' );
 
+$provider_model = maa_adapter_smoke_text_generation_model();
 $provider_smoke = maa_adapter_smoke_rest(
 	'POST',
 	'/magick-ai-adapter/v1/ai-provider-log-correlation-smoke',
@@ -454,14 +944,14 @@ $provider_smoke = maa_adapter_smoke_rest(
 		'proposal_id'    => $proposal_id,
 		'correlation_id' => $correlation_id,
 		'ability_id'     => 'magick-ai/create-draft',
-		'ai_provider'    => 'ollama',
-		'ai_model'       => 'qwen3.5:0.8b',
+		'ai_provider'    => $provider_model['provider'],
+		'ai_model'       => $provider_model['model'],
 		'prompt'         => 'Reply with exactly: OK',
 	)
 );
-maa_adapter_smoke_assert( 'success' === (string) ( $provider_smoke['status'] ?? '' ), 'adapter local Ollama provider smoke succeeds' );
-maa_adapter_smoke_assert( 'ollama' === (string) ( $provider_smoke['log_context']['ai_provider'] ?? '' ), 'adapter provider smoke context carries ollama provider' );
-maa_adapter_smoke_assert( 'qwen3.5:0.8b' === (string) ( $provider_smoke['log_context']['ai_model'] ?? '' ), 'adapter provider smoke context carries qwen model' );
+maa_adapter_smoke_assert( 'success' === (string) ( $provider_smoke['status'] ?? '' ), 'adapter provider smoke succeeds with configured text model' );
+maa_adapter_smoke_assert( $provider_model['provider'] === (string) ( $provider_smoke['log_context']['ai_provider'] ?? '' ), 'adapter provider smoke context carries selected provider' );
+maa_adapter_smoke_assert( $provider_model['model'] === (string) ( $provider_smoke['log_context']['ai_model'] ?? '' ), 'adapter provider smoke context carries selected model' );
 maa_adapter_smoke_assert( $proposal_id === (string) ( $provider_smoke['log_context']['magick_ai_core']['proposal_id'] ?? '' ), 'adapter provider smoke context carries nested Core proposal id' );
 maa_adapter_smoke_assert( $correlation_id === (string) ( $provider_smoke['log_context']['magick_ai_core']['correlation_id'] ?? '' ), 'adapter provider smoke context carries nested Core correlation id' );
 
@@ -474,8 +964,8 @@ maa_adapter_smoke_assert( $correlation_id === (string) ( $ai_log_context['correl
 maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $ai_log_context['ability_id'] ?? '' ), 'AI Request Logs context contains ability id' );
 maa_adapter_smoke_assert( '' !== (string) ( $ai_log_context['adapter_request_id'] ?? '' ), 'AI Request Logs context contains adapter request id' );
 maa_adapter_smoke_assert( '/magick-ai-adapter/v1/ai-provider-log-correlation-smoke' === (string) ( $ai_log_context['adapter_route'] ?? '' ), 'AI Request Logs context contains adapter route' );
-maa_adapter_smoke_assert( 'ollama' === (string) ( $ai_log_context['ai_provider'] ?? '' ), 'AI Request Logs context contains explicit provider even if provider column is blank' );
-maa_adapter_smoke_assert( 'qwen3.5:0.8b' === (string) ( $ai_log_context['ai_model'] ?? '' ), 'AI Request Logs context contains explicit model even if provider column is blank' );
+maa_adapter_smoke_assert( $provider_model['provider'] === (string) ( $ai_log_context['ai_provider'] ?? '' ), 'AI Request Logs context contains explicit provider even if provider column is blank' );
+maa_adapter_smoke_assert( $provider_model['model'] === (string) ( $ai_log_context['ai_model'] ?? '' ), 'AI Request Logs context contains explicit model even if provider column is blank' );
 maa_adapter_smoke_assert( 'magick-ai-core' === (string) ( $ai_log_context['governance_source'] ?? '' ), 'AI Request Logs context contains Core governance source' );
 maa_adapter_smoke_assert( $proposal_id === (string) ( $ai_log_context['magick_ai_core']['proposal_id'] ?? '' ), 'AI Request Logs context contains nested Core proposal id' );
 maa_adapter_smoke_assert( $correlation_id === (string) ( $ai_log_context['magick_ai_core']['correlation_id'] ?? '' ), 'AI Request Logs context contains nested Core correlation id' );
@@ -491,8 +981,17 @@ $core_correlation_audit = maa_adapter_smoke_rest(
 maa_adapter_smoke_assert( count( (array) ( $core_correlation_audit['items'] ?? array() ) ) >= 1, 'Core Governance Audit filters by the same provider smoke correlation id' );
 
 global $wpdb;
-$wpdb->delete( $wpdb->prefix . 'magick_ai_core_audit_log', array( 'proposal_id' => $proposal_id ), array( '%s' ) );
-$wpdb->delete( $wpdb->prefix . 'magick_ai_core_proposals', array( 'proposal_id' => $proposal_id ), array( '%s' ) );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $proposal_id;
+foreach ( array_values( array_unique( array_filter( $maa_adapter_smoke_cleanup_proposal_ids ) ) ) as $cleanup_proposal_id ) {
+	$wpdb->delete( $wpdb->prefix . 'magick_ai_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+	$wpdb->delete( $wpdb->prefix . 'magick_ai_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+}
+foreach ( array_values( array_unique( array_filter( $maa_adapter_smoke_cleanup_attachment_ids ) ) ) as $cleanup_attachment_id ) {
+	wp_delete_attachment( (int) $cleanup_attachment_id, true );
+}
+foreach ( array_values( array_unique( array_filter( $maa_adapter_smoke_cleanup_post_ids ) ) ) as $cleanup_post_id ) {
+	wp_delete_post( (int) $cleanup_post_id, true );
+}
 maa_adapter_smoke_assert( true, 'adapter status smoke cleaned created proposal records' );
 
 echo "magick-ai-adapter WordPress smoke: ok\n";

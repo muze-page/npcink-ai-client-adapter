@@ -7,13 +7,15 @@ It gives OpenClaw one WordPress REST namespace that can:
 - read Magick AI Core capability guidance;
 - run approved direct-read abilities through WordPress Abilities API;
 - create Core proposals for write or destructive operations;
-- call Core commit preflight after WordPress approval.
+- orchestrate one user-triggered approve-and-execute action through Core.
 
 OpenClaw only connects to Adapter. Magick AI Core is the governance service
-behind Adapter, and Core admin is the human approval surface.
+behind Adapter. Core remains the approval, preflight, and audit truth source;
+the productized OpenClaw user action is exposed by Adapter.
 
-It does not define abilities, store approval state, run workflows, approve
-proposals, or execute final write mutations by itself.
+It does not define abilities, store approval state, run workflows, expose a
+generic approve/reject proxy, or execute final write mutations without Core
+approval and commit-preflight.
 
 ## Runtime Boundary
 
@@ -82,13 +84,20 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/page-structure`
 - `GET /wp-json/magick-ai-adapter/v1/pages-tree`
 - `GET /wp-json/magick-ai-adapter/v1/content-inventory-health`
+- `GET /wp-json/magick-ai-adapter/v1/content-inventory-fix-plan`
+- `GET /wp-json/magick-ai-adapter/v1/test-content-cleanup-plan`
 - `GET /wp-json/magick-ai-adapter/v1/site-operations-dashboard`
 - `GET /wp-json/magick-ai-adapter/v1/publishing-calendar-context`
 - `GET /wp-json/magick-ai-adapter/v1/media-inventory-health`
+- `GET /wp-json/magick-ai-adapter/v1/media-inventory-fix-plan`
 - `GET /wp-json/magick-ai-adapter/v1/taxonomy-inventory-health`
 - `GET /wp-json/magick-ai-adapter/v1/proposals`
 - `GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}`
 - `POST /wp-json/magick-ai-adapter/v1/proposals`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/from-plan`
+- `POST /wp-json/magick-ai-adapter/v1/execute-approved-proposal`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/execute`
+- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute`
 - `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve`
 - `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/reject`
 - `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/commit-preflight`
@@ -193,7 +202,7 @@ Settings -> OpenClaw Connection
 
 The page shows:
 
-- Adapter base URL, health URL, and capabilities URL;
+- Adapter base URL, health URL, help URL, and capabilities URL;
 - Core and WordPress Abilities API connection status;
 - a `Create OpenClaw handoff` action that creates a WordPress Application
   Password for the current administrator and shows it once;
@@ -202,13 +211,19 @@ The page shows:
   `route_groups`;
 - Application Password handoff steps;
 - copyable health and proposal example requests;
-- proposal list/detail routes for OpenClaw status polling;
+- proposal list/detail, plan-to-proposal, commit-preflight, and
+  approve-and-execute routes;
 - a handoff prompt for OpenClaw.
 
 The page does not save adapter credentials, approval state, ability definitions,
 workflow state, or final write policy. The handoff action creates a normal
 WordPress Application Password and displays the raw value once; WordPress stores
 only its hash.
+
+When the current site URL is local (`localhost`, loopback, or `.local`), the
+handoff form can include `MAGICK_AI_ADAPTER_INSECURE_SSL=true` in copied
+OpenClaw client configuration. This only affects the generated client env text;
+it does not change WordPress or Adapter server-side TLS behavior.
 
 For local setup steps, see
 [`docs/openclaw-quickstart.md`](docs/openclaw-quickstart.md).
@@ -246,6 +261,25 @@ Read-only execution:
 3. The adapter runs only rows where
    `governance_mode=direct_read` and `execution_surface=wp_abilities_rest`.
 4. The adapter calls WordPress Abilities API and returns the result envelope.
+5. Planning ability output is returned as plan data. `write_actions`,
+   `preview`, `risk`, `manual_review`, and
+   `skipped_destructive_candidates` are not execution results.
+
+Plan-to-proposal flow:
+
+1. OpenClaw runs one of the direct-read planning abilities:
+   `magick-ai/build-content-inventory-fix-plan`,
+   `magick-ai/build-test-content-cleanup-plan`, or
+   `magick-ai/build-media-inventory-fix-plan`.
+2. The adapter preserves plan fields including `batch_id`, `issue_types`,
+   `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
+   `requires_approval`, `commit_execution`, `dry_run`, `manual_review`,
+   `skipped_destructive_candidates`, `issue_counts`, and `action_count`.
+3. OpenClaw calls `POST /proposals/from-plan` with `plan_ability_id`, `plan`,
+   optional `plan_input`, and `caller` metadata.
+4. The adapter forwards that payload to Core
+   `POST /magick-ai-core/v1/proposals/from-plan` and preserves Core status.
+   Adapter does not promote destructive candidates into executable actions.
 
 Proposal-required write flow:
 
@@ -257,16 +291,28 @@ Proposal-required write flow:
 4. OpenClaw polls `GET /proposals/{proposal_id}` through the adapter until Core
    returns an approved or rejected status. `GET /proposals?limit=...` is
    available for list views.
-5. If `status=pending`, OpenClaw prompts the user to approve or reject in
-   `WordPress -> Magick AI Core`.
+5. For the unified user path, OpenClaw calls
+   `POST /proposals/{proposal_id}/approve-and-execute` so the user approves
+   and executes from the Adapter/OpenClaw entry point. Core remains the
+   governance backend for approval, commit-preflight, and audit.
 6. If `status=rejected`, OpenClaw stops and shows the rejection state or reason
    returned by Core.
-7. If `status=approved`, OpenClaw calls
+7. If using the lower-level split path and `status=approved`, OpenClaw calls
    `POST /proposals/{proposal_id}/commit-preflight` only after
    approval.
 8. The adapter relays Core preflight and preserves `commit_execution=false`.
-9. Any final WordPress mutation remains outside this adapter and must not run
-   without Core preflight.
+9. For the current approved proposal execution path, Adapter may execute only
+   `magick-ai/trash-post` through
+   `POST /proposals/{proposal_id}/execute` or
+   `POST /execute-approved-proposal`.
+10. Adapter fetches the Core proposal, calls Core commit-preflight, requires
+    `approval_commit_authorized=true`, requires `commit_execution=false`, passes
+    Core `approval_context` to WordPress Abilities API, and returns
+    `proposal_id`, `correlation_id`, and `ability_id` with the ability result.
+11. Adapter does not create its own governance state and does not batch silently
+    execute destructive actions. The unified action only orchestrates Core
+    approve -> commit-preflight -> one allowlisted WordPress Abilities API
+    execution.
 
 Proposal list/detail are read-only Core proxies. They preserve Core response
 fields such as `proposal_id`, `ability_id`, `status`, `title`, `summary`,
@@ -285,7 +331,9 @@ should pass those values to Adapter read or future execution requests as
 `magick_ai_adapter`, top-level context fields, and nested `magick_ai_core`
 context for provider request log correlation.
 
-For local readiness smoke, administrators can call:
+For local readiness smoke, administrators can call the provider log route with
+a configured text generation provider/model. This example uses local Ollama
+when `qwen3.5:0.8b` is available:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
@@ -295,17 +343,18 @@ curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
 ```
 
 If the AI Request Logs provider column is blank for a local connector, inspect
-the Adapter context fields instead: `ai_provider=ollama` and
-`ai_model=qwen3.5:0.8b`.
+the Adapter context fields instead. They preserve the explicit `ai_provider`
+and explicit `ai_model` sent to the smoke route.
 
 `POST /proposals/{proposal_id}/approve` and
 `POST /proposals/{proposal_id}/reject` are disabled stubs. They return HTTP 403
 with `code=magick_ai_adapter_approval_proxy_disabled`,
 `approval_proxy_enabled=false`, and
-`approval_surface=magick_ai_core_admin`. Approval is handled in Magick AI Core admin.
-The adapter does not forward these routes to Core and does not require a
-default Core key with approval or rejection scopes. A trusted approval proxy is
-future ADR territory only.
+`approval_surface=magick_ai_core_admin`. For the Adapter/OpenClaw unified user
+action, use `POST /proposals/{proposal_id}/approve-and-execute`; otherwise use
+Magick AI Core admin for split approval decisions. The adapter does not forward
+the standalone approve/reject stub routes to Core and does not require a
+default Core key with approval or rejection scopes.
 
 Example health request:
 
@@ -345,11 +394,19 @@ Write or destructive abilities:
 2. If `governance_mode=proposal_required`, OpenClaw calls Adapter
    `/proposals`.
 3. OpenClaw polls Adapter `/proposals/{proposal_id}` for Core status.
-4. If pending, OpenClaw sends the user to WordPress -> Magick AI Core admin.
+4. If pending and the user chooses the unified action, OpenClaw calls
+   Adapter `/proposals/{proposal_id}/approve-and-execute`; Adapter calls Core
+   approve, Core commit-preflight, then executes one allowlisted proposal.
 5. If rejected, OpenClaw stops and shows the status. If approved, OpenClaw calls
    Adapter `/proposals/{proposal_id}/commit-preflight` after
    approval.
 6. Adapter relays Core `commit_execution=false`.
+7. For approved proposal execution, only `magick-ai/trash-post` is supported in
+   this adapter. OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter
+   performs Core preflight again, passes `approval_context`, and executes one
+   proposal item through WordPress Abilities API. New execution abilities must
+   be added one by one to the Adapter allowlist with dedicated smoke coverage;
+   this is not a generic proxy-execute surface.
 
 ## Non-Goals
 
@@ -370,6 +427,23 @@ Run static checks:
 ```bash
 composer test:all
 ```
+
+Run Plugin Check against the release/package surface:
+
+```bash
+composer plugin-check:release
+```
+
+Build a release zip with the same package boundary:
+
+```bash
+composer package:release
+```
+
+The release surface is defined by `.distignore`. It excludes development-only
+artifacts such as `tests/`, `AGENTS.md`, `.gitignore`, Composer metadata, and
+local dependency folders from package-oriented Plugin Check runs. Do not delete
+those files from the source tree just to satisfy a full-worktree PCP scan.
 
 Run the LocalWP smoke test:
 
