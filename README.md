@@ -206,12 +206,16 @@ WordPress administrators can open:
 Magick AI -> Adapter
 ```
 
-The page shows:
+The page default view shows:
 
 - Adapter base URL, health URL, help URL, and capabilities URL;
 - Core and WordPress Abilities API connection status;
 - a `Create OpenClaw handoff` action that creates a WordPress Application
   Password for the current administrator and shows it once;
+
+Advanced disclosures keep lower-frequency reference details available without
+turning the page into a control panel:
+
 - supported read shortcut routes and their real `ability_id` values;
 - flat `GET /help` route rows under `routes`, plus human-readable
   `route_groups`;
@@ -236,6 +240,9 @@ For local setup steps, see
 
 For productized OpenClaw acceptance, use
 [`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).
+
+For the admin page hierarchy and non-goals, use
+[`docs/admin-surface-standard.md`](docs/admin-surface-standard.md).
 
 The Cloud connector boundary and next implementation sequence are documented in
 [`docs/cloud-connector-boundary.md`](docs/cloud-connector-boundary.md).

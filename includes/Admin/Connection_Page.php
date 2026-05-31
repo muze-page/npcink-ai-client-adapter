@@ -252,6 +252,14 @@ final class Connection_Page {
 					margin: 0 0 10px;
 					font-size: 16px;
 				}
+				.magick-ai-adapter-connection details.maa-section > summary {
+					cursor: pointer;
+				}
+				.magick-ai-adapter-connection details.maa-section > summary strong {
+					display: block;
+					margin-bottom: 4px;
+					font-size: 16px;
+				}
 				.magick-ai-adapter-connection code,
 				.magick-ai-adapter-connection pre,
 				.magick-ai-adapter-connection textarea {
@@ -307,12 +315,26 @@ final class Connection_Page {
 			<div class="maa-grid">
 					<div>
 						<div class="maa-section">
-							<h2><?php echo esc_html__( 'Adapter endpoints', 'magick-ai-adapter' ); ?></h2>
+							<h2><?php echo esc_html__( 'OpenClaw connection values', 'magick-ai-adapter' ); ?></h2>
 							<p><span class="maa-label"><?php echo esc_html__( 'Site', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $site_url ); ?></code></p>
 							<p><span class="maa-label"><?php echo esc_html__( 'Base URL', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $base_url ); ?></code></p>
 							<p><span class="maa-label"><?php echo esc_html__( 'Health', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $health_url ); ?></code></p>
 							<p><span class="maa-label"><?php echo esc_html__( 'Help', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $help_url ); ?></code></p>
 						<p><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $capabilities_url ); ?></code></p>
+					</div>
+
+					<div class="maa-section">
+						<h2><?php echo esc_html__( 'Execution boundary', 'magick-ai-adapter' ); ?></h2>
+						<p><?php echo esc_html__( 'OpenClaw connects to Adapter. Adapter reads Core capability guidance, runs direct-read abilities through WordPress Abilities API, and sends governed write requests to Core.', 'magick-ai-adapter' ); ?></p>
+						<p><code>approval_proxy_enabled=false</code> <code>core_proxy_execute=false</code> <code>commit_execution=false</code></p>
+					</div>
+
+					<details class="maa-section">
+						<summary>
+							<strong><?php echo esc_html__( 'Advanced route catalog', 'magick-ai-adapter' ); ?></strong>
+							<span class="description"><?php echo esc_html__( 'Proposal endpoints, disabled stubs, and read shortcut mappings.', 'magick-ai-adapter' ); ?></span>
+						</summary>
+						<h3><?php echo esc_html__( 'Proposal routes', 'magick-ai-adapter' ); ?></h3>
 						<p><span class="maa-label"><?php echo esc_html__( 'Proposal list', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?></code></p>
 						<p><span class="maa-label"><?php echo esc_html__( 'Proposal detail', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}' ) ); ?></code></p>
 						<p><span class="maa-label"><?php echo esc_html__( 'Plan to proposals', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/from-plan' ) ); ?></code></p>
@@ -320,24 +342,24 @@ final class Connection_Page {
 						<p><span class="maa-label"><?php echo esc_html__( 'Approve and execute', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/approve-and-execute' ) ); ?></code></p>
 						<p><span class="maa-label"><?php echo esc_html__( 'Approval disabled stub', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/approve' ) ); ?></code></p>
 						<p><span class="maa-label"><?php echo esc_html__( 'Reject disabled stub', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/reject' ) ); ?></code></p>
-					</div>
-
-					<div class="maa-section">
-						<h2><?php echo esc_html__( 'Read shortcuts', 'magick-ai-adapter' ); ?></h2>
+						<h3><?php echo esc_html__( 'Read shortcuts', 'magick-ai-adapter' ); ?></h3>
 						<ul class="maa-route-list">
 							<?php foreach ( $shortcuts as $route => $ability_id ) : ?>
 								<li><code><?php echo esc_html( 'GET /wp-json/' . Controller::NAMESPACE . '/' . $route ); ?></code><br><span class="description"><?php echo esc_html( $ability_id ); ?></span></li>
 							<?php endforeach; ?>
 						</ul>
-					</div>
+					</details>
 
-					<div class="maa-section">
-						<h2><?php echo esc_html__( 'Example requests', 'magick-ai-adapter' ); ?></h2>
+					<details class="maa-section">
+						<summary>
+							<strong><?php echo esc_html__( 'Example requests', 'magick-ai-adapter' ); ?></strong>
+							<span class="description"><?php echo esc_html__( 'Curl examples for health and proposal handoff checks.', 'magick-ai-adapter' ); ?></span>
+						</summary>
 						<p><?php echo esc_html__( 'Use a dedicated administrator Application Password for the first OpenClaw handoff. Put the username before the colon and the Application Password after it.', 'magick-ai-adapter' ); ?></p>
 						<pre><?php echo esc_html( $example_request ); ?></pre>
 						<pre><?php echo esc_html( $proposal_request ); ?></pre>
 						<pre><?php echo esc_html( $proposal_status_request ); ?></pre>
-					</div>
+					</details>
 				</div>
 
 				<div>
@@ -386,15 +408,21 @@ final class Connection_Page {
 						</ol>
 					</div>
 
-					<div class="maa-section">
-						<h2><?php echo esc_html__( 'Handoff prompt', 'magick-ai-adapter' ); ?></h2>
+					<details class="maa-section">
+						<summary>
+							<strong><?php echo esc_html__( 'Handoff prompt', 'magick-ai-adapter' ); ?></strong>
+							<span class="description"><?php echo esc_html__( 'Verbose instructions for the OpenClaw environment.', 'magick-ai-adapter' ); ?></span>
+						</summary>
 						<textarea readonly><?php echo esc_textarea( $handoff_prompt ); ?></textarea>
-					</div>
+					</details>
 
-					<div class="maa-section">
-						<h2><?php echo esc_html__( 'Boundary', 'magick-ai-adapter' ); ?></h2>
+					<details class="maa-section">
+						<summary>
+							<strong><?php echo esc_html__( 'Boundary', 'magick-ai-adapter' ); ?></strong>
+							<span class="description"><?php echo esc_html__( 'Adapter ownership and non-goals.', 'magick-ai-adapter' ); ?></span>
+						</summary>
 						<p><?php echo esc_html__( 'OpenClaw only connects to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight. The adapter keeps approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.', 'magick-ai-adapter' ); ?></p>
-					</div>
+					</details>
 				</div>
 			</div>
 		</div>

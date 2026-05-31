@@ -270,14 +270,17 @@ foreach (
 		'Local testing',
 		'Include LocalWP TLS test setting in OpenClaw env and handoff.',
 		'This only changes copied client configuration',
-			'Adapter endpoints',
-			'Proposal list',
-			'Proposal detail',
-			'Plan to proposals',
-			'Commit preflight',
-			'Approve and execute',
-			'Approval disabled stub',
-			'Reject disabled stub',
+		'OpenClaw connection values',
+		'Execution boundary',
+		'Advanced route catalog',
+		'details class="maa-section"',
+		'Proposal list',
+		'Proposal detail',
+		'Plan to proposals',
+		'Commit preflight',
+		'Approve and execute',
+		'Approval disabled stub',
+		'Reject disabled stub',
 		'Authentication handoff',
 		'Example requests',
 		'Handoff prompt',
@@ -286,11 +289,11 @@ foreach (
 		'GET /help',
 		'GET /proposals/{proposal_id}',
 		'approval_proxy_enabled=false',
-			'approve-and-execute',
-			'Current execution allowlist: magick-ai/trash-post',
-			'Failure code handling',
-			'magick_ai_adapter_preflight_item_blocked',
-			'AI Request Logs context',
+		'approve-and-execute',
+		'Current execution allowlist: magick-ai/trash-post',
+		'Failure code handling',
+		'magick_ai_adapter_preflight_item_blocked',
+		'AI Request Logs context',
 		'wpai_request_log_context',
 		'log_context',
 		'proposal_id',
@@ -306,6 +309,20 @@ foreach (
 maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'magick-ai-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Magick AI Adapter', 'magick-ai-adapter' ),\n\t\t\t__( 'Adapter', 'magick-ai-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
 maa_adapter_assert( false === strpos( $connection_page, 'magick-ai-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
+
+$admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standard.md' );
+foreach (
+	array(
+		'OpenClaw connection surface',
+		'Create OpenClaw handoff',
+		'read shortcut route catalog',
+		'Core proposal approval tables',
+		'ability definitions',
+		'Cloud Base URL/API key',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $admin_surface_standard, $required ), 'Admin surface standard documents Adapter page boundary: ' . $required );
+}
 
 $readme = maa_adapter_read( $root . '/README.md' );
 foreach (
