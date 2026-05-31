@@ -97,6 +97,10 @@ function requestJson(method, url, payload = null, headers = {}) {
   });
 }
 
+function isRetryableNetworkError(error) {
+  return ['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ECONNREFUSED'].includes(error.code) || error.message === 'socket hang up';
+}
+
 function openApprovalUrl(url) {
   if (noOpen) {
     return false;
@@ -174,6 +178,7 @@ console.log('Waiting for approval...');
 
 let paired = null;
 const deadline = Date.now() + start.expires_in * 1000;
+let transientPollFailures = 0;
 while (Date.now() < deadline) {
   await new Promise((resolve) => setTimeout(resolve, (start.interval || 3) * 1000));
   try {
@@ -185,9 +190,15 @@ while (Date.now() < deadline) {
       break;
     }
   } catch (error) {
-    if (error.statusCode !== 202) {
-      throw error;
+    if (error.statusCode === 202) {
+      continue;
     }
+    if (isRetryableNetworkError(error)) {
+      transientPollFailures += 1;
+      console.log(`Transient polling error (${error.code || error.message}); retrying until the pairing code expires.`);
+      continue;
+    }
+    throw error;
   }
 }
 
@@ -215,4 +226,7 @@ const health = await requestJson('GET', healthUrl, null, signedHeaders(privateKe
 
 console.log(`Connected: ${paired.connection_id}`);
 console.log(`Profile saved: ${profilePath}`);
+if (transientPollFailures > 0) {
+  console.log(`Recovered from transient polling errors: ${transientPollFailures}`);
+}
 console.log(`Health: core_capabilities=${Boolean(health.core_capabilities)} abilities_catalog=${Boolean(health.abilities_catalog)}`);

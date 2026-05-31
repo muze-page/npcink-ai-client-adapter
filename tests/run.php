@@ -508,6 +508,8 @@ foreach (
 		'insecure-local-tls',
 		'no-open',
 		'openApprovalUrl',
+		'isRetryableNetworkError',
+		'Transient polling error',
 		'private_key_jwk',
 		'keypair-profiles',
 	) as $required

@@ -125,7 +125,8 @@ client there; the script then stores a local profile under
 `--no-open` to print the URL without opening a browser. A production WorkBuddy
 integration should replace that file write with the OS keychain or WorkBuddy
 credential vault. Use `--insecure-local-tls` only for LocalWP or `.local`
-self-signed HTTPS testing.
+self-signed HTTPS testing. If LocalWP resets a polling connection, the verifier
+keeps retrying until the pairing code expires.
 
 ## Connection Check
 
