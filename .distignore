@@ -10,6 +10,7 @@ phpcs.xml
 phpcs.xml.dist
 phpstan.neon
 phpstan.neon.dist
+sj
 tests
 vendor
 node_modules

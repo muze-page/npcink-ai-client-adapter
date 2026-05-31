@@ -462,7 +462,7 @@ foreach (
 		'"license": "GPL-2.0-or-later"',
 		'"package:release"',
 		'"plugin-check:release"',
-		'--exclude-directories=tests,.git,vendor,node_modules',
+		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
 		'--exclude-files=.gitignore,.distignore,AGENTS.md,composer.json',
 	) as $required
 ) {
