@@ -110,7 +110,18 @@ foreach (
 			'magick_ai_adapter_unified_action',
 			'core_approved_commit_preflight_required',
 			'wp_abilities_rest_after_core_preflight',
+			'MAX_EXECUTION_ACTIONS',
+			'execution_input_contract',
+			'partial_success',
+			'batch_write_actions',
+			'normalize_execution_actions',
+			'execute_normalized_action',
 			'magick_ai_adapter_execute_ability_not_allowed',
+			'magick_ai_adapter_execution_input_ambiguous',
+			'magick_ai_adapter_write_action_invalid',
+			'magick_ai_adapter_write_action_target_required',
+			'magick_ai_adapter_write_actions_limit_exceeded',
+			'magick_ai_adapter_write_action_commit_execution_not_allowed',
 			'magick_ai_adapter_preflight_not_authorized',
 			'magick_ai_adapter_core_execution_not_allowed',
 			'magick_ai_adapter_proposal_rejected',
@@ -336,6 +347,8 @@ foreach (
 		'Magick AI -> Adapter',
 		'docs/openclaw-quickstart.md',
 		'docs/openclaw-consumer-acceptance.md',
+		'docs/openclaw-batch-execution-policy.md',
+		'input.write_actions[]',
 		'Create OpenClaw handoff',
 		'only its hash',
 			'Application Password handoff',
@@ -534,6 +547,7 @@ foreach (
 			'Proposal-Required Write Flow',
 			'core_proxy_execute=false',
 			'commit_execution=false',
+			'execution_mode=batch_write_actions',
 			'outside that execution allowlist',
 		) as $required
 ) {
@@ -632,6 +646,8 @@ foreach (
 		'magick-ai/delete-media-permanently',
 		'Approved Proposal Execution Contract',
 		'Unified Approve And Execute Contract',
+		'openclaw-batch-execution-policy.md',
+		'batch containing any non-allowlisted action fails',
 		'magick-ai/trash-post',
 		'POST /wp-json/magick-ai-core/v1/proposals/from-plan',
 		'It does not execute abilities marked `proposal_required`.',
@@ -658,6 +674,8 @@ foreach (
 		'POST /proposals/{proposal_id}/commit-preflight',
 		'POST /proposals/{proposal_id}/execute',
 		'POST /proposals/{proposal_id}/approve-and-execute',
+		'execution_mode=batch_write_actions',
+		'magick_ai_adapter_write_action_invalid',
 		'approved proposal execution',
 		'approve-and-execute',
 		'magick-ai/trash-post',
@@ -816,6 +834,12 @@ foreach (
 		'adapter approve-and-execute records post status after execution',
 		'adapter approve-and-execute execution result succeeds',
 		'adapter approve-and-execute moves pending proposal post to trash',
+		'adapter creates write_actions batch proposal for approve-and-execute smoke',
+		'adapter batch approve-and-execute succeeds for allowlisted write_actions',
+		'adapter batch approve-and-execute reports batch execution mode',
+		'adapter batch approve-and-execute returns per-action results',
+		'adapter batch approve-and-execute rejects non-allowlisted write_action',
+		'adapter bad batch does not execute allowed action before failing closed',
 		'adapter approve-and-execute succeeds for already approved proposal',
 		'adapter approve-and-execute records approved status before execution',
 		'adapter approve-and-execute skips approve for already approved proposal',
@@ -881,6 +905,22 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $smoke_wp, $required ), 'WordPress smoke contains required text: ' . $required );
+}
+
+$batch_policy = maa_adapter_read( $root . '/docs/openclaw-batch-execution-policy.md' );
+foreach (
+	array(
+		'OpenClaw Batch Execution Policy',
+		'Status: accepted',
+		'target_ability_id=magick-ai/trash-post',
+		'Maximum batch size is 50 actions',
+		'Partial success is not a normal success mode',
+		'execution_mode=batch_write_actions',
+		'expand the Adapter execution allowlist',
+		'turn disabled approve/reject stubs into real proxies',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $batch_policy, $required ), 'Batch execution policy contains required text: ' . $required );
 }
 
 echo "Static contracts: ok\n";

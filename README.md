@@ -23,6 +23,12 @@ See [OpenClaw Adapter Consumer Readiness](docs/openclaw-adapter-consumer-readine
 for the dependency snapshot, verified routes, closed loop, and next-stage
 execution allowlist rules.
 
+Batch plan execution is intentionally narrow. Adapter can execute
+`input.write_actions[]` only after Core approval and commit-preflight, and only
+when every action targets the current execution allowlist
+(`magick-ai/trash-post`). See
+[OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
+
 ## Runtime Boundary
 
 Layer ownership:
@@ -415,10 +421,12 @@ Write or destructive abilities:
    approval.
 6. Adapter relays Core `commit_execution=false`.
 7. For approved proposal execution, only `magick-ai/trash-post` is supported in
-   this adapter. OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter
-   performs Core preflight again, passes `approval_context`, and executes one
-   proposal item through WordPress Abilities API. New execution abilities must
-   be added one by one to the Adapter allowlist with dedicated smoke coverage;
+   this adapter. The execution input may be either a single `input.post_id` or
+   a bounded `input.write_actions[]` batch where every action targets
+   `magick-ai/trash-post`. OpenClaw calls `/proposals/{proposal_id}/execute`;
+   Adapter performs Core preflight again, passes `approval_context`, and
+   executes through WordPress Abilities API. New execution abilities must be
+   added one by one to the Adapter allowlist with dedicated smoke coverage;
    this is not a generic proxy-execute surface.
 
 ## Non-Goals

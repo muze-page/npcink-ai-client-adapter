@@ -96,6 +96,12 @@ approval context and executable preflight result, then executes one WordPress
 Abilities API call. For an already approved proposal, Adapter skips only the
 Core approve step and still runs commit-preflight before execution.
 
+The execution input may be either top-level `proposal.input.post_id` or a
+bounded `proposal.input.write_actions[]` batch. Batch V1 only accepts actions
+whose `target_ability_id` is `magick-ai/trash-post` and whose
+`input.post_id` is present. See
+[`openclaw-batch-execution-policy.md`](openclaw-batch-execution-policy.md).
+
 The response must include `proposal_id`, `post_id`, `ability_id`,
 `correlation_id`, `status_before`, whether Adapter performed approval, Core
 `commit_execution=false`, and the execution result. Rejected proposals,
@@ -114,6 +120,10 @@ POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
 The current allowlist is intentionally narrow:
 
 - `magick-ai/trash-post`
+
+The allowlist applies to both single-post execution and each
+`write_actions[]` item. A batch containing any non-allowlisted action fails
+closed and executes no actions.
 
 For each execution request, Adapter must fetch the Core proposal, call Core
 commit-preflight, require `approval_commit_authorized=true`, require

@@ -325,6 +325,12 @@ commit-preflight, verifies `approval_commit_authorized=true` and
 `commit_execution=false`, then executes one WordPress Abilities API call. Core
 remains the governance backend for proposal state, approval, preflight, and
 audit.
+
+For a batch plan-shaped proposal, the same route accepts
+`input.write_actions[]` only when every action targets `magick-ai/trash-post`
+and includes `input.post_id`. Adapter still calls Core approve and Core
+commit-preflight before running the bounded batch, and returns per-action
+`results[]` with `execution_mode=batch_write_actions`.
 10. The lower-level execution route is available only for already approved
    proposals:
 

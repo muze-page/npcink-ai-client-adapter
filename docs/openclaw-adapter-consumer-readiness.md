@@ -84,6 +84,10 @@ The disabled approve/reject stubs must remain disabled unless a future decision
 explicitly changes the product boundary. The current productized user action is
 `POST /proposals/{proposal_id}/approve-and-execute`.
 
+Batch `write_actions[]` execution is governed by
+[`openclaw-batch-execution-policy.md`](openclaw-batch-execution-policy.md).
+The policy keeps the execution allowlist limited to `magick-ai/trash-post`.
+
 ## Next-Stage Rules
 
 Do not default-expand the final execution allowlist.

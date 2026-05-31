@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Controller {
 	const NAMESPACE = 'magick-ai-adapter/v1';
+	const MAX_EXECUTION_ACTIONS = 50;
 
 	/**
 	 * Current request log context while an ability is running.
@@ -480,6 +481,12 @@ final class Controller {
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
 				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'execution_input_contract' => array(
+					'single' => 'proposal.input.post_id',
+					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input.post_id',
+					'max_actions' => self::MAX_EXECUTION_ACTIONS,
+					'partial_success' => false,
+				),
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
 				),
@@ -515,6 +522,12 @@ final class Controller {
 						'core_required_scope'  => 'commit:preflight',
 						'core_commit_execution' => false,
 						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+						'execution_input_contract' => array(
+							'single' => 'proposal.input.post_id',
+							'batch'  => 'proposal.input.write_actions[]',
+							'max_actions' => self::MAX_EXECUTION_ACTIONS,
+							'partial_success' => false,
+						),
 					),
 					'unified_approve_and_execute' => array(
 						'governance_mode'      => 'core_approval_then_adapter_execution',
@@ -522,6 +535,12 @@ final class Controller {
 						'approval_surface'     => 'magick_ai_adapter_unified_action',
 						'core_commit_execution' => false,
 						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+						'execution_input_contract' => array(
+							'single' => 'proposal.input.post_id',
+							'batch'  => 'proposal.input.write_actions[]',
+							'max_actions' => self::MAX_EXECUTION_ACTIONS,
+							'partial_success' => false,
+						),
 					),
 					'plan_to_proposal' => array(
 						'governance_mode'   => 'direct_read_plan_to_core_proposals',
@@ -628,6 +647,12 @@ final class Controller {
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
 				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'execution_input_contract' => array(
+					'single' => 'proposal.input.post_id',
+					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input.post_id',
+					'max_actions' => self::MAX_EXECUTION_ACTIONS,
+					'partial_success' => false,
+				),
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
 				),
@@ -746,9 +771,9 @@ final class Controller {
 			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/commit-preflight' => 'Run Core commit preflight without executing final writes.',
-			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight.',
-			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight.',
-			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one allowlisted proposal.',
+			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight; supports one post_id or allowlisted write_actions.',
+			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight; supports one post_id or allowlisted write_actions.',
+			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one post_id or allowlisted write_actions.',
 			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
 			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
 		);
@@ -1023,10 +1048,16 @@ final class Controller {
 				'proposal_id'        => $proposal_id,
 				'correlation_id'     => $execution['correlation_id'],
 				'ability_id'         => $execution['ability_id'],
+				'post_id'            => $execution['post_id'],
+				'post_ids'           => $execution['post_ids'],
+				'execution_mode'     => $execution['execution_mode'],
 				'adapter_request_id' => $execution['adapter_request_id'],
 				'approval_context'   => $execution['approval_context'],
 				'commit_execution'   => false,
 				'execution_surface'  => 'wp_abilities_rest',
+				'executed_count'     => $execution['executed_count'],
+				'failed_count'       => $execution['failed_count'],
+				'results'            => $execution['results'],
 				'result'             => $execution['result'],
 			),
 			200
@@ -1034,7 +1065,7 @@ final class Controller {
 	}
 
 	/**
-	 * Approves a pending proposal through Core and executes one allowlisted proposal.
+	 * Approves a pending proposal through Core and executes allowlisted input.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -1055,9 +1086,9 @@ final class Controller {
 		}
 
 		$ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
-		$allowed = $this->validate_execute_ability( $proposal_id, $ability_id );
-		if ( is_wp_error( $allowed ) ) {
-			return $allowed;
+		$execution_actions = $this->normalize_execution_actions( $proposal_id, $proposal );
+		if ( is_wp_error( $execution_actions ) ) {
+			return $execution_actions;
 		}
 
 		$status_before       = sanitize_key( (string) ( $proposal['status'] ?? '' ) );
@@ -1120,17 +1151,23 @@ final class Controller {
 				'proposal_id'           => $proposal_id,
 				'ability_id'            => $execution['ability_id'],
 				'post_id'               => $execution['post_id'],
+				'post_ids'              => $execution['post_ids'],
+				'execution_mode'        => $execution['execution_mode'],
 				'status_before'         => $status_before,
 				'approved_by_adapter'   => $approved_by_adapter,
 				'correlation_id'        => $execution['correlation_id'],
 				'adapter_request_id'    => $execution['adapter_request_id'],
 				'core_commit_execution' => false,
 				'approval_context'      => $execution['approval_context'],
+				'executed_count'        => $execution['executed_count'],
+				'failed_count'          => $execution['failed_count'],
+				'results'               => $execution['results'],
 				'execution'             => array(
 					'success'            => true,
 					'post_status_before' => $execution['post_status_before'],
 					'post_status_after'  => $execution['post_status_after'],
 					'result'             => $execution['result'],
+					'results'            => $execution['results'],
 				),
 			),
 			200
@@ -1184,6 +1221,266 @@ final class Controller {
 	}
 
 	/**
+	 * Normalizes one proposal into concrete Adapter execution actions.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<int,array<string,mixed>>|WP_Error
+	 */
+	private function normalize_execution_actions( string $proposal_id, array $proposal ) {
+		$proposal_ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
+		$input               = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		$write_actions       = is_array( $input['write_actions'] ?? null ) ? array_values( $input['write_actions'] ) : array();
+		$has_write_actions   = ! empty( $write_actions );
+		$top_level_post_id   = absint( $input['post_id'] ?? 0 );
+
+		if ( $has_write_actions && $top_level_post_id > 0 ) {
+			return new WP_Error(
+				'magick_ai_adapter_execution_input_ambiguous',
+				__( 'Proposal input must use either post_id or write_actions, not both.', 'magick-ai-adapter' ),
+				array(
+					'status'      => 400,
+					'proposal_id' => $proposal_id,
+				)
+			);
+		}
+
+		if ( $has_write_actions ) {
+			if ( count( $write_actions ) > self::MAX_EXECUTION_ACTIONS ) {
+				return new WP_Error(
+					'magick_ai_adapter_write_actions_limit_exceeded',
+					__( 'Proposal write_actions exceeds the adapter execution limit.', 'magick-ai-adapter' ),
+					array(
+						'status'      => 400,
+						'proposal_id' => $proposal_id,
+						'max_actions' => self::MAX_EXECUTION_ACTIONS,
+					)
+				);
+			}
+
+			$actions = array();
+			foreach ( $write_actions as $index => $raw_action ) {
+				if ( ! is_array( $raw_action ) ) {
+					return new WP_Error(
+						'magick_ai_adapter_write_action_invalid',
+						__( 'Each write_actions item must be an object.', 'magick-ai-adapter' ),
+						array(
+							'status'       => 400,
+							'proposal_id'  => $proposal_id,
+							'action_index' => $index,
+						)
+					);
+				}
+
+				$target_ability_id = sanitize_text_field( (string) ( $raw_action['target_ability_id'] ?? '' ) );
+				if ( '' === $target_ability_id ) {
+					return new WP_Error(
+						'magick_ai_adapter_write_action_target_required',
+						__( 'Each write_actions item must include target_ability_id.', 'magick-ai-adapter' ),
+						array(
+							'status'       => 400,
+							'proposal_id'  => $proposal_id,
+							'action_index' => $index,
+						)
+					);
+				}
+
+				$allowed = $this->validate_execute_ability( $proposal_id, $target_ability_id );
+				if ( is_wp_error( $allowed ) ) {
+					$allowed->add_data(
+						array_merge(
+							(array) $allowed->get_error_data(),
+							array(
+								'action_index'      => $index,
+								'action_id'         => sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) ),
+								'target_ability_id' => $target_ability_id,
+							)
+						)
+					);
+					return $allowed;
+				}
+
+				$action_input = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
+				$post_id      = absint( $action_input['post_id'] ?? 0 );
+				if ( 'magick-ai/trash-post' === $target_ability_id && 0 === $post_id ) {
+					return new WP_Error(
+						'magick_ai_adapter_post_id_required',
+						__( 'trash-post write action input must include post_id.', 'magick-ai-adapter' ),
+						array(
+							'status'            => 400,
+							'proposal_id'       => $proposal_id,
+							'ability_id'        => $target_ability_id,
+							'action_index'      => $index,
+							'target_ability_id' => $target_ability_id,
+						)
+					);
+				}
+
+				if ( array_key_exists( 'requires_approval', $raw_action ) && true !== (bool) $raw_action['requires_approval'] ) {
+					return new WP_Error(
+						'magick_ai_adapter_write_action_approval_required',
+						__( 'Each executable write action must require Core approval.', 'magick-ai-adapter' ),
+						array(
+							'status'       => 409,
+							'proposal_id'  => $proposal_id,
+							'action_index' => $index,
+						)
+					);
+				}
+
+				if ( array_key_exists( 'commit_execution', $raw_action ) && false !== (bool) $raw_action['commit_execution'] ) {
+					return new WP_Error(
+						'magick_ai_adapter_write_action_commit_execution_not_allowed',
+						__( 'Write actions must keep commit_execution=false before Adapter execution.', 'magick-ai-adapter' ),
+						array(
+							'status'       => 409,
+							'proposal_id'  => $proposal_id,
+							'action_index' => $index,
+						)
+					);
+				}
+
+				$requires_input = is_array( $raw_action['requires_input'] ?? null ) ? array_values( $raw_action['requires_input'] ) : array();
+				if ( ! empty( $requires_input ) ) {
+					return new WP_Error(
+						'magick_ai_adapter_write_action_needs_input',
+						__( 'Write action still requires reviewed input before execution.', 'magick-ai-adapter' ),
+						array(
+							'status'         => 409,
+							'proposal_id'    => $proposal_id,
+							'action_index'   => $index,
+							'requires_input' => $requires_input,
+						)
+					);
+				}
+
+				$preflight_blockers = is_array( $raw_action['preflight_blockers'] ?? null ) ? array_values( $raw_action['preflight_blockers'] ) : array();
+				if ( ( array_key_exists( 'proposal_ready', $raw_action ) && false === (bool) $raw_action['proposal_ready'] ) || ! empty( $preflight_blockers ) ) {
+					return new WP_Error(
+						'magick_ai_adapter_write_action_not_ready',
+						__( 'Write action is not marked ready for execution.', 'magick-ai-adapter' ),
+						array(
+							'status'              => 409,
+							'proposal_id'         => $proposal_id,
+							'action_index'        => $index,
+							'preflight_blockers'  => $preflight_blockers,
+						)
+					);
+				}
+
+				$action_id = sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) );
+				if ( '' === $action_id ) {
+					$action_id = 'action-' . ( $index + 1 );
+				}
+
+				$actions[] = array(
+					'action_id'         => $action_id,
+					'action_index'      => $index,
+					'ability_id'        => $target_ability_id,
+					'target_ability_id' => $target_ability_id,
+					'post_id'           => $post_id,
+					'input'             => $action_input,
+					'execution_mode'    => 'batch_write_actions',
+				);
+			}
+
+			return $actions;
+		}
+
+		$allowed = $this->validate_execute_ability( $proposal_id, $proposal_ability_id );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		if ( 'magick-ai/trash-post' === $proposal_ability_id && 0 === $top_level_post_id ) {
+			return new WP_Error(
+				'magick_ai_adapter_post_id_required',
+				__( 'trash-post proposal input must include post_id.', 'magick-ai-adapter' ),
+				array(
+					'status'      => 400,
+					'proposal_id' => $proposal_id,
+					'ability_id'  => $proposal_ability_id,
+				)
+			);
+		}
+
+		return array(
+			array(
+				'action_id'         => 'single-post',
+				'action_index'      => 0,
+				'ability_id'        => $proposal_ability_id,
+				'target_ability_id' => $proposal_ability_id,
+				'post_id'           => $top_level_post_id,
+				'input'             => $input,
+				'execution_mode'    => 'single_post',
+			),
+		);
+	}
+
+	/**
+	 * Executes one normalized action through WordPress Abilities API.
+	 *
+	 * @param WP_REST_Request     $request Request.
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $action Normalized action.
+	 * @param array<string,mixed> $approval_context Core approval context.
+	 * @param string              $correlation_id Correlation id.
+	 * @param array<string,mixed> $base_request_context Base request context.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function execute_normalized_action( WP_REST_Request $request, string $proposal_id, array $action, array $approval_context, string $correlation_id, array $base_request_context ) {
+		$ability_id = sanitize_text_field( (string) ( $action['ability_id'] ?? '' ) );
+		$post_id    = absint( $action['post_id'] ?? 0 );
+
+		$post_status_before = get_post_status( $post_id );
+		$post_status_before = false === $post_status_before ? '' : (string) $post_status_before;
+
+		$ability_input = array(
+			'post_id' => $post_id,
+			'dry_run' => false,
+			'commit'  => true,
+		);
+
+		$route           = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
+		$request_context = $base_request_context;
+		$request_context['ability_id'] = $ability_id;
+		$context         = array_merge(
+			$approval_context,
+			$request_context,
+			array(
+				'ability_id'        => $ability_id,
+				'target_ability_id' => sanitize_text_field( (string) ( $action['target_ability_id'] ?? $ability_id ) ),
+				'action_id'         => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+				'action_index'      => absint( $action['action_index'] ?? 0 ),
+				'proposal_id'       => $proposal_id,
+				'post_id'           => $post_id,
+				'correlation_id'    => $correlation_id,
+				'via'               => 'magick-ai-adapter',
+			)
+		);
+
+		$response = $this->dispatch_upstream_with_runtime_context( $context, 'POST', $route, array( 'input' => $ability_input ), false, true );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$post_status_after = get_post_status( $post_id );
+
+		return array(
+			'action_id'          => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+			'action_index'       => absint( $action['action_index'] ?? 0 ),
+			'target_ability_id'  => sanitize_text_field( (string) ( $action['target_ability_id'] ?? $ability_id ) ),
+			'ability_id'         => $ability_id,
+			'post_id'            => $post_id,
+			'status'             => 'executed',
+			'post_status_before' => $post_status_before,
+			'post_status_after'  => false === $post_status_after ? '' : (string) $post_status_after,
+			'adapter_request_id' => (string) ( $context['adapter_request_id'] ?? '' ),
+			'result'             => $response->get_data(),
+		);
+	}
+
+	/**
 	 * Executes an approved proposal after Core commit preflight.
 	 *
 	 * @param WP_REST_Request     $request Request.
@@ -1192,28 +1489,11 @@ final class Controller {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function execute_core_approved_proposal( WP_REST_Request $request, string $proposal_id, array $proposal ) {
-		$ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
-		$allowed    = $this->validate_execute_ability( $proposal_id, $ability_id );
-		if ( is_wp_error( $allowed ) ) {
-			return $allowed;
+		$proposal_ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
+		$actions             = $this->normalize_execution_actions( $proposal_id, $proposal );
+		if ( is_wp_error( $actions ) ) {
+			return $actions;
 		}
-
-		$input   = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
-		$post_id = absint( $input['post_id'] ?? 0 );
-		if ( 'magick-ai/trash-post' === $ability_id && 0 === $post_id ) {
-			return new WP_Error(
-				'magick_ai_adapter_post_id_required',
-				__( 'trash-post proposal input must include post_id.', 'magick-ai-adapter' ),
-				array(
-					'status'      => 400,
-					'proposal_id' => $proposal_id,
-					'ability_id'  => $ability_id,
-				)
-			);
-		}
-
-		$post_status_before = get_post_status( $post_id );
-		$post_status_before = false === $post_status_before ? '' : (string) $post_status_before;
 
 		$preflight_response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
 		if ( is_wp_error( $preflight_response ) ) {
@@ -1279,42 +1559,86 @@ final class Controller {
 			);
 		}
 
-		$ability_input = array(
-			'post_id' => $post_id,
-			'dry_run' => false,
-			'commit'  => true,
-		);
+		$base_request_context = $this->request_log_context( $request, '' !== $proposal_ability_id ? $proposal_ability_id : (string) ( $actions[0]['ability_id'] ?? '' ) );
+		$base_request_context['proposal_id']    = $proposal_id;
+		$base_request_context['correlation_id'] = $correlation_id;
+		$magick_ai_core = is_array( $base_request_context['magick_ai_core'] ?? null ) ? $base_request_context['magick_ai_core'] : array();
+		$magick_ai_core['proposal_id']    = $proposal_id;
+		$magick_ai_core['correlation_id'] = $correlation_id;
+		$base_request_context['magick_ai_core'] = $magick_ai_core;
 
-		$route           = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
-		$request_context = $this->request_log_context( $request, $ability_id );
-		$context         = array_merge(
-			$approval_context,
-			$request_context,
-			array(
-				'ability_id'     => $ability_id,
-				'proposal_id'    => $proposal_id,
-				'post_id'        => $post_id,
-				'correlation_id' => $correlation_id,
-				'via'            => 'magick-ai-adapter',
-			)
-		);
-		$response = $this->dispatch_upstream_with_runtime_context( $context, 'POST', $route, array( 'input' => $ability_input ), false, true );
-		if ( is_wp_error( $response ) ) {
-			return $response;
+		$results = array();
+		foreach ( $actions as $action ) {
+			$result = $this->execute_normalized_action( $request, $proposal_id, $action, $approval_context, $correlation_id, $base_request_context );
+			if ( is_wp_error( $result ) ) {
+				$error_data = $result->get_error_data();
+				$error_data = is_array( $error_data ) ? $error_data : array();
+				$status     = absint( $error_data['status'] ?? 0 );
+				if ( 0 === $status ) {
+					$status = 409;
+				}
+
+				$result->add_data(
+					array_merge(
+						$error_data,
+						array(
+							'status'           => $status,
+							'proposal_id'      => $proposal_id,
+							'correlation_id'   => $correlation_id,
+							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+							'action_index'     => absint( $action['action_index'] ?? 0 ),
+							'executed_results' => $results,
+						)
+					)
+				);
+				return $result;
+			}
+
+			$results[] = $result;
 		}
 
-		$post_status_after = get_post_status( $post_id );
+		$first_result      = is_array( $results[0] ?? null ) ? $results[0] : array();
+		$post_ids          = array_values(
+			array_map(
+				'absint',
+				array_column( $results, 'post_id' )
+			)
+		);
+		$target_ability_ids = array_values(
+			array_unique(
+				array_map(
+					static function ( $result ) {
+						return is_array( $result ) ? sanitize_text_field( (string) ( $result['target_ability_id'] ?? '' ) ) : '';
+					},
+					$results
+				)
+			)
+		);
+		$target_ability_ids = array_values( array_filter( $target_ability_ids ) );
+		$execution_mode     = count( $actions ) > 1 || 'batch_write_actions' === (string) ( $actions[0]['execution_mode'] ?? '' ) ? 'batch_write_actions' : 'single_post';
+		$response_ability_id = 1 === count( $target_ability_ids ) ? $target_ability_ids[0] : $proposal_ability_id;
 
 		return array(
-			'ability_id'          => $ability_id,
-			'post_id'             => $post_id,
+			'ability_id'          => $response_ability_id,
+			'post_id'             => absint( $first_result['post_id'] ?? 0 ),
+			'post_ids'            => $post_ids,
 			'correlation_id'      => $correlation_id,
-			'adapter_request_id'  => (string) ( $context['adapter_request_id'] ?? '' ),
+			'adapter_request_id'  => (string) ( $base_request_context['adapter_request_id'] ?? '' ),
 			'approval_context'    => $approval_context,
 			'preflight'           => $preflight,
-			'post_status_before'  => $post_status_before,
-			'post_status_after'   => false === $post_status_after ? '' : (string) $post_status_after,
-			'result'              => $response->get_data(),
+			'execution_mode'      => $execution_mode,
+			'executed_count'      => count( $results ),
+			'failed_count'        => 0,
+			'results'             => $results,
+			'post_status_before'  => (string) ( $first_result['post_status_before'] ?? '' ),
+			'post_status_after'   => (string) ( $first_result['post_status_after'] ?? '' ),
+			'result'              => 1 === count( $results ) ? ( $first_result['result'] ?? array() ) : array(
+				'success'        => true,
+				'execution_mode' => $execution_mode,
+				'executed_count' => count( $results ),
+				'failed_count'   => 0,
+				'results'        => $results,
+			),
 		);
 	}
 

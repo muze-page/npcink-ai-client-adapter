@@ -137,6 +137,11 @@ Run this order for a local acceptance pass:
     Confirm Adapter approved through Core when status was pending, ran Core
     commit-preflight, returned `proposal_id`, `post_id`, `ability_id`, and
     `correlation_id`, and moved the test post to `trash`.
+    For batch plan-shaped proposals, confirm `input.write_actions[]` executes
+    only when every item targets `magick-ai/trash-post`, includes
+    `input.post_id`, and passes Core preflight. Confirm the response includes
+    `execution_mode=batch_write_actions`, `executed_count`, `failed_count`,
+    and per-action `results[]`.
 17. For lower-level approved proposal execution, use only the current
     `magick-ai/trash-post` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
@@ -243,6 +248,11 @@ OpenClaw must stop and report the reason when Adapter or Core returns:
   reject through Adapter's standalone disabled stubs;
 - `magick_ai_adapter_execute_ability_not_allowed` when the proposal ability is
   outside Adapter's execution allowlist;
+- `magick_ai_adapter_write_action_invalid`,
+  `magick_ai_adapter_write_action_target_required`,
+  `magick_ai_adapter_write_actions_limit_exceeded`, or
+  `magick_ai_adapter_post_id_required` when a batch write action does not
+  satisfy Adapter's V1 execution input contract;
 - `magick_ai_adapter_proposal_rejected` when approve-and-execute is attempted
   after Core rejection;
 - `magick_ai_adapter_preflight_not_authorized` or
@@ -305,7 +315,9 @@ OpenClaw consumer acceptance is complete when:
   `ai_model` sent to the provider smoke even if the provider column is blank;
 - disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
   proposal state;
-- plan `write_actions` and `skipped_destructive_candidates` are never reported
-  as Adapter-executed mutations;
+- plan `write_actions` are executed only through the accepted
+  `magick-ai/trash-post` batch policy after Core approval and preflight;
+- `skipped_destructive_candidates` are never reported as Adapter-executed
+  mutations;
 - `commit_execution=false` remains true at preflight;
 - no new runtime ownership is added to Core, Adapter, or Abilities.

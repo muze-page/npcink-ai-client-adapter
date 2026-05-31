@@ -725,6 +725,123 @@ maa_adapter_smoke_assert( 'trash' === (string) ( $approve_execute_result['execut
 maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['execution']['success'] ?? false ), 'adapter approve-and-execute execution result succeeds' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $approve_execute_post_id ), 'adapter approve-and-execute moves pending proposal post to trash' );
 
+$batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$batch_second_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $batch_post_id;
+$maa_adapter_smoke_cleanup_post_ids[] = $batch_second_post_id;
+$batch_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'title'      => 'Adapter batch approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes a bounded write_actions trash-post batch.',
+		'input'      => array(
+			'write_actions' => array(
+				array(
+					'action_id'         => 'trash-post-' . $batch_post_id,
+					'target_ability_id' => 'magick-ai/trash-post',
+					'input'             => array(
+						'post_id' => $batch_post_id,
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+				array(
+					'action_id'         => 'trash-post-' . $batch_second_post_id,
+					'target_ability_id' => 'magick-ai/trash-post',
+					'input'             => array(
+						'post_id' => $batch_second_post_id,
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+			),
+		),
+		'preview'    => array(
+			'action'           => 'batch_trash_posts',
+			'action_count'     => 2,
+			'proposal_ready'   => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-batch-approve-execute-smoke',
+		),
+	)
+);
+$batch_proposal_id = (string) ( $batch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $batch_proposal_id;
+maa_adapter_smoke_assert( '' !== $batch_proposal_id, 'adapter creates write_actions batch proposal for approve-and-execute smoke' );
+$batch_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $batch_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $batch_result['success'] ?? false ), 'adapter batch approve-and-execute succeeds for allowlisted write_actions' );
+maa_adapter_smoke_assert( 'batch_write_actions' === (string) ( $batch_result['execution_mode'] ?? '' ), 'adapter batch approve-and-execute reports batch execution mode' );
+maa_adapter_smoke_assert( 2 === (int) ( $batch_result['executed_count'] ?? 0 ), 'adapter batch approve-and-execute reports executed count' );
+maa_adapter_smoke_assert( 0 === (int) ( $batch_result['failed_count'] ?? 1 ), 'adapter batch approve-and-execute reports zero failures' );
+maa_adapter_smoke_assert( is_array( $batch_result['results'] ?? null ) && 2 === count( $batch_result['results'] ), 'adapter batch approve-and-execute returns per-action results' );
+maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $batch_result['results'][0]['target_ability_id'] ?? '' ), 'adapter batch approve-and-execute result carries target ability id' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $batch_post_id ), 'adapter batch approve-and-execute trashes first post' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $batch_second_post_id ), 'adapter batch approve-and-execute trashes second post' );
+
+$bad_batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$bad_batch_second_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $bad_batch_post_id;
+$maa_adapter_smoke_cleanup_post_ids[] = $bad_batch_second_post_id;
+$bad_batch_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'title'      => 'Adapter bad batch approve execute smoke',
+		'summary'    => 'Adapter must fail closed when write_actions contains a non-allowlisted target.',
+		'input'      => array(
+			'write_actions' => array(
+				array(
+					'action_id'         => 'trash-post-' . $bad_batch_post_id,
+					'target_ability_id' => 'magick-ai/trash-post',
+					'input'             => array(
+						'post_id' => $bad_batch_post_id,
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+				array(
+					'action_id'         => 'update-post-' . $bad_batch_second_post_id,
+					'target_ability_id' => 'magick-ai/update-post',
+					'input'             => array(
+						'post_id' => $bad_batch_second_post_id,
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+			),
+		),
+		'preview'    => array(
+			'action'           => 'bad_batch_trash_posts',
+			'action_count'     => 2,
+			'proposal_ready'   => true,
+			'commit_execution' => false,
+		),
+	)
+);
+$bad_batch_proposal_id = (string) ( $bad_batch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $bad_batch_proposal_id;
+$bad_batch_result = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $bad_batch_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 403 === (int) $bad_batch_result['status'], 'adapter batch approve-and-execute rejects non-allowlisted write_action' );
+maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $bad_batch_post_id ), 'adapter bad batch does not execute allowed action before failing closed' );
+maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $bad_batch_second_post_id ), 'adapter bad batch does not execute non-allowlisted action' );
+
 $approved_skip_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approved_skip_post_id;
 $approved_skip_proposal = maa_adapter_smoke_rest(
