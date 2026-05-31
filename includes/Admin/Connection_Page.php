@@ -175,6 +175,8 @@ final class Connection_Page {
 		$health_url      = rest_url( Controller::NAMESPACE . '/health' );
 		$help_url        = rest_url( Controller::NAMESPACE . '/help' );
 		$capabilities_url = rest_url( Controller::NAMESPACE . '/capabilities' );
+		$manifest_url    = rest_url( Controller::NAMESPACE . '/connection/manifest' );
+		$grant_url       = rest_url( Controller::NAMESPACE . '/connections/grants' );
 		$health          = $this->health();
 		$status          = $this->status( $health );
 		$shortcuts       = Controller::read_shortcuts();
@@ -185,7 +187,8 @@ final class Connection_Page {
 		$can_create_password = $this->can_create_application_password();
 		$user            = wp_get_current_user();
 		$username        = $user->exists() ? (string) $user->user_login : '';
-		$client_config   = $this->openclaw_env_text( $username, '<application_password>', $this->is_local_url( home_url() ) );
+		$client_config   = $this->openclaw_env_text( $username, $this->is_local_url( home_url() ) );
+		$rest_nonce      = wp_create_nonce( 'wp_rest' );
 		?>
 		<div class="wrap magick-ai-adapter-connection">
 			<h1><?php echo esc_html__( 'Magick AI Adapter', 'magick-ai-adapter' ); ?></h1>
@@ -430,7 +433,7 @@ final class Connection_Page {
 				<div class="maa-workspace">
 					<div class="maa-section maa-section-highlight">
 						<h2><?php echo esc_html__( 'Create OpenClaw handoff', 'magick-ai-adapter' ); ?></h2>
-						<p><?php echo esc_html__( 'Create a one-time Application Password handoff for the current administrator.', 'magick-ai-adapter' ); ?></p>
+						<p><?php echo esc_html__( 'Create a one-time Application Password and non-secret OpenClaw connection manifest for the current administrator.', 'magick-ai-adapter' ); ?></p>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 							<input type="hidden" name="action" value="<?php echo esc_attr( self::CREATE_ACTION ); ?>" />
 							<?php wp_nonce_field( self::CREATE_ACTION ); ?>
@@ -475,7 +478,7 @@ final class Connection_Page {
 						<div class="maa-copy-row">
 							<div>
 								<span class="maa-label"><?php echo esc_html__( 'Client config', 'magick-ai-adapter' ); ?></span>
-								<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder.', 'magick-ai-adapter' ); ?></p>
+								<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder. Paste the real password only into OpenClaw dedicated secret field.', 'magick-ai-adapter' ); ?></p>
 								<textarea id="maa-client-config" hidden readonly><?php echo esc_textarea( $client_config ); ?></textarea>
 							</div>
 							<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-client-config"><?php echo esc_html__( 'Copy env', 'magick-ai-adapter' ); ?></button>
@@ -494,6 +497,17 @@ final class Connection_Page {
 					<p><span class="maa-label"><?php echo esc_html__( 'Health', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $health_url ); ?></code></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Help', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $help_url ); ?></code></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $capabilities_url ); ?></code></p>
+				</details>
+
+				<details class="maa-section">
+					<summary>
+						<strong><?php echo esc_html__( 'Local broker validation', 'magick-ai-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Create a short-lived grant for a broker running on 127.0.0.1.', 'magick-ai-adapter' ); ?></span>
+					</summary>
+					<p><?php echo esc_html__( 'For WorkBuddy MVP testing, run the local Node broker on this computer, then click connect. The browser sends only the non-secret manifest and a one-time grant; the Application Password is created during broker redeem and returned encrypted to the broker public key.', 'magick-ai-adapter' ); ?></p>
+					<pre><?php echo esc_html( 'node /Users/muze/gitee/magick-ai-adapter/tools/workbuddy-local-broker.mjs --port=9981' . ( $this->is_local_url( home_url() ) ? ' --insecure-local-tls' : '' ) ); ?></pre>
+					<p><button type="button" class="button" id="maa-local-broker-connect"><?php echo esc_html__( 'Connect local broker', 'magick-ai-adapter' ); ?></button></p>
+					<p class="description" id="maa-local-broker-status"><?php echo esc_html__( 'Waiting for local broker.', 'magick-ai-adapter' ); ?></p>
 				</details>
 
 				<details class="maa-section">
@@ -522,7 +536,7 @@ final class Connection_Page {
 						<strong><?php echo esc_html__( 'Example requests', 'magick-ai-adapter' ); ?></strong>
 						<span class="description"><?php echo esc_html__( 'Curl examples for health and proposal checks.', 'magick-ai-adapter' ); ?></span>
 					</summary>
-					<p><?php echo esc_html__( 'Use a dedicated administrator Application Password for the first OpenClaw handoff.', 'magick-ai-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals.', 'magick-ai-adapter' ); ?></p>
 					<pre><?php echo esc_html( $example_request ); ?></pre>
 					<pre><?php echo esc_html( $proposal_request ); ?></pre>
 					<pre><?php echo esc_html( $proposal_status_request ); ?></pre>
@@ -553,6 +567,51 @@ final class Connection_Page {
 					var root = document.querySelector('.magick-ai-adapter-connection');
 					if (!root) {
 						return;
+					}
+					var localBrokerConfig = {
+						brokerBaseUrls: [
+							'http://127.0.0.1:9981',
+							'http://localhost:9981'
+						],
+						manifestUrl: '<?php echo esc_js( $manifest_url ); ?>',
+						grantUrl: '<?php echo esc_js( $grant_url ); ?>',
+						restNonce: '<?php echo esc_js( $rest_nonce ); ?>'
+					};
+
+					function fetchJson(url, options) {
+						return window.fetch(url, options).then(function (response) {
+							return response.json().catch(function () {
+								return {};
+							}).then(function (data) {
+								if (!response.ok) {
+									throw new Error(data.message || data.error || ('HTTP ' + response.status));
+								}
+								return data;
+							});
+						});
+					}
+
+					function requestBrokerHandshake(baseUrls, index) {
+						if (index >= baseUrls.length) {
+							return Promise.reject(new Error('<?php echo esc_js( __( 'Local broker is not reachable on 127.0.0.1:9981 or localhost:9981.', 'magick-ai-adapter' ) ); ?>'));
+						}
+
+						return fetchJson(baseUrls[index] + '/request?t=' + Date.now(), {
+							method: 'GET',
+							mode: 'cors',
+							credentials: 'omit',
+							cache: 'no-store',
+							headers: {
+								'Accept': 'application/json'
+							}
+						}).then(function (brokerRequest) {
+							return {
+								baseUrl: baseUrls[index],
+								brokerRequest: brokerRequest
+							};
+						}).catch(function () {
+							return requestBrokerHandshake(baseUrls, index + 1);
+						});
 					}
 
 					function setTab(tabName) {
@@ -592,6 +651,78 @@ final class Connection_Page {
 							});
 						});
 					});
+
+					var localBrokerButton = document.getElementById('maa-local-broker-connect');
+					var localBrokerStatus = document.getElementById('maa-local-broker-status');
+					if (localBrokerButton && localBrokerStatus) {
+						localBrokerButton.addEventListener('click', function () {
+							localBrokerButton.disabled = true;
+							localBrokerStatus.textContent = '<?php echo esc_js( __( 'Contacting local broker...', 'magick-ai-adapter' ) ); ?>';
+
+							requestBrokerHandshake(localBrokerConfig.brokerBaseUrls, 0)
+								.then(function (session) {
+									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Reading non-secret manifest...', 'magick-ai-adapter' ) ); ?>';
+									return fetchJson(localBrokerConfig.manifestUrl, {
+										method: 'GET',
+										credentials: 'same-origin',
+										cache: 'no-store',
+										headers: {
+											'X-WP-Nonce': localBrokerConfig.restNonce,
+											'Accept': 'application/json'
+										}
+									}).then(function (manifest) {
+										session.manifest = manifest;
+										return session;
+									});
+								})
+								.then(function (session) {
+									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Creating short-lived grant...', 'magick-ai-adapter' ) ); ?>';
+									return fetchJson(localBrokerConfig.grantUrl, {
+										method: 'POST',
+										credentials: 'same-origin',
+										headers: {
+											'Content-Type': 'application/json',
+											'X-WP-Nonce': localBrokerConfig.restNonce,
+											'Accept': 'application/json'
+										},
+										body: JSON.stringify({
+											manifest_sha256: session.manifest.integrity && session.manifest.integrity.manifest_sha256,
+											state: session.brokerRequest.state,
+											broker: session.brokerRequest.broker,
+											requested_scopes: session.brokerRequest.requested_scopes
+										})
+									}).then(function (grant) {
+										session.grant = grant;
+										return session;
+									});
+								})
+								.then(function (session) {
+									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Sending grant to local broker. Confirm in the broker terminal if prompted...', 'magick-ai-adapter' ) ); ?>';
+									return fetchJson(session.baseUrl + '/grant', {
+										method: 'POST',
+										mode: 'cors',
+										credentials: 'omit',
+										headers: {
+											'Content-Type': 'application/json',
+											'Accept': 'application/json'
+										},
+										body: JSON.stringify({
+											manifest: session.manifest,
+											grant: session.grant
+										})
+									});
+								})
+								.then(function (result) {
+									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Connected. Credential saved by local broker:', 'magick-ai-adapter' ) ); ?>' + ' ' + (result.output_path || result.connection_id || '');
+								})
+								.catch(function (error) {
+									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Local broker connection failed:', 'magick-ai-adapter' ) ); ?>' + ' ' + error.message;
+								})
+								.finally(function () {
+									localBrokerButton.disabled = false;
+								});
+						});
+					}
 				})();
 			</script>
 		</div>
@@ -684,7 +815,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function example_request( string $health_url ): string {
-		return 'curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \\' . "\n"
+		return 'curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \\' . "\n"
 			. '  ' . $health_url;
 	}
 
@@ -697,9 +828,10 @@ final class Connection_Page {
 	 * @return void
 	 */
 	private function render_created_handoff( string $password, array $item, bool $include_local_tls ): void {
-		$user     = wp_get_current_user();
-		$username = $user->exists() ? (string) $user->user_login : '';
-		$base_url = rest_url( Controller::NAMESPACE );
+		$user          = wp_get_current_user();
+		$username      = $user->exists() ? (string) $user->user_login : '';
+		$base_url      = rest_url( Controller::NAMESPACE );
+		$password_uuid = (string) ( $item['uuid'] ?? '' );
 		?>
 		<!doctype html>
 		<html <?php language_attributes(); ?>>
@@ -718,7 +850,8 @@ final class Connection_Page {
 				code, textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 				textarea { box-sizing: border-box; width: 100%; min-height: 96px; padding: 10px; border: 1px solid #8c8f94; background: #fff; color: #1d2327; }
 				.actions { margin-top: 20px; }
-				.button { display: inline-block; background: #2271b1; border: 1px solid #2271b1; border-radius: 3px; color: #fff; padding: 8px 14px; text-decoration: none; }
+				.inline-actions { margin: 8px 0 0; }
+				.button { display: inline-block; background: #2271b1; border: 1px solid #2271b1; border-radius: 3px; color: #fff; padding: 8px 14px; text-decoration: none; cursor: pointer; }
 				@media (max-width: 720px) { main { padding: 0 12px; } th, td { display: block; width: auto; } }
 			</style>
 		</head>
@@ -727,6 +860,7 @@ final class Connection_Page {
 				<h1><?php echo esc_html__( 'OpenClaw Handoff Created', 'magick-ai-adapter' ); ?></h1>
 				<div class="notice">
 					<p><?php echo esc_html__( 'Copy this Application Password now. WordPress shows it only once and stores only a hash.', 'magick-ai-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Paste it only into OpenClaw dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text.', 'magick-ai-adapter' ); ?></p>
 					<p><?php echo esc_html__( 'Use this only for OpenClaw access through Magick AI Adapter. Revoke it from the WordPress user profile when the client is retired.', 'magick-ai-adapter' ); ?></p>
 				</div>
 				<table>
@@ -741,24 +875,59 @@ final class Connection_Page {
 						</tr>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Password UUID', 'magick-ai-adapter' ); ?></th>
-							<td><code><?php echo esc_html( (string) ( $item['uuid'] ?? '' ) ); ?></code></td>
+							<td><code><?php echo esc_html( $password_uuid ); ?></code></td>
 						</tr>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Application Password', 'magick-ai-adapter' ); ?></th>
-							<td><textarea rows="3" readonly><?php echo esc_textarea( $password ); ?></textarea></td>
+							<td><textarea id="maa-application-password" rows="3" readonly><?php echo esc_textarea( $password ); ?></textarea></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'OpenClaw env', 'magick-ai-adapter' ); ?></th>
-							<td><textarea rows="6" readonly><?php echo esc_textarea( $this->openclaw_env_text( $username, $password, $include_local_tls ) ); ?></textarea></td>
+							<th scope="row"><?php echo esc_html__( 'Connection manifest', 'magick-ai-adapter' ); ?></th>
+							<td>
+								<textarea id="maa-connection-manifest" rows="16" readonly><?php echo esc_textarea( $this->openclaw_connection_manifest_text( $username, $password_uuid ) ); ?></textarea>
+								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-connection-manifest"><?php echo esc_html__( 'Copy manifest', 'magick-ai-adapter' ); ?></button></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><?php echo esc_html__( 'OpenClaw env placeholder', 'magick-ai-adapter' ); ?></th>
+							<td><textarea rows="6" readonly><?php echo esc_textarea( $this->openclaw_env_text( $username, $include_local_tls ) ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><?php echo esc_html__( 'WorkBuddy setup', 'magick-ai-adapter' ); ?></th>
+							<td>
+								<textarea id="maa-workbuddy-setup" rows="18" readonly><?php echo esc_textarea( $this->workbuddy_handoff_text( $username, $password_uuid, $include_local_tls ) ); ?></textarea>
+								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-workbuddy-setup"><?php echo esc_html__( 'Copy WorkBuddy setup', 'magick-ai-adapter' ); ?></button></p>
+							</td>
 						</tr>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'OpenClaw handoff', 'magick-ai-adapter' ); ?></th>
-							<td><textarea rows="18" readonly><?php echo esc_textarea( $this->openclaw_created_handoff_text( $username, $password, $include_local_tls ) ); ?></textarea></td>
+							<td><textarea rows="18" readonly><?php echo esc_textarea( $this->openclaw_created_handoff_text( $username, $password_uuid, $include_local_tls ) ); ?></textarea></td>
 						</tr>
 					</tbody>
 				</table>
 				<p class="actions"><a class="button" href="<?php echo esc_url( menu_page_url( self::MENU_SLUG, false ) ); ?>"><?php echo esc_html__( 'Back to Magick AI Adapter', 'magick-ai-adapter' ); ?></a></p>
 			</main>
+			<script>
+				(function () {
+					document.querySelectorAll('[data-maa-created-copy-target]').forEach(function (button) {
+						button.addEventListener('click', function () {
+							var target = document.getElementById(button.getAttribute('data-maa-created-copy-target'));
+							var text = target ? (target.value || target.textContent || '') : '';
+							if (!text || !window.navigator.clipboard) {
+								return;
+							}
+
+							window.navigator.clipboard.writeText(text).then(function () {
+								var oldText = button.textContent;
+								button.textContent = '<?php echo esc_js( __( 'Copied', 'magick-ai-adapter' ) ); ?>';
+								window.setTimeout(function () {
+									button.textContent = oldText;
+								}, 1500);
+							});
+						});
+					});
+				})();
+			</script>
 		</body>
 		</html>
 		<?php
@@ -784,7 +953,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function proposal_request( string $proposal_url ): string {
-		return 'curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \\' . "\n"
+		return 'curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \\' . "\n"
 			. '  -H "Content-Type: application/json" \\' . "\n"
 			. '  -d \'{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}\' \\' . "\n"
 			. '  ' . $proposal_url;
@@ -797,7 +966,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function proposal_status_request( string $proposal_detail_url ): string {
-		return 'curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \\' . "\n"
+		return 'curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \\' . "\n"
 			. '  ' . $proposal_detail_url;
 	}
 
@@ -810,7 +979,8 @@ final class Connection_Page {
 	private function handoff_prompt( string $base_url ): string {
 		return "Use this WordPress site through Magick AI Adapter.\n"
 			. "Adapter base URL: {$base_url}\n"
-			. "Authenticate with WordPress REST Basic Auth using the provided username and Application Password.\n"
+			. "Authenticate with WordPress REST Basic Auth using the manifest username and an Application Password stored only in OpenClaw's dedicated secret field.\n"
+			. "Do not paste the secret into chat, tool commands, logs, proposal payloads, files, or copied handoff text.\n"
 			. "OpenClaw only connects to Adapter. Do not connect OpenClaw directly to Magick AI Core.\n"
 			. "Start by calling GET /health, GET /help, and GET /capabilities.\n"
 			. "For direct_read abilities, call the matching read shortcut or POST /run-read-ability with the real ability_id and input object.\n"
@@ -840,15 +1010,14 @@ final class Connection_Page {
 	 * Builds OpenClaw env text.
 	 *
 	 * @param string $username WordPress username.
-	 * @param string $password Application Password.
 	 * @param bool   $include_local_tls Whether to include local TLS hints.
 	 * @return string
 	 */
-	private function openclaw_env_text( string $username, string $password, bool $include_local_tls ): string {
+	private function openclaw_env_text( string $username, bool $include_local_tls ): string {
 		$lines = array(
 			'MAGICK_AI_ADAPTER_BASE_URL=' . rest_url( Controller::NAMESPACE ),
 			'MAGICK_AI_ADAPTER_USERNAME=' . $username,
-			'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD=' . $password,
+			'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 		);
 
 		if ( $include_local_tls ) {
@@ -859,19 +1028,52 @@ final class Connection_Page {
 	}
 
 	/**
+	 * Builds the non-secret OpenClaw connection manifest.
+	 *
+	 * @param string $username WordPress username.
+	 * @param string $password_uuid Application Password UUID.
+	 * @return string
+	 */
+	private function openclaw_connection_manifest_text( string $username, string $password_uuid ): string {
+		$manifest = array(
+			'connection_id'    => 'local-wordpress',
+			'adapter_base_url' => rest_url( Controller::NAMESPACE ),
+			'username'         => $username,
+			'auth'             => array(
+				'type'          => 'wordpress_application_password',
+				'password_uuid' => $password_uuid,
+			),
+			'urls'             => array(
+				'health'       => rest_url( Controller::NAMESPACE . '/health' ),
+				'help'         => rest_url( Controller::NAMESPACE . '/help' ),
+				'capabilities' => rest_url( Controller::NAMESPACE . '/capabilities' ),
+			),
+			'note'             => 'Secret must be stored through OpenClaw credential store or dedicated secret field, not chat, tools, files, logs, proposal payloads, or copied handoff text.',
+		);
+
+		$json = wp_json_encode( $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+		return is_string( $json ) ? $json : '{}';
+	}
+
+	/**
 	 * Builds one-time OpenClaw handoff text.
 	 *
 	 * @param string $username WordPress username.
-	 * @param string $password Application Password.
+	 * @param string $password_uuid Application Password UUID.
 	 * @param bool   $include_local_tls Whether to include local TLS hints.
 	 * @return string
 	 */
-	private function openclaw_created_handoff_text( string $username, string $password, bool $include_local_tls ): string {
+	private function openclaw_created_handoff_text( string $username, string $password_uuid, bool $include_local_tls ): string {
 		return "Magick AI Adapter OpenClaw connection\n"
-			. $this->openclaw_env_text( $username, $password, $include_local_tls ) . "\n\n"
+			. "Connection manifest\n"
+			. $this->openclaw_connection_manifest_text( $username, $password_uuid ) . "\n\n"
+			. "Optional env placeholders\n"
+			. $this->openclaw_env_text( $username, $include_local_tls ) . "\n\n"
+			. "Secret handling\n"
+			. "Paste the secret only into OpenClaw's dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text.\n\n"
 			. "Agent rules\n"
 			. "1. Connect to Magick AI Adapter, not directly to Magick AI Core, for productized OpenClaw setup.\n"
-			. "2. Authenticate with WordPress REST Basic Auth using MAGICK_AI_ADAPTER_USERNAME and MAGICK_AI_ADAPTER_APPLICATION_PASSWORD.\n"
+			. "2. Authenticate with WordPress REST Basic Auth using the manifest username and the Application Password stored in OpenClaw's dedicated secret field.\n"
 			. "3. Call GET /health first and require core_capabilities=true, abilities_catalog=true, approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.\n"
 			. "4. Call GET /help to discover adapter routes, then GET /capabilities before reads or proposals and use only real ability_id values returned by Core.\n"
 			. "5. For direct_read abilities, call a read shortcut or POST /run-read-ability.\n"
@@ -883,11 +1085,37 @@ final class Connection_Page {
 			. "10. Failure code handling: magick_ai_adapter_approval_proxy_disabled => use approve-and-execute or Core admin; magick_ai_adapter_execute_ability_not_allowed => stop; magick_ai_adapter_proposal_rejected => stop; magick_ai_adapter_preflight_not_authorized or magick_ai_adapter_preflight_item_blocked => show Core preflight details and do not retry execution.\n"
 			. "11. Do not ask the adapter to store approval state, run workflows, batch destructive actions, or execute abilities outside the approve-and-execute allowlist.\n"
 			. "12. Do not execute writes without Core commit preflight.\n"
-			. "13. Do not store or print the Application Password in logs, proposal payloads, prompts, or files.\n\n"
+			. "13. Do not store or print the secret in logs, proposal payloads, prompts, files, or copied handoff text.\n\n"
 			. "Example checks\n"
-			. "curl -sS --user \"{$username}:<application_password>\" " . rest_url( Controller::NAMESPACE . '/health' ) . "\n"
-			. "curl -sS --user \"{$username}:<application_password>\" " . rest_url( Controller::NAMESPACE . '/help' ) . "\n"
-			. "curl -sS --user \"{$username}:<application_password>\" " . rest_url( Controller::NAMESPACE . '/capabilities' );
+			. "curl -sS --user \"{$username}:<openclaw-secret-field-value>\" " . rest_url( Controller::NAMESPACE . '/health' ) . "\n"
+			. "curl -sS --user \"{$username}:<openclaw-secret-field-value>\" " . rest_url( Controller::NAMESPACE . '/help' ) . "\n"
+			. "curl -sS --user \"{$username}:<openclaw-secret-field-value>\" " . rest_url( Controller::NAMESPACE . '/capabilities' );
+	}
+
+	/**
+	 * Builds WorkBuddy setup text without embedding secrets.
+	 *
+	 * @param string $username WordPress username.
+	 * @param string $password_uuid Application Password UUID.
+	 * @param bool   $include_local_tls Whether to include local TLS hints.
+	 * @return string
+	 */
+	private function workbuddy_handoff_text( string $username, string $password_uuid, bool $include_local_tls ): string {
+		return "Magick AI Adapter WorkBuddy connection\n"
+			. "Paste this setup into WorkBuddy. It contains no Application Password value.\n\n"
+			. "Connection manifest\n"
+			. $this->openclaw_connection_manifest_text( $username, $password_uuid ) . "\n\n"
+			. "Secret field\n"
+			. "Name: wordpress_application_password\n"
+			. "Value: paste the one-time Application Password shown in WordPress only into WorkBuddy's secret field.\n\n"
+			. "Optional env placeholders\n"
+			. $this->openclaw_env_text( $username, $include_local_tls ) . "\n\n"
+			. "Connection check\n"
+			. "1. GET /health and require core_capabilities=true, abilities_catalog=true, approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.\n"
+			. "2. GET /help for route discovery.\n"
+			. "3. GET /capabilities before reads or proposals.\n"
+			. "4. Use direct_read routes for reads. Use /proposals and Core approval/preflight for writes.\n"
+			. "5. Do not put the secret into chat, tool commands, logs, proposal payloads, files, or copied setup text.";
 	}
 
 	/**

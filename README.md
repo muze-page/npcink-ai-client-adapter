@@ -217,7 +217,8 @@ The page default view shows:
 - Adapter base URL, health URL, help URL, and capabilities URL;
 - Core and WordPress Abilities API connection status;
 - a `Create OpenClaw handoff` action that creates a WordPress Application
-  Password for the current administrator and shows it once;
+  Password for the current administrator, shows it once in the browser, and
+  emits a non-secret connection manifest;
 
 Advanced disclosures keep lower-frequency reference details available without
 turning the page into a control panel:
@@ -225,7 +226,11 @@ turning the page into a control panel:
 - supported read shortcut routes and their real `ability_id` values;
 - flat `GET /help` route rows under `routes`, plus human-readable
   `route_groups`;
-- Application Password handoff steps;
+- Application Password secret-field steps;
+- a non-secret connection manifest with `connection_id`, adapter URLs,
+  username, auth type, and `password_uuid`;
+- a copyable WorkBuddy setup block that reuses the same non-secret manifest and
+  tells WorkBuddy where the secret must be stored;
 - copyable health and proposal example requests;
 - proposal list/detail, plan-to-proposal, commit-preflight, and
   approve-and-execute routes;
@@ -234,7 +239,38 @@ turning the page into a control panel:
 The page does not save adapter credentials, approval state, ability definitions,
 workflow state, or final write policy. The handoff action creates a normal
 WordPress Application Password and displays the raw value once; WordPress stores
-only its hash.
+only its hash. Copied env, manifest, and handoff text contain only placeholders
+or non-secret identifiers. Paste the Application Password only into OpenClaw's
+dedicated secret field, not chat, tool commands, logs, proposal payloads, files,
+or copied handoff text.
+
+For clients with a local credential broker, the Adapter REST surface also
+supports a grant/redeem MVP:
+
+```text
+GET  /wp-json/magick-ai-adapter/v1/connection/manifest
+POST /wp-json/magick-ai-adapter/v1/connections/grants
+POST /wp-json/magick-ai-adapter/v1/connections/redeem
+```
+
+In that flow, the WordPress admin browser sends only a short-lived grant to the
+broker. Adapter creates the WordPress Application Password only during broker
+redeem and returns encrypted credential material for the broker public key.
+
+For WorkBuddy MVP validation, run the development broker in this repo:
+
+```bash
+node /Users/muze/gitee/magick-ai-adapter/tools/workbuddy-local-broker.mjs --port=9981 --insecure-local-tls
+```
+
+Then use `Magick AI -> Adapter -> Advanced -> Local broker validation` to send
+the non-secret manifest and one-time grant to the local broker. The broker asks
+for terminal confirmation, redeems the grant, decrypts the credential response
+locally, and writes a test credential file under `~/.magick-ai-adapter/`.
+Production clients should store the decrypted secret in the OS keychain or the
+client credential vault instead of this test file. The `--insecure-local-tls`
+flag is for LocalWP or `.local` self-signed HTTPS only; do not use it for a
+public or shared WordPress site.
 
 When the current site URL is local (`localhost`, loopback, or `.local`), the
 handoff form can include `MAGICK_AI_ADAPTER_INSECURE_SSL=true` in copied
@@ -259,8 +295,8 @@ Initial connection:
 
 1. Create a dedicated WordPress administrator Application Password for the
    OpenClaw environment.
-2. Give OpenClaw the site URL, adapter base URL, username, and Application
-   Password through the approved secret channel.
+2. Give OpenClaw the non-secret connection manifest. Paste the Application
+   Password only into OpenClaw's dedicated secret field or credential vault.
 3. OpenClaw calls `GET /health` and verifies:
    - `core_capabilities=true`
    - `abilities_catalog=true`
@@ -355,7 +391,7 @@ a configured text generation provider/model. This example uses local Ollama
 when `qwen3.5:0.8b` is available:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"magick-ai/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
   "https://example.test/wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke"
@@ -378,14 +414,14 @@ default Core key with approval or rejection scopes.
 Example health request:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://example.test/wp-json/magick-ai-adapter/v1/health"
 ```
 
 Example proposal request:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
   "https://example.test/wp-json/magick-ai-adapter/v1/proposals"
@@ -394,7 +430,7 @@ curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
 Example proposal status request:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://example.test/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID"
 ```
 

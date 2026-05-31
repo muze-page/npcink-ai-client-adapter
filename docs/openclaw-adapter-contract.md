@@ -451,30 +451,55 @@ the local PoC. Narrower adapter identity and scope can be added after the first
 product flow is proven.
 
 The Magick AI Adapter admin page may display endpoint URLs, health state,
-example requests, and a handoff prompt. It may create a normal WordPress
-Application Password for the current administrator and show the raw password
-once in a handoff page. It must not store raw Application Passwords in adapter
-options, create Core app keys, persist connection state, approve proposals, or
-change Core/Abilities ownership.
+example requests, a non-secret connection manifest, and a handoff prompt. It
+may create a normal WordPress Application Password for the current
+administrator and show the raw password once in the browser. It must not store
+raw secrets in adapter options, manifest JSON, handoff text,
+example curl commands, files, logs, proposal payloads, create Core app keys,
+persist connection state, approve proposals, or change Core/Abilities ownership.
 
 ## Application Password Handoff
 
 Handoff data:
 
-- WordPress site URL.
+- `connection_id`, such as `local-wordpress`.
 - Adapter base URL.
 - WordPress username for the dedicated OpenClaw account.
-- Application Password delivered through an approved secret channel.
+- Auth type `wordpress_application_password`.
+- Application Password UUID.
+- Health, help, and capabilities URLs.
+- A note that the Application Password must be stored through OpenClaw's
+  dedicated secret field or credential vault, not chat, tools, files, logs,
+  proposal payloads, or copied handoff text.
 
 For the current LocalWP development site only, the WordPress administrator
 browser login is username `1` and password `1`. This local-only password is for
 admin browser access and Application Password creation; OpenClaw REST
 configuration should use a dedicated Application Password.
 
+If OpenClaw does not expose a credential store or import endpoint, paste the
+Application Password only into OpenClaw's dedicated secret field. Do not paste
+it into chat.
+
+Local credential brokers may use the grant/redeem flow instead of browser
+secret handling:
+
+```text
+GET  /wp-json/magick-ai-adapter/v1/connection/manifest
+POST /wp-json/magick-ai-adapter/v1/connections/grants
+POST /wp-json/magick-ai-adapter/v1/connections/redeem
+```
+
+`/connections/grants` requires WordPress admin REST authentication and creates a
+short-lived one-time grant. `/connections/redeem` accepts that grant plus PKCE
+verification from a local broker and creates the WordPress Application Password
+only after verification succeeds. The redeem response must return encrypted
+credential material only, never the raw Application Password.
+
 OpenClaw must use WordPress REST Basic Auth:
 
 ```text
-Authorization: Basic base64(username:application_password)
+Authorization: Basic base64(username:<openclaw-secret-field-value>)
 ```
 
 Connection check order:

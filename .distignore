@@ -14,5 +14,6 @@ phpstan.neon
 phpstan.neon.dist
 sj
 tests
+tools
 vendor
 node_modules

@@ -40,7 +40,7 @@ of ability definitions, callbacks, schemas, and permissions.
 - Route direct-read abilities through the WordPress Abilities API.
 - Forward governed write requests to Magick AI Core proposal routes.
 - Preserve Core approval, commit-preflight, and audit boundaries.
-- Create a one-time WordPress Application Password handoff for OpenClaw.
+- Create a one-time WordPress Application Password and non-secret connection manifest for OpenClaw.
 - Keep Adapter thin instead of becoming an ability registry, workflow runtime,
   MCP server, or generic write executor.
 

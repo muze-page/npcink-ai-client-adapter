@@ -44,6 +44,20 @@ foreach (
 		'/health',
 		'/help',
 		'/capabilities',
+		'/connection/manifest',
+		'/connections/grants',
+		'/connections/redeem',
+		'connection_manifest',
+		'create_connection_grant',
+		'redeem_connection_grant',
+		'CONNECTION_GRANT_TTL',
+		'local_broker_grant_redeem',
+		'broker_redeem_only',
+		'grant_code',
+		'code_challenge',
+		'code_verifier',
+		'encrypted_secret',
+		'rsa_oaep_base64url',
 		'/run-read-ability',
 		'/ai-provider-log-correlation-smoke',
 		'ai_provider_log_correlation_smoke',
@@ -286,6 +300,18 @@ foreach (
 		'Adapter Base URL',
 		'WordPress user',
 		'Copy env',
+		'Connection manifest',
+		'openclaw_connection_manifest_text',
+		'WorkBuddy setup',
+		'Copy WorkBuddy setup',
+		'workbuddy_handoff_text',
+		'Magick AI Adapter WorkBuddy connection',
+		'wordpress_application_password',
+		'connection_id',
+		'local-wordpress',
+		'wordpress_application_password',
+		'password_uuid',
+		'Secret must be stored through OpenClaw credential store or dedicated secret field',
 		'Diagnostics URLs',
 		'Route catalog',
 		'details class="maa-section"',
@@ -300,7 +326,9 @@ foreach (
 		'Handoff prompt',
 		'Boundary',
 		'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD',
+		'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 		'Copy this Application Password now.',
+		'Paste it only into OpenClaw dedicated secret field',
 		'GET /help',
 		'GET /proposals/{proposal_id}',
 		'approval_proxy_enabled=false',
@@ -315,12 +343,28 @@ foreach (
 		'correlation_id',
 		'core_proxy_execute=false',
 		'commit_execution=false',
-		'APPLICATION_PASSWORD',
+		'<openclaw-secret-field-value>',
+		'Local broker validation',
+		'maa-local-broker-connect',
+		'requestBrokerHandshake',
+		'brokerBaseUrls',
+		"wp_create_nonce( 'wp_rest' )",
+		'/connection/manifest',
+		'/connections/grants',
 		'Controller::read_shortcuts',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $connection_page, $required ), 'Connection page contains required text: ' . $required );
 }
+$env_password_key       = 'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD=';
+$php_password_variable  = '$password';
+maa_adapter_assert( false === strpos( $connection_page, $env_password_key . "' . " . $php_password_variable ), 'Connection page env text does not interpolate the real secret.' );
+maa_adapter_assert( false === strpos( $connection_page, '$this->openclaw_env_text( $username, $password,' ), 'Connection page does not pass the real Application Password into env text.' );
+maa_adapter_assert( false === strpos( $connection_page, '$this->openclaw_created_handoff_text( $username, $password,' ), 'Connection page does not pass the real secret into copied handoff.' );
+maa_adapter_assert( false === strpos( $connection_page, '$this->workbuddy_handoff_text( $username, $password,' ), 'Connection page does not pass the real secret into WorkBuddy setup.' );
+maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_connection_manifest_text( string $username, string $password_uuid )' ), 'Connection manifest receives only username and password UUID.' );
+maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_created_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'Created handoff text receives only username, password UUID, and TLS placeholder flag.' );
+maa_adapter_assert( false !== strpos( $connection_page, 'workbuddy_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'WorkBuddy setup text receives only username, password UUID, and TLS placeholder flag.' );
 maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'magick-ai-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Magick AI Adapter', 'magick-ai-adapter' ),\n\t\t\t__( 'Adapter', 'magick-ai-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
 maa_adapter_assert( false === strpos( $connection_page, 'magick-ai-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
@@ -357,7 +401,13 @@ foreach (
 		'input.write_actions[]',
 		'Create OpenClaw handoff',
 		'only its hash',
-			'Application Password handoff',
+			'Application Password secret-field',
+			'non-secret connection manifest',
+			'copyable WorkBuddy setup block',
+			'grant/redeem MVP',
+			'tools/workbuddy-local-broker.mjs',
+			'Local broker validation',
+			'~/.magick-ai-adapter/',
 			'OpenClaw only connects to Adapter',
 			'productized OpenClaw user action',
 			'GET /wp-json/magick-ai-adapter/v1/help',
@@ -444,6 +494,29 @@ foreach (
 	maa_adapter_assert( false !== strpos( $readme, $required ), 'README contains required text: ' . $required );
 }
 
+$workbuddy_broker = maa_adapter_read( $root . '/tools/workbuddy-local-broker.mjs' );
+foreach (
+	array(
+		'generateKeyPairSync',
+		'codeVerifier',
+		'code_challenge',
+		'admin-helper.js',
+		'/request',
+		'/grant',
+		'privateDecrypt',
+		'RSA_PKCS1_OAEP_PADDING',
+		'insecure-local-tls',
+		'rejectUnauthorized',
+		'isLocalTlsHost',
+		'workbuddy-local-credential.json',
+		'application_password',
+		'X-WP-Nonce',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $workbuddy_broker, $required ), 'WorkBuddy broker MVP contains expected behavior: ' . $required );
+}
+maa_adapter_assert( false === strpos( $workbuddy_broker, 'console.log(password' ), 'WorkBuddy broker does not print the decrypted Application Password.' );
+
 $wporg_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (
 	array(
@@ -483,6 +556,7 @@ foreach (
 		'build',
 		'composer.json',
 		'tests',
+		'tools',
 		'vendor',
 		'node_modules',
 	) as $required
@@ -503,6 +577,9 @@ foreach (
 		'GET /health',
 		'GET /help',
 		'GET /capabilities',
+		'Local Broker Grant/Redeem',
+		'tools/workbuddy-local-broker.mjs',
+		'Local broker validation',
 		'POST /proposals/from-plan',
 		'/proposals?limit=10',
 		'/proposals/PROPOSAL_ID',
@@ -576,7 +653,8 @@ foreach (
 			'unified_action_route',
 			'approve-and-execute',
 			'show the raw password',
-		'It must not store raw Application Passwords',
+		'It must not store',
+		'raw secrets in adapter options, manifest JSON, handoff text',
 		'username `1` and password `1`',
 		'Proposal-Required Write Flow',
 		'GET /wp-json/magick-ai-adapter/v1/help',

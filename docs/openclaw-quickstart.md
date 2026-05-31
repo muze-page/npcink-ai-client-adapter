@@ -34,8 +34,9 @@ them for production, hosted test sites, shared staging sites, or customer data.
 
 Use the username/password above for browser login to WordPress admin. For REST
 handoff to OpenClaw, create a dedicated WordPress Application Password for the
-same local administrator account and pass that Application Password through the
-approved secret channel.
+same local administrator account. Pass only the non-secret connection manifest
+to OpenClaw, and paste the Application Password only into OpenClaw's dedicated
+secret field or credential vault.
 
 ## Adapter URLs
 
@@ -71,26 +72,61 @@ Magick AI -> Adapter
 
 The page includes a `Create OpenClaw handoff` button. It creates a normal
 WordPress Application Password for the current administrator and shows the raw
-password once with OpenClaw env and handoff text. The adapter does not store the
-raw password.
+password once in the browser. Copied OpenClaw env, manifest, and handoff text
+contain only placeholders or non-secret identifiers. The adapter does not store
+the raw password.
 
 ## REST Authentication
 
 OpenClaw should use WordPress REST Basic Auth with an Application Password:
 
 ```text
-Authorization: Basic base64(username:application_password)
+Authorization: Basic base64(username:<openclaw-secret-field-value>)
 ```
 
 Example:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/health"
 ```
 
 Do not put the normal WordPress login password in OpenClaw configuration when
-an Application Password is available.
+an Application Password is available. Do not paste the Application Password
+into chat, tool commands, logs, proposal payloads, files, or copied handoff
+text.
+
+## Local Broker Grant/Redeem
+
+For WorkBuddy or another local credential broker, use the grant/redeem MVP
+instead of sending a browser-visible Application Password:
+
+```text
+GET  /connection/manifest
+POST /connections/grants
+POST /connections/redeem
+```
+
+The WordPress admin browser calls `/connections/grants` with the current
+manifest digest, broker public key, state, and PKCE challenge. The local broker
+then calls `/connections/redeem` with the grant and PKCE verifier. Adapter
+creates the Application Password only during redeem and returns encrypted
+credential material for the broker public key.
+
+For local validation, this repository includes a development-only broker:
+
+```bash
+node /Users/muze/gitee/magick-ai-adapter/tools/workbuddy-local-broker.mjs --port=9981 --insecure-local-tls
+```
+
+Then open `Magick AI -> Adapter -> Advanced -> Local broker validation` and
+click `Connect local broker`. The helper sends the non-secret manifest and
+short-lived grant to `127.0.0.1:9981`; the broker asks for terminal
+confirmation, redeems the grant, decrypts the credential response locally, and
+writes a test credential file under `~/.magick-ai-adapter/`. A production
+WorkBuddy integration should replace that file write with the OS keychain or
+WorkBuddy credential vault. Use `--insecure-local-tls` only for LocalWP or
+`.local` self-signed HTTPS testing.
 
 ## Connection Check
 
@@ -117,12 +153,12 @@ when possible, and also accepts `term_id` as an alias for `id`. Pass `taxonomy`
 when the caller already knows it.
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info"
 ```
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/term?id=1"
 ```
 
@@ -130,7 +166,7 @@ Planning shortcuts return plan data only. Treat `write_actions` and `preview`
 as proposal input, not as completed writes:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/content-inventory-fix-plan?per_page=1&max_actions=1"
 ```
 
@@ -138,7 +174,7 @@ Send the returned plan to Core through Adapter when a proposal should be
 created:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"plan_ability_id":"magick-ai/build-content-inventory-fix-plan","plan":{"batch_id":"example","issue_types":[],"requires_approval":true,"commit_execution":false,"dry_run":true,"action_count":0,"write_actions":[],"preview":[],"risk":{"level":"medium"}},"plan_input":{"per_page":1},"caller":{"external_thread_id":"OPENCLAW_THREAD"}}' \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/from-plan"
@@ -147,7 +183,7 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
 Troubleshooting diagnostics:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/active-plugins-detail"
 ```
 
@@ -170,7 +206,7 @@ plugin rows:
 For plugin conflict troubleshooting, explicitly request inactive plugin rows:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/plugin-conflict-diagnostics"
 ```
 
@@ -178,7 +214,7 @@ That route sends `include_inactive_plugins=true` and
 `max_plugins_per_group=200`.
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/recent-error-log"
 ```
 
@@ -191,7 +227,7 @@ When the user explicitly asks to inspect logs, request the bounded redacted
 tail:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/recent-error-log-tail"
 ```
 
@@ -210,12 +246,12 @@ Display `error_log.tail_entries` and `contents` only when
 `contents_included=true`. The `contents` array is compatibility redline text.
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/current-user-permissions"
 ```
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/database-info"
 ```
 
@@ -229,27 +265,27 @@ state to the WordPress diagnostics mapping.
 Content context reads:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/posts?author_id=1&orderby=modified&order=desc"
 ```
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/terms?taxonomy=category&include_sample_posts=1&sample_post_limit=3"
 ```
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/menu?location=primary"
 ```
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/media?per_page=1"
 ```
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/pages?per_page=1"
 ```
 
@@ -268,7 +304,7 @@ directly, or own redaction policy.
 3. Create a proposal:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"Local OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals"
@@ -277,14 +313,14 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
 4. Query proposal status through the adapter:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID"
 ```
 
 For a list view:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals?limit=10"
 ```
 
@@ -303,7 +339,7 @@ returns it.
    preflight:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   -X POST \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/commit-preflight"
 ```
@@ -315,7 +351,7 @@ curl -sS --user "1:APPLICATION_PASSWORD" \
    supported. The preferred user path is one Adapter/OpenClaw action:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   -X POST \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/approve-and-execute"
 ```
@@ -335,7 +371,7 @@ commit-preflight before running the bounded batch, and returns per-action
    proposals:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   -X POST \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/execute"
 ```
@@ -355,7 +391,7 @@ When OpenClaw has a Core proposal or preflight correlation id, pass it to
 Adapter on later read or execution requests:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
 ```
 
@@ -379,7 +415,7 @@ a configured text generation provider/model from
 `GET /ai/v1/providers?capability=text_generation`:
 
 ```bash
-curl -sS --user "1:APPLICATION_PASSWORD" \
+curl -sS --user "1:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"magick-ai/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke"

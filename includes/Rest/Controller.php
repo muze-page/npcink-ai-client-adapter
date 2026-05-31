@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Controller {
 	const NAMESPACE = 'magick-ai-adapter/v1';
 	const MAX_EXECUTION_ACTIONS = 50;
+	const CONNECTION_GRANT_TTL = 120;
 
 	/**
 	 * Current request log context while an ability is running.
@@ -91,6 +92,42 @@ final class Controller {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'capabilities' ),
 					'permission_callback' => array( $this, 'can_use_adapter' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connection/manifest',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'connection_manifest' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connections/grants',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_connection_grant' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connections/redeem',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'redeem_connection_grant' ),
+					'permission_callback' => '__return_true',
 				),
 			)
 		);
@@ -437,6 +474,555 @@ final class Controller {
 	}
 
 	/**
+	 * Returns the non-secret local broker connection manifest.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function connection_manifest(): WP_REST_Response {
+		return new WP_REST_Response( $this->connection_manifest_payload( get_current_user_id() ), 200 );
+	}
+
+	/**
+	 * Creates a short-lived local broker grant.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_connection_grant( WP_REST_Request $request ) {
+		$body = $this->request_json_body( $request );
+		if ( is_wp_error( $body ) ) {
+			return $body;
+		}
+
+		$manifest_sha256 = sanitize_text_field( (string) ( $body['manifest_sha256'] ?? '' ) );
+		$state           = sanitize_text_field( (string) ( $body['state'] ?? '' ) );
+		$broker          = is_array( $body['broker'] ?? null ) ? $body['broker'] : array();
+		$public_key_jwk  = is_array( $broker['public_key_jwk'] ?? null ) ? $broker['public_key_jwk'] : array();
+		$code_challenge  = sanitize_text_field( (string) ( $broker['code_challenge'] ?? '' ) );
+		$challenge_method = sanitize_text_field( (string) ( $broker['code_challenge_method'] ?? '' ) );
+		$manifest        = $this->connection_manifest_payload( get_current_user_id() );
+
+		if ( '' === $manifest_sha256 || (string) ( $manifest['integrity']['manifest_sha256'] ?? '' ) !== $manifest_sha256 ) {
+			return new WP_Error(
+				'magick_ai_adapter_manifest_mismatch',
+				__( 'Connection manifest digest does not match the current Adapter manifest.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( '' === $state || '' === $code_challenge || 'S256' !== $challenge_method || ! $this->is_supported_broker_public_key_jwk( $public_key_jwk ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_grant_request_invalid',
+				__( 'Connection grant requires state, S256 PKCE challenge, and an RSA broker public key.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$grant_code = $this->base64url_encode( random_bytes( 32 ) );
+		$grant_hash = hash( 'sha256', $grant_code );
+		$scopes     = $this->connection_requested_scopes( is_array( $body['requested_scopes'] ?? null ) ? $body['requested_scopes'] : array() );
+		$expires_at = time() + self::CONNECTION_GRANT_TTL;
+
+		set_transient(
+			$this->connection_grant_transient_key( $grant_hash ),
+			array(
+				'user_id'                => get_current_user_id(),
+				'manifest_sha256'        => $manifest_sha256,
+				'requested_scopes'       => $scopes,
+				'broker_public_key_jwk'  => $public_key_jwk,
+				'broker_public_key_thumbprint' => $this->broker_public_key_thumbprint( $public_key_jwk ),
+				'code_challenge'         => $code_challenge,
+				'state_hash'             => hash( 'sha256', $state ),
+				'expires_at'             => $expires_at,
+			),
+			self::CONNECTION_GRANT_TTL
+		);
+
+		return new WP_REST_Response(
+			array(
+				'grant_code'      => $grant_code,
+				'state'           => $state,
+				'expires_in'      => self::CONNECTION_GRANT_TTL,
+				'manifest_sha256' => $manifest_sha256,
+			),
+			201
+		);
+	}
+
+	/**
+	 * Redeems a local broker grant and returns only encrypted credential material.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function redeem_connection_grant( WP_REST_Request $request ) {
+		$body = $this->request_json_body( $request );
+		if ( is_wp_error( $body ) ) {
+			return $body;
+		}
+
+		$grant_code      = sanitize_text_field( (string) ( $body['grant_code'] ?? '' ) );
+		$code_verifier   = sanitize_text_field( (string) ( $body['code_verifier'] ?? '' ) );
+		$manifest_sha256 = sanitize_text_field( (string) ( $body['manifest_sha256'] ?? '' ) );
+		$thumbprint      = sanitize_text_field( (string) ( $body['broker_public_key_thumbprint'] ?? '' ) );
+
+		if ( '' === $grant_code || '' === $code_verifier || '' === $manifest_sha256 ) {
+			return new WP_Error(
+				'magick_ai_adapter_redeem_request_invalid',
+				__( 'Connection redeem requires grant_code, code_verifier, and manifest_sha256.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$grant_hash = hash( 'sha256', $grant_code );
+		$transient_key = $this->connection_grant_transient_key( $grant_hash );
+		$grant = get_transient( $transient_key );
+		delete_transient( $transient_key );
+
+		if ( ! is_array( $grant ) || time() > (int) ( $grant['expires_at'] ?? 0 ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_connection_grant_expired',
+				__( 'Connection grant is expired, invalid, or already consumed.', 'magick-ai-adapter' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		if ( $manifest_sha256 !== (string) ( $grant['manifest_sha256'] ?? '' ) || $this->pkce_s256( $code_verifier ) !== (string) ( $grant['code_challenge'] ?? '' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_connection_grant_denied',
+				__( 'Connection grant verification failed.', 'magick-ai-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		if ( '' !== $thumbprint && $thumbprint !== (string) ( $grant['broker_public_key_thumbprint'] ?? '' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_broker_key_mismatch',
+				__( 'Broker public key thumbprint does not match the connection grant.', 'magick-ai-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_application_passwords_unavailable',
+				__( 'Application Passwords are not available for this site.', 'magick-ai-adapter' ),
+				array( 'status' => 501 )
+			);
+		}
+
+		$user_id = (int) ( $grant['user_id'] ?? 0 );
+		$user    = get_userdata( $user_id );
+		if ( ! $user || ! user_can( $user, 'manage_options' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_grant_user_invalid',
+				__( 'Connection grant user is no longer authorized.', 'magick-ai-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		if ( function_exists( 'wp_is_application_passwords_available_for_user' ) && ! wp_is_application_passwords_available_for_user( $user ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_application_passwords_unavailable',
+				__( 'Application Passwords are not available for the grant user.', 'magick-ai-adapter' ),
+				array( 'status' => 501 )
+			);
+		}
+
+		$created = \WP_Application_Passwords::create_new_application_password(
+			$user_id,
+			array(
+				'name'   => 'Local Broker via Magick AI Adapter',
+				'app_id' => wp_generate_uuid4(),
+			)
+		);
+
+		if ( is_wp_error( $created ) ) {
+			return $created;
+		}
+
+		$password = (string) $created[0];
+		$item     = is_array( $created[1] ?? null ) ? $created[1] : array();
+		$public_key_jwk = is_array( $grant['broker_public_key_jwk'] ?? null ) ? $grant['broker_public_key_jwk'] : array();
+		$encrypted_secret = $this->encrypt_secret_for_broker( $password, $public_key_jwk );
+		if ( is_wp_error( $encrypted_secret ) ) {
+			return $encrypted_secret;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'connection_id'    => 'mag_conn_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $user->user_login . '|' . (string) ( $item['uuid'] ?? '' ) ), 0, 24 ),
+				'credential_type'  => 'wp_application_password_basic',
+				'username'         => (string) $user->user_login,
+				'credential_id'    => (string) ( $item['uuid'] ?? '' ),
+				'encrypted_secret' => $encrypted_secret,
+				'adapter_base_url' => rest_url( self::NAMESPACE ),
+				'scopes_effective' => is_array( $grant['requested_scopes'] ?? null ) ? $grant['requested_scopes'] : array(),
+			),
+			200
+		);
+	}
+
+	/**
+	 * Returns decoded JSON request body.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function request_json_body( WP_REST_Request $request ) {
+		$params = $request->get_json_params();
+		if ( is_array( $params ) ) {
+			return $params;
+		}
+
+		return new WP_Error(
+			'magick_ai_adapter_json_body_required',
+			__( 'A JSON request body is required.', 'magick-ai-adapter' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	/**
+	 * Builds the non-secret connection manifest and digest.
+	 *
+	 * @param int $user_id User id.
+	 * @return array<string,mixed>
+	 */
+	private function connection_manifest_payload( int $user_id ): array {
+		$user     = $user_id > 0 ? get_userdata( $user_id ) : wp_get_current_user();
+		$username = $user && $user->exists() ? (string) $user->user_login : '';
+		$base     = array(
+			'schema_version' => 'magick_ai_adapter_connection.v1',
+			'kind'           => 'magick.ai/wordpress-adapter-connection',
+			'manifest_id'    => 'mag_manifest_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $username ), 0, 24 ),
+			'connection_id'  => 'local-wordpress',
+			'site'           => array(
+				'site_url'         => home_url(),
+				'rest_url'         => rest_url(),
+				'adapter_base_url' => rest_url( self::NAMESPACE ),
+				'admin_origin'     => $this->url_origin( admin_url() ),
+				'plugin'           => array(
+					'slug'    => 'magick-ai-adapter',
+					'version' => MAGICK_AI_ADAPTER_VERSION,
+				),
+			),
+			'user'           => array(
+				'username' => $username,
+			),
+			'auth'           => array(
+				'preferred_method'  => 'local_broker_grant_redeem',
+				'supported_methods' => array(
+					array(
+						'type'            => 'local_broker_grant_redeem',
+						'protocol'        => 'magick-local-credential-broker.v1',
+						'secret_slot'     => 'wordpress_application_password',
+						'secret_delivery' => 'broker_redeem_only',
+						'requires_pkce'   => true,
+						'requires_broker_public_key' => true,
+					),
+					array(
+						'type'            => 'wp_application_password_basic',
+						'fallback_only'   => true,
+						'secret_slot'     => 'wordpress_application_password',
+						'secret_delivery' => 'dedicated_secret_field_or_vault_only',
+					),
+				),
+			),
+			'urls'           => array(
+				'health'       => rest_url( self::NAMESPACE . '/health' ),
+				'help'         => rest_url( self::NAMESPACE . '/help' ),
+				'capabilities' => rest_url( self::NAMESPACE . '/capabilities' ),
+				'grant'        => rest_url( self::NAMESPACE . '/connections/grants' ),
+				'redeem'       => rest_url( self::NAMESPACE . '/connections/redeem' ),
+			),
+			'capabilities'   => array(
+				'read'  => array(
+					'requires_adapter_auth' => true,
+				),
+				'write' => array(
+					'mode'                         => 'proposal_only',
+					'direct_wordpress_write_allowed' => false,
+					'requires_magick_ai_core'      => true,
+				),
+			),
+		);
+
+		$base['integrity'] = array(
+			'canonicalization' => 'recursive_ksort_json',
+			'manifest_sha256'  => 'sha256:' . hash( 'sha256', $this->canonical_json( $base ) ),
+		);
+
+		return $base;
+	}
+
+	/**
+	 * Returns scheme/host/port origin for a URL.
+	 *
+	 * @param string $url URL.
+	 * @return string
+	 */
+	private function url_origin( string $url ): string {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$host   = wp_parse_url( $url, PHP_URL_HOST );
+		$port   = wp_parse_url( $url, PHP_URL_PORT );
+		if ( ! is_string( $scheme ) || ! is_string( $host ) ) {
+			return '';
+		}
+
+		return strtolower( $scheme . '://' . $host . ( is_int( $port ) ? ':' . $port : '' ) );
+	}
+
+	/**
+	 * Returns canonical JSON for digesting simple associative arrays.
+	 *
+	 * @param mixed $value Value.
+	 * @return string
+	 */
+	private function canonical_json( $value ): string {
+		$value = $this->sort_array_keys_recursive( $value );
+		$json  = wp_json_encode( $value, JSON_UNESCAPED_SLASHES );
+		return is_string( $json ) ? $json : '';
+	}
+
+	/**
+	 * Sorts associative array keys recursively.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	private function sort_array_keys_recursive( $value ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		foreach ( $value as $key => $child ) {
+			$value[ $key ] = $this->sort_array_keys_recursive( $child );
+		}
+
+		if ( array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) {
+			ksort( $value );
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Filters requested local broker scopes to the current adapter contract.
+	 *
+	 * @param array<int,mixed> $requested Requested scopes.
+	 * @return array<int,string>
+	 */
+	private function connection_requested_scopes( array $requested ): array {
+		$allowed = array(
+			'magick.read'    => true,
+			'magick.propose' => true,
+			'magick.status'  => true,
+		);
+		$scopes  = array();
+
+		foreach ( $requested as $scope ) {
+			$scope = sanitize_text_field( (string) $scope );
+			if ( isset( $allowed[ $scope ] ) ) {
+				$scopes[] = $scope;
+			}
+		}
+
+		return ! empty( $scopes ) ? array_values( array_unique( $scopes ) ) : array_keys( $allowed );
+	}
+
+	/**
+	 * Returns a transient key for a grant hash.
+	 *
+	 * @param string $grant_hash Grant hash.
+	 * @return string
+	 */
+	private function connection_grant_transient_key( string $grant_hash ): string {
+		return 'maa_conn_grant_' . substr( preg_replace( '/[^a-f0-9]/', '', strtolower( $grant_hash ) ), 0, 64 );
+	}
+
+	/**
+	 * Returns whether a broker public key JWK is supported.
+	 *
+	 * @param array<string,mixed> $jwk JWK.
+	 * @return bool
+	 */
+	private function is_supported_broker_public_key_jwk( array $jwk ): bool {
+		return 'RSA' === (string) ( $jwk['kty'] ?? '' ) && ! empty( $jwk['n'] ) && ! empty( $jwk['e'] );
+	}
+
+	/**
+	 * Returns a broker public key thumbprint.
+	 *
+	 * @param array<string,mixed> $jwk JWK.
+	 * @return string
+	 */
+	private function broker_public_key_thumbprint( array $jwk ): string {
+		$thumbprint = array(
+			'e'   => (string) ( $jwk['e'] ?? '' ),
+			'kty' => (string) ( $jwk['kty'] ?? '' ),
+			'n'   => (string) ( $jwk['n'] ?? '' ),
+		);
+
+		return 'sha256:' . hash( 'sha256', $this->canonical_json( $thumbprint ) );
+	}
+
+	/**
+	 * Returns a S256 PKCE challenge.
+	 *
+	 * @param string $code_verifier Code verifier.
+	 * @return string
+	 */
+	private function pkce_s256( string $code_verifier ): string {
+		return $this->base64url_encode( hash( 'sha256', $code_verifier, true ) );
+	}
+
+	/**
+	 * Encrypts a secret for a broker RSA public key.
+	 *
+	 * @param string              $secret Secret.
+	 * @param array<string,mixed> $public_key_jwk Public key JWK.
+	 * @return array<string,string>|WP_Error
+	 */
+	private function encrypt_secret_for_broker( string $secret, array $public_key_jwk ) {
+		if ( ! function_exists( 'openssl_public_encrypt' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_openssl_unavailable',
+				__( 'OpenSSL is required to encrypt the broker credential response.', 'magick-ai-adapter' ),
+				array( 'status' => 501 )
+			);
+		}
+
+		$pem = $this->rsa_public_jwk_to_pem( $public_key_jwk );
+		if ( is_wp_error( $pem ) ) {
+			return $pem;
+		}
+
+		$encrypted = '';
+		$ok        = openssl_public_encrypt( $secret, $encrypted, $pem, OPENSSL_PKCS1_OAEP_PADDING );
+		if ( ! $ok ) {
+			return new WP_Error(
+				'magick_ai_adapter_broker_secret_encrypt_failed',
+				__( 'Could not encrypt the Application Password for the broker public key.', 'magick-ai-adapter' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return array(
+			'format'     => 'rsa_oaep_base64url',
+			'alg'        => 'RSA-OAEP',
+			'kid'        => $this->broker_public_key_thumbprint( $public_key_jwk ),
+			'ciphertext' => $this->base64url_encode( $encrypted ),
+		);
+	}
+
+	/**
+	 * Converts an RSA public JWK to PEM.
+	 *
+	 * @param array<string,mixed> $jwk JWK.
+	 * @return string|WP_Error
+	 */
+	private function rsa_public_jwk_to_pem( array $jwk ) {
+		if ( ! $this->is_supported_broker_public_key_jwk( $jwk ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_broker_public_key_invalid',
+				__( 'Broker public key must be an RSA public JWK.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$n = $this->base64url_decode( (string) $jwk['n'] );
+		$e = $this->base64url_decode( (string) $jwk['e'] );
+		if ( '' === $n || '' === $e ) {
+			return new WP_Error(
+				'magick_ai_adapter_broker_public_key_invalid',
+				__( 'Broker public key contains invalid RSA components.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$rsa_public_key = $this->asn1_sequence( $this->asn1_integer( $n ) . $this->asn1_integer( $e ) );
+		$algorithm     = $this->asn1_sequence( "\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01" . "\x05\x00" );
+		$spki          = $this->asn1_sequence( $algorithm . $this->asn1_bit_string( $rsa_public_key ) );
+
+		return "-----BEGIN PUBLIC KEY-----\n" . chunk_split( base64_encode( $spki ), 64, "\n" ) . "-----END PUBLIC KEY-----\n";
+	}
+
+	/**
+	 * Encodes ASN.1 sequence.
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	private function asn1_sequence( string $value ): string {
+		return "\x30" . $this->asn1_length( strlen( $value ) ) . $value;
+	}
+
+	/**
+	 * Encodes ASN.1 integer.
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	private function asn1_integer( string $value ): string {
+		if ( '' !== $value && ( ord( $value[0] ) & 0x80 ) ) {
+			$value = "\x00" . $value;
+		}
+
+		return "\x02" . $this->asn1_length( strlen( $value ) ) . $value;
+	}
+
+	/**
+	 * Encodes ASN.1 bit string.
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	private function asn1_bit_string( string $value ): string {
+		return "\x03" . $this->asn1_length( strlen( $value ) + 1 ) . "\x00" . $value;
+	}
+
+	/**
+	 * Encodes ASN.1 length.
+	 *
+	 * @param int $length Length.
+	 * @return string
+	 */
+	private function asn1_length( int $length ): string {
+		if ( $length < 128 ) {
+			return chr( $length );
+		}
+
+		$bytes = '';
+		while ( $length > 0 ) {
+			$bytes  = chr( $length & 0xff ) . $bytes;
+			$length = $length >> 8;
+		}
+
+		return chr( 0x80 | strlen( $bytes ) ) . $bytes;
+	}
+
+	/**
+	 * Encodes base64url.
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	private function base64url_encode( string $value ): string {
+		return rtrim( strtr( base64_encode( $value ), '+/', '-_' ), '=' );
+	}
+
+	/**
+	 * Decodes base64url.
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	private function base64url_decode( string $value ): string {
+		$decoded = base64_decode( strtr( $value, '-_', '+/' ) . str_repeat( '=', ( 4 - strlen( $value ) % 4 ) % 4 ), true );
+		return is_string( $decoded ) ? $decoded : '';
+	}
+
+	/**
 	 * Returns adapter health.
 	 *
 	 * @return WP_REST_Response
@@ -681,11 +1267,14 @@ final class Controller {
 	 */
 	private function help_route_groups(): array {
 		return array(
-			'connection'      => array(
-				'GET /health',
-				'GET /help',
-				'GET /capabilities',
-			),
+				'connection'      => array(
+					'GET /health',
+					'GET /help',
+					'GET /capabilities',
+					'GET /connection/manifest',
+					'POST /connections/grants',
+					'POST /connections/redeem',
+				),
 			'read_shortcuts'  => $this->help_read_shortcuts(),
 			'generic_read'    => array(
 				'POST /run-read-ability',
@@ -759,10 +1348,13 @@ final class Controller {
 	private function help_route_purpose( string $method, string $path, string $group ): string {
 		$key      = $method . ' ' . $path;
 		$purposes = array(
-			'GET /health' => 'Check adapter health and connection state.',
-			'GET /help' => 'Discover adapter routes and handoff guidance.',
-			'GET /capabilities' => 'List Core capabilities and governance guidance.',
-			'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
+				'GET /health' => 'Check adapter health and connection state.',
+				'GET /help' => 'Discover adapter routes and handoff guidance.',
+				'GET /capabilities' => 'List Core capabilities and governance guidance.',
+				'GET /connection/manifest' => 'Return the non-secret local broker connection manifest.',
+				'POST /connections/grants' => 'Create a short-lived one-time local broker grant from the WordPress admin browser.',
+				'POST /connections/redeem' => 'Redeem a local broker grant and return encrypted credential material only.',
+				'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
