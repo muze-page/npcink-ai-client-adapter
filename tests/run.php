@@ -320,6 +320,8 @@ foreach (
 maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'magick-ai-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Magick AI Adapter', 'magick-ai-adapter' ),\n\t\t\t__( 'Adapter', 'magick-ai-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
 maa_adapter_assert( false === strpos( $connection_page, 'magick-ai-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
+maa_adapter_assert( false !== strpos( $connection_page, "'magick-ai-cloud-addon'" ), 'Connection page overview links to the canonical Cloud Addon slug.' );
+maa_adapter_assert( false !== strpos( $connection_page, "__( 'Cloud Addon', 'magick-ai-adapter' )" ), 'Connection page overview labels the Cloud Addon surface.' );
 
 $admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standard.md' );
 foreach (
