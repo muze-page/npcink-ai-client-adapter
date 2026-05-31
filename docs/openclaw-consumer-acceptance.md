@@ -128,7 +128,7 @@ Run this order for a local acceptance pass:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`
 12. For split-path coverage, approve or reject one pending proposal in
-    `Magick AI -> Governance`.
+    `Magick AI -> Core`.
 13. If rejected, OpenClaw stops and shows the Core status.
 14. If approved, call `POST /proposals/{proposal_id}/commit-preflight`.
 15. Confirm Core still returns `commit_execution=false`.
