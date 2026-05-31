@@ -83,8 +83,9 @@ Run this order for a local acceptance pass:
    - `GET /proposals`
    - `GET /proposals/{proposal_id}`
    - `GET /connection/manifest`
-   - `POST /connections/grants`
-   - `POST /connections/redeem`
+   - `POST /connect/device/start`
+   - `POST /connect/device/poll`
+   - `GET /connection/key-pairs`
    - `POST /proposals/from-plan`
    - `POST /proposals/{proposal_id}/execute`
    - `POST /proposals/{proposal_id}/approve-and-execute`

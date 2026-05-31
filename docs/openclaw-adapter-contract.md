@@ -481,20 +481,24 @@ If OpenClaw does not expose a credential store or import endpoint, paste the
 Application Password only into OpenClaw's dedicated secret field. Do not paste
 it into chat.
 
-Local credential brokers may use the grant/redeem flow instead of browser
+Local credential brokers should use key-pair device pairing instead of browser
 secret handling:
 
 ```text
 GET  /wp-json/magick-ai-adapter/v1/connection/manifest
-POST /wp-json/magick-ai-adapter/v1/connections/grants
-POST /wp-json/magick-ai-adapter/v1/connections/redeem
+POST /wp-json/magick-ai-adapter/v1/connect/device/start
+POST /wp-json/magick-ai-adapter/v1/connect/device/poll
+GET  /wp-json/magick-ai-adapter/v1/connection/key-pairs
 ```
 
-`/connections/grants` requires WordPress admin REST authentication and creates a
-short-lived one-time grant. `/connections/redeem` accepts that grant plus PKCE
-verification from a local broker and creates the WordPress Application Password
-only after verification succeeds. The redeem response must return encrypted
-credential material only, never the raw Application Password.
+`/connect/device/start` accepts public client metadata and an Ed25519 public
+key. The WordPress admin approval page binds that public key to the approving
+administrator. `/connect/device/poll` returns connection metadata after
+approval. It never returns a WordPress Application Password or private key.
+
+Signed Adapter requests use the `Magick-AI-Adapter-V1` canonical request and
+`X-Magick-*` signing headers documented in
+`docs/keypair-device-pairing-contract.md`.
 
 OpenClaw must use WordPress REST Basic Auth:
 

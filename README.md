@@ -231,6 +231,7 @@ turning the page into a control panel:
   username, auth type, and `password_uuid`;
 - a copyable WorkBuddy setup block that reuses the same non-secret manifest and
   tells WorkBuddy where the secret must be stored;
+- key-pair device pairing MVP endpoints and registered client key metadata;
 - copyable health and proposal example requests;
 - proposal list/detail, plan-to-proposal, commit-preflight, and
   approve-and-execute routes;
@@ -244,33 +245,34 @@ or non-secret identifiers. Paste the Application Password only into OpenClaw's
 dedicated secret field, not chat, tool commands, logs, proposal payloads, files,
 or copied handoff text.
 
-For clients with a local credential broker, the Adapter REST surface also
-supports a grant/redeem MVP:
+Public Key Device Pairing: for clients with a local broker, the Adapter REST surface supports a key-pair
+device pairing MVP. The client generates an Ed25519 private key locally, sends
+only the public key to WordPress for admin approval, and signs later Adapter
+requests:
 
 ```text
 GET  /wp-json/magick-ai-adapter/v1/connection/manifest
-POST /wp-json/magick-ai-adapter/v1/connections/grants
-POST /wp-json/magick-ai-adapter/v1/connections/redeem
+POST /wp-json/magick-ai-adapter/v1/connect/device/start
+POST /wp-json/magick-ai-adapter/v1/connect/device/poll
+GET  /wp-json/magick-ai-adapter/v1/connection/key-pairs
 ```
 
-In that flow, the WordPress admin browser sends only a short-lived grant to the
-broker. Adapter creates the WordPress Application Password only during broker
-redeem and returns encrypted credential material for the broker public key.
-
-For WorkBuddy MVP validation, run the development broker in this repo:
+For local validation, run the development script in this repo:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/workbuddy-local-broker.mjs --port=9981 --insecure-local-tls
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-device-pairing.mjs --site=https://magick-ai.local --profile=local --insecure-local-tls
 ```
 
-Then use `Magick AI -> Adapter -> Advanced -> Local broker validation` to send
-the non-secret manifest and one-time grant to the local broker. The broker asks
-for terminal confirmation, redeems the grant, decrypts the credential response
-locally, and writes a test credential file under `~/.magick-ai-adapter/`.
-Production clients should store the decrypted secret in the OS keychain or the
-client credential vault instead of this test file. The `--insecure-local-tls`
-flag is for LocalWP or `.local` self-signed HTTPS only; do not use it for a
-public or shared WordPress site.
+Open the printed WordPress approval URL, approve the public key, and the script
+will save a local profile under `~/.magick-ai-adapter/keypair-profiles/` before
+testing a signed `GET /health` request. The profile contains the local private
+key; do not paste or log it. Production clients should store the private key in
+the OS keychain or the client credential vault. The `--insecure-local-tls` flag
+is for LocalWP or `.local` self-signed HTTPS only; do not use it for a public or
+shared WordPress site.
+
+See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
+for the public-key pairing and request-signing contract.
 
 When the current site URL is local (`localhost`, loopback, or `.local`), the
 handoff form can include `MAGICK_AI_ADAPTER_INSECURE_SSL=true` in copied

@@ -96,37 +96,34 @@ an Application Password is available. Do not paste the Application Password
 into chat, tool commands, logs, proposal payloads, files, or copied handoff
 text.
 
-## Local Broker Grant/Redeem
+## Public Key Device Pairing
 
-For WorkBuddy or another local credential broker, use the grant/redeem MVP
-instead of sending a browser-visible Application Password:
+For WorkBuddy or another local broker, use key-pair device pairing instead of
+sending a browser-visible Application Password:
 
 ```text
 GET  /connection/manifest
-POST /connections/grants
-POST /connections/redeem
+POST /connect/device/start
+POST /connect/device/poll
+GET  /connection/key-pairs
 ```
 
-The WordPress admin browser calls `/connections/grants` with the current
-manifest digest, broker public key, state, and PKCE challenge. The local broker
-then calls `/connections/redeem` with the grant and PKCE verifier. Adapter
-creates the Application Password only during redeem and returns encrypted
-credential material for the broker public key.
+The local broker generates an Ed25519 key pair, keeps the private key local,
+and starts pairing with the public key. WordPress shows an admin approval page;
+after approval, Adapter stores only the public key and later verifies signed
+Adapter requests.
 
-For local validation, this repository includes a development-only broker:
+For local validation, this repository includes a development-only verifier:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/workbuddy-local-broker.mjs --port=9981 --insecure-local-tls
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-device-pairing.mjs --site=https://magick-ai.local --profile=local --insecure-local-tls
 ```
 
-Then open `Magick AI -> Adapter -> Advanced -> Local broker validation` and
-click `Connect local broker`. The helper sends the non-secret manifest and
-short-lived grant to `127.0.0.1:9981`; the broker asks for terminal
-confirmation, redeems the grant, decrypts the credential response locally, and
-writes a test credential file under `~/.magick-ai-adapter/`. A production
-WorkBuddy integration should replace that file write with the OS keychain or
-WorkBuddy credential vault. Use `--insecure-local-tls` only for LocalWP or
-`.local` self-signed HTTPS testing.
+Open the printed WordPress approval URL and approve the client. The script then
+stores a local profile under `~/.magick-ai-adapter/keypair-profiles/` and tests
+a signed `GET /health`. A production WorkBuddy integration should replace that
+file write with the OS keychain or WorkBuddy credential vault. Use
+`--insecure-local-tls` only for LocalWP or `.local` self-signed HTTPS testing.
 
 ## Connection Check
 

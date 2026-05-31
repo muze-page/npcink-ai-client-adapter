@@ -22,7 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Controller {
 	const NAMESPACE = 'magick-ai-adapter/v1';
 	const MAX_EXECUTION_ACTIONS = 50;
-	const CONNECTION_GRANT_TTL = 120;
+	const DEVICE_PAIRING_OPTION = 'magick_ai_adapter_device_pairings';
+	const CLIENT_KEYS_OPTION    = 'magick_ai_adapter_client_keys';
+	const DEVICE_PAIRING_TTL    = 600;
+	const SIGNATURE_NONCE_TTL   = 300;
 
 	/**
 	 * Current request log context while an ability is running.
@@ -110,11 +113,35 @@ final class Controller {
 
 		register_rest_route(
 			self::NAMESPACE,
-			'/connections/grants',
+			'/connect/device/start',
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'create_connection_grant' ),
+					'callback'            => array( $this, 'start_device_pairing' ),
+					'permission_callback' => '__return_true',
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connect/device/poll',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'poll_device_pairing' ),
+					'permission_callback' => '__return_true',
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connection/key-pairs',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_client_keys' ),
 					'permission_callback' => array( $this, 'can_use_adapter' ),
 				),
 			)
@@ -122,12 +149,12 @@ final class Controller {
 
 		register_rest_route(
 			self::NAMESPACE,
-			'/connections/redeem',
+			'/connection/key-pairs/(?P<key_id>mk_[A-Za-z0-9_-]+)',
 			array(
 				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'redeem_connection_grant' ),
-					'permission_callback' => '__return_true',
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'revoke_client_key' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
 				),
 			)
 		);
@@ -467,10 +494,15 @@ final class Controller {
 	/**
 	 * Authorizes adapter use.
 	 *
+	 * @param WP_REST_Request|null $request Request.
 	 * @return bool
 	 */
-	public function can_use_adapter(): bool {
-		return current_user_can( 'manage_options' );
+	public function can_use_adapter( ?WP_REST_Request $request = null ): bool {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		return $request instanceof WP_REST_Request && $this->authenticate_signed_request( $request );
 	}
 
 	/**
@@ -483,184 +515,301 @@ final class Controller {
 	}
 
 	/**
-	 * Creates a short-lived local broker grant.
+	 * Starts a public-key device pairing session.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	public function create_connection_grant( WP_REST_Request $request ) {
+	public function start_device_pairing( WP_REST_Request $request ) {
 		$body = $this->request_json_body( $request );
 		if ( is_wp_error( $body ) ) {
 			return $body;
 		}
 
-		$manifest_sha256 = sanitize_text_field( (string) ( $body['manifest_sha256'] ?? '' ) );
-		$state           = sanitize_text_field( (string) ( $body['state'] ?? '' ) );
-		$broker          = is_array( $body['broker'] ?? null ) ? $body['broker'] : array();
-		$public_key_jwk  = is_array( $broker['public_key_jwk'] ?? null ) ? $broker['public_key_jwk'] : array();
-		$code_challenge  = sanitize_text_field( (string) ( $broker['code_challenge'] ?? '' ) );
-		$challenge_method = sanitize_text_field( (string) ( $broker['code_challenge_method'] ?? '' ) );
-		$manifest        = $this->connection_manifest_payload( get_current_user_id() );
-
-		if ( '' === $manifest_sha256 || (string) ( $manifest['integrity']['manifest_sha256'] ?? '' ) !== $manifest_sha256 ) {
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_manifest_mismatch',
-				__( 'Connection manifest digest does not match the current Adapter manifest.', 'magick-ai-adapter' ),
+				'magick_ai_adapter_sodium_unavailable',
+				__( 'Ed25519 device pairing requires the PHP sodium extension.', 'magick-ai-adapter' ),
+				array( 'status' => 501 )
+			);
+		}
+
+		$client = is_array( $body['client'] ?? null ) ? $body['client'] : array();
+		$key    = is_array( $body['key'] ?? null ) ? $body['key'] : array();
+		$name   = sanitize_text_field( (string) ( $client['name'] ?? '' ) );
+		$public_key = sanitize_text_field( (string) ( $key['public_key'] ?? '' ) );
+		$scopes = $this->connection_requested_scopes( is_array( $body['requested_scopes'] ?? null ) ? $body['requested_scopes'] : array() );
+
+		if ( '' === $name || 'Ed25519' !== (string) ( $key['alg'] ?? '' ) || 32 !== strlen( $this->base64url_decode( $public_key ) ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_device_pairing_invalid',
+				__( 'Device pairing requires client metadata and a base64url Ed25519 public key.', 'magick-ai-adapter' ),
 				array( 'status' => 400 )
 			);
 		}
 
-		if ( '' === $state || '' === $code_challenge || 'S256' !== $challenge_method || ! $this->is_supported_broker_public_key_jwk( $public_key_jwk ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_grant_request_invalid',
-				__( 'Connection grant requires state, S256 PKCE challenge, and an RSA broker public key.', 'magick-ai-adapter' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$grant_code = $this->base64url_encode( random_bytes( 32 ) );
-		$grant_hash = hash( 'sha256', $grant_code );
-		$scopes     = $this->connection_requested_scopes( is_array( $body['requested_scopes'] ?? null ) ? $body['requested_scopes'] : array() );
-		$expires_at = time() + self::CONNECTION_GRANT_TTL;
-
-		set_transient(
-			$this->connection_grant_transient_key( $grant_hash ),
-			array(
-				'user_id'                => get_current_user_id(),
-				'manifest_sha256'        => $manifest_sha256,
-				'requested_scopes'       => $scopes,
-				'broker_public_key_jwk'  => $public_key_jwk,
-				'broker_public_key_thumbprint' => $this->broker_public_key_thumbprint( $public_key_jwk ),
-				'code_challenge'         => $code_challenge,
-				'state_hash'             => hash( 'sha256', $state ),
-				'expires_at'             => $expires_at,
+		$device_code = 'dev_' . $this->base64url_encode( random_bytes( 32 ) );
+		$user_code   = strtoupper( substr( $this->base64url_encode( random_bytes( 5 ) ), 0, 4 ) . '-' . substr( $this->base64url_encode( random_bytes( 5 ) ), 0, 4 ) );
+		$expires_at  = time() + self::DEVICE_PAIRING_TTL;
+		$pairings    = $this->device_pairings();
+		$fingerprint = 'sha256:' . hash( 'sha256', $this->canonical_json( array( 'alg' => 'Ed25519', 'public_key' => $public_key ) ) );
+		$pairings[ $user_code ] = array(
+			'user_code'        => $user_code,
+			'device_code_hash' => hash( 'sha256', $device_code ),
+			'status'           => 'pending',
+			'client'           => array(
+				'name'           => $name,
+				'device_name'    => sanitize_text_field( (string) ( $client['device_name'] ?? '' ) ),
+				'broker'         => sanitize_text_field( (string) ( $client['broker'] ?? '' ) ),
+				'broker_version' => sanitize_text_field( (string) ( $client['broker_version'] ?? '' ) ),
 			),
-			self::CONNECTION_GRANT_TTL
+			'key'              => array(
+				'alg'         => 'Ed25519',
+				'public_key'  => $public_key,
+				'fingerprint' => $fingerprint,
+			),
+			'scopes'           => $scopes,
+			'created_at'       => gmdate( 'c' ),
+			'expires_at'       => $expires_at,
 		);
+		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
+
+		$verification_uri = admin_url( 'admin.php?page=magick-ai-adapter-pair' );
 
 		return new WP_REST_Response(
 			array(
-				'grant_code'      => $grant_code,
-				'state'           => $state,
-				'expires_in'      => self::CONNECTION_GRANT_TTL,
-				'manifest_sha256' => $manifest_sha256,
+				'device_code'               => $device_code,
+				'user_code'                 => $user_code,
+				'verification_uri'          => $verification_uri,
+				'verification_uri_complete' => add_query_arg( 'user_code', rawurlencode( $user_code ), $verification_uri ),
+				'expires_in'                => self::DEVICE_PAIRING_TTL,
+				'interval'                  => 3,
 			),
 			201
 		);
 	}
 
 	/**
-	 * Redeems a local broker grant and returns only encrypted credential material.
+	 * Polls a device pairing session.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	public function redeem_connection_grant( WP_REST_Request $request ) {
+	public function poll_device_pairing( WP_REST_Request $request ) {
 		$body = $this->request_json_body( $request );
 		if ( is_wp_error( $body ) ) {
 			return $body;
 		}
 
-		$grant_code      = sanitize_text_field( (string) ( $body['grant_code'] ?? '' ) );
-		$code_verifier   = sanitize_text_field( (string) ( $body['code_verifier'] ?? '' ) );
-		$manifest_sha256 = sanitize_text_field( (string) ( $body['manifest_sha256'] ?? '' ) );
-		$thumbprint      = sanitize_text_field( (string) ( $body['broker_public_key_thumbprint'] ?? '' ) );
+		$device_code = sanitize_text_field( (string) ( $body['device_code'] ?? '' ) );
+		$pairing     = $this->device_pairing_by_device_code( $device_code );
 
-		if ( '' === $grant_code || '' === $code_verifier || '' === $manifest_sha256 ) {
+		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_redeem_request_invalid',
-				__( 'Connection redeem requires grant_code, code_verifier, and manifest_sha256.', 'magick-ai-adapter' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$grant_hash = hash( 'sha256', $grant_code );
-		$transient_key = $this->connection_grant_transient_key( $grant_hash );
-		$grant = get_transient( $transient_key );
-		delete_transient( $transient_key );
-
-		if ( ! is_array( $grant ) || time() > (int) ( $grant['expires_at'] ?? 0 ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_connection_grant_expired',
-				__( 'Connection grant is expired, invalid, or already consumed.', 'magick-ai-adapter' ),
+				'magick_ai_adapter_device_pairing_expired',
+				__( 'Device pairing is expired or invalid.', 'magick-ai-adapter' ),
 				array( 'status' => 401 )
 			);
 		}
 
-		if ( $manifest_sha256 !== (string) ( $grant['manifest_sha256'] ?? '' ) || $this->pkce_s256( $code_verifier ) !== (string) ( $grant['code_challenge'] ?? '' ) ) {
+		if ( 'rejected' === (string) ( $pairing['status'] ?? '' ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_connection_grant_denied',
-				__( 'Connection grant verification failed.', 'magick-ai-adapter' ),
+				'magick_ai_adapter_device_pairing_rejected',
+				__( 'Device pairing was rejected.', 'magick-ai-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
 
-		if ( '' !== $thumbprint && $thumbprint !== (string) ( $grant['broker_public_key_thumbprint'] ?? '' ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_broker_key_mismatch',
-				__( 'Broker public key thumbprint does not match the connection grant.', 'magick-ai-adapter' ),
-				array( 'status' => 403 )
+		if ( 'approved' !== (string) ( $pairing['status'] ?? '' ) ) {
+			return new WP_REST_Response(
+				array(
+					'ok'      => false,
+					'status'  => 'pending',
+					'message' => __( 'Device pairing is still pending approval.', 'magick-ai-adapter' ),
+				),
+				202
 			);
 		}
 
-		if ( ! class_exists( 'WP_Application_Passwords' ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_application_passwords_unavailable',
-				__( 'Application Passwords are not available for this site.', 'magick-ai-adapter' ),
-				array( 'status' => 501 )
-			);
-		}
-
-		$user_id = (int) ( $grant['user_id'] ?? 0 );
-		$user    = get_userdata( $user_id );
-		if ( ! $user || ! user_can( $user, 'manage_options' ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_grant_user_invalid',
-				__( 'Connection grant user is no longer authorized.', 'magick-ai-adapter' ),
-				array( 'status' => 403 )
-			);
-		}
-
-		if ( function_exists( 'wp_is_application_passwords_available_for_user' ) && ! wp_is_application_passwords_available_for_user( $user ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_application_passwords_unavailable',
-				__( 'Application Passwords are not available for the grant user.', 'magick-ai-adapter' ),
-				array( 'status' => 501 )
-			);
-		}
-
-		$created = \WP_Application_Passwords::create_new_application_password(
-			$user_id,
-			array(
-				'name'   => 'Local Broker via Magick AI Adapter',
-				'app_id' => wp_generate_uuid4(),
-			)
-		);
-
-		if ( is_wp_error( $created ) ) {
-			return $created;
-		}
-
-		$password = (string) $created[0];
-		$item     = is_array( $created[1] ?? null ) ? $created[1] : array();
-		$public_key_jwk = is_array( $grant['broker_public_key_jwk'] ?? null ) ? $grant['broker_public_key_jwk'] : array();
-		$encrypted_secret = $this->encrypt_secret_for_broker( $password, $public_key_jwk );
-		if ( is_wp_error( $encrypted_secret ) ) {
-			return $encrypted_secret;
-		}
+		$scopes = is_array( $pairing['scopes_effective'] ?? null ) ? $pairing['scopes_effective'] : array();
 
 		return new WP_REST_Response(
 			array(
-				'connection_id'    => 'mag_conn_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $user->user_login . '|' . (string) ( $item['uuid'] ?? '' ) ), 0, 24 ),
-				'credential_type'  => 'wp_application_password_basic',
-				'username'         => (string) $user->user_login,
-				'credential_id'    => (string) ( $item['uuid'] ?? '' ),
-				'encrypted_secret' => $encrypted_secret,
+				'ok'               => true,
+				'connection_id'    => (string) ( $pairing['connection_id'] ?? '' ),
+				'key_id'           => (string) ( $pairing['key_id'] ?? '' ),
+				'site_url'         => home_url(),
 				'adapter_base_url' => rest_url( self::NAMESPACE ),
-				'scopes_effective' => is_array( $grant['requested_scopes'] ?? null ) ? $grant['requested_scopes'] : array(),
+				'scopes_effective' => array_values( $scopes ),
 			),
 			200
 		);
+	}
+
+	/**
+	 * Lists registered client keys for the current administrator.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function list_client_keys(): WP_REST_Response {
+		$user_id = get_current_user_id();
+		$records = array();
+		foreach ( $this->client_key_records() as $record ) {
+			if ( $user_id === (int) ( $record['user_id'] ?? 0 ) ) {
+				$records[] = $this->public_client_key_record( $record );
+			}
+		}
+
+		return new WP_REST_Response( array( 'key_pairs' => $records ), 200 );
+	}
+
+	/**
+	 * Revokes a client key.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function revoke_client_key( WP_REST_Request $request ) {
+		$key_id = sanitize_text_field( (string) $request['key_id'] );
+		$result = $this->revoke_client_key_by_id( $key_id, get_current_user_id() );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Revokes a client key by id for a user.
+	 *
+	 * @param string $key_id Key id.
+	 * @param int    $user_id User id.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function revoke_client_key_by_id( string $key_id, int $user_id ) {
+		$key_id = sanitize_text_field( $key_id );
+		$keys   = $this->client_key_records();
+		$record = is_array( $keys[ $key_id ] ?? null ) ? $keys[ $key_id ] : array();
+		if ( empty( $record ) || $user_id !== (int) ( $record['user_id'] ?? 0 ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_client_key_not_found',
+				__( 'Client key was not found for the current user.', 'magick-ai-adapter' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$record['revoked_at'] = gmdate( 'c' );
+		$keys[ $key_id ]     = $record;
+		update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+
+		return $this->public_client_key_record( $record );
+	}
+
+	/**
+	 * Returns a device pairing record by user code for admin display.
+	 *
+	 * @param string $user_code User code.
+	 * @return array<string,mixed>
+	 */
+	public function admin_device_pairing( string $user_code ): array {
+		$user_code = strtoupper( sanitize_text_field( $user_code ) );
+		$pairings  = $this->device_pairings();
+		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
+		if ( ! empty( $pairing ) && time() <= (int) ( $pairing['expires_at'] ?? 0 ) ) {
+			return $pairing;
+		}
+
+		return array();
+	}
+
+	/**
+	 * Approves a device pairing for the current administrator.
+	 *
+	 * @param string $user_code User code.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function approve_device_pairing( string $user_code ) {
+		$user_code = strtoupper( sanitize_text_field( $user_code ) );
+		$pairings  = $this->device_pairings();
+		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
+		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
+			return new WP_Error( 'magick_ai_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'magick-ai-adapter' ) );
+		}
+
+		$user_id       = get_current_user_id();
+		$key           = is_array( $pairing['key'] ?? null ) ? $pairing['key'] : array();
+		$client        = is_array( $pairing['client'] ?? null ) ? $pairing['client'] : array();
+		$public_key    = (string) ( $key['public_key'] ?? '' );
+		$fingerprint   = (string) ( $key['fingerprint'] ?? '' );
+		$key_id        = 'mk_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $user_id . '|' . $fingerprint ), 0, 24 );
+		$connection_id = 'mag_conn_' . substr( hash( 'sha256', home_url() . '|' . $key_id ), 0, 24 );
+		$record        = array(
+			'key_id'        => $key_id,
+			'connection_id' => $connection_id,
+			'user_id'       => $user_id,
+			'client_name'   => (string) ( $client['name'] ?? '' ),
+			'device_name'   => (string) ( $client['device_name'] ?? '' ),
+			'broker'        => (string) ( $client['broker'] ?? '' ),
+			'broker_version' => (string) ( $client['broker_version'] ?? '' ),
+			'public_key'    => $public_key,
+			'fingerprint'   => $fingerprint,
+			'scopes'        => is_array( $pairing['scopes'] ?? null ) ? array_values( $pairing['scopes'] ) : array(),
+			'created_at'    => gmdate( 'c' ),
+			'last_used_at'  => '',
+			'revoked_at'    => '',
+		);
+
+		$keys            = $this->client_key_records();
+		$keys[ $key_id ] = $record;
+		update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+
+		$pairing['status']           = 'approved';
+		$pairing['approved_at']      = gmdate( 'c' );
+		$pairing['approved_user_id'] = $user_id;
+		$pairing['key_id']           = $key_id;
+		$pairing['connection_id']    = $connection_id;
+		$pairing['scopes_effective'] = $record['scopes'];
+		$pairings[ $user_code ]      = $pairing;
+		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
+
+		return $this->public_client_key_record( $record );
+	}
+
+	/**
+	 * Rejects a device pairing.
+	 *
+	 * @param string $user_code User code.
+	 * @return bool
+	 */
+	public function reject_device_pairing( string $user_code ): bool {
+		$user_code = strtoupper( sanitize_text_field( $user_code ) );
+		$pairings  = $this->device_pairings();
+		if ( ! is_array( $pairings[ $user_code ] ?? null ) ) {
+			return false;
+		}
+
+		$pairings[ $user_code ]['status']      = 'rejected';
+		$pairings[ $user_code ]['rejected_at'] = gmdate( 'c' );
+		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
+
+		return true;
+	}
+
+	/**
+	 * Returns public client key records for an admin user.
+	 *
+	 * @param int $user_id User id.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function admin_client_keys( int $user_id ): array {
+		$records = array();
+		foreach ( $this->client_key_records() as $record ) {
+			if ( $user_id === (int) ( $record['user_id'] ?? 0 ) ) {
+				$records[] = $this->public_client_key_record( $record );
+			}
+		}
+
+		return $records;
 	}
 
 	/**
@@ -710,15 +859,14 @@ final class Controller {
 				'username' => $username,
 			),
 			'auth'           => array(
-				'preferred_method'  => 'local_broker_grant_redeem',
+				'preferred_method'  => 'key_pair_device_pairing',
 				'supported_methods' => array(
 					array(
-						'type'            => 'local_broker_grant_redeem',
-						'protocol'        => 'magick-local-credential-broker.v1',
-						'secret_slot'     => 'wordpress_application_password',
-						'secret_delivery' => 'broker_redeem_only',
-						'requires_pkce'   => true,
-						'requires_broker_public_key' => true,
+						'type'            => 'key_pair_device_pairing',
+						'protocol'        => 'magick-key-pair-auth.v1',
+						'key_type'        => 'ed25519',
+						'secret_delivery' => 'none',
+						'requires_admin_approval' => true,
 					),
 					array(
 						'type'            => 'wp_application_password_basic',
@@ -732,8 +880,9 @@ final class Controller {
 				'health'       => rest_url( self::NAMESPACE . '/health' ),
 				'help'         => rest_url( self::NAMESPACE . '/help' ),
 				'capabilities' => rest_url( self::NAMESPACE . '/capabilities' ),
-				'grant'        => rest_url( self::NAMESPACE . '/connections/grants' ),
-				'redeem'       => rest_url( self::NAMESPACE . '/connections/redeem' ),
+				'device_start' => rest_url( self::NAMESPACE . '/connect/device/start' ),
+				'device_poll'  => rest_url( self::NAMESPACE . '/connect/device/poll' ),
+				'key_pairs'    => rest_url( self::NAMESPACE . '/connection/key-pairs' ),
 			),
 			'capabilities'   => array(
 				'read'  => array(
@@ -807,7 +956,7 @@ final class Controller {
 	}
 
 	/**
-	 * Filters requested local broker scopes to the current adapter contract.
+	 * Filters requested client scopes to the current adapter contract.
 	 *
 	 * @param array<int,mixed> $requested Requested scopes.
 	 * @return array<int,string>
@@ -831,174 +980,193 @@ final class Controller {
 	}
 
 	/**
-	 * Returns a transient key for a grant hash.
+	 * Returns pending device pairing records.
 	 *
-	 * @param string $grant_hash Grant hash.
-	 * @return string
+	 * @return array<string,array<string,mixed>>
 	 */
-	private function connection_grant_transient_key( string $grant_hash ): string {
-		return 'maa_conn_grant_' . substr( preg_replace( '/[^a-f0-9]/', '', strtolower( $grant_hash ) ), 0, 64 );
+	private function device_pairings(): array {
+		$pairings = get_option( self::DEVICE_PAIRING_OPTION, array() );
+		return is_array( $pairings ) ? $pairings : array();
 	}
 
 	/**
-	 * Returns whether a broker public key JWK is supported.
+	 * Removes expired pending device pairing records.
 	 *
-	 * @param array<string,mixed> $jwk JWK.
+	 * @param array<string,array<string,mixed>> $pairings Pairings.
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function prune_device_pairings( array $pairings ): array {
+		$now = time();
+		foreach ( $pairings as $user_code => $pairing ) {
+			if ( $now > (int) ( $pairing['expires_at'] ?? 0 ) && 'approved' !== (string) ( $pairing['status'] ?? '' ) ) {
+				unset( $pairings[ $user_code ] );
+			}
+		}
+
+		return $pairings;
+	}
+
+	/**
+	 * Returns a pending device pairing by device code.
+	 *
+	 * @param string $device_code Device code.
+	 * @return array<string,mixed>
+	 */
+	private function device_pairing_by_device_code( string $device_code ): array {
+		if ( '' === $device_code ) {
+			return array();
+		}
+
+		$hash = hash( 'sha256', $device_code );
+		foreach ( $this->device_pairings() as $pairing ) {
+			if ( hash_equals( (string) ( $pairing['device_code_hash'] ?? '' ), $hash ) ) {
+				return $pairing;
+			}
+		}
+
+		return array();
+	}
+
+	/**
+	 * Returns stored client keys.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function client_key_records(): array {
+		$records = get_option( self::CLIENT_KEYS_OPTION, array() );
+		return is_array( $records ) ? $records : array();
+	}
+
+	/**
+	 * Returns a public-safe client key record.
+	 *
+	 * @param array<string,mixed> $record Record.
+	 * @return array<string,mixed>
+	 */
+	private function public_client_key_record( array $record ): array {
+		return array(
+			'key_id'        => (string) ( $record['key_id'] ?? '' ),
+			'connection_id' => (string) ( $record['connection_id'] ?? '' ),
+			'client_name'   => (string) ( $record['client_name'] ?? '' ),
+			'device_name'   => (string) ( $record['device_name'] ?? '' ),
+			'fingerprint'   => (string) ( $record['fingerprint'] ?? '' ),
+			'scopes'        => is_array( $record['scopes'] ?? null ) ? array_values( $record['scopes'] ) : array(),
+			'created_at'    => (string) ( $record['created_at'] ?? '' ),
+			'last_used_at'  => (string) ( $record['last_used_at'] ?? '' ),
+			'revoked_at'    => (string) ( $record['revoked_at'] ?? '' ),
+		);
+	}
+
+	/**
+	 * Authenticates an Adapter request signed by a registered Ed25519 key.
+	 *
+	 * @param WP_REST_Request $request Request.
 	 * @return bool
 	 */
-	private function is_supported_broker_public_key_jwk( array $jwk ): bool {
-		return 'RSA' === (string) ( $jwk['kty'] ?? '' ) && ! empty( $jwk['n'] ) && ! empty( $jwk['e'] );
+	private function authenticate_signed_request( WP_REST_Request $request ): bool {
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
+			return false;
+		}
+
+		$key_id         = sanitize_text_field( (string) $request->get_header( 'x_magick_key_id' ) );
+		$timestamp      = sanitize_text_field( (string) $request->get_header( 'x_magick_timestamp' ) );
+		$nonce          = sanitize_text_field( (string) $request->get_header( 'x_magick_nonce' ) );
+		$content_sha256 = sanitize_text_field( (string) $request->get_header( 'x_magick_content_sha256' ) );
+		$signature_alg  = sanitize_text_field( (string) $request->get_header( 'x_magick_signature_alg' ) );
+		$signature      = sanitize_text_field( (string) $request->get_header( 'x_magick_signature' ) );
+
+		if ( '' === $key_id || '' === $timestamp || '' === $nonce || '' === $content_sha256 || 'Ed25519' !== $signature_alg || '' === $signature ) {
+			return false;
+		}
+
+		$keys   = $this->client_key_records();
+		$record = is_array( $keys[ $key_id ] ?? null ) ? $keys[ $key_id ] : array();
+		if ( empty( $record ) || '' !== (string) ( $record['revoked_at'] ?? '' ) ) {
+			return false;
+		}
+
+		$user_id = (int) ( $record['user_id'] ?? 0 );
+		$user    = get_userdata( $user_id );
+		if ( ! $user || ! user_can( $user, 'manage_options' ) || ! $this->client_key_scope_allows_request( $record, $request ) ) {
+			return false;
+		}
+
+		$timestamp_epoch = strtotime( $timestamp );
+		if ( false === $timestamp_epoch || abs( time() - $timestamp_epoch ) > self::SIGNATURE_NONCE_TTL ) {
+			return false;
+		}
+
+		$expected_hash = 'sha256:' . hash( 'sha256', (string) $request->get_body() );
+		if ( ! hash_equals( $expected_hash, $content_sha256 ) ) {
+			return false;
+		}
+
+		$nonce_key = 'maa_sig_nonce_' . md5( $key_id . '|' . $nonce );
+		if ( get_transient( $nonce_key ) ) {
+			return false;
+		}
+
+		$public_key = $this->base64url_decode( (string) ( $record['public_key'] ?? '' ) );
+		$signature_bytes = $this->base64url_decode( $signature );
+		$canonical = $this->signed_request_canonical_string( $request, $timestamp, $nonce, $content_sha256 );
+		if ( 32 !== strlen( $public_key ) || 64 !== strlen( $signature_bytes ) || ! sodium_crypto_sign_verify_detached( $signature_bytes, $canonical, $public_key ) ) {
+			return false;
+		}
+
+		set_transient( $nonce_key, 1, self::SIGNATURE_NONCE_TTL );
+		$record['last_used_at'] = gmdate( 'c' );
+		$keys[ $key_id ]        = $record;
+		update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+		wp_set_current_user( $user_id );
+
+		return true;
 	}
 
 	/**
-	 * Returns a broker public key thumbprint.
+	 * Returns the canonical string signed by local clients.
 	 *
-	 * @param array<string,mixed> $jwk JWK.
+	 * @param WP_REST_Request $request Request.
+	 * @param string          $timestamp Timestamp.
+	 * @param string          $nonce Nonce.
+	 * @param string          $content_sha256 Body hash.
 	 * @return string
 	 */
-	private function broker_public_key_thumbprint( array $jwk ): string {
-		$thumbprint = array(
-			'e'   => (string) ( $jwk['e'] ?? '' ),
-			'kty' => (string) ( $jwk['kty'] ?? '' ),
-			'n'   => (string) ( $jwk['n'] ?? '' ),
+	private function signed_request_canonical_string( WP_REST_Request $request, string $timestamp, string $nonce, string $content_sha256 ): string {
+		return implode(
+			"\n",
+			array(
+				'MAGICK-AI-ADAPTER-V1',
+				strtoupper( $request->get_method() ),
+				$request->get_route(),
+				$this->canonical_json( $request->get_query_params() ),
+				$timestamp,
+				$nonce,
+				$content_sha256,
+			)
 		);
-
-		return 'sha256:' . hash( 'sha256', $this->canonical_json( $thumbprint ) );
 	}
 
 	/**
-	 * Returns a S256 PKCE challenge.
+	 * Returns whether client key scopes allow a request.
 	 *
-	 * @param string $code_verifier Code verifier.
-	 * @return string
+	 * @param array<string,mixed> $record Record.
+	 * @param WP_REST_Request     $request Request.
+	 * @return bool
 	 */
-	private function pkce_s256( string $code_verifier ): string {
-		return $this->base64url_encode( hash( 'sha256', $code_verifier, true ) );
-	}
+	private function client_key_scope_allows_request( array $record, WP_REST_Request $request ): bool {
+		$scopes = array_fill_keys( is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array(), true );
+		$route  = $request->get_route();
+		$method = strtoupper( $request->get_method() );
 
-	/**
-	 * Encrypts a secret for a broker RSA public key.
-	 *
-	 * @param string              $secret Secret.
-	 * @param array<string,mixed> $public_key_jwk Public key JWK.
-	 * @return array<string,string>|WP_Error
-	 */
-	private function encrypt_secret_for_broker( string $secret, array $public_key_jwk ) {
-		if ( ! function_exists( 'openssl_public_encrypt' ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_openssl_unavailable',
-				__( 'OpenSSL is required to encrypt the broker credential response.', 'magick-ai-adapter' ),
-				array( 'status' => 501 )
-			);
+		if ( false !== strpos( $route, '/proposals' ) || false !== strpos( $route, '/execute-approved-proposal' ) ) {
+			return ! empty( $scopes['magick.propose'] );
 		}
 
-		$pem = $this->rsa_public_jwk_to_pem( $public_key_jwk );
-		if ( is_wp_error( $pem ) ) {
-			return $pem;
+		if ( 'GET' === $method && ( false !== strpos( $route, '/health' ) || false !== strpos( $route, '/help' ) || false !== strpos( $route, '/capabilities' ) || false !== strpos( $route, '/connection/' ) ) ) {
+			return ! empty( $scopes['magick.status'] );
 		}
 
-		$encrypted = '';
-		$ok        = openssl_public_encrypt( $secret, $encrypted, $pem, OPENSSL_PKCS1_OAEP_PADDING );
-		if ( ! $ok ) {
-			return new WP_Error(
-				'magick_ai_adapter_broker_secret_encrypt_failed',
-				__( 'Could not encrypt the Application Password for the broker public key.', 'magick-ai-adapter' ),
-				array( 'status' => 500 )
-			);
-		}
-
-		return array(
-			'format'     => 'rsa_oaep_base64url',
-			'alg'        => 'RSA-OAEP',
-			'kid'        => $this->broker_public_key_thumbprint( $public_key_jwk ),
-			'ciphertext' => $this->base64url_encode( $encrypted ),
-		);
-	}
-
-	/**
-	 * Converts an RSA public JWK to PEM.
-	 *
-	 * @param array<string,mixed> $jwk JWK.
-	 * @return string|WP_Error
-	 */
-	private function rsa_public_jwk_to_pem( array $jwk ) {
-		if ( ! $this->is_supported_broker_public_key_jwk( $jwk ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_broker_public_key_invalid',
-				__( 'Broker public key must be an RSA public JWK.', 'magick-ai-adapter' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$n = $this->base64url_decode( (string) $jwk['n'] );
-		$e = $this->base64url_decode( (string) $jwk['e'] );
-		if ( '' === $n || '' === $e ) {
-			return new WP_Error(
-				'magick_ai_adapter_broker_public_key_invalid',
-				__( 'Broker public key contains invalid RSA components.', 'magick-ai-adapter' ),
-				array( 'status' => 400 )
-			);
-		}
-
-		$rsa_public_key = $this->asn1_sequence( $this->asn1_integer( $n ) . $this->asn1_integer( $e ) );
-		$algorithm     = $this->asn1_sequence( "\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01" . "\x05\x00" );
-		$spki          = $this->asn1_sequence( $algorithm . $this->asn1_bit_string( $rsa_public_key ) );
-
-		return "-----BEGIN PUBLIC KEY-----\n" . chunk_split( base64_encode( $spki ), 64, "\n" ) . "-----END PUBLIC KEY-----\n";
-	}
-
-	/**
-	 * Encodes ASN.1 sequence.
-	 *
-	 * @param string $value Value.
-	 * @return string
-	 */
-	private function asn1_sequence( string $value ): string {
-		return "\x30" . $this->asn1_length( strlen( $value ) ) . $value;
-	}
-
-	/**
-	 * Encodes ASN.1 integer.
-	 *
-	 * @param string $value Value.
-	 * @return string
-	 */
-	private function asn1_integer( string $value ): string {
-		if ( '' !== $value && ( ord( $value[0] ) & 0x80 ) ) {
-			$value = "\x00" . $value;
-		}
-
-		return "\x02" . $this->asn1_length( strlen( $value ) ) . $value;
-	}
-
-	/**
-	 * Encodes ASN.1 bit string.
-	 *
-	 * @param string $value Value.
-	 * @return string
-	 */
-	private function asn1_bit_string( string $value ): string {
-		return "\x03" . $this->asn1_length( strlen( $value ) + 1 ) . "\x00" . $value;
-	}
-
-	/**
-	 * Encodes ASN.1 length.
-	 *
-	 * @param int $length Length.
-	 * @return string
-	 */
-	private function asn1_length( int $length ): string {
-		if ( $length < 128 ) {
-			return chr( $length );
-		}
-
-		$bytes = '';
-		while ( $length > 0 ) {
-			$bytes  = chr( $length & 0xff ) . $bytes;
-			$length = $length >> 8;
-		}
-
-		return chr( 0x80 | strlen( $bytes ) ) . $bytes;
+		return ! empty( $scopes['magick.read'] );
 	}
 
 	/**
@@ -1272,8 +1440,10 @@ final class Controller {
 					'GET /help',
 					'GET /capabilities',
 					'GET /connection/manifest',
-					'POST /connections/grants',
-					'POST /connections/redeem',
+					'POST /connect/device/start',
+					'POST /connect/device/poll',
+					'GET /connection/key-pairs',
+					'DELETE /connection/key-pairs/{key_id}',
 				),
 			'read_shortcuts'  => $this->help_read_shortcuts(),
 			'generic_read'    => array(
@@ -1352,8 +1522,10 @@ final class Controller {
 				'GET /help' => 'Discover adapter routes and handoff guidance.',
 				'GET /capabilities' => 'List Core capabilities and governance guidance.',
 				'GET /connection/manifest' => 'Return the non-secret local broker connection manifest.',
-				'POST /connections/grants' => 'Create a short-lived one-time local broker grant from the WordPress admin browser.',
-				'POST /connections/redeem' => 'Redeem a local broker grant and return encrypted credential material only.',
+				'POST /connect/device/start' => 'Start a public-key device pairing session.',
+				'POST /connect/device/poll' => 'Poll a public-key device pairing session.',
+				'GET /connection/key-pairs' => 'List registered key-pair clients for the current user.',
+				'DELETE /connection/key-pairs/{key_id}' => 'Revoke a registered key-pair client.',
 				'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',

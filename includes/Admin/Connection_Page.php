@@ -23,6 +23,9 @@ final class Connection_Page {
 	const MENU_SLUG        = 'magick-ai-adapter';
 	const MENU_CAPABILITY  = 'manage_options';
 	const CREATE_ACTION    = 'magick_ai_adapter_create_openclaw_password';
+	const PAIR_MENU_SLUG   = 'magick-ai-adapter-pair';
+	const PAIR_ACTION      = 'magick_ai_adapter_pairing_decision';
+	const REVOKE_KEY_ACTION = 'magick_ai_adapter_revoke_client_key';
 
 	/**
 	 * Registers the menu item.
@@ -40,6 +43,15 @@ final class Connection_Page {
 			self::MENU_SLUG,
 			array( $this, 'render' ),
 			20
+		);
+
+		add_submenu_page(
+			null,
+			__( 'Approve Magick AI Client', 'magick-ai-adapter' ),
+			__( 'Approve Magick AI Client', 'magick-ai-adapter' ),
+			self::MENU_CAPABILITY,
+			self::PAIR_MENU_SLUG,
+			array( $this, 'render_pairing_page' )
 		);
 	}
 
@@ -176,7 +188,7 @@ final class Connection_Page {
 		$help_url        = rest_url( Controller::NAMESPACE . '/help' );
 		$capabilities_url = rest_url( Controller::NAMESPACE . '/capabilities' );
 		$manifest_url    = rest_url( Controller::NAMESPACE . '/connection/manifest' );
-		$grant_url       = rest_url( Controller::NAMESPACE . '/connections/grants' );
+		$key_pairs_url   = rest_url( Controller::NAMESPACE . '/connection/key-pairs' );
 		$health          = $this->health();
 		$status          = $this->status( $health );
 		$shortcuts       = Controller::read_shortcuts();
@@ -188,7 +200,7 @@ final class Connection_Page {
 		$user            = wp_get_current_user();
 		$username        = $user->exists() ? (string) $user->user_login : '';
 		$client_config   = $this->openclaw_env_text( $username, $this->is_local_url( home_url() ) );
-		$rest_nonce      = wp_create_nonce( 'wp_rest' );
+		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
 		?>
 		<div class="wrap magick-ai-adapter-connection">
 			<h1><?php echo esc_html__( 'Magick AI Adapter', 'magick-ai-adapter' ); ?></h1>
@@ -499,15 +511,51 @@ final class Connection_Page {
 					<p><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $capabilities_url ); ?></code></p>
 				</details>
 
-				<details class="maa-section">
+				<details class="maa-section" open>
 					<summary>
-						<strong><?php echo esc_html__( 'Local broker validation', 'magick-ai-adapter' ); ?></strong>
-						<span class="description"><?php echo esc_html__( 'Create a short-lived grant for a broker running on 127.0.0.1.', 'magick-ai-adapter' ); ?></span>
+						<strong><?php echo esc_html__( 'Key pair clients', 'magick-ai-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Device-paired clients that sign Adapter requests.', 'magick-ai-adapter' ); ?></span>
 					</summary>
-					<p><?php echo esc_html__( 'For WorkBuddy MVP testing, run the local Node broker on this computer, then click connect. The browser sends only the non-secret manifest and a one-time grant; the Application Password is created during broker redeem and returned encrypted to the broker public key.', 'magick-ai-adapter' ); ?></p>
-					<pre><?php echo esc_html( 'node /Users/muze/gitee/magick-ai-adapter/tools/workbuddy-local-broker.mjs --port=9981' . ( $this->is_local_url( home_url() ) ? ' --insecure-local-tls' : '' ) ); ?></pre>
-					<p><button type="button" class="button" id="maa-local-broker-connect"><?php echo esc_html__( 'Connect local broker', 'magick-ai-adapter' ); ?></button></p>
-					<p class="description" id="maa-local-broker-status"><?php echo esc_html__( 'Waiting for local broker.', 'magick-ai-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval.', 'magick-ai-adapter' ); ?></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Manifest', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $manifest_url ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Key pairs', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $key_pairs_url ); ?></code></p>
+					<?php if ( empty( $key_records ) ) : ?>
+						<p class="description"><?php echo esc_html__( 'No key-pair clients are registered for this administrator yet.', 'magick-ai-adapter' ); ?></p>
+					<?php else : ?>
+						<table class="widefat striped">
+							<thead>
+								<tr>
+									<th><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Last used', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Action', 'magick-ai-adapter' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach ( $key_records as $record ) : ?>
+									<tr>
+										<td><?php echo esc_html( (string) ( $record['client_name'] ?? '' ) ); ?><br><code><?php echo esc_html( (string) ( $record['key_id'] ?? '' ) ); ?></code></td>
+										<td><code><?php echo esc_html( (string) ( $record['fingerprint'] ?? '' ) ); ?></code></td>
+										<td><?php echo esc_html( implode( ', ', is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array() ) ); ?></td>
+										<td><?php echo esc_html( (string) ( $record['last_used_at'] ?? '' ) ); ?></td>
+										<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'magick-ai-adapter' ) : esc_html__( 'Revoked', 'magick-ai-adapter' ); ?></td>
+										<td>
+											<?php if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) : ?>
+												<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+													<input type="hidden" name="action" value="<?php echo esc_attr( self::REVOKE_KEY_ACTION ); ?>" />
+													<input type="hidden" name="key_id" value="<?php echo esc_attr( (string) ( $record['key_id'] ?? '' ) ); ?>" />
+													<?php wp_nonce_field( self::REVOKE_KEY_ACTION . '_' . (string) ( $record['key_id'] ?? '' ) ); ?>
+													<button type="submit" class="button"><?php echo esc_html__( 'Revoke', 'magick-ai-adapter' ); ?></button>
+												</form>
+											<?php endif; ?>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					<?php endif; ?>
 				</details>
 
 				<details class="maa-section">
@@ -568,51 +616,6 @@ final class Connection_Page {
 					if (!root) {
 						return;
 					}
-					var localBrokerConfig = {
-						brokerBaseUrls: [
-							'http://127.0.0.1:9981',
-							'http://localhost:9981'
-						],
-						manifestUrl: '<?php echo esc_js( $manifest_url ); ?>',
-						grantUrl: '<?php echo esc_js( $grant_url ); ?>',
-						restNonce: '<?php echo esc_js( $rest_nonce ); ?>'
-					};
-
-					function fetchJson(url, options) {
-						return window.fetch(url, options).then(function (response) {
-							return response.json().catch(function () {
-								return {};
-							}).then(function (data) {
-								if (!response.ok) {
-									throw new Error(data.message || data.error || ('HTTP ' + response.status));
-								}
-								return data;
-							});
-						});
-					}
-
-					function requestBrokerHandshake(baseUrls, index) {
-						if (index >= baseUrls.length) {
-							return Promise.reject(new Error('<?php echo esc_js( __( 'Local broker is not reachable on 127.0.0.1:9981 or localhost:9981.', 'magick-ai-adapter' ) ); ?>'));
-						}
-
-						return fetchJson(baseUrls[index] + '/request?t=' + Date.now(), {
-							method: 'GET',
-							mode: 'cors',
-							credentials: 'omit',
-							cache: 'no-store',
-							headers: {
-								'Accept': 'application/json'
-							}
-						}).then(function (brokerRequest) {
-							return {
-								baseUrl: baseUrls[index],
-								brokerRequest: brokerRequest
-							};
-						}).catch(function () {
-							return requestBrokerHandshake(baseUrls, index + 1);
-						});
-					}
 
 					function setTab(tabName) {
 						root.querySelectorAll('[data-maa-tab]').forEach(function (tab) {
@@ -651,82 +654,104 @@ final class Connection_Page {
 							});
 						});
 					});
-
-					var localBrokerButton = document.getElementById('maa-local-broker-connect');
-					var localBrokerStatus = document.getElementById('maa-local-broker-status');
-					if (localBrokerButton && localBrokerStatus) {
-						localBrokerButton.addEventListener('click', function () {
-							localBrokerButton.disabled = true;
-							localBrokerStatus.textContent = '<?php echo esc_js( __( 'Contacting local broker...', 'magick-ai-adapter' ) ); ?>';
-
-							requestBrokerHandshake(localBrokerConfig.brokerBaseUrls, 0)
-								.then(function (session) {
-									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Reading non-secret manifest...', 'magick-ai-adapter' ) ); ?>';
-									return fetchJson(localBrokerConfig.manifestUrl, {
-										method: 'GET',
-										credentials: 'same-origin',
-										cache: 'no-store',
-										headers: {
-											'X-WP-Nonce': localBrokerConfig.restNonce,
-											'Accept': 'application/json'
-										}
-									}).then(function (manifest) {
-										session.manifest = manifest;
-										return session;
-									});
-								})
-								.then(function (session) {
-									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Creating short-lived grant...', 'magick-ai-adapter' ) ); ?>';
-									return fetchJson(localBrokerConfig.grantUrl, {
-										method: 'POST',
-										credentials: 'same-origin',
-										headers: {
-											'Content-Type': 'application/json',
-											'X-WP-Nonce': localBrokerConfig.restNonce,
-											'Accept': 'application/json'
-										},
-										body: JSON.stringify({
-											manifest_sha256: session.manifest.integrity && session.manifest.integrity.manifest_sha256,
-											state: session.brokerRequest.state,
-											broker: session.brokerRequest.broker,
-											requested_scopes: session.brokerRequest.requested_scopes
-										})
-									}).then(function (grant) {
-										session.grant = grant;
-										return session;
-									});
-								})
-								.then(function (session) {
-									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Sending grant to local broker. Confirm in the broker terminal if prompted...', 'magick-ai-adapter' ) ); ?>';
-									return fetchJson(session.baseUrl + '/grant', {
-										method: 'POST',
-										mode: 'cors',
-										credentials: 'omit',
-										headers: {
-											'Content-Type': 'application/json',
-											'Accept': 'application/json'
-										},
-										body: JSON.stringify({
-											manifest: session.manifest,
-											grant: session.grant
-										})
-									});
-								})
-								.then(function (result) {
-									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Connected. Credential saved by local broker:', 'magick-ai-adapter' ) ); ?>' + ' ' + (result.output_path || result.connection_id || '');
-								})
-								.catch(function (error) {
-									localBrokerStatus.textContent = '<?php echo esc_js( __( 'Local broker connection failed:', 'magick-ai-adapter' ) ); ?>' + ' ' + error.message;
-								})
-								.finally(function () {
-									localBrokerButton.disabled = false;
-								});
-						});
-					}
 				})();
 			</script>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Renders the WordPress admin device pairing approval page.
+	 *
+	 * @return void
+	 */
+	public function render_pairing_page(): void {
+		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'magick-ai-adapter' ) );
+		}
+
+		$user_code = isset( $_GET['user_code'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_GET['user_code'] ) ) ) : '';
+		$pairing   = ( new Controller() )->admin_device_pairing( $user_code );
+		$client    = is_array( $pairing['client'] ?? null ) ? $pairing['client'] : array();
+		$key       = is_array( $pairing['key'] ?? null ) ? $pairing['key'] : array();
+		$scopes    = is_array( $pairing['scopes'] ?? null ) ? $pairing['scopes'] : array();
+		?>
+		<div class="wrap magick-ai-adapter-connection">
+			<h1><?php echo esc_html__( 'Approve Magick AI Client', 'magick-ai-adapter' ); ?></h1>
+			<?php if ( empty( $pairing ) ) : ?>
+				<div class="notice notice-error"><p><?php echo esc_html__( 'Device pairing code was not found or has expired.', 'magick-ai-adapter' ); ?></p></div>
+			<?php else : ?>
+				<p><?php echo esc_html__( 'Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer.', 'magick-ai-adapter' ); ?></p>
+				<table class="widefat striped" style="max-width: 860px;">
+					<tbody>
+						<tr><th scope="row"><?php echo esc_html__( 'User code', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( $user_code ); ?></code></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['name'] ?? '' ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Device', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['device_name'] ?? '' ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Broker', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( trim( (string) ( $client['broker'] ?? '' ) . ' ' . (string) ( $client['broker_version'] ?? '' ) ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $key['fingerprint'] ?? '' ) ); ?></code></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( implode( ', ', $scopes ) ); ?></td></tr>
+					</tbody>
+				</table>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 16px;">
+					<input type="hidden" name="action" value="<?php echo esc_attr( self::PAIR_ACTION ); ?>" />
+					<input type="hidden" name="user_code" value="<?php echo esc_attr( $user_code ); ?>" />
+					<?php wp_nonce_field( self::PAIR_ACTION . '_' . $user_code ); ?>
+					<button type="submit" name="decision" value="approve" class="button button-primary"><?php echo esc_html__( 'Approve connection', 'magick-ai-adapter' ); ?></button>
+					<button type="submit" name="decision" value="reject" class="button"><?php echo esc_html__( 'Reject', 'magick-ai-adapter' ); ?></button>
+				</form>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Handles device pairing approval or rejection.
+	 *
+	 * @return void
+	 */
+	public function handle_pairing_decision(): void {
+		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'magick-ai-adapter' ) );
+		}
+
+		$user_code = isset( $_POST['user_code'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_POST['user_code'] ) ) ) : '';
+		check_admin_referer( self::PAIR_ACTION . '_' . $user_code );
+
+		$decision   = isset( $_POST['decision'] ) ? sanitize_key( wp_unslash( (string) $_POST['decision'] ) ) : '';
+		$controller = new Controller();
+		if ( 'approve' === $decision ) {
+			$result = $controller->approve_device_pairing( $user_code );
+			if ( is_wp_error( $result ) ) {
+				wp_die( esc_html( $result->get_error_message() ) );
+			}
+		} else {
+			$controller->reject_device_pairing( $user_code );
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG ) );
+		exit;
+	}
+
+	/**
+	 * Handles client key revocation from the admin page.
+	 *
+	 * @return void
+	 */
+	public function handle_revoke_client_key(): void {
+		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to revoke client keys.', 'magick-ai-adapter' ) );
+		}
+
+		$key_id = isset( $_POST['key_id'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['key_id'] ) ) : '';
+		check_admin_referer( self::REVOKE_KEY_ACTION . '_' . $key_id );
+
+		$result = ( new Controller() )->revoke_client_key_by_id( $key_id, get_current_user_id() );
+		if ( is_wp_error( $result ) ) {
+			wp_die( esc_html( $result->get_error_message() ) );
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG ) );
+		exit;
 	}
 
 	/**

@@ -45,19 +45,21 @@ foreach (
 		'/help',
 		'/capabilities',
 		'/connection/manifest',
-		'/connections/grants',
-		'/connections/redeem',
+		'/connect/device/start',
+		'/connect/device/poll',
+		'/connection/key-pairs',
 		'connection_manifest',
-		'create_connection_grant',
-		'redeem_connection_grant',
-		'CONNECTION_GRANT_TTL',
-		'local_broker_grant_redeem',
-		'broker_redeem_only',
-		'grant_code',
-		'code_challenge',
-		'code_verifier',
-		'encrypted_secret',
-		'rsa_oaep_base64url',
+		'start_device_pairing',
+		'poll_device_pairing',
+		'approve_device_pairing',
+		'revoke_client_key_by_id',
+		'authenticate_signed_request',
+		'DEVICE_PAIRING_TTL',
+		'SIGNATURE_NONCE_TTL',
+		'key_pair_device_pairing',
+		'magick-key-pair-auth.v1',
+		'x_magick_key_id',
+		'Ed25519',
 		'/run-read-ability',
 		'/ai-provider-log-correlation-smoke',
 		'ai_provider_log_correlation_smoke',
@@ -344,13 +346,12 @@ foreach (
 		'core_proxy_execute=false',
 		'commit_execution=false',
 		'<openclaw-secret-field-value>',
-		'Local broker validation',
-		'maa-local-broker-connect',
-		'requestBrokerHandshake',
-		'brokerBaseUrls',
-		"wp_create_nonce( 'wp_rest' )",
+		'Key pair clients',
+		'Device-paired clients',
+		'key_pairs_url',
+		'REVOKE_KEY_ACTION',
 		'/connection/manifest',
-		'/connections/grants',
+		'/connection/key-pairs',
 		'Controller::read_shortcuts',
 	) as $required
 ) {
@@ -404,10 +405,10 @@ foreach (
 			'Application Password secret-field',
 			'non-secret connection manifest',
 			'copyable WorkBuddy setup block',
-			'grant/redeem MVP',
-			'tools/workbuddy-local-broker.mjs',
-			'Local broker validation',
-			'~/.magick-ai-adapter/',
+			'key-pair device pairing MVP',
+			'docs/keypair-device-pairing-contract.md',
+			'tools/keypair-device-pairing.mjs',
+			'Public Key Device Pairing',
 			'OpenClaw only connects to Adapter',
 			'productized OpenClaw user action',
 			'GET /wp-json/magick-ai-adapter/v1/help',
@@ -494,28 +495,24 @@ foreach (
 	maa_adapter_assert( false !== strpos( $readme, $required ), 'README contains required text: ' . $required );
 }
 
-$workbuddy_broker = maa_adapter_read( $root . '/tools/workbuddy-local-broker.mjs' );
+$keypair_tool = maa_adapter_read( $root . '/tools/keypair-device-pairing.mjs' );
 foreach (
 	array(
 		'generateKeyPairSync',
-		'codeVerifier',
-		'code_challenge',
-		'admin-helper.js',
-		'/request',
-		'/grant',
-		'privateDecrypt',
-		'RSA_PKCS1_OAEP_PADDING',
+		'ed25519',
+		'connect/device/start',
+		'connect/device/poll',
+		'X-Magick-Key-Id',
+		'X-Magick-Signature',
+		'MAGICK-AI-ADAPTER-V1',
 		'insecure-local-tls',
-		'rejectUnauthorized',
-		'isLocalTlsHost',
-		'workbuddy-local-credential.json',
-		'application_password',
-		'X-WP-Nonce',
+		'private_key_jwk',
+		'keypair-profiles',
 	) as $required
 ) {
-	maa_adapter_assert( false !== strpos( $workbuddy_broker, $required ), 'WorkBuddy broker MVP contains expected behavior: ' . $required );
+	maa_adapter_assert( false !== strpos( $keypair_tool, $required ), 'Keypair pairing tool contains expected behavior: ' . $required );
 }
-maa_adapter_assert( false === strpos( $workbuddy_broker, 'console.log(password' ), 'WorkBuddy broker does not print the decrypted Application Password.' );
+maa_adapter_assert( false === strpos( $keypair_tool, 'console.log(private' ), 'Keypair tool does not print private key material.' );
 
 $wporg_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (
@@ -577,9 +574,9 @@ foreach (
 		'GET /health',
 		'GET /help',
 		'GET /capabilities',
-		'Local Broker Grant/Redeem',
-		'tools/workbuddy-local-broker.mjs',
-		'Local broker validation',
+		'Public Key Device Pairing',
+		'tools/keypair-device-pairing.mjs',
+		'connect/device/start',
 		'POST /proposals/from-plan',
 		'/proposals?limit=10',
 		'/proposals/PROPOSAL_ID',
