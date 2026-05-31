@@ -675,13 +675,26 @@ final class Connection_Page {
 		$client    = is_array( $pairing['client'] ?? null ) ? $pairing['client'] : array();
 		$key       = is_array( $pairing['key'] ?? null ) ? $pairing['key'] : array();
 		$scopes    = is_array( $pairing['scopes'] ?? null ) ? $pairing['scopes'] : array();
+		$status    = (string) ( $pairing['status'] ?? 'pending' );
 		?>
 		<div class="wrap magick-ai-adapter-connection">
 			<h1><?php echo esc_html__( 'Approve Magick AI Client', 'magick-ai-adapter' ); ?></h1>
 			<?php if ( empty( $pairing ) ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html__( 'Device pairing code was not found or has expired.', 'magick-ai-adapter' ); ?></p></div>
 			<?php else : ?>
-				<p><?php echo esc_html__( 'Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer.', 'magick-ai-adapter' ); ?></p>
+				<?php if ( 'approved' === $status ) : ?>
+					<div class="notice notice-success">
+						<p><strong><?php echo esc_html__( 'Connection approved.', 'magick-ai-adapter' ); ?></strong></p>
+						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will finish polling and save its local profile. Adapter stores only the public key; the private key was never sent to WordPress.', 'magick-ai-adapter' ); ?></p>
+					</div>
+				<?php elseif ( 'rejected' === $status ) : ?>
+					<div class="notice notice-warning">
+						<p><strong><?php echo esc_html__( 'Connection rejected.', 'magick-ai-adapter' ); ?></strong></p>
+						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will stop polling with a rejected status.', 'magick-ai-adapter' ); ?></p>
+					</div>
+				<?php else : ?>
+					<p><?php echo esc_html__( 'Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer.', 'magick-ai-adapter' ); ?></p>
+				<?php endif; ?>
 				<table class="widefat striped" style="max-width: 860px;">
 					<tbody>
 						<tr><th scope="row"><?php echo esc_html__( 'User code', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( $user_code ); ?></code></td></tr>
@@ -690,15 +703,21 @@ final class Connection_Page {
 						<tr><th scope="row"><?php echo esc_html__( 'Broker', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( trim( (string) ( $client['broker'] ?? '' ) . ' ' . (string) ( $client['broker_version'] ?? '' ) ) ); ?></td></tr>
 						<tr><th scope="row"><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $key['fingerprint'] ?? '' ) ); ?></code></td></tr>
 						<tr><th scope="row"><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( implode( ', ', $scopes ) ); ?></td></tr>
+						<?php if ( 'approved' === $status ) : ?>
+							<tr><th scope="row"><?php echo esc_html__( 'Connection ID', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['connection_id'] ?? '' ) ); ?></code></td></tr>
+							<tr><th scope="row"><?php echo esc_html__( 'Key ID', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['key_id'] ?? '' ) ); ?></code></td></tr>
+						<?php endif; ?>
 					</tbody>
 				</table>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 16px;">
-					<input type="hidden" name="action" value="<?php echo esc_attr( self::PAIR_ACTION ); ?>" />
-					<input type="hidden" name="user_code" value="<?php echo esc_attr( $user_code ); ?>" />
-					<?php wp_nonce_field( self::PAIR_ACTION . '_' . $user_code ); ?>
-					<button type="submit" name="decision" value="approve" class="button button-primary"><?php echo esc_html__( 'Approve connection', 'magick-ai-adapter' ); ?></button>
-					<button type="submit" name="decision" value="reject" class="button"><?php echo esc_html__( 'Reject', 'magick-ai-adapter' ); ?></button>
-				</form>
+				<?php if ( 'pending' === $status ) : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 16px;">
+						<input type="hidden" name="action" value="<?php echo esc_attr( self::PAIR_ACTION ); ?>" />
+						<input type="hidden" name="user_code" value="<?php echo esc_attr( $user_code ); ?>" />
+						<?php wp_nonce_field( self::PAIR_ACTION . '_' . $user_code ); ?>
+						<button type="submit" name="decision" value="approve" class="button button-primary"><?php echo esc_html__( 'Approve connection', 'magick-ai-adapter' ); ?></button>
+						<button type="submit" name="decision" value="reject" class="button"><?php echo esc_html__( 'Reject', 'magick-ai-adapter' ); ?></button>
+					</form>
+				<?php endif; ?>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -724,11 +743,22 @@ final class Connection_Page {
 			if ( is_wp_error( $result ) ) {
 				wp_die( esc_html( $result->get_error_message() ) );
 			}
+			$result_status = 'approved';
 		} else {
 			$controller->reject_device_pairing( $user_code );
+			$result_status = 'rejected';
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'      => self::PAIR_MENU_SLUG,
+					'user_code' => $user_code,
+					'result'    => $result_status,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
 		exit;
 	}
 

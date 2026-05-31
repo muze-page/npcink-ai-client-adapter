@@ -272,6 +272,8 @@ clients should store the private key in the OS keychain or the client credential
 vault. The `--insecure-local-tls` flag is for LocalWP or `.local` self-signed
 HTTPS only; do not use it for a public or shared WordPress site. Transient local
 HTTPS polling resets are retried until the pairing code expires.
+After approval, WordPress shows a pairing result page; return to the terminal or
+local AI client and wait for polling to finish.
 
 See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
 for the public-key pairing and request-signing contract.

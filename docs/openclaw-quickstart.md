@@ -128,6 +128,9 @@ credential vault. Use `--insecure-local-tls` only for LocalWP or `.local`
 self-signed HTTPS testing. If LocalWP resets a polling connection, the verifier
 keeps retrying until the pairing code expires.
 
+After approval, WordPress shows a pairing result page. Return to the terminal or
+local AI client and wait for the polling command to finish.
+
 ## Connection Check
 
 1. Call `GET /health`.
