@@ -1,5 +1,5 @@
 === Magick AI Adapter ===
-Contributors: magick-ai
+Contributors: muze233
 Tags: ai, governance, automation, rest-api
 Requires at least: 7.0
 Tested up to: 7.0
