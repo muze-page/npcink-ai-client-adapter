@@ -1068,12 +1068,14 @@ final class Controller {
 			return false;
 		}
 
-		$key_id         = sanitize_text_field( (string) $request->get_header( 'x_magick_key_id' ) );
-		$timestamp      = sanitize_text_field( (string) $request->get_header( 'x_magick_timestamp' ) );
-		$nonce          = sanitize_text_field( (string) $request->get_header( 'x_magick_nonce' ) );
-		$content_sha256 = sanitize_text_field( (string) $request->get_header( 'x_magick_content_sha256' ) );
-		$signature_alg  = sanitize_text_field( (string) $request->get_header( 'x_magick_signature_alg' ) );
-		$signature      = sanitize_text_field( (string) $request->get_header( 'x_magick_signature' ) );
+		$credentials = $this->signed_request_credentials( $request );
+
+		$key_id         = $credentials['key_id'];
+		$timestamp      = $credentials['timestamp'];
+		$nonce          = $credentials['nonce'];
+		$content_sha256 = $credentials['content_sha256'];
+		$signature_alg  = $credentials['signature_alg'];
+		$signature      = $credentials['signature'];
 
 		if ( '' === $key_id || '' === $timestamp || '' === $nonce || '' === $content_sha256 || 'Ed25519' !== $signature_alg || '' === $signature ) {
 			return false;
@@ -1120,6 +1122,50 @@ final class Controller {
 		wp_set_current_user( $user_id );
 
 		return true;
+	}
+
+	/**
+	 * Returns request signature credentials from X-Magick headers or Authorization.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return array<string,string>
+	 */
+	private function signed_request_credentials( WP_REST_Request $request ): array {
+		$credentials = array(
+			'key_id'         => sanitize_text_field( (string) $request->get_header( 'x_magick_key_id' ) ),
+			'timestamp'      => sanitize_text_field( (string) $request->get_header( 'x_magick_timestamp' ) ),
+			'nonce'          => sanitize_text_field( (string) $request->get_header( 'x_magick_nonce' ) ),
+			'content_sha256' => sanitize_text_field( (string) $request->get_header( 'x_magick_content_sha256' ) ),
+			'signature_alg'  => sanitize_text_field( (string) $request->get_header( 'x_magick_signature_alg' ) ),
+			'signature'      => sanitize_text_field( (string) $request->get_header( 'x_magick_signature' ) ),
+		);
+
+		if ( '' !== $credentials['key_id'] && '' !== $credentials['signature'] ) {
+			return $credentials;
+		}
+
+		$authorization = (string) $request->get_header( 'authorization' );
+		if ( ! preg_match( '/^Magick-Signature\s+(.+)$/i', $authorization, $matches ) ) {
+			return $credentials;
+		}
+
+		$parts = array();
+		foreach ( explode( ',', $matches[1] ) as $piece ) {
+			$pair = explode( '=', trim( $piece ), 2 );
+			if ( 2 !== count( $pair ) ) {
+				continue;
+			}
+			$parts[ strtolower( trim( $pair[0] ) ) ] = trim( trim( $pair[1] ), '"' );
+		}
+
+		return array(
+			'key_id'         => sanitize_text_field( (string) ( $parts['key_id'] ?? '' ) ),
+			'timestamp'      => sanitize_text_field( (string) ( $parts['timestamp'] ?? '' ) ),
+			'nonce'          => sanitize_text_field( (string) ( $parts['nonce'] ?? '' ) ),
+			'content_sha256' => sanitize_text_field( (string) ( $parts['content_sha256'] ?? '' ) ),
+			'signature_alg'  => sanitize_text_field( (string) ( $parts['alg'] ?? '' ) ),
+			'signature'      => sanitize_text_field( (string) ( $parts['signature'] ?? '' ) ),
+		);
 	}
 
 	/**

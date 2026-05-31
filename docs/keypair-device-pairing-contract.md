@@ -143,6 +143,13 @@ X-Magick-Signature-Alg: Ed25519
 X-Magick-Signature: BASE64URL_SIGNATURE
 ```
 
+Clients should also send the same fields in `Authorization` as a transport
+fallback for local web servers that drop custom `X-Magick-*` headers:
+
+```http
+Authorization: Magick-Signature key_id="mk_...", timestamp="2026-06-01T12:00:00Z", nonce="BASE64URL_RANDOM", content_sha256="sha256:...", alg="Ed25519", signature="BASE64URL_SIGNATURE"
+```
+
 Canonical request:
 
 ```text
@@ -154,6 +161,9 @@ TIMESTAMP
 NONCE
 CONTENT_SHA256
 ```
+
+For requests with no query parameters, `CANONICAL_QUERY_JSON` is `[]` to match
+WordPress' empty query parameter array.
 
 Adapter verifies:
 

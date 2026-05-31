@@ -83,6 +83,8 @@ function requestJson(method, url, payload = null, headers = {}) {
           const error = new Error(parsed.message || parsed.error || `HTTP ${res.statusCode}`);
           error.statusCode = res.statusCode;
           error.payload = parsed;
+          error.method = method;
+          error.url = url;
           reject(error);
           return;
         }
@@ -122,6 +124,9 @@ function canonicalJson(value) {
     return `[${value.map(canonicalJson).join(',')}]`;
   }
   if (value && typeof value === 'object') {
+    if (Object.keys(value).length === 0) {
+      return '[]';
+    }
     return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
   }
   return JSON.stringify(value);
@@ -141,13 +146,15 @@ function signedHeaders(privateKey, keyId, method, route, queryParams = {}, body 
     contentSha256,
   ].join('\n');
   const signature = sign(null, Buffer.from(canonical), privateKey);
+  const signatureText = base64url(signature);
   return {
+    Authorization: `Magick-Signature key_id="${keyId}", timestamp="${timestamp}", nonce="${nonce}", content_sha256="${contentSha256}", alg="Ed25519", signature="${signatureText}"`,
     'X-Magick-Key-Id': keyId,
     'X-Magick-Timestamp': timestamp,
     'X-Magick-Nonce': nonce,
     'X-Magick-Content-SHA256': contentSha256,
     'X-Magick-Signature-Alg': 'Ed25519',
-    'X-Magick-Signature': base64url(signature),
+    'X-Magick-Signature': signatureText,
   };
 }
 
@@ -222,11 +229,17 @@ writeFileSync(profilePath, `${JSON.stringify(profileData, null, 2)}\n`, { mode: 
 chmodSync(profilePath, 0o600);
 
 const healthUrl = `${adapterBaseUrl}/health`;
-const health = await requestJson('GET', healthUrl, null, signedHeaders(privateKey, paired.key_id, 'GET', '/magick-ai-adapter/v1/health'));
 
 console.log(`Connected: ${paired.connection_id}`);
 console.log(`Profile saved: ${profilePath}`);
 if (transientPollFailures > 0) {
   console.log(`Recovered from transient polling errors: ${transientPollFailures}`);
 }
-console.log(`Health: core_capabilities=${Boolean(health.core_capabilities)} abilities_catalog=${Boolean(health.abilities_catalog)}`);
+try {
+  const health = await requestJson('GET', healthUrl, null, signedHeaders(privateKey, paired.key_id, 'GET', '/magick-ai-adapter/v1/health'));
+  console.log(`Health: core_capabilities=${Boolean(health.core_capabilities)} abilities_catalog=${Boolean(health.abilities_catalog)}`);
+} catch (error) {
+  console.log(`Health check failed after pairing: ${error.statusCode || error.code || error.message}`);
+  console.log('The local profile was saved. Re-run after updating the plugin if this was caused by stripped signature headers.');
+  process.exitCode = 1;
+}
