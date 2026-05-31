@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { mkdirSync, writeFileSync, chmodSync } from 'node:fs';
@@ -12,6 +13,8 @@ for (const arg of process.argv.slice(2)) {
   const match = arg.match(/^--([^=]+)=(.*)$/);
   if (match) {
     args.set(match[1], match[2]);
+  } else if (arg.startsWith('--')) {
+    args.set(arg.slice(2), '1');
   }
 }
 
@@ -20,9 +23,10 @@ const profile = args.get('profile') || 'default';
 const clientName = args.get('client') || 'OpenClaw';
 const deviceName = args.get('device') || `${process.platform}-${process.arch}`;
 const insecureLocalTls = args.has('insecure-local-tls');
+const noOpen = args.has('no-open');
 
 if (!site) {
-  console.error('Usage: node tools/keypair-device-pairing.mjs --site=https://example.test --profile=example [--insecure-local-tls]');
+  console.error('Usage: node tools/keypair-device-pairing.mjs --site=https://example.test --profile=example [--insecure-local-tls] [--no-open]');
   process.exit(1);
 }
 
@@ -93,6 +97,22 @@ function requestJson(method, url, payload = null, headers = {}) {
   });
 }
 
+function openApprovalUrl(url) {
+  if (noOpen) {
+    return false;
+  }
+  const command = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
+  const commandArgs = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
+  try {
+    const child = spawn(command, commandArgs, { detached: true, stdio: 'ignore' });
+    child.on('error', () => {});
+    child.unref();
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 function canonicalJson(value) {
   if (Array.isArray(value)) {
     return `[${value.map(canonicalJson).join(',')}]`;
@@ -146,7 +166,9 @@ const start = await requestJson('POST', `${adapterBaseUrl}/connect/device/start`
   requested_scopes: ['magick.read', 'magick.propose', 'magick.status'],
 });
 
-console.log(`Open this WordPress approval URL:\n${start.verification_uri_complete}`);
+const opened = openApprovalUrl(start.verification_uri_complete);
+console.log(opened ? 'Opened the WordPress approval URL in your browser.' : 'Open this WordPress approval URL:');
+console.log(start.verification_uri_complete);
 console.log(`User code: ${start.user_code}`);
 console.log('Waiting for approval...');
 

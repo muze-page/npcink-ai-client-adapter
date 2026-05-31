@@ -119,11 +119,13 @@ For local validation, this repository includes a development-only verifier:
 node /Users/muze/gitee/magick-ai-adapter/tools/keypair-device-pairing.mjs --site=https://magick-ai.local --profile=local --insecure-local-tls
 ```
 
-Open the printed WordPress approval URL and approve the client. The script then
-stores a local profile under `~/.magick-ai-adapter/keypair-profiles/` and tests
-a signed `GET /health`. A production WorkBuddy integration should replace that
-file write with the OS keychain or WorkBuddy credential vault. Use
-`--insecure-local-tls` only for LocalWP or `.local` self-signed HTTPS testing.
+The script opens the WordPress approval URL in the system browser. Approve the
+client there; the script then stores a local profile under
+`~/.magick-ai-adapter/keypair-profiles/` and tests a signed `GET /health`. Use
+`--no-open` to print the URL without opening a browser. A production WorkBuddy
+integration should replace that file write with the OS keychain or WorkBuddy
+credential vault. Use `--insecure-local-tls` only for LocalWP or `.local`
+self-signed HTTPS testing.
 
 ## Connection Check
 

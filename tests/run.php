@@ -506,6 +506,8 @@ foreach (
 		'X-Magick-Signature',
 		'MAGICK-AI-ADAPTER-V1',
 		'insecure-local-tls',
+		'no-open',
+		'openApprovalUrl',
 		'private_key_jwk',
 		'keypair-profiles',
 	) as $required

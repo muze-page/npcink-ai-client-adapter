@@ -263,13 +263,14 @@ For local validation, run the development script in this repo:
 node /Users/muze/gitee/magick-ai-adapter/tools/keypair-device-pairing.mjs --site=https://magick-ai.local --profile=local --insecure-local-tls
 ```
 
-Open the printed WordPress approval URL, approve the public key, and the script
-will save a local profile under `~/.magick-ai-adapter/keypair-profiles/` before
-testing a signed `GET /health` request. The profile contains the local private
-key; do not paste or log it. Production clients should store the private key in
-the OS keychain or the client credential vault. The `--insecure-local-tls` flag
-is for LocalWP or `.local` self-signed HTTPS only; do not use it for a public or
-shared WordPress site.
+The script opens the WordPress approval URL in the system browser. Approve the
+public key, and the script will save a local profile under
+`~/.magick-ai-adapter/keypair-profiles/` before testing a signed `GET /health`
+request. Use `--no-open` if you want to print the URL without opening a browser.
+The profile contains the local private key; do not paste or log it. Production
+clients should store the private key in the OS keychain or the client credential
+vault. The `--insecure-local-tls` flag is for LocalWP or `.local` self-signed
+HTTPS only; do not use it for a public or shared WordPress site.
 
 See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
 for the public-key pairing and request-signing contract.
