@@ -66,7 +66,7 @@ GET https://magick-ai.local/wp-json/magick-ai-adapter/v1/capabilities
 WordPress admin connection page:
 
 ```text
-Settings -> OpenClaw Connection
+Magick AI -> OpenClaw Connection
 ```
 
 The page includes a `Create OpenClaw handoff` button. It creates a normal
@@ -295,7 +295,7 @@ returns it.
 
 5. If `status=pending`, use the unified OpenClaw action
    `POST /proposals/{proposal_id}/approve-and-execute` for allowlisted
-   execution, or use `WordPress -> Magick AI Core` for split approval decisions.
+   execution, or use `Magick AI -> Governance` for split approval decisions.
    Do not call Core directly from OpenClaw.
 6. If `status=rejected`, stop and show the rejection state or reason returned
    by Core.

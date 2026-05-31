@@ -253,7 +253,7 @@ explicit.
 
 Connection:
 
-- WordPress admin: `Settings -> OpenClaw Connection`
+- WordPress admin: `Magick AI -> OpenClaw Connection`
 - `GET /wp-json/magick-ai-adapter/v1/health`
 - `GET /wp-json/magick-ai-adapter/v1/help`
 

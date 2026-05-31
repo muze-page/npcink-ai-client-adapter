@@ -23,7 +23,7 @@ Current governed execution support is deliberately limited to individually appro
 1. Install and activate Magick AI Core.
 2. Install and activate the WordPress Abilities provider used by Magick AI.
 3. Install and activate Magick AI Adapter.
-4. Open Settings > OpenClaw Connection to create the OpenClaw handoff.
+4. Open Magick AI > OpenClaw Connection to create the OpenClaw handoff.
 
 == Frequently Asked Questions ==
 

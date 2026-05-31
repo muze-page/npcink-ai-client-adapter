@@ -203,7 +203,7 @@ AI Request Logs are the provider request log.
 WordPress administrators can open:
 
 ```text
-Settings -> OpenClaw Connection
+Magick AI -> OpenClaw Connection
 ```
 
 The page shows:

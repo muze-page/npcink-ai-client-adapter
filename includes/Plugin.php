@@ -22,7 +22,7 @@ final class Plugin {
 	 */
 	public function boot(): void {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
-		add_action( 'admin_menu', array( $this, 'register_admin_page' ) );
+		add_action( 'admin_menu', array( $this, 'register_admin_page' ), 20 );
 		add_action( 'admin_post_magick_ai_adapter_create_openclaw_password', array( $this, 'handle_create_openclaw_password' ) );
 	}
 
