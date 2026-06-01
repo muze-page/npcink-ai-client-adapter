@@ -54,11 +54,12 @@ final class Controller {
 	 * @var array<string,bool>
 	 */
 	private static $allowed_execute_ability_ids = array(
-		'magick-ai/trash-post'     => true,
-		'magick-ai/create-draft'   => true,
-		'magick-ai/update-post'    => true,
-		'magick-ai/set-post-terms' => true,
-		'magick-ai/reply-comment'  => true,
+		'magick-ai/trash-post'      => true,
+		'magick-ai/create-draft'    => true,
+		'magick-ai/update-post'     => true,
+		'magick-ai/set-post-terms'  => true,
+		'magick-ai/reply-comment'   => true,
+		'magick-ai/approve-comment' => true,
 	);
 
 	/**
@@ -2178,6 +2179,17 @@ final class Controller {
 			}
 		}
 
+		if ( 'magick-ai/approve-comment' === $ability_id ) {
+			$comment_id = absint( $input['comment_id'] ?? 0 );
+			if ( 0 === $comment_id ) {
+				return new WP_Error(
+					'magick_ai_adapter_comment_id_required',
+					__( 'approve-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+		}
+
 		return true;
 	}
 
@@ -2416,7 +2428,14 @@ final class Controller {
 		}
 
 		$result_data = $response->get_data();
-		if ( in_array( $ability_id, array( 'magick-ai/create-draft', 'magick-ai/reply-comment' ), true ) && is_array( $result_data ) ) {
+		if (
+			in_array(
+				$ability_id,
+				array( 'magick-ai/create-draft', 'magick-ai/reply-comment', 'magick-ai/approve-comment' ),
+				true
+			)
+			&& is_array( $result_data )
+		) {
 			$post_id = absint( $result_data['post_id'] ?? $post_id );
 		}
 

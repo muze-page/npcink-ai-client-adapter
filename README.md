@@ -28,7 +28,7 @@ Batch plan execution is intentionally narrow. Adapter can execute
 when every action targets the current execution allowlist
 (`magick-ai/trash-post`, `magick-ai/create-draft`,
 `magick-ai/update-post`, `magick-ai/set-post-terms`,
-`magick-ai/reply-comment`). See
+`magick-ai/reply-comment`, `magick-ai/approve-comment`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
 
 ## Runtime Boundary
@@ -379,7 +379,7 @@ Proposal-required write flow:
 9. For the current approved proposal execution path, Adapter may execute only
    `magick-ai/trash-post`, `magick-ai/create-draft`,
    `magick-ai/update-post`, `magick-ai/set-post-terms`, or
-   `magick-ai/reply-comment` through
+   `magick-ai/reply-comment`, or `magick-ai/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
    `POST /execute-approved-proposal`.
 10. Adapter fetches the Core proposal, calls Core commit-preflight, requires
@@ -479,8 +479,9 @@ Write or destructive abilities:
    approval.
 6. Adapter relays Core `commit_execution=false`.
 7. For approved proposal execution, only `magick-ai/trash-post`,
-   `magick-ai/create-draft`, `magick-ai/update-post`, and
-   `magick-ai/set-post-terms`, and `magick-ai/reply-comment` are supported in
+   `magick-ai/create-draft`, `magick-ai/update-post`,
+   `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+   `magick-ai/approve-comment` are supported in
    this adapter. The execution input may be a single allowlisted proposal input or a bounded
    `input.write_actions[]` batch where every action targets the allowlist.
    OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter performs Core

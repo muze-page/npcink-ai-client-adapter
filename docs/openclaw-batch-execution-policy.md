@@ -52,6 +52,7 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=magick-ai/update-post`
 - `target_ability_id=magick-ai/set-post-terms`
 - `target_ability_id=magick-ai/reply-comment`
+- `target_ability_id=magick-ai/approve-comment`
 
 Adapter calls Core approval when needed, then calls Core commit-preflight once
 for the proposal. Adapter requires Core approval commit authorization,

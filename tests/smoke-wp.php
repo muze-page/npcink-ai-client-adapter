@@ -247,17 +247,23 @@ function maa_adapter_smoke_create_trash_post_fixture(): int {
 }
 
 /**
- * Creates a comment fixture for reply-comment execution smoke.
+ * Creates a comment fixture for comment execution smoke.
  *
- * @param int $post_id Post id.
+ * @param int        $post_id Post id.
+ * @param string     $content Comment content.
+ * @param int|string $approved Comment approval state.
  * @return int
  */
-function maa_adapter_smoke_create_comment_fixture( int $post_id ): int {
+function maa_adapter_smoke_create_comment_fixture(
+	int $post_id,
+	string $content = 'Adapter reply-comment parent smoke.',
+	$approved = 1
+): int {
 	$comment_id = wp_insert_comment(
 		array(
 			'comment_post_ID'      => $post_id,
-			'comment_content'      => 'Adapter reply-comment parent smoke.',
-			'comment_approved'     => 1,
+			'comment_content'      => $content,
+			'comment_approved'     => $approved,
 			'comment_author'       => 'Adapter Smoke',
 			'comment_author_email' => 'adapter-smoke@example.test',
 		)
@@ -314,6 +320,7 @@ maa_adapter_smoke_assert( in_array( 'magick-ai/create-draft', (array) ( $health[
 maa_adapter_smoke_assert( in_array( 'magick-ai/update-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-post execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-terms', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-terms execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/approve-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes approve-comment execute allowlist' );
 
 $help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
@@ -1243,6 +1250,67 @@ $empty_reply_proposal_id = (string) ( $empty_reply_proposal['proposal_id'] ?? ''
 $maa_adapter_smoke_cleanup_proposal_ids[] = $empty_reply_proposal_id;
 $empty_reply_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $empty_reply_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 400 === (int) $empty_reply_execute['status'], 'adapter approve-and-execute rejects reply-comment without content' );
+
+$approve_comment_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $approve_comment_post_id;
+$approve_comment_id = maa_adapter_smoke_create_comment_fixture( $approve_comment_post_id, 'Adapter approve-comment pending smoke.', '0' );
+$maa_adapter_smoke_cleanup_comment_ids[] = $approve_comment_id;
+$approve_comment_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/approve-comment',
+		'title'      => 'Adapter approve-comment approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one approve-comment proposal.',
+		'input'      => array(
+			'comment_id' => $approve_comment_id,
+			'dry_run'    => true,
+			'commit'     => false,
+		),
+		'preview'    => array(
+			'action'           => 'approve_comment',
+			'comment_id'       => $approve_comment_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-approve-comment-approve-execute-smoke',
+		),
+	)
+);
+$approve_comment_proposal_id = (string) ( $approve_comment_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $approve_comment_proposal_id;
+maa_adapter_smoke_assert( '' !== $approve_comment_proposal_id, 'adapter creates approve-comment proposal for approve-and-execute smoke' );
+$approve_comment_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approve_comment_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $approve_comment_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending approve-comment proposal' );
+maa_adapter_smoke_assert( 'magick-ai/approve-comment' === (string) ( $approve_comment_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries approve-comment ability id' );
+maa_adapter_smoke_assert( $approve_comment_post_id === (int) ( $approve_comment_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries approve-comment post id' );
+maa_adapter_smoke_assert( false === (bool) ( $approve_comment_execute['execution']['result']['dry_run'] ?? true ), 'adapter approve-comment execution returns non-dry-run ability result' );
+maa_adapter_smoke_assert( true === (bool) ( $approve_comment_execute['execution']['result']['updated'] ?? false ), 'adapter approve-comment execution reports update' );
+maa_adapter_smoke_assert( 'approved' === wp_get_comment_status( $approve_comment_id ), 'adapter approve-and-execute approves pending comment' );
+
+$empty_approve_comment_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/approve-comment',
+		'title'      => 'Adapter empty approve-comment smoke',
+		'summary'    => 'Adapter must not execute approve-comment without comment_id.',
+		'input'      => array(
+			'comment_id' => 0,
+			'dry_run'    => true,
+			'commit'     => false,
+		),
+		'preview'    => array(
+			'action'     => 'approve_comment',
+			'comment_id' => 0,
+		),
+	)
+);
+$empty_approve_comment_proposal_id = (string) ( $empty_approve_comment_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $empty_approve_comment_proposal_id;
+$empty_approve_comment_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $empty_approve_comment_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 400 === (int) $empty_approve_comment_execute['status'], 'adapter approve-and-execute rejects approve-comment without comment_id' );
 
 $unallowed_proposal = maa_adapter_smoke_rest(
 	'POST',

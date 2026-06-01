@@ -370,9 +370,10 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
    approved proposal execution allowlist. Core still returns
    `commit_execution=false`.
 9. For approved proposal execution, only `magick-ai/trash-post`,
-   `magick-ai/create-draft`, `magick-ai/update-post`, and
-   `magick-ai/set-post-terms`, and `magick-ai/reply-comment` are currently
-   supported. The preferred user path is one Adapter/OpenClaw action:
+   `magick-ai/create-draft`, `magick-ai/update-post`,
+   `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+   `magick-ai/approve-comment` are currently supported. The preferred user path
+   is one Adapter/OpenClaw action:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
