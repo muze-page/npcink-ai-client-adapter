@@ -27,8 +27,11 @@ Batch plan execution is intentionally narrow. Adapter can execute
 `input.write_actions[]` only after Core approval and commit-preflight, and only
 when every action targets the current execution allowlist
 (`magick-ai/trash-post`, `magick-ai/create-draft`,
-`magick-ai/update-post`, `magick-ai/set-post-terms`,
-`magick-ai/reply-comment`, `magick-ai/approve-comment`). See
+`magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
+`magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
+`magick-ai/delete-term`, `magick-ai/update-media-details`,
+`magick-ai/reply-comment`, `magick-ai/trash-comment`,
+`magick-ai/approve-comment`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
 
 ## Runtime Boundary
@@ -378,8 +381,11 @@ Proposal-required write flow:
 8. The adapter relays Core preflight and preserves `commit_execution=false`.
 9. For the current approved proposal execution path, Adapter may execute only
    `magick-ai/trash-post`, `magick-ai/create-draft`,
-   `magick-ai/update-post`, `magick-ai/set-post-terms`, or
-   `magick-ai/reply-comment`, or `magick-ai/approve-comment` through
+   `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
+   `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
+   `magick-ai/delete-term`, `magick-ai/update-media-details`,
+   `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
+   `magick-ai/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
    `POST /execute-approved-proposal`.
 10. Adapter fetches the Core proposal, calls Core commit-preflight, requires
@@ -480,7 +486,10 @@ Write or destructive abilities:
 6. Adapter relays Core `commit_execution=false`.
 7. For approved proposal execution, only `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,
-   `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+   `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
+   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
+   `magick-ai/update-media-details`, `magick-ai/reply-comment`,
+   `magick-ai/trash-comment`, and
    `magick-ai/approve-comment` are supported in
    this adapter. The execution input may be a single allowlisted proposal input or a bounded
    `input.write_actions[]` batch where every action targets the allowlist.

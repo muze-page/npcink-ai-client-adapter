@@ -91,8 +91,11 @@ POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
 For a pending `magick-ai/trash-post`, `magick-ai/create-draft`,
-`magick-ai/update-post`, `magick-ai/set-post-terms`,
-`magick-ai/reply-comment`, or `magick-ai/approve-comment` proposal, Adapter
+`magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
+`magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
+`magick-ai/delete-term`, `magick-ai/update-media-details`,
+`magick-ai/reply-comment`, `magick-ai/trash-comment`, or
+`magick-ai/approve-comment` proposal, Adapter
 fetches the proposal from Core,
 calls Core approve, calls Core commit-preflight, verifies Core's approval
 context and executable preflight result, then executes one WordPress Abilities
@@ -103,9 +106,14 @@ The execution input may be either top-level `proposal.input` for an allowlisted
 ability or a bounded `proposal.input.write_actions[]` batch. `trash-post`
 requires `post_id`; `create-draft` requires `title`; `update-post` requires
 `post_id` plus at least one of `title`, `content`, or `excerpt`;
+`set-post-seo-meta` requires `post_id` plus `seo_title` or
+`seo_description`; `set-post-slug` requires `post_id` and a valid `slug`;
 `set-post-terms` requires `post_id`, a valid `taxonomy`, `mode`, and
-`term_ids` or `terms`, and does not create missing terms; `reply-comment`
-requires `comment_id`, non-empty `content`, and a valid `content_format`;
+`term_ids` or `terms`, and does not create missing terms; `delete-term`
+requires a valid `taxonomy` and `term_id`; `update-media-details` requires
+`attachment_id` plus at least one media detail field; `reply-comment` requires
+`comment_id`, non-empty `content`, and a valid `content_format`;
+`trash-comment` requires `comment_id`;
 `approve-comment` requires `comment_id`. See
 [`openclaw-batch-execution-policy.md`](openclaw-batch-execution-policy.md).
 
@@ -129,8 +137,13 @@ The current allowlist is intentionally narrow:
 - `magick-ai/trash-post`
 - `magick-ai/create-draft`
 - `magick-ai/update-post`
+- `magick-ai/set-post-seo-meta`
+- `magick-ai/set-post-slug`
 - `magick-ai/set-post-terms`
+- `magick-ai/delete-term`
+- `magick-ai/update-media-details`
 - `magick-ai/reply-comment`
+- `magick-ai/trash-comment`
 - `magick-ai/approve-comment`
 
 The allowlist applies to both single-ability execution and each
@@ -587,7 +600,10 @@ OpenClaw must treat Core as the only proposal and approval truth:
 7. Stop at the returned Core preflight decision unless the ability is
    allowlisted for Adapter execution, currently `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,
-   `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+   `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
+   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
+   `magick-ai/update-media-details`, `magick-ai/reply-comment`,
+   `magick-ai/trash-comment`, and
    `magick-ai/approve-comment`.
 
 Adapter invariants:

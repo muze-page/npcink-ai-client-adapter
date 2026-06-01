@@ -110,6 +110,33 @@ final class Controller {
 				),
 				'post_id_from_result'   => false,
 			),
+			'magick-ai/set-post-seo-meta' => array(
+				'allowed_input_fields'  => array( 'post_id', 'seo_title', 'seo_description', 'dry_run', 'commit', 'idempotency_key' ),
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'set-post-seo-meta execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'seo_title', 'seo_description' ),
+					'code'    => 'magick_ai_adapter_seo_fields_required',
+					'message' => __( 'set-post-seo-meta execution input must include seo_title or seo_description.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/set-post-slug'   => array(
+				'allowed_input_fields'  => array( 'post_id', 'slug', 'dry_run', 'commit', 'idempotency_key' ),
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'set-post-slug execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'required_slug_fields'  => array(
+					'slug' => array(
+						'code'    => 'magick_ai_adapter_slug_required',
+						'message' => __( 'set-post-slug execution input must include a valid slug.', 'magick-ai-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
 			'magick-ai/set-post-terms'  => array(
 				'allowed_input_fields'  => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'terms', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
@@ -124,6 +151,32 @@ final class Controller {
 					'message' => __( 'set-post-terms execution input must include post_id.', 'magick-ai-adapter' ),
 				),
 				'validate_terms_input'  => true,
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/delete-term'     => array(
+				'allowed_input_fields'      => array( 'taxonomy', 'term_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'required_int_fields'       => array(
+					'term_id' => array(
+						'code'    => 'magick_ai_adapter_term_id_required',
+						'message' => __( 'delete-term execution input must include term_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'validate_delete_term_input' => true,
+				'post_id_from_result'       => false,
+			),
+			'magick-ai/update-media-details' => array(
+				'allowed_input_fields'  => array( 'attachment_id', 'title', 'alt', 'caption', 'description', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'dry_run', 'commit', 'idempotency_key' ),
+				'required_int_fields'   => array(
+					'attachment_id' => array(
+						'code'    => 'magick_ai_adapter_attachment_id_required',
+						'message' => __( 'update-media-details execution input must include attachment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'title', 'alt', 'caption', 'description', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice' ),
+					'code'    => 'magick_ai_adapter_media_fields_required',
+					'message' => __( 'update-media-details execution input must include at least one media detail field.', 'magick-ai-adapter' ),
+				),
 				'post_id_from_result'   => false,
 			),
 			'magick-ai/reply-comment'   => array(
@@ -144,6 +197,16 @@ final class Controller {
 				'require_comment_body'  => array(
 					'code'    => 'magick_ai_adapter_comment_content_required',
 					'message' => __( 'reply-comment execution input must include content.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => true,
+			),
+			'magick-ai/trash-comment'   => array(
+				'allowed_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'required_int_fields'   => array(
+					'comment_id' => array(
+						'code'    => 'magick_ai_adapter_comment_id_required',
+						'message' => __( 'trash-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					),
 				),
 				'post_id_from_result'   => true,
 			),
@@ -2336,6 +2399,19 @@ final class Controller {
 			);
 		}
 
+		foreach ( (array) ( $profile['required_slug_fields'] ?? array() ) as $field => $rule ) {
+			$rule = is_array( $rule ) ? $rule : array();
+			if ( '' !== sanitize_title( (string) ( $input[ $field ] ?? '' ) ) ) {
+				continue;
+			}
+
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_slug_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required slug field.', 'magick-ai-adapter' ) ),
+				$error_data
+			);
+		}
+
 		foreach ( (array) ( $profile['enum_fields'] ?? array() ) as $field => $rule ) {
 			if ( ! array_key_exists( $field, $input ) ) {
 				continue;
@@ -2436,6 +2512,17 @@ final class Controller {
 				return new WP_Error(
 					'magick_ai_adapter_create_missing_terms_not_allowed',
 					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+		}
+
+		if ( ! empty( $profile['validate_delete_term_input'] ) ) {
+			$taxonomy = array_key_exists( 'taxonomy', $input ) ? sanitize_key( (string) $input['taxonomy'] ) : '';
+			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_taxonomy_required',
+					__( 'delete-term execution input must include a valid taxonomy.', 'magick-ai-adapter' ),
 					$error_data
 				);
 			}

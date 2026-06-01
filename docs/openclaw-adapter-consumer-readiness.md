@@ -57,7 +57,10 @@ The readiness pass verified:
 - Core commit-preflight before execution;
 - allowlisted final execution for `magick-ai/trash-post`,
   `magick-ai/create-draft`, `magick-ai/update-post`,
-  `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+  `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
+  `magick-ai/set-post-terms`, `magick-ai/delete-term`,
+  `magick-ai/update-media-details`, `magick-ai/reply-comment`,
+  `magick-ai/trash-comment`, and
   `magick-ai/approve-comment`;
 - rejected proposals do not execute;
 - preflight-blocked proposals do not execute;
@@ -83,7 +86,10 @@ Adapter remains a thin OpenClaw channel layer:
 - Adapter does not generically execute arbitrary write abilities.
 - Adapter execution allowlist currently includes `magick-ai/trash-post`,
   `magick-ai/create-draft`, `magick-ai/update-post`,
-  `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+  `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
+  `magick-ai/set-post-terms`, `magick-ai/delete-term`,
+  `magick-ai/update-media-details`, `magick-ai/reply-comment`,
+  `magick-ai/trash-comment`, and
   `magick-ai/approve-comment`.
 
 The disabled approve/reject stubs must remain disabled unless a future decision

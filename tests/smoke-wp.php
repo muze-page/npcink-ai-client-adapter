@@ -318,8 +318,13 @@ maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-e
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/create-draft', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes create-draft execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/update-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-post execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-seo-meta', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-seo-meta execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-slug', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-slug execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-terms', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-terms execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/delete-term', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-term execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/update-media-details', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-media-details execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/trash-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-comment execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/approve-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes approve-comment execute allowlist' );
 
 $help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
@@ -1160,14 +1165,15 @@ $bad_batch_proposal = maa_adapter_smoke_rest(
 					'commit_execution'  => false,
 					'proposal_ready'    => true,
 				),
-				array(
-					'action_id'         => 'update-post-' . $bad_batch_second_post_id,
-					'target_ability_id' => 'magick-ai/set-post-seo-meta',
-					'input'             => array(
-						'post_id' => $bad_batch_second_post_id,
-						'dry_run' => true,
-						'commit'  => false,
-					),
+					array(
+						'action_id'         => 'set-author-' . $bad_batch_second_post_id,
+						'target_ability_id' => 'magick-ai/set-post-author',
+						'input'             => array(
+							'post_id'   => $bad_batch_second_post_id,
+							'author_id' => 1,
+							'dry_run'   => true,
+							'commit'    => false,
+						),
 					'requires_approval' => true,
 					'commit_execution'  => false,
 					'proposal_ready'    => true,
@@ -1413,6 +1419,125 @@ $invalid_update_status_proposal = maa_adapter_smoke_rest_result(
 maa_adapter_smoke_assert( 400 === (int) $invalid_update_status_proposal['status'], 'adapter proposal create rejects update-post status input' );
 maa_adapter_smoke_assert( 'magick_ai_adapter_ability_input_field_not_allowed' === (string) ( $invalid_update_status_proposal['data']['code'] ?? '' ), 'adapter update-post status rejection uses schema field error code' );
 
+$seo_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $seo_post_id;
+$seo_title = 'Adapter SEO title ' . wp_generate_uuid4();
+$seo_description = 'Adapter SEO description for approve-and-execute smoke.';
+$seo_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/set-post-seo-meta',
+		'title'      => 'Adapter set-post-seo-meta approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one set-post-seo-meta proposal.',
+		'input'      => array(
+			'post_id'         => $seo_post_id,
+			'seo_title'       => $seo_title,
+			'seo_description' => $seo_description,
+			'dry_run'         => true,
+			'commit'          => false,
+		),
+		'preview'    => array(
+			'action'           => 'set_post_seo_meta',
+			'post_id'          => $seo_post_id,
+			'changed_fields'   => array( 'seo_title', 'seo_description' ),
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-set-post-seo-meta-approve-execute-smoke',
+		),
+	)
+);
+$seo_proposal_id = (string) ( $seo_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $seo_proposal_id;
+maa_adapter_smoke_assert( '' !== $seo_proposal_id, 'adapter creates set-post-seo-meta proposal for approve-and-execute smoke' );
+$seo_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $seo_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $seo_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending set-post-seo-meta proposal' );
+maa_adapter_smoke_assert( 'magick-ai/set-post-seo-meta' === (string) ( $seo_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-seo-meta ability id' );
+maa_adapter_smoke_assert( $seo_post_id === (int) ( $seo_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries SEO post id' );
+maa_adapter_smoke_assert( true === (bool) ( $seo_execute['execution']['result']['updated'] ?? false ), 'adapter set-post-seo-meta execution reports update' );
+maa_adapter_smoke_assert( $seo_title === (string) get_post_meta( $seo_post_id, '_yoast_wpseo_title', true ), 'adapter approve-and-execute writes SEO title meta' );
+maa_adapter_smoke_assert( $seo_description === (string) get_post_meta( $seo_post_id, '_yoast_wpseo_metadesc', true ), 'adapter approve-and-execute writes SEO description meta' );
+
+$empty_seo_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/set-post-seo-meta',
+		'title'      => 'Adapter empty set-post-seo-meta smoke',
+		'summary'    => 'Adapter must not execute set-post-seo-meta without SEO fields.',
+		'input'      => array(
+			'post_id' => $seo_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'  => 'set_post_seo_meta',
+			'post_id' => $seo_post_id,
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $empty_seo_proposal['status'], 'adapter proposal create rejects set-post-seo-meta without SEO fields' );
+
+$slug_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $slug_post_id;
+$slug = 'adapter-slug-smoke-' . substr( md5( wp_generate_uuid4() ), 0, 12 );
+$slug_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/set-post-slug',
+		'title'      => 'Adapter set-post-slug approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one set-post-slug proposal.',
+		'input'      => array(
+			'post_id' => $slug_post_id,
+			'slug'    => $slug,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'           => 'set_post_slug',
+			'post_id'          => $slug_post_id,
+			'slug'             => $slug,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-set-post-slug-approve-execute-smoke',
+		),
+	)
+);
+$slug_proposal_id = (string) ( $slug_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $slug_proposal_id;
+maa_adapter_smoke_assert( '' !== $slug_proposal_id, 'adapter creates set-post-slug proposal for approve-and-execute smoke' );
+$slug_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $slug_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $slug_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending set-post-slug proposal' );
+maa_adapter_smoke_assert( 'magick-ai/set-post-slug' === (string) ( $slug_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-slug ability id' );
+maa_adapter_smoke_assert( $slug_post_id === (int) ( $slug_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries slug post id' );
+maa_adapter_smoke_assert( $slug === (string) get_post_field( 'post_name', $slug_post_id ), 'adapter approve-and-execute writes post slug' );
+
+$empty_slug_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/set-post-slug',
+		'title'      => 'Adapter empty set-post-slug smoke',
+		'summary'    => 'Adapter must not execute set-post-slug without a valid slug.',
+		'input'      => array(
+			'post_id' => $slug_post_id,
+			'slug'    => '!!!',
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'  => 'set_post_slug',
+			'post_id' => $slug_post_id,
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $empty_slug_proposal['status'], 'adapter proposal create rejects set-post-slug without valid slug' );
+
 $set_terms_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $set_terms_post_id;
 $set_terms_term = wp_insert_term( 'Adapter Terms Smoke ' . wp_generate_uuid4(), 'post_tag' );
@@ -1509,6 +1634,151 @@ $create_missing_terms_proposal = maa_adapter_smoke_rest_result(
 	)
 );
 maa_adapter_smoke_assert( 400 === (int) $create_missing_terms_proposal['status'], 'adapter proposal create rejects set-post-terms create_missing' );
+
+$delete_term = wp_insert_term( 'Adapter Delete Term Smoke ' . wp_generate_uuid4(), 'post_tag' );
+maa_adapter_smoke_assert( ! is_wp_error( $delete_term ) && (int) ( $delete_term['term_id'] ?? 0 ) > 0, 'adapter smoke created delete-term fixture' );
+$delete_term_id = (int) $delete_term['term_id'];
+$maa_adapter_smoke_cleanup_terms[] = array(
+	'term_id'  => $delete_term_id,
+	'taxonomy' => 'post_tag',
+);
+$delete_term_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/delete-term',
+		'title'      => 'Adapter delete-term approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one delete-term proposal.',
+		'input'      => array(
+			'taxonomy' => 'post_tag',
+			'term_id'  => $delete_term_id,
+			'dry_run'  => true,
+			'commit'   => false,
+		),
+		'preview'    => array(
+			'action'           => 'delete_term',
+			'taxonomy'         => 'post_tag',
+			'term_id'          => $delete_term_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-delete-term-approve-execute-smoke',
+		),
+	)
+);
+$delete_term_proposal_id = (string) ( $delete_term_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $delete_term_proposal_id;
+maa_adapter_smoke_assert( '' !== $delete_term_proposal_id, 'adapter creates delete-term proposal for approve-and-execute smoke' );
+$delete_term_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $delete_term_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $delete_term_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending delete-term proposal' );
+maa_adapter_smoke_assert( 'magick-ai/delete-term' === (string) ( $delete_term_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries delete-term ability id' );
+maa_adapter_smoke_assert( false === (bool) ( $delete_term_execute['execution']['result']['dry_run'] ?? true ), 'adapter delete-term execution returns non-dry-run ability result' );
+maa_adapter_smoke_assert( true === (bool) ( $delete_term_execute['execution']['result']['deleted'] ?? false ), 'adapter delete-term execution reports deletion' );
+maa_adapter_smoke_assert( ! term_exists( $delete_term_id, 'post_tag' ), 'adapter approve-and-execute deletes unused term' );
+
+$empty_delete_term_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/delete-term',
+		'title'      => 'Adapter empty delete-term smoke',
+		'summary'    => 'Adapter must not execute delete-term without term_id.',
+		'input'      => array(
+			'taxonomy' => 'post_tag',
+			'dry_run'  => true,
+			'commit'   => false,
+		),
+		'preview'    => array(
+			'action'   => 'delete_term',
+			'taxonomy' => 'post_tag',
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $empty_delete_term_proposal['status'], 'adapter proposal create rejects delete-term without term_id' );
+
+$invalid_taxonomy_delete_term_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/delete-term',
+		'title'      => 'Adapter invalid taxonomy delete-term smoke',
+		'summary'    => 'Adapter must not execute delete-term without a valid taxonomy.',
+		'input'      => array(
+			'taxonomy' => 'adapter_missing_taxonomy',
+			'term_id'  => $delete_term_id,
+			'dry_run'  => true,
+			'commit'   => false,
+		),
+		'preview'    => array(
+			'action'   => 'delete_term',
+			'taxonomy' => 'adapter_missing_taxonomy',
+			'term_id'  => $delete_term_id,
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $invalid_taxonomy_delete_term_proposal['status'], 'adapter proposal create rejects delete-term invalid taxonomy' );
+
+$media_details_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
+$maa_adapter_smoke_cleanup_attachment_ids[] = $media_details_attachment_id;
+$media_details_title = 'Adapter media details smoke ' . wp_generate_uuid4();
+$media_details_alt = 'Adapter media details alt smoke.';
+$media_details_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/update-media-details',
+		'title'      => 'Adapter update-media-details approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one update-media-details proposal.',
+		'input'      => array(
+			'attachment_id' => $media_details_attachment_id,
+			'title'         => $media_details_title,
+			'alt'           => $media_details_alt,
+			'dry_run'       => true,
+			'commit'        => false,
+		),
+		'preview'    => array(
+			'action'           => 'update_media_details',
+			'attachment_id'    => $media_details_attachment_id,
+			'changed_fields'   => array( 'title', 'alt' ),
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-update-media-details-approve-execute-smoke',
+		),
+	)
+);
+$media_details_proposal_id = (string) ( $media_details_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $media_details_proposal_id;
+maa_adapter_smoke_assert( '' !== $media_details_proposal_id, 'adapter creates update-media-details proposal for approve-and-execute smoke' );
+$media_details_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $media_details_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $media_details_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending update-media-details proposal' );
+maa_adapter_smoke_assert( 'magick-ai/update-media-details' === (string) ( $media_details_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries update-media-details ability id' );
+maa_adapter_smoke_assert( $media_details_attachment_id === (int) ( $media_details_execute['execution']['result']['attachment_id'] ?? 0 ), 'adapter update-media-details execution result carries attachment id' );
+maa_adapter_smoke_assert( true === (bool) ( $media_details_execute['execution']['result']['updated'] ?? false ), 'adapter update-media-details execution reports update' );
+maa_adapter_smoke_assert( $media_details_title === (string) get_the_title( $media_details_attachment_id ), 'adapter approve-and-execute updates media title' );
+maa_adapter_smoke_assert( $media_details_alt === (string) get_post_meta( $media_details_attachment_id, '_wp_attachment_image_alt', true ), 'adapter approve-and-execute updates media alt text' );
+
+$empty_media_details_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/update-media-details',
+		'title'      => 'Adapter empty update-media-details smoke',
+		'summary'    => 'Adapter must not execute update-media-details without detail fields.',
+		'input'      => array(
+			'attachment_id' => $media_details_attachment_id,
+			'dry_run'       => true,
+			'commit'        => false,
+		),
+		'preview'    => array(
+			'action'        => 'update_media_details',
+			'attachment_id' => $media_details_attachment_id,
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $empty_media_details_proposal['status'], 'adapter proposal create rejects update-media-details without detail fields' );
 
 $reply_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $reply_post_id;
@@ -1634,17 +1904,72 @@ $empty_approve_comment_proposal = maa_adapter_smoke_rest_result(
 );
 maa_adapter_smoke_assert( 400 === (int) $empty_approve_comment_proposal['status'], 'adapter proposal create rejects approve-comment without comment_id' );
 
+$trash_comment_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $trash_comment_post_id;
+$trash_comment_id = maa_adapter_smoke_create_comment_fixture( $trash_comment_post_id, 'Adapter trash-comment smoke.' );
+$maa_adapter_smoke_cleanup_comment_ids[] = $trash_comment_id;
+$trash_comment_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-comment',
+		'title'      => 'Adapter trash-comment approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one trash-comment proposal.',
+		'input'      => array(
+			'comment_id' => $trash_comment_id,
+			'dry_run'    => true,
+			'commit'     => false,
+		),
+		'preview'    => array(
+			'action'           => 'trash_comment',
+			'comment_id'       => $trash_comment_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-trash-comment-approve-execute-smoke',
+		),
+	)
+);
+$trash_comment_proposal_id = (string) ( $trash_comment_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $trash_comment_proposal_id;
+maa_adapter_smoke_assert( '' !== $trash_comment_proposal_id, 'adapter creates trash-comment proposal for approve-and-execute smoke' );
+$trash_comment_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $trash_comment_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $trash_comment_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending trash-comment proposal' );
+maa_adapter_smoke_assert( 'magick-ai/trash-comment' === (string) ( $trash_comment_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries trash-comment ability id' );
+maa_adapter_smoke_assert( $trash_comment_post_id === (int) ( $trash_comment_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries trash-comment post id' );
+maa_adapter_smoke_assert( 'trash' === wp_get_comment_status( $trash_comment_id ), 'adapter approve-and-execute trashes comment' );
+
+$empty_trash_comment_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-comment',
+		'title'      => 'Adapter empty trash-comment smoke',
+		'summary'    => 'Adapter must not execute trash-comment without comment_id.',
+		'input'      => array(
+			'comment_id' => 0,
+			'dry_run'    => true,
+			'commit'     => false,
+		),
+		'preview'    => array(
+			'action'     => 'trash_comment',
+			'comment_id' => 0,
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $empty_trash_comment_proposal['status'], 'adapter proposal create rejects trash-comment without comment_id' );
+
 $unallowed_proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-seo-meta',
+		'ability_id' => 'magick-ai/set-post-author',
 		'title'      => 'Adapter unallowed approve execute smoke',
 		'summary'    => 'Adapter must not approve-and-execute non-allowlisted proposals.',
 		'input'      => array(
-			'post_id' => $blocked_post_id,
-			'seo_title' => 'Adapter unallowed approve execute smoke',
-			'seo_description' => 'Adapter unallowed approve execute smoke.',
+			'post_id'   => $blocked_post_id,
+			'author_id' => 1,
 			'dry_run'   => true,
 			'commit'    => false,
 		),

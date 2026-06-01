@@ -153,8 +153,11 @@ Run this order for a local acceptance pass:
     and per-action `results[]`.
 18. For lower-level approved proposal execution, use only the current
     `magick-ai/trash-post`, `magick-ai/create-draft`,
-    `magick-ai/update-post`, `magick-ai/set-post-terms`,
-    `magick-ai/reply-comment`, or `magick-ai/approve-comment` path and call
+    `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
+    `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
+    `magick-ai/delete-term`, `magick-ai/update-media-details`,
+    `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
+    `magick-ai/approve-comment` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
     preflight, passed `approval_context`, returned `proposal_id`,
     `correlation_id`, and `ability_id`, and did not execute pending or
