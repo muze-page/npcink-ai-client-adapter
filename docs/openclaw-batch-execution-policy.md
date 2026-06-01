@@ -79,6 +79,11 @@ profile entry plus the matching docs and smoke coverage. Abilities that are
 discoverable through Core or WordPress Abilities API but have no Adapter
 execution profile must fail closed.
 
+For profiled abilities, Adapter validates proposal input at `POST /proposals`
+before forwarding to Core. This validation rejects fields outside the profile
+input schema and invalid enum values, then reuses the same profile checks again
+at execution time for older or externally-created proposals.
+
 ## Batch Rules
 
 - Maximum batch size is 50 actions.

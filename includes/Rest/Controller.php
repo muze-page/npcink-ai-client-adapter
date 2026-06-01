@@ -60,6 +60,7 @@ final class Controller {
 	private static function execution_profiles(): array {
 		return array(
 			'magick-ai/trash-post'      => array(
+				'allowed_input_fields'  => array( 'post_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
 					'code'    => 'magick_ai_adapter_post_id_required',
 					'message' => __( 'trash-post execution input must include post_id.', 'magick-ai-adapter' ),
@@ -68,6 +69,19 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'magick-ai/create-draft'    => array(
+				'allowed_input_fields'  => array( 'post_type', 'status', 'title', 'content', 'content_format', 'excerpt', 'soft_block_reason', 'soft_block_summary', 'meta', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'status'         => array(
+						'allowed' => array( 'draft' ),
+						'code'    => 'magick_ai_adapter_input_enum_invalid',
+						'message' => __( 'create-draft status must be draft.', 'magick-ai-adapter' ),
+					),
+					'content_format' => array(
+						'allowed' => array( 'html', 'markdown', 'plain' ),
+						'code'    => 'magick_ai_adapter_content_format_invalid',
+						'message' => __( 'create-draft content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					),
+				),
 				'required_text_fields'  => array(
 					'title' => array(
 						'code'    => 'magick_ai_adapter_title_required',
@@ -77,6 +91,14 @@ final class Controller {
 				'post_id_from_result'   => true,
 			),
 			'magick-ai/update-post'     => array(
+				'allowed_input_fields'  => array( 'post_id', 'title', 'content', 'content_format', 'excerpt', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'content_format' => array(
+						'allowed' => array( 'html', 'markdown', 'plain' ),
+						'code'    => 'magick_ai_adapter_content_format_invalid',
+						'message' => __( 'update-post content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					),
+				),
 				'require_post_id'       => array(
 					'code'    => 'magick_ai_adapter_post_id_required',
 					'message' => __( 'update-post execution input must include post_id.', 'magick-ai-adapter' ),
@@ -89,6 +111,14 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'magick-ai/set-post-terms'  => array(
+				'allowed_input_fields'  => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'terms', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'mode' => array(
+						'allowed' => array( 'replace', 'append', 'remove' ),
+						'code'    => 'magick_ai_adapter_term_mode_invalid',
+						'message' => __( 'set-post-terms execution mode must be replace, append, or remove.', 'magick-ai-adapter' ),
+					),
+				),
 				'require_post_id'       => array(
 					'code'    => 'magick_ai_adapter_post_id_required',
 					'message' => __( 'set-post-terms execution input must include post_id.', 'magick-ai-adapter' ),
@@ -97,6 +127,14 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'magick-ai/reply-comment'   => array(
+				'allowed_input_fields'  => array( 'comment_id', 'content', 'content_format', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'content_format' => array(
+						'allowed' => array( 'html', 'markdown', 'plain' ),
+						'code'    => 'magick_ai_adapter_content_format_invalid',
+						'message' => __( 'reply-comment content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					),
+				),
 				'required_int_fields'   => array(
 					'comment_id' => array(
 						'code'    => 'magick_ai_adapter_comment_id_required',
@@ -107,14 +145,10 @@ final class Controller {
 					'code'    => 'magick_ai_adapter_comment_content_required',
 					'message' => __( 'reply-comment execution input must include content.', 'magick-ai-adapter' ),
 				),
-				'content_formats'       => array(
-					'allowed' => array( 'html', 'markdown', 'plain' ),
-					'code'    => 'magick_ai_adapter_content_format_invalid',
-					'message' => __( 'reply-comment content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
-				),
 				'post_id_from_result'   => true,
 			),
 			'magick-ai/approve-comment' => array(
+				'allowed_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'comment_id' => array(
 						'code'    => 'magick_ai_adapter_comment_id_required',
@@ -1851,17 +1885,43 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_proposal( WP_REST_Request $request ) {
-		$ability_id = (string) $request->get_param( 'ability_id' );
+		$ability_id  = (string) $request->get_param( 'ability_id' );
+		$input       = $this->object_param( $request, 'input' );
+		$valid_input = $this->validate_proposal_create_input( $ability_id, $input );
+		if ( is_wp_error( $valid_input ) ) {
+			return $valid_input;
+		}
+
 		$params = array(
 			'ability_id' => $ability_id,
 			'title'      => (string) $request->get_param( 'title' ),
 			'summary'    => (string) $request->get_param( 'summary' ),
-			'input'      => $this->object_param( $request, 'input' ),
+			'input'      => $input,
 			'preview'    => $this->object_param( $request, 'preview' ),
 			'caller'     => $this->proposal_caller_context( $request, $ability_id ),
 		);
 
 		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals', $params );
+	}
+
+	/**
+	 * Validates Adapter-owned proposal input before forwarding to Core.
+	 *
+	 * Only abilities with local execution profiles are validated here. Other
+	 * proposal-required abilities remain Core-owned at proposal creation time.
+	 *
+	 * @param string              $ability_id Ability id.
+	 * @param array<string,mixed> $input Proposal input.
+	 * @return true|WP_Error
+	 */
+	private function validate_proposal_create_input( string $ability_id, array $input ) {
+		$ability_id = sanitize_text_field( $ability_id );
+		$profiles   = self::execution_profiles();
+		if ( ! isset( $profiles[ $ability_id ] ) ) {
+			return true;
+		}
+
+		return $this->validate_execute_action_input( 'proposal_create', $ability_id, $input, absint( $input['post_id'] ?? 0 ) );
 	}
 
 	/**
@@ -2133,6 +2193,28 @@ final class Controller {
 		$profiles = self::execution_profiles();
 		$profile  = is_array( $profiles[ $ability_id ] ?? null ) ? $profiles[ $ability_id ] : array();
 
+		$allowed_input_fields = (array) ( $profile['allowed_input_fields'] ?? array() );
+		if ( ! empty( $allowed_input_fields ) ) {
+			foreach ( array_keys( $input ) as $field ) {
+				$field = (string) $field;
+				if ( in_array( $field, $allowed_input_fields, true ) ) {
+					continue;
+				}
+
+				return new WP_Error(
+					'magick_ai_adapter_ability_input_field_not_allowed',
+					__( 'Proposal input includes a field that is not allowed for this ability.', 'magick-ai-adapter' ),
+					array_merge(
+						$error_data,
+						array(
+							'field'                => $field,
+							'allowed_input_fields' => $allowed_input_fields,
+						)
+					)
+				);
+			}
+		}
+
 		$post_id_rule = is_array( $profile['require_post_id'] ?? null ) ? $profile['require_post_id'] : array();
 		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
 			return new WP_Error(
@@ -2152,6 +2234,32 @@ final class Controller {
 				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_text_missing' ),
 				(string) ( $rule['message'] ?? __( 'Execution input is missing a required text field.', 'magick-ai-adapter' ) ),
 				$error_data
+			);
+		}
+
+		foreach ( (array) ( $profile['enum_fields'] ?? array() ) as $field => $rule ) {
+			if ( ! array_key_exists( $field, $input ) ) {
+				continue;
+			}
+
+			$rule    = is_array( $rule ) ? $rule : array();
+			$value   = sanitize_key( (string) $input[ $field ] );
+			$allowed = (array) ( $rule['allowed'] ?? array() );
+			if ( in_array( $value, $allowed, true ) ) {
+				continue;
+			}
+
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'magick_ai_adapter_input_enum_invalid' ),
+				(string) ( $rule['message'] ?? __( 'Proposal input includes an invalid enum value.', 'magick-ai-adapter' ) ),
+				array_merge(
+					$error_data,
+					array(
+						'field'          => (string) $field,
+						'value'          => $value,
+						'allowed_values' => $allowed,
+					)
+				)
 			);
 		}
 

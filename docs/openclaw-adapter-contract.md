@@ -152,6 +152,13 @@ OpenClaw may use capability discovery to decide what can be proposed, but
 Adapter must use execution profiles to decide what can be executed after Core
 approval and commit-preflight.
 
+For abilities that have an Adapter execution profile, `POST /proposals` must
+validate the profile-owned input shape before forwarding to Core. That includes
+rejecting undeclared input fields and invalid enum values, so a proposal that
+Adapter would later execute cannot be created with obviously invalid execution
+input. For example, `magick-ai/update-post` does not accept `status`, and
+`magick-ai/create-draft` only accepts `status=draft`.
+
 For each execution request, Adapter must fetch the Core proposal, call Core
 commit-preflight, require `approval_commit_authorized=true`, require
 `commit_execution=false`, pass Core `approval_context` to WordPress Abilities

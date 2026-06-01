@@ -1055,7 +1055,7 @@ $updated_post = get_post( $update_post_id );
 maa_adapter_smoke_assert( is_object( $updated_post ) && 'Adapter updated post smoke' === (string) $updated_post->post_title, 'adapter approve-and-execute updates post title' );
 maa_adapter_smoke_assert( is_object( $updated_post ) && false !== strpos( (string) $updated_post->post_content, 'Adapter approved update-post execution smoke.' ), 'adapter approve-and-execute updates post content' );
 
-$empty_update_proposal = maa_adapter_smoke_rest(
+$empty_update_proposal = maa_adapter_smoke_rest_result(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
 	array(
@@ -1073,11 +1073,32 @@ $empty_update_proposal = maa_adapter_smoke_rest(
 		),
 	)
 );
-$empty_update_proposal_id = (string) ( $empty_update_proposal['proposal_id'] ?? '' );
-$maa_adapter_smoke_cleanup_proposal_ids[] = $empty_update_proposal_id;
-$empty_update_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $empty_update_proposal_id ) . '/approve-and-execute' );
-maa_adapter_smoke_assert( 400 === (int) $empty_update_execute['status'], 'adapter approve-and-execute rejects update-post without update fields' );
+maa_adapter_smoke_assert( 400 === (int) $empty_update_proposal['status'], 'adapter proposal create rejects update-post without update fields' );
 maa_adapter_smoke_assert( 'Adapter updated post smoke' === (string) get_the_title( $update_post_id ), 'adapter empty update-post rejection leaves post unchanged' );
+
+$invalid_update_status_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/update-post',
+		'title'      => 'Adapter invalid update-post status smoke',
+		'summary'    => 'Adapter must reject update-post proposal input with undeclared status.',
+		'input'      => array(
+			'post_id' => $update_post_id,
+			'title'   => 'Adapter invalid status should not apply',
+			'status'  => 'publish',
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'  => 'update_post',
+			'post_id' => $update_post_id,
+			'status'  => 'publish',
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $invalid_update_status_proposal['status'], 'adapter proposal create rejects update-post status input' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_ability_input_field_not_allowed' === (string) ( $invalid_update_status_proposal['data']['code'] ?? '' ), 'adapter update-post status rejection uses schema field error code' );
 
 $set_terms_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $set_terms_post_id;
@@ -1129,7 +1150,7 @@ maa_adapter_smoke_assert( false === (bool) ( $set_terms_execute['execution']['re
 $assigned_term_ids = wp_get_post_terms( $set_terms_post_id, 'post_tag', array( 'fields' => 'ids' ) );
 maa_adapter_smoke_assert( ! is_wp_error( $assigned_term_ids ) && in_array( $set_terms_term_id, array_map( 'intval', (array) $assigned_term_ids ), true ), 'adapter approve-and-execute assigns existing post term' );
 
-$empty_terms_proposal = maa_adapter_smoke_rest(
+$empty_terms_proposal = maa_adapter_smoke_rest_result(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
 	array(
@@ -1149,12 +1170,9 @@ $empty_terms_proposal = maa_adapter_smoke_rest(
 		),
 	)
 );
-$empty_terms_proposal_id = (string) ( $empty_terms_proposal['proposal_id'] ?? '' );
-$maa_adapter_smoke_cleanup_proposal_ids[] = $empty_terms_proposal_id;
-$empty_terms_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $empty_terms_proposal_id ) . '/approve-and-execute' );
-maa_adapter_smoke_assert( 400 === (int) $empty_terms_execute['status'], 'adapter approve-and-execute rejects set-post-terms without terms' );
+maa_adapter_smoke_assert( 400 === (int) $empty_terms_proposal['status'], 'adapter proposal create rejects set-post-terms without terms' );
 
-$create_missing_terms_proposal = maa_adapter_smoke_rest(
+$create_missing_terms_proposal = maa_adapter_smoke_rest_result(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
 	array(
@@ -1177,10 +1195,7 @@ $create_missing_terms_proposal = maa_adapter_smoke_rest(
 		),
 	)
 );
-$create_missing_terms_proposal_id = (string) ( $create_missing_terms_proposal['proposal_id'] ?? '' );
-$maa_adapter_smoke_cleanup_proposal_ids[] = $create_missing_terms_proposal_id;
-$create_missing_terms_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $create_missing_terms_proposal_id ) . '/approve-and-execute' );
-maa_adapter_smoke_assert( 400 === (int) $create_missing_terms_execute['status'], 'adapter approve-and-execute rejects set-post-terms create_missing' );
+maa_adapter_smoke_assert( 400 === (int) $create_missing_terms_proposal['status'], 'adapter proposal create rejects set-post-terms create_missing' );
 
 $reply_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $reply_post_id;
@@ -1227,7 +1242,7 @@ maa_adapter_smoke_assert( $reply_comment instanceof WP_Comment, 'adapter approve
 maa_adapter_smoke_assert( $reply_parent_comment_id === (int) ( $reply_comment->comment_parent ?? 0 ), 'adapter reply-comment uses original comment as parent' );
 maa_adapter_smoke_assert( $reply_post_id === (int) ( $reply_comment->comment_post_ID ?? 0 ), 'adapter reply-comment stays on original post' );
 
-$empty_reply_proposal = maa_adapter_smoke_rest(
+$empty_reply_proposal = maa_adapter_smoke_rest_result(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
 	array(
@@ -1246,10 +1261,7 @@ $empty_reply_proposal = maa_adapter_smoke_rest(
 		),
 	)
 );
-$empty_reply_proposal_id = (string) ( $empty_reply_proposal['proposal_id'] ?? '' );
-$maa_adapter_smoke_cleanup_proposal_ids[] = $empty_reply_proposal_id;
-$empty_reply_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $empty_reply_proposal_id ) . '/approve-and-execute' );
-maa_adapter_smoke_assert( 400 === (int) $empty_reply_execute['status'], 'adapter approve-and-execute rejects reply-comment without content' );
+maa_adapter_smoke_assert( 400 === (int) $empty_reply_proposal['status'], 'adapter proposal create rejects reply-comment without content' );
 
 $approve_comment_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approve_comment_post_id;
@@ -1289,7 +1301,7 @@ maa_adapter_smoke_assert( false === (bool) ( $approve_comment_execute['execution
 maa_adapter_smoke_assert( true === (bool) ( $approve_comment_execute['execution']['result']['updated'] ?? false ), 'adapter approve-comment execution reports update' );
 maa_adapter_smoke_assert( 'approved' === wp_get_comment_status( $approve_comment_id ), 'adapter approve-and-execute approves pending comment' );
 
-$empty_approve_comment_proposal = maa_adapter_smoke_rest(
+$empty_approve_comment_proposal = maa_adapter_smoke_rest_result(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
 	array(
@@ -1307,10 +1319,7 @@ $empty_approve_comment_proposal = maa_adapter_smoke_rest(
 		),
 	)
 );
-$empty_approve_comment_proposal_id = (string) ( $empty_approve_comment_proposal['proposal_id'] ?? '' );
-$maa_adapter_smoke_cleanup_proposal_ids[] = $empty_approve_comment_proposal_id;
-$empty_approve_comment_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $empty_approve_comment_proposal_id ) . '/approve-and-execute' );
-maa_adapter_smoke_assert( 400 === (int) $empty_approve_comment_execute['status'], 'adapter approve-and-execute rejects approve-comment without comment_id' );
+maa_adapter_smoke_assert( 400 === (int) $empty_approve_comment_proposal['status'], 'adapter proposal create rejects approve-comment without comment_id' );
 
 $unallowed_proposal = maa_adapter_smoke_rest(
 	'POST',

@@ -493,6 +493,9 @@ Write or destructive abilities:
 Adapter derives the execution allowlist from its local execution profile registry.
 Capability discovery may show more proposal-required abilities, but
 only abilities with an Adapter execution profile can run final writes.
+For profiled abilities, Adapter also validates proposal input at
+`POST /proposals`, rejecting undeclared fields and invalid enum values before
+the proposal is sent to Core.
 
 ## Non-Goals
 
