@@ -24,6 +24,8 @@ final class Plugin {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_page' ), 20 );
 		add_action( 'admin_post_magick_ai_adapter_create_openclaw_password', array( $this, 'handle_create_openclaw_password' ) );
+		add_action( 'admin_post_magick_ai_adapter_pairing_decision', array( $this, 'handle_pairing_decision' ) );
+		add_action( 'admin_post_magick_ai_adapter_revoke_client_key', array( $this, 'handle_revoke_client_key' ) );
 	}
 
 	/**
@@ -54,5 +56,25 @@ final class Plugin {
 	public function handle_create_openclaw_password(): void {
 		$page = new Admin\Connection_Page();
 		$page->handle_create_openclaw_password();
+	}
+
+	/**
+	 * Handles device pairing approval or rejection.
+	 *
+	 * @return void
+	 */
+	public function handle_pairing_decision(): void {
+		$page = new Admin\Connection_Page();
+		$page->handle_pairing_decision();
+	}
+
+	/**
+	 * Handles client key revocation.
+	 *
+	 * @return void
+	 */
+	public function handle_revoke_client_key(): void {
+		$page = new Admin\Connection_Page();
+		$page->handle_revoke_client_key();
 	}
 }

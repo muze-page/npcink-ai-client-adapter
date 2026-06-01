@@ -43,7 +43,7 @@ The adapter executes those reads through:
 /wp-json/wp-abilities/v1/abilities/{ability_id}/run
 ```
 
-It does not execute abilities marked `proposal_required`.
+The read path does not execute abilities marked `proposal_required`.
 
 ## Read-Only Planning Contract
 
@@ -90,16 +90,23 @@ loop:
 POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
-For a pending `magick-ai/trash-post` proposal, Adapter fetches the proposal
-from Core, calls Core approve, calls Core commit-preflight, verifies Core's
-approval context and executable preflight result, then executes one WordPress
-Abilities API call. For an already approved proposal, Adapter skips only the
-Core approve step and still runs commit-preflight before execution.
+For a pending `magick-ai/trash-post`, `magick-ai/create-draft`,
+`magick-ai/update-post`, `magick-ai/set-post-terms`,
+`magick-ai/reply-comment`, or `magick-ai/approve-comment` proposal, Adapter
+fetches the proposal from Core,
+calls Core approve, calls Core commit-preflight, verifies Core's approval
+context and executable preflight result, then executes one WordPress Abilities
+API call. For an already approved proposal, Adapter skips only the Core approve
+step and still runs commit-preflight before execution.
 
-The execution input may be either top-level `proposal.input.post_id` or a
-bounded `proposal.input.write_actions[]` batch. Batch V1 only accepts actions
-whose `target_ability_id` is `magick-ai/trash-post` and whose
-`input.post_id` is present. See
+The execution input may be either top-level `proposal.input` for an allowlisted
+ability or a bounded `proposal.input.write_actions[]` batch. `trash-post`
+requires `post_id`; `create-draft` requires `title`; `update-post` requires
+`post_id` plus at least one of `title`, `content`, or `excerpt`;
+`set-post-terms` requires `post_id`, a valid `taxonomy`, `mode`, and
+`term_ids` or `terms`, and does not create missing terms; `reply-comment`
+requires `comment_id`, non-empty `content`, and a valid `content_format`;
+`approve-comment` requires `comment_id`. See
 [`openclaw-batch-execution-policy.md`](openclaw-batch-execution-policy.md).
 
 The response must include `proposal_id`, `post_id`, `ability_id`,
@@ -120,10 +127,37 @@ POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
 The current allowlist is intentionally narrow:
 
 - `magick-ai/trash-post`
+- `magick-ai/create-draft`
+- `magick-ai/update-post`
+- `magick-ai/set-post-terms`
+- `magick-ai/reply-comment`
+- `magick-ai/approve-comment`
 
-The allowlist applies to both single-post execution and each
+The allowlist applies to both single-ability execution and each
 `write_actions[]` item. A batch containing any non-allowlisted action fails
 closed and executes no actions.
+
+The allowlist is derived from Adapter's local execution profile registry, not
+from capability discovery alone. Each profile entry is an explicit opt-in for
+final WordPress writes and must define the Adapter-owned execution shape:
+
+- ability id;
+- required input checks such as `post_id`, `comment_id`, or `title`;
+- ability-specific guards such as term taxonomy/mode validation;
+- whether execution input must be rebuilt before dispatch;
+- whether `post_id` should be read back from the ability result;
+- smoke coverage for both the success path and Adapter-owned rejection paths.
+
+OpenClaw may use capability discovery to decide what can be proposed, but
+Adapter must use execution profiles to decide what can be executed after Core
+approval and commit-preflight.
+
+For abilities that have an Adapter execution profile, `POST /proposals` must
+validate the profile-owned input shape before forwarding to Core. That includes
+rejecting undeclared input fields and invalid enum values, so a proposal that
+Adapter would later execute cannot be created with obviously invalid execution
+input. For example, `magick-ai/update-post` does not accept `status`, and
+`magick-ai/create-draft` only accepts `status=draft`.
 
 For each execution request, Adapter must fetch the Core proposal, call Core
 commit-preflight, require `approval_commit_authorized=true`, require
@@ -131,12 +165,25 @@ commit-preflight, require `approval_commit_authorized=true`, require
 API, and return `proposal_id`, `correlation_id`, and `ability_id` with the
 ability result.
 
+Within one approved `write_actions[]` batch, Adapter may resolve exact output
+references in action input values:
+
+```text
+$outputs.<prior_action_id>.<field>
+```
+
+References are evaluated only in memory while executing that batch, must point
+to an earlier action in the same proposal, and must occupy the whole input
+value. Output references cannot be embedded into larger strings. Adapter does
+not persist run state, evaluate expressions, branch, loop, or resolve
+references across proposals.
+
 Adapter must not generate its own approval state, skip Core commit-preflight,
 skip `approval_context`, execute unapproved proposals outside the unified
 action, execute preflight failures, or batch silently execute destructive
-actions. Future execution abilities must be added one by one to the allowlist
-with dedicated smoke coverage; Adapter must not become a generic proxy-execute
-surface.
+actions. Future execution abilities must be added as explicit Adapter execution
+profile entries with dedicated smoke coverage; Adapter must not become a
+generic proxy-execute surface.
 
 ## AI Request Log Correlation
 
@@ -451,30 +498,59 @@ the local PoC. Narrower adapter identity and scope can be added after the first
 product flow is proven.
 
 The Magick AI Adapter admin page may display endpoint URLs, health state,
-example requests, and a handoff prompt. It may create a normal WordPress
-Application Password for the current administrator and show the raw password
-once in a handoff page. It must not store raw Application Passwords in adapter
-options, create Core app keys, persist connection state, approve proposals, or
-change Core/Abilities ownership.
+example requests, a non-secret connection manifest, and a handoff prompt. It
+may create a normal WordPress Application Password for the current
+administrator and show the raw password once in the browser. It must not store
+raw secrets in adapter options, manifest JSON, handoff text,
+example curl commands, files, logs, proposal payloads, create Core app keys,
+persist connection state, approve proposals, or change Core/Abilities ownership.
 
 ## Application Password Handoff
 
 Handoff data:
 
-- WordPress site URL.
+- `connection_id`, such as `local-wordpress`.
 - Adapter base URL.
 - WordPress username for the dedicated OpenClaw account.
-- Application Password delivered through an approved secret channel.
+- Auth type `wordpress_application_password`.
+- Application Password UUID.
+- Health, help, and capabilities URLs.
+- A note that the Application Password must be stored through OpenClaw's
+  dedicated secret field or credential vault, not chat, tools, files, logs,
+  proposal payloads, or copied handoff text.
 
 For the current LocalWP development site only, the WordPress administrator
 browser login is username `1` and password `1`. This local-only password is for
 admin browser access and Application Password creation; OpenClaw REST
 configuration should use a dedicated Application Password.
 
+If OpenClaw does not expose a credential store or import endpoint, paste the
+Application Password only into OpenClaw's dedicated secret field. Do not paste
+it into chat.
+
+Local credential brokers should use key-pair device pairing instead of browser
+secret handling:
+
+```text
+GET  /wp-json/magick-ai-adapter/v1/connection/manifest
+POST /wp-json/magick-ai-adapter/v1/connect/device/start
+POST /wp-json/magick-ai-adapter/v1/connect/device/poll
+GET  /wp-json/magick-ai-adapter/v1/connection/key-pairs
+```
+
+`/connect/device/start` accepts public client metadata and an Ed25519 public
+key. The WordPress admin approval page binds that public key to the approving
+administrator. `/connect/device/poll` returns connection metadata after
+approval. It never returns a WordPress Application Password or private key.
+
+Signed Adapter requests use the `Magick-AI-Adapter-V1` canonical request and
+`X-Magick-*` signing headers documented in
+`docs/keypair-device-pairing-contract.md`.
+
 OpenClaw must use WordPress REST Basic Auth:
 
 ```text
-Authorization: Basic base64(username:application_password)
+Authorization: Basic base64(username:<openclaw-secret-field-value>)
 ```
 
 Connection check order:
@@ -509,7 +585,10 @@ OpenClaw must treat Core as the only proposal and approval truth:
 6. If using the lower-level split path and `status=approved`, call
    `POST /proposals/{proposal_id}/commit-preflight`.
 7. Stop at the returned Core preflight decision unless the ability is
-   allowlisted for Adapter execution, currently only `magick-ai/trash-post`.
+   allowlisted for Adapter execution, currently `magick-ai/trash-post`,
+   `magick-ai/create-draft`, `magick-ai/update-post`,
+   `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+   `magick-ai/approve-comment`.
 
 Adapter invariants:
 
@@ -525,9 +604,16 @@ Adapter invariants:
 - It keeps Core as the approval, preflight, and audit truth source.
 
 For read-only planning abilities, OpenClaw may instead send the returned plan
-to `POST /proposals/from-plan`. Adapter only forwards the plan to Core and
-preserves Core's result; Core owns plan intake, proposal creation, blocked
-items, approval state, and audit truth.
+to `POST /proposals/from-plan`. Adapter only forwards the plan to Core after it
+has applied Adapter-owned schema checks to profiled `plan.write_actions[]`
+inputs. Invalid profiled action input returns
+`magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` and no
+Core proposal creation. Exact `$outputs.<prior_action_id>.<field>` references
+are accepted only when they point to an earlier action in the same plan, then
+resolved and revalidated during approved batch execution. Embedded `$outputs.`
+tokens and duplicate plan action ids fail closed before Core forwarding. Core
+still owns plan intake, proposal creation, remaining blocked items, approval
+state, and audit truth.
 
 Future standalone approval or rejection proxying is out of this default
 contract. It may only be added as a separate explicit trusted-host policy and

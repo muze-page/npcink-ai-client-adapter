@@ -57,7 +57,9 @@ may still be used by developers for direct governance testing, but productized
 OpenClaw setup starts at Adapter.
 
 Authentication uses a dedicated WordPress Application Password over WordPress
-REST Basic Auth. Adapter must not store the raw Application Password.
+REST Basic Auth. Adapter must not store the raw Application Password, and
+OpenClaw setup must use the non-secret connection manifest plus a dedicated
+secret field or credential vault for the password.
 
 ## Acceptance Flow
 
@@ -65,18 +67,25 @@ Run this order for a local acceptance pass:
 
 1. Create or confirm a dedicated Application Password from
    `Magick AI -> Adapter`.
-2. Call `GET /health`.
-3. Require these health values:
+2. Copy the non-secret connection manifest to OpenClaw and paste the Application
+   Password only into OpenClaw's dedicated secret field. Do not paste it into
+   chat, tool commands, logs, proposal payloads, files, or copied handoff text.
+3. Call `GET /health`.
+4. Require these health values:
    - `core_capabilities=true`
    - `abilities_catalog=true`
    - `approval_proxy_enabled=false`
    - `approval_surface=magick_ai_core_admin`
    - `core_proxy_execute=false`
    - `commit_execution=false`
-4. Call `GET /help` and confirm route discovery includes:
+5. Call `GET /help` and confirm route discovery includes:
    - flat `routes[]` rows with `method`, `path`, `purpose`, and `group`
    - `GET /proposals`
    - `GET /proposals/{proposal_id}`
+   - `GET /connection/manifest`
+   - `POST /connect/device/start`
+   - `POST /connect/device/poll`
+   - `GET /connection/key-pairs`
    - `POST /proposals/from-plan`
    - `POST /proposals/{proposal_id}/execute`
    - `POST /proposals/{proposal_id}/approve-and-execute`
@@ -85,13 +94,13 @@ Run this order for a local acceptance pass:
    - `route_groups` for human-readable grouped route labels
    - disabled approval and rejection stubs
    - direct-read shortcuts
-5. Call `GET /capabilities` and use only real `ability_id` values returned by
+6. Call `GET /capabilities` and use only real `ability_id` values returned by
    Core guidance.
-6. Run at least one direct-read shortcut:
+7. Run at least one direct-read shortcut:
    - `GET /site-info`
    - `GET /site-summary`
    - `GET /media?per_page=1`
-7. Run at least one diagnostics shortcut:
+8. Run at least one diagnostics shortcut:
    - `GET /active-plugins-detail`
    - `GET /plugin-conflict-diagnostics` when testing plugin conflicts
    - `GET /current-user-permissions`
@@ -113,54 +122,56 @@ Run this order for a local acceptance pass:
    When log inspection is explicitly requested, call
    `GET /recent-error-log-tail` and display `error_log.tail_entries` plus
    `error_log.summary.by_severity`.
-8. Create a governed write proposal with `POST /proposals`.
-9. Run a planning ability such as
+9. Create a governed write proposal with `POST /proposals`.
+10. Run a planning ability such as
    `magick-ai/build-content-inventory-fix-plan`,
    `magick-ai/build-test-content-cleanup-plan`, or
    `magick-ai/build-media-inventory-fix-plan`. Confirm Adapter preserves
    `write_actions`, `preview`, `risk`, `requires_approval`,
    `commit_execution=false`, and `dry_run=true`, and does not treat
    `write_actions` or destructive candidates as executed work.
-10. If a plan should become proposals, call `POST /proposals/from-plan` and
+11. If a plan should become proposals, call `POST /proposals/from-plan` and
     confirm Adapter preserves Core's `proposal_count`, `proposals`,
     `blocked_items`, and `commit_execution=false` result.
-11. Query status through Adapter:
+12. Query status through Adapter:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`
-12. For split-path coverage, approve or reject one pending proposal in
+13. For split-path coverage, approve or reject one pending proposal in
     `Magick AI -> Core`.
-13. If rejected, OpenClaw stops and shows the Core status.
-14. If approved, call `POST /proposals/{proposal_id}/commit-preflight`.
-15. Confirm Core still returns `commit_execution=false`.
-16. For the unified user action, call
+14. If rejected, OpenClaw stops and shows the Core status.
+15. If approved, call `POST /proposals/{proposal_id}/commit-preflight`.
+16. Confirm Core still returns `commit_execution=false`.
+17. For the unified user action, call
     `POST /proposals/{proposal_id}/approve-and-execute` from Adapter/OpenClaw.
     Confirm Adapter approved through Core when status was pending, ran Core
     commit-preflight, returned `proposal_id`, `post_id`, `ability_id`, and
     `correlation_id`, and moved the test post to `trash`.
     For batch plan-shaped proposals, confirm `input.write_actions[]` executes
-    only when every item targets `magick-ai/trash-post`, includes
-    `input.post_id`, and passes Core preflight. Confirm the response includes
+    only when every item targets the Adapter execution allowlist and passes
+    ability-specific input checks. Confirm the response includes
     `execution_mode=batch_write_actions`, `executed_count`, `failed_count`,
     and per-action `results[]`.
-17. For lower-level approved proposal execution, use only the current
-    `magick-ai/trash-post` path and call
+18. For lower-level approved proposal execution, use only the current
+    `magick-ai/trash-post`, `magick-ai/create-draft`,
+    `magick-ai/update-post`, `magick-ai/set-post-terms`,
+    `magick-ai/reply-comment`, or `magick-ai/approve-comment` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
     preflight, passed `approval_context`, returned `proposal_id`,
     `correlation_id`, and `ability_id`, and did not execute pending or
     preflight-failed proposals.
-18. Confirm rejected proposals, non-allowlisted proposals, and preflight-blocked
+19. Confirm rejected proposals, non-allowlisted proposals, and preflight-blocked
     proposals do not execute through approve-and-execute.
-19. Pass `proposal_id` and `correlation_id` into later reads as query fields or
+20. Pass `proposal_id` and `correlation_id` into later reads as query fields or
     as POST `/run-read-ability` `log_context`.
-20. Call `POST /ai-provider-log-correlation-smoke` with a configured text
+21. Call `POST /ai-provider-log-correlation-smoke` with a configured text
     generation provider/model. Local examples use `ai_provider=ollama` and
     `ai_model=qwen3.5:0.8b` when that model is available; otherwise use the
     provider/model returned by `GET /ai/v1/providers?capability=text_generation`.
-21. Confirm the AI Request Logs row has `status=success` and context fields:
+22. Confirm the AI Request Logs row has `status=success` and context fields:
     `proposal_id`, `correlation_id`, `ability_id`, `adapter_request_id`,
     `adapter_route`, `ai_provider`, `ai_model`,
     `governance_source=magick-ai-core`, and nested `magick_ai_core`.
-22. Confirm correlation in:
+23. Confirm correlation in:
     - Core Governance Audit, filtered by `proposal_id` or `correlation_id`;
     - AI Request Logs, using Adapter context fields.
 
@@ -169,35 +180,35 @@ Run this order for a local acceptance pass:
 Health:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/health"
 ```
 
 Capabilities:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/capabilities"
 ```
 
 Direct read:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info"
 ```
 
 Diagnostics read:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/active-plugins-detail"
 ```
 
 Create proposal:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"ability_id":"magick-ai/create-draft","title":"OpenClaw draft acceptance","summary":"OpenClaw requests a governed draft proposal during acceptance.","input":{"title":"OpenClaw acceptance draft","dry_run":true,"commit":false},"preview":{"dry_run":true,"commit":false},"caller":{"external_thread_id":"OPENCLAW_ACCEPTANCE_THREAD"}}' \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals"
@@ -206,7 +217,7 @@ curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
 Create proposals from a read-only plan:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"plan_ability_id":"magick-ai/build-content-inventory-fix-plan","plan":{"batch_id":"acceptance","issue_types":[],"requires_approval":true,"commit_execution":false,"dry_run":true,"action_count":0,"write_actions":[],"preview":[],"risk":{"level":"medium"}},"plan_input":{"per_page":1},"caller":{"external_thread_id":"OPENCLAW_ACCEPTANCE_THREAD"}}' \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/from-plan"
@@ -215,14 +226,14 @@ curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
 Query proposal status:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID"
 ```
 
 Commit preflight after Core approval:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -X POST \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/commit-preflight"
 ```
@@ -230,7 +241,7 @@ curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
 Correlation read:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
 ```
 
@@ -315,8 +326,8 @@ OpenClaw consumer acceptance is complete when:
   `ai_model` sent to the provider smoke even if the provider column is blank;
 - disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
   proposal state;
-- plan `write_actions` are executed only through the accepted
-  `magick-ai/trash-post` batch policy after Core approval and preflight;
+- plan `write_actions` are executed only through the accepted allowlisted batch
+  policy after Core approval and preflight;
 - `skipped_destructive_candidates` are never reported as Adapter-executed
   mutations;
 - `commit_execution=false` remains true at preflight;

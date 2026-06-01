@@ -22,6 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Controller {
 	const NAMESPACE = 'magick-ai-adapter/v1';
 	const MAX_EXECUTION_ACTIONS = 50;
+	const DEVICE_PAIRING_OPTION = 'magick_ai_adapter_device_pairings';
+	const CLIENT_KEYS_OPTION    = 'magick_ai_adapter_client_keys';
+	const DEVICE_PAIRING_TTL    = 600;
+	const SIGNATURE_NONCE_TTL   = 300;
 
 	/**
 	 * Current request log context while an ability is running.
@@ -45,13 +49,125 @@ final class Controller {
 	);
 
 	/**
-	 * Abilities this adapter may execute after Core approval and commit preflight.
+	 * Returns Adapter-owned execution profiles for abilities that may run after
+	 * Core approval and commit preflight.
 	 *
-	 * @var array<string,bool>
+	 * Discovery tells Adapter which abilities exist; this registry is the
+	 * explicit opt-in policy for final WordPress writes.
+	 *
+	 * @return array<string,array<string,mixed>>
 	 */
-	private static $allowed_execute_ability_ids = array(
-		'magick-ai/trash-post' => true,
-	);
+	private static function execution_profiles(): array {
+		return array(
+			'magick-ai/trash-post'      => array(
+				'allowed_input_fields'  => array( 'post_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'trash-post execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'force_post_input'      => true,
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/create-draft'    => array(
+				'allowed_input_fields'  => array( 'post_type', 'status', 'title', 'content', 'content_format', 'excerpt', 'soft_block_reason', 'soft_block_summary', 'meta', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'status'         => array(
+						'allowed' => array( 'draft' ),
+						'code'    => 'magick_ai_adapter_input_enum_invalid',
+						'message' => __( 'create-draft status must be draft.', 'magick-ai-adapter' ),
+					),
+					'content_format' => array(
+						'allowed' => array( 'html', 'markdown', 'plain' ),
+						'code'    => 'magick_ai_adapter_content_format_invalid',
+						'message' => __( 'create-draft content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					),
+				),
+				'required_text_fields'  => array(
+					'title' => array(
+						'code'    => 'magick_ai_adapter_title_required',
+						'message' => __( 'create-draft execution input must include title.', 'magick-ai-adapter' ),
+					),
+				),
+				'post_id_from_result'   => true,
+			),
+			'magick-ai/update-post'     => array(
+				'allowed_input_fields'  => array( 'post_id', 'title', 'content', 'content_format', 'excerpt', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'content_format' => array(
+						'allowed' => array( 'html', 'markdown', 'plain' ),
+						'code'    => 'magick_ai_adapter_content_format_invalid',
+						'message' => __( 'update-post content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					),
+				),
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'update-post execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'title', 'content', 'excerpt' ),
+					'code'    => 'magick_ai_adapter_update_fields_required',
+					'message' => __( 'update-post execution input must include title, content, or excerpt.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/set-post-terms'  => array(
+				'allowed_input_fields'  => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'terms', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'mode' => array(
+						'allowed' => array( 'replace', 'append', 'remove' ),
+						'code'    => 'magick_ai_adapter_term_mode_invalid',
+						'message' => __( 'set-post-terms execution mode must be replace, append, or remove.', 'magick-ai-adapter' ),
+					),
+				),
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'set-post-terms execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'validate_terms_input'  => true,
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/reply-comment'   => array(
+				'allowed_input_fields'  => array( 'comment_id', 'content', 'content_format', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'content_format' => array(
+						'allowed' => array( 'html', 'markdown', 'plain' ),
+						'code'    => 'magick_ai_adapter_content_format_invalid',
+						'message' => __( 'reply-comment content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					),
+				),
+				'required_int_fields'   => array(
+					'comment_id' => array(
+						'code'    => 'magick_ai_adapter_comment_id_required',
+						'message' => __( 'reply-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'require_comment_body'  => array(
+					'code'    => 'magick_ai_adapter_comment_content_required',
+					'message' => __( 'reply-comment execution input must include content.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => true,
+			),
+			'magick-ai/approve-comment' => array(
+				'allowed_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'required_int_fields'   => array(
+					'comment_id' => array(
+						'code'    => 'magick_ai_adapter_comment_id_required',
+						'message' => __( 'approve-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'post_id_from_result'   => true,
+			),
+		);
+	}
+
+	/**
+	 * Returns ability ids this adapter may execute after Core approval.
+	 *
+	 * @return array<int,string>
+	 */
+	private static function allowed_execute_ability_ids(): array {
+		return array_keys( self::execution_profiles() );
+	}
 
 	/**
 	 * Registers REST routes.
@@ -90,6 +206,66 @@ final class Controller {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'capabilities' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connection/manifest',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'connection_manifest' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connect/device/start',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'start_device_pairing' ),
+					'permission_callback' => '__return_true',
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connect/device/poll',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'poll_device_pairing' ),
+					'permission_callback' => '__return_true',
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connection/key-pairs',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_client_keys' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/connection/key-pairs/(?P<key_id>mk_[A-Za-z0-9_-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'revoke_client_key' ),
 					'permission_callback' => array( $this, 'can_use_adapter' ),
 				),
 			)
@@ -430,10 +606,746 @@ final class Controller {
 	/**
 	 * Authorizes adapter use.
 	 *
+	 * @param WP_REST_Request|null $request Request.
 	 * @return bool
 	 */
-	public function can_use_adapter(): bool {
-		return current_user_can( 'manage_options' );
+	public function can_use_adapter( ?WP_REST_Request $request = null ): bool {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		return $request instanceof WP_REST_Request && $this->authenticate_signed_request( $request );
+	}
+
+	/**
+	 * Returns the non-secret local broker connection manifest.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function connection_manifest(): WP_REST_Response {
+		return new WP_REST_Response( $this->connection_manifest_payload( get_current_user_id() ), 200 );
+	}
+
+	/**
+	 * Starts a public-key device pairing session.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function start_device_pairing( WP_REST_Request $request ) {
+		$body = $this->request_json_body( $request );
+		if ( is_wp_error( $body ) ) {
+			return $body;
+		}
+
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_sodium_unavailable',
+				__( 'Ed25519 device pairing requires the PHP sodium extension.', 'magick-ai-adapter' ),
+				array( 'status' => 501 )
+			);
+		}
+
+		$client = is_array( $body['client'] ?? null ) ? $body['client'] : array();
+		$key    = is_array( $body['key'] ?? null ) ? $body['key'] : array();
+		$name   = sanitize_text_field( (string) ( $client['name'] ?? '' ) );
+		$public_key = sanitize_text_field( (string) ( $key['public_key'] ?? '' ) );
+		$scopes = $this->connection_requested_scopes( is_array( $body['requested_scopes'] ?? null ) ? $body['requested_scopes'] : array() );
+
+		if ( '' === $name || 'Ed25519' !== (string) ( $key['alg'] ?? '' ) || 32 !== strlen( $this->base64url_decode( $public_key ) ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_device_pairing_invalid',
+				__( 'Device pairing requires client metadata and a base64url Ed25519 public key.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$device_code = 'dev_' . $this->base64url_encode( random_bytes( 32 ) );
+		$user_code   = strtoupper( substr( $this->base64url_encode( random_bytes( 5 ) ), 0, 4 ) . '-' . substr( $this->base64url_encode( random_bytes( 5 ) ), 0, 4 ) );
+		$expires_at  = time() + self::DEVICE_PAIRING_TTL;
+		$pairings    = $this->device_pairings();
+		$fingerprint = 'sha256:' . hash( 'sha256', $this->canonical_json( array( 'alg' => 'Ed25519', 'public_key' => $public_key ) ) );
+		$pairings[ $user_code ] = array(
+			'user_code'        => $user_code,
+			'device_code_hash' => hash( 'sha256', $device_code ),
+			'status'           => 'pending',
+			'client'           => array(
+				'name'           => $name,
+				'device_name'    => sanitize_text_field( (string) ( $client['device_name'] ?? '' ) ),
+				'broker'         => sanitize_text_field( (string) ( $client['broker'] ?? '' ) ),
+				'broker_version' => sanitize_text_field( (string) ( $client['broker_version'] ?? '' ) ),
+			),
+			'key'              => array(
+				'alg'         => 'Ed25519',
+				'public_key'  => $public_key,
+				'fingerprint' => $fingerprint,
+			),
+			'scopes'           => $scopes,
+			'created_at'       => gmdate( 'c' ),
+			'expires_at'       => $expires_at,
+		);
+		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
+
+		$verification_uri = admin_url( 'admin.php?page=magick-ai-adapter-pair' );
+
+		return new WP_REST_Response(
+			array(
+				'device_code'               => $device_code,
+				'user_code'                 => $user_code,
+				'verification_uri'          => $verification_uri,
+				'verification_uri_complete' => add_query_arg( 'user_code', rawurlencode( $user_code ), $verification_uri ),
+				'expires_in'                => self::DEVICE_PAIRING_TTL,
+				'interval'                  => 3,
+			),
+			201
+		);
+	}
+
+	/**
+	 * Polls a device pairing session.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function poll_device_pairing( WP_REST_Request $request ) {
+		$body = $this->request_json_body( $request );
+		if ( is_wp_error( $body ) ) {
+			return $body;
+		}
+
+		$device_code = sanitize_text_field( (string) ( $body['device_code'] ?? '' ) );
+		$pairing     = $this->device_pairing_by_device_code( $device_code );
+
+		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_device_pairing_expired',
+				__( 'Device pairing is expired or invalid.', 'magick-ai-adapter' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		if ( 'rejected' === (string) ( $pairing['status'] ?? '' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_device_pairing_rejected',
+				__( 'Device pairing was rejected.', 'magick-ai-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		if ( 'approved' !== (string) ( $pairing['status'] ?? '' ) ) {
+			return new WP_REST_Response(
+				array(
+					'ok'      => false,
+					'status'  => 'pending',
+					'message' => __( 'Device pairing is still pending approval.', 'magick-ai-adapter' ),
+				),
+				202
+			);
+		}
+
+		$scopes = is_array( $pairing['scopes_effective'] ?? null ) ? $pairing['scopes_effective'] : array();
+
+		return new WP_REST_Response(
+			array(
+				'ok'               => true,
+				'connection_id'    => (string) ( $pairing['connection_id'] ?? '' ),
+				'key_id'           => (string) ( $pairing['key_id'] ?? '' ),
+				'site_url'         => home_url(),
+				'adapter_base_url' => rest_url( self::NAMESPACE ),
+				'scopes_effective' => array_values( $scopes ),
+			),
+			200
+		);
+	}
+
+	/**
+	 * Lists registered client keys for the current administrator.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function list_client_keys(): WP_REST_Response {
+		$user_id = get_current_user_id();
+		$records = array();
+		foreach ( $this->client_key_records() as $record ) {
+			if ( $user_id === (int) ( $record['user_id'] ?? 0 ) ) {
+				$records[] = $this->public_client_key_record( $record );
+			}
+		}
+
+		return new WP_REST_Response( array( 'key_pairs' => $records ), 200 );
+	}
+
+	/**
+	 * Revokes a client key.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function revoke_client_key( WP_REST_Request $request ) {
+		$key_id = sanitize_text_field( (string) $request['key_id'] );
+		$result = $this->revoke_client_key_by_id( $key_id, get_current_user_id() );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Revokes a client key by id for a user.
+	 *
+	 * @param string $key_id Key id.
+	 * @param int    $user_id User id.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function revoke_client_key_by_id( string $key_id, int $user_id ) {
+		$key_id = sanitize_text_field( $key_id );
+		$keys   = $this->client_key_records();
+		$record = is_array( $keys[ $key_id ] ?? null ) ? $keys[ $key_id ] : array();
+		if ( empty( $record ) || $user_id !== (int) ( $record['user_id'] ?? 0 ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_client_key_not_found',
+				__( 'Client key was not found for the current user.', 'magick-ai-adapter' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$record['revoked_at'] = gmdate( 'c' );
+		$keys[ $key_id ]     = $record;
+		update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+
+		return $this->public_client_key_record( $record );
+	}
+
+	/**
+	 * Returns a device pairing record by user code for admin display.
+	 *
+	 * @param string $user_code User code.
+	 * @return array<string,mixed>
+	 */
+	public function admin_device_pairing( string $user_code ): array {
+		$user_code = strtoupper( sanitize_text_field( $user_code ) );
+		$pairings  = $this->device_pairings();
+		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
+		if ( ! empty( $pairing ) && time() <= (int) ( $pairing['expires_at'] ?? 0 ) ) {
+			return $pairing;
+		}
+
+		return array();
+	}
+
+	/**
+	 * Approves a device pairing for the current administrator.
+	 *
+	 * @param string $user_code User code.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function approve_device_pairing( string $user_code ) {
+		$user_code = strtoupper( sanitize_text_field( $user_code ) );
+		$pairings  = $this->device_pairings();
+		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
+		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
+			return new WP_Error( 'magick_ai_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'magick-ai-adapter' ) );
+		}
+
+		$user_id       = get_current_user_id();
+		$key           = is_array( $pairing['key'] ?? null ) ? $pairing['key'] : array();
+		$client        = is_array( $pairing['client'] ?? null ) ? $pairing['client'] : array();
+		$public_key    = (string) ( $key['public_key'] ?? '' );
+		$fingerprint   = (string) ( $key['fingerprint'] ?? '' );
+		$key_id        = 'mk_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $user_id . '|' . $fingerprint ), 0, 24 );
+		$connection_id = 'mag_conn_' . substr( hash( 'sha256', home_url() . '|' . $key_id ), 0, 24 );
+		$record        = array(
+			'key_id'        => $key_id,
+			'connection_id' => $connection_id,
+			'user_id'       => $user_id,
+			'client_name'   => (string) ( $client['name'] ?? '' ),
+			'device_name'   => (string) ( $client['device_name'] ?? '' ),
+			'broker'        => (string) ( $client['broker'] ?? '' ),
+			'broker_version' => (string) ( $client['broker_version'] ?? '' ),
+			'public_key'    => $public_key,
+			'fingerprint'   => $fingerprint,
+			'scopes'        => is_array( $pairing['scopes'] ?? null ) ? array_values( $pairing['scopes'] ) : array(),
+			'created_at'    => gmdate( 'c' ),
+			'last_used_at'  => '',
+			'revoked_at'    => '',
+		);
+
+		$keys            = $this->client_key_records();
+		$keys[ $key_id ] = $record;
+		update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+
+		$pairing['status']           = 'approved';
+		$pairing['approved_at']      = gmdate( 'c' );
+		$pairing['approved_user_id'] = $user_id;
+		$pairing['key_id']           = $key_id;
+		$pairing['connection_id']    = $connection_id;
+		$pairing['scopes_effective'] = $record['scopes'];
+		$pairings[ $user_code ]      = $pairing;
+		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
+
+		return $this->public_client_key_record( $record );
+	}
+
+	/**
+	 * Rejects a device pairing.
+	 *
+	 * @param string $user_code User code.
+	 * @return bool
+	 */
+	public function reject_device_pairing( string $user_code ): bool {
+		$user_code = strtoupper( sanitize_text_field( $user_code ) );
+		$pairings  = $this->device_pairings();
+		if ( ! is_array( $pairings[ $user_code ] ?? null ) ) {
+			return false;
+		}
+
+		$pairings[ $user_code ]['status']      = 'rejected';
+		$pairings[ $user_code ]['rejected_at'] = gmdate( 'c' );
+		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
+
+		return true;
+	}
+
+	/**
+	 * Returns public client key records for an admin user.
+	 *
+	 * @param int $user_id User id.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function admin_client_keys( int $user_id ): array {
+		$records = array();
+		foreach ( $this->client_key_records() as $record ) {
+			if ( $user_id === (int) ( $record['user_id'] ?? 0 ) ) {
+				$records[] = $this->public_client_key_record( $record );
+			}
+		}
+
+		return $records;
+	}
+
+	/**
+	 * Returns decoded JSON request body.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function request_json_body( WP_REST_Request $request ) {
+		$params = $request->get_json_params();
+		if ( is_array( $params ) ) {
+			return $params;
+		}
+
+		return new WP_Error(
+			'magick_ai_adapter_json_body_required',
+			__( 'A JSON request body is required.', 'magick-ai-adapter' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	/**
+	 * Builds the non-secret connection manifest and digest.
+	 *
+	 * @param int $user_id User id.
+	 * @return array<string,mixed>
+	 */
+	private function connection_manifest_payload( int $user_id ): array {
+		$user     = $user_id > 0 ? get_userdata( $user_id ) : wp_get_current_user();
+		$username = $user && $user->exists() ? (string) $user->user_login : '';
+		$base     = array(
+			'schema_version' => 'magick_ai_adapter_connection.v1',
+			'kind'           => 'magick.ai/wordpress-adapter-connection',
+			'manifest_id'    => 'mag_manifest_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $username ), 0, 24 ),
+			'connection_id'  => 'local-wordpress',
+			'site'           => array(
+				'site_url'         => home_url(),
+				'rest_url'         => rest_url(),
+				'adapter_base_url' => rest_url( self::NAMESPACE ),
+				'admin_origin'     => $this->url_origin( admin_url() ),
+				'plugin'           => array(
+					'slug'    => 'magick-ai-adapter',
+					'version' => MAGICK_AI_ADAPTER_VERSION,
+				),
+			),
+			'user'           => array(
+				'username' => $username,
+			),
+			'auth'           => array(
+				'preferred_method'  => 'key_pair_device_pairing',
+				'supported_methods' => array(
+					array(
+						'type'            => 'key_pair_device_pairing',
+						'protocol'        => 'magick-key-pair-auth.v1',
+						'key_type'        => 'ed25519',
+						'secret_delivery' => 'none',
+						'requires_admin_approval' => true,
+					),
+					array(
+						'type'            => 'wp_application_password_basic',
+						'fallback_only'   => true,
+						'secret_slot'     => 'wordpress_application_password',
+						'secret_delivery' => 'dedicated_secret_field_or_vault_only',
+					),
+				),
+			),
+			'urls'           => array(
+				'health'       => rest_url( self::NAMESPACE . '/health' ),
+				'help'         => rest_url( self::NAMESPACE . '/help' ),
+				'capabilities' => rest_url( self::NAMESPACE . '/capabilities' ),
+				'device_start' => rest_url( self::NAMESPACE . '/connect/device/start' ),
+				'device_poll'  => rest_url( self::NAMESPACE . '/connect/device/poll' ),
+				'key_pairs'    => rest_url( self::NAMESPACE . '/connection/key-pairs' ),
+			),
+			'capabilities'   => array(
+				'read'  => array(
+					'requires_adapter_auth' => true,
+				),
+				'write' => array(
+					'mode'                         => 'proposal_only',
+					'direct_wordpress_write_allowed' => false,
+					'requires_magick_ai_core'      => true,
+				),
+			),
+		);
+
+		$base['integrity'] = array(
+			'canonicalization' => 'recursive_ksort_json',
+			'manifest_sha256'  => 'sha256:' . hash( 'sha256', $this->canonical_json( $base ) ),
+		);
+
+		return $base;
+	}
+
+	/**
+	 * Returns scheme/host/port origin for a URL.
+	 *
+	 * @param string $url URL.
+	 * @return string
+	 */
+	private function url_origin( string $url ): string {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$host   = wp_parse_url( $url, PHP_URL_HOST );
+		$port   = wp_parse_url( $url, PHP_URL_PORT );
+		if ( ! is_string( $scheme ) || ! is_string( $host ) ) {
+			return '';
+		}
+
+		return strtolower( $scheme . '://' . $host . ( is_int( $port ) ? ':' . $port : '' ) );
+	}
+
+	/**
+	 * Returns canonical JSON for digesting simple associative arrays.
+	 *
+	 * @param mixed $value Value.
+	 * @return string
+	 */
+	private function canonical_json( $value ): string {
+		$value = $this->sort_array_keys_recursive( $value );
+		$json  = wp_json_encode( $value, JSON_UNESCAPED_SLASHES );
+		return is_string( $json ) ? $json : '';
+	}
+
+	/**
+	 * Sorts associative array keys recursively.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	private function sort_array_keys_recursive( $value ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		foreach ( $value as $key => $child ) {
+			$value[ $key ] = $this->sort_array_keys_recursive( $child );
+		}
+
+		if ( array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) {
+			ksort( $value );
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Filters requested client scopes to the current adapter contract.
+	 *
+	 * @param array<int,mixed> $requested Requested scopes.
+	 * @return array<int,string>
+	 */
+	private function connection_requested_scopes( array $requested ): array {
+		$allowed = array(
+			'magick.read'    => true,
+			'magick.propose' => true,
+			'magick.status'  => true,
+		);
+		$scopes  = array();
+
+		foreach ( $requested as $scope ) {
+			$scope = sanitize_text_field( (string) $scope );
+			if ( isset( $allowed[ $scope ] ) ) {
+				$scopes[] = $scope;
+			}
+		}
+
+		return ! empty( $scopes ) ? array_values( array_unique( $scopes ) ) : array_keys( $allowed );
+	}
+
+	/**
+	 * Returns pending device pairing records.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function device_pairings(): array {
+		$pairings = get_option( self::DEVICE_PAIRING_OPTION, array() );
+		return is_array( $pairings ) ? $pairings : array();
+	}
+
+	/**
+	 * Removes expired pending device pairing records.
+	 *
+	 * @param array<string,array<string,mixed>> $pairings Pairings.
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function prune_device_pairings( array $pairings ): array {
+		$now = time();
+		foreach ( $pairings as $user_code => $pairing ) {
+			if ( $now > (int) ( $pairing['expires_at'] ?? 0 ) && 'approved' !== (string) ( $pairing['status'] ?? '' ) ) {
+				unset( $pairings[ $user_code ] );
+			}
+		}
+
+		return $pairings;
+	}
+
+	/**
+	 * Returns a pending device pairing by device code.
+	 *
+	 * @param string $device_code Device code.
+	 * @return array<string,mixed>
+	 */
+	private function device_pairing_by_device_code( string $device_code ): array {
+		if ( '' === $device_code ) {
+			return array();
+		}
+
+		$hash = hash( 'sha256', $device_code );
+		foreach ( $this->device_pairings() as $pairing ) {
+			if ( hash_equals( (string) ( $pairing['device_code_hash'] ?? '' ), $hash ) ) {
+				return $pairing;
+			}
+		}
+
+		return array();
+	}
+
+	/**
+	 * Returns stored client keys.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function client_key_records(): array {
+		$records = get_option( self::CLIENT_KEYS_OPTION, array() );
+		return is_array( $records ) ? $records : array();
+	}
+
+	/**
+	 * Returns a public-safe client key record.
+	 *
+	 * @param array<string,mixed> $record Record.
+	 * @return array<string,mixed>
+	 */
+	private function public_client_key_record( array $record ): array {
+		return array(
+			'key_id'        => (string) ( $record['key_id'] ?? '' ),
+			'connection_id' => (string) ( $record['connection_id'] ?? '' ),
+			'client_name'   => (string) ( $record['client_name'] ?? '' ),
+			'device_name'   => (string) ( $record['device_name'] ?? '' ),
+			'fingerprint'   => (string) ( $record['fingerprint'] ?? '' ),
+			'scopes'        => is_array( $record['scopes'] ?? null ) ? array_values( $record['scopes'] ) : array(),
+			'created_at'    => (string) ( $record['created_at'] ?? '' ),
+			'last_used_at'  => (string) ( $record['last_used_at'] ?? '' ),
+			'revoked_at'    => (string) ( $record['revoked_at'] ?? '' ),
+		);
+	}
+
+	/**
+	 * Authenticates an Adapter request signed by a registered Ed25519 key.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function authenticate_signed_request( WP_REST_Request $request ): bool {
+		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
+			return false;
+		}
+
+		$credentials = $this->signed_request_credentials( $request );
+
+		$key_id         = $credentials['key_id'];
+		$timestamp      = $credentials['timestamp'];
+		$nonce          = $credentials['nonce'];
+		$content_sha256 = $credentials['content_sha256'];
+		$signature_alg  = $credentials['signature_alg'];
+		$signature      = $credentials['signature'];
+
+		if ( '' === $key_id || '' === $timestamp || '' === $nonce || '' === $content_sha256 || 'Ed25519' !== $signature_alg || '' === $signature ) {
+			return false;
+		}
+
+		$keys   = $this->client_key_records();
+		$record = is_array( $keys[ $key_id ] ?? null ) ? $keys[ $key_id ] : array();
+		if ( empty( $record ) || '' !== (string) ( $record['revoked_at'] ?? '' ) ) {
+			return false;
+		}
+
+		$user_id = (int) ( $record['user_id'] ?? 0 );
+		$user    = get_userdata( $user_id );
+		if ( ! $user || ! user_can( $user, 'manage_options' ) || ! $this->client_key_scope_allows_request( $record, $request ) ) {
+			return false;
+		}
+
+		$timestamp_epoch = strtotime( $timestamp );
+		if ( false === $timestamp_epoch || abs( time() - $timestamp_epoch ) > self::SIGNATURE_NONCE_TTL ) {
+			return false;
+		}
+
+		$expected_hash = 'sha256:' . hash( 'sha256', (string) $request->get_body() );
+		if ( ! hash_equals( $expected_hash, $content_sha256 ) ) {
+			return false;
+		}
+
+		$nonce_key = 'maa_sig_nonce_' . md5( $key_id . '|' . $nonce );
+		if ( get_transient( $nonce_key ) ) {
+			return false;
+		}
+
+		$public_key = $this->base64url_decode( (string) ( $record['public_key'] ?? '' ) );
+		$signature_bytes = $this->base64url_decode( $signature );
+		$canonical = $this->signed_request_canonical_string( $request, $timestamp, $nonce, $content_sha256 );
+		if ( 32 !== strlen( $public_key ) || 64 !== strlen( $signature_bytes ) || ! sodium_crypto_sign_verify_detached( $signature_bytes, $canonical, $public_key ) ) {
+			return false;
+		}
+
+		set_transient( $nonce_key, 1, self::SIGNATURE_NONCE_TTL );
+		$record['last_used_at'] = gmdate( 'c' );
+		$keys[ $key_id ]        = $record;
+		update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+		wp_set_current_user( $user_id );
+
+		return true;
+	}
+
+	/**
+	 * Returns request signature credentials from X-Magick headers or Authorization.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return array<string,string>
+	 */
+	private function signed_request_credentials( WP_REST_Request $request ): array {
+		$credentials = array(
+			'key_id'         => sanitize_text_field( (string) $request->get_header( 'x_magick_key_id' ) ),
+			'timestamp'      => sanitize_text_field( (string) $request->get_header( 'x_magick_timestamp' ) ),
+			'nonce'          => sanitize_text_field( (string) $request->get_header( 'x_magick_nonce' ) ),
+			'content_sha256' => sanitize_text_field( (string) $request->get_header( 'x_magick_content_sha256' ) ),
+			'signature_alg'  => sanitize_text_field( (string) $request->get_header( 'x_magick_signature_alg' ) ),
+			'signature'      => sanitize_text_field( (string) $request->get_header( 'x_magick_signature' ) ),
+		);
+
+		if ( '' !== $credentials['key_id'] && '' !== $credentials['signature'] ) {
+			return $credentials;
+		}
+
+		$authorization = (string) $request->get_header( 'authorization' );
+		if ( ! preg_match( '/^Magick-Signature\s+(.+)$/i', $authorization, $matches ) ) {
+			return $credentials;
+		}
+
+		$parts = array();
+		foreach ( explode( ',', $matches[1] ) as $piece ) {
+			$pair = explode( '=', trim( $piece ), 2 );
+			if ( 2 !== count( $pair ) ) {
+				continue;
+			}
+			$parts[ strtolower( trim( $pair[0] ) ) ] = trim( trim( $pair[1] ), '"' );
+		}
+
+		return array(
+			'key_id'         => sanitize_text_field( (string) ( $parts['key_id'] ?? '' ) ),
+			'timestamp'      => sanitize_text_field( (string) ( $parts['timestamp'] ?? '' ) ),
+			'nonce'          => sanitize_text_field( (string) ( $parts['nonce'] ?? '' ) ),
+			'content_sha256' => sanitize_text_field( (string) ( $parts['content_sha256'] ?? '' ) ),
+			'signature_alg'  => sanitize_text_field( (string) ( $parts['alg'] ?? '' ) ),
+			'signature'      => sanitize_text_field( (string) ( $parts['signature'] ?? '' ) ),
+		);
+	}
+
+	/**
+	 * Returns the canonical string signed by local clients.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @param string          $timestamp Timestamp.
+	 * @param string          $nonce Nonce.
+	 * @param string          $content_sha256 Body hash.
+	 * @return string
+	 */
+	private function signed_request_canonical_string( WP_REST_Request $request, string $timestamp, string $nonce, string $content_sha256 ): string {
+		return implode(
+			"\n",
+			array(
+				'MAGICK-AI-ADAPTER-V1',
+				strtoupper( $request->get_method() ),
+				$request->get_route(),
+				$this->canonical_json( $request->get_query_params() ),
+				$timestamp,
+				$nonce,
+				$content_sha256,
+			)
+		);
+	}
+
+	/**
+	 * Returns whether client key scopes allow a request.
+	 *
+	 * @param array<string,mixed> $record Record.
+	 * @param WP_REST_Request     $request Request.
+	 * @return bool
+	 */
+	private function client_key_scope_allows_request( array $record, WP_REST_Request $request ): bool {
+		$scopes = array_fill_keys( is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array(), true );
+		$route  = $request->get_route();
+		$method = strtoupper( $request->get_method() );
+
+		if ( false !== strpos( $route, '/proposals' ) || false !== strpos( $route, '/execute-approved-proposal' ) ) {
+			return ! empty( $scopes['magick.propose'] );
+		}
+
+		if ( 'GET' === $method && ( false !== strpos( $route, '/health' ) || false !== strpos( $route, '/help' ) || false !== strpos( $route, '/capabilities' ) || false !== strpos( $route, '/connection/' ) ) ) {
+			return ! empty( $scopes['magick.status'] );
+		}
+
+		return ! empty( $scopes['magick.read'] );
+	}
+
+	/**
+	 * Encodes base64url.
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	private function base64url_encode( string $value ): string {
+		return rtrim( strtr( base64_encode( $value ), '+/', '-_' ), '=' );
+	}
+
+	/**
+	 * Decodes base64url.
+	 *
+	 * @param string $value Value.
+	 * @return string
+	 */
+	private function base64url_decode( string $value ): string {
+		$decoded = base64_decode( strtr( $value, '-_', '+/' ) . str_repeat( '=', ( 4 - strlen( $value ) % 4 ) % 4 ), true );
+		return is_string( $decoded ) ? $decoded : '';
 	}
 
 	/**
@@ -480,10 +1392,10 @@ final class Controller {
 					'POST /proposals/{proposal_id}/execute',
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
-				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
 				'execution_input_contract' => array(
-					'single' => 'proposal.input.post_id',
-					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input.post_id',
+					'single' => 'proposal.input, with ability-specific required fields',
+					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
 				),
@@ -521,9 +1433,9 @@ final class Controller {
 						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
 						'core_required_scope'  => 'commit:preflight',
 						'core_commit_execution' => false,
-						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+						'allowed_ability_ids'  => self::allowed_execute_ability_ids(),
 						'execution_input_contract' => array(
-							'single' => 'proposal.input.post_id',
+							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
 							'max_actions' => self::MAX_EXECUTION_ACTIONS,
 							'partial_success' => false,
@@ -534,9 +1446,9 @@ final class Controller {
 						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
 						'approval_surface'     => 'magick_ai_adapter_unified_action',
 						'core_commit_execution' => false,
-						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+						'allowed_ability_ids'  => self::allowed_execute_ability_ids(),
 						'execution_input_contract' => array(
-							'single' => 'proposal.input.post_id',
+							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
 							'max_actions' => self::MAX_EXECUTION_ACTIONS,
 							'partial_success' => false,
@@ -646,10 +1558,10 @@ final class Controller {
 					'POST /proposals/{proposal_id}/execute',
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
-				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
 				'execution_input_contract' => array(
-					'single' => 'proposal.input.post_id',
-					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input.post_id',
+					'single' => 'proposal.input, with ability-specific required fields',
+					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
 				),
@@ -681,11 +1593,16 @@ final class Controller {
 	 */
 	private function help_route_groups(): array {
 		return array(
-			'connection'      => array(
-				'GET /health',
-				'GET /help',
-				'GET /capabilities',
-			),
+				'connection'      => array(
+					'GET /health',
+					'GET /help',
+					'GET /capabilities',
+					'GET /connection/manifest',
+					'POST /connect/device/start',
+					'POST /connect/device/poll',
+					'GET /connection/key-pairs',
+					'DELETE /connection/key-pairs/{key_id}',
+				),
 			'read_shortcuts'  => $this->help_read_shortcuts(),
 			'generic_read'    => array(
 				'POST /run-read-ability',
@@ -759,10 +1676,15 @@ final class Controller {
 	private function help_route_purpose( string $method, string $path, string $group ): string {
 		$key      = $method . ' ' . $path;
 		$purposes = array(
-			'GET /health' => 'Check adapter health and connection state.',
-			'GET /help' => 'Discover adapter routes and handoff guidance.',
-			'GET /capabilities' => 'List Core capabilities and governance guidance.',
-			'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
+				'GET /health' => 'Check adapter health and connection state.',
+				'GET /help' => 'Discover adapter routes and handoff guidance.',
+				'GET /capabilities' => 'List Core capabilities and governance guidance.',
+				'GET /connection/manifest' => 'Return the non-secret local broker connection manifest.',
+				'POST /connect/device/start' => 'Start a public-key device pairing session.',
+				'POST /connect/device/poll' => 'Poll a public-key device pairing session.',
+				'GET /connection/key-pairs' => 'List registered key-pair clients for the current user.',
+				'DELETE /connection/key-pairs/{key_id}' => 'Revoke a registered key-pair client.',
+				'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
@@ -771,9 +1693,9 @@ final class Controller {
 			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/commit-preflight' => 'Run Core commit preflight without executing final writes.',
-			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight; supports one post_id or allowlisted write_actions.',
-			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight; supports one post_id or allowlisted write_actions.',
-			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one post_id or allowlisted write_actions.',
+			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight; supports allowlisted single inputs or write_actions.',
+			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight; supports allowlisted single inputs or write_actions.',
+			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one allowlisted single input or write_actions.',
 			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
 			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
 		);
@@ -963,17 +1885,43 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_proposal( WP_REST_Request $request ) {
-		$ability_id = (string) $request->get_param( 'ability_id' );
+		$ability_id  = (string) $request->get_param( 'ability_id' );
+		$input       = $this->object_param( $request, 'input' );
+		$valid_input = $this->validate_proposal_create_input( $ability_id, $input );
+		if ( is_wp_error( $valid_input ) ) {
+			return $valid_input;
+		}
+
 		$params = array(
 			'ability_id' => $ability_id,
 			'title'      => (string) $request->get_param( 'title' ),
 			'summary'    => (string) $request->get_param( 'summary' ),
-			'input'      => $this->object_param( $request, 'input' ),
+			'input'      => $input,
 			'preview'    => $this->object_param( $request, 'preview' ),
 			'caller'     => $this->proposal_caller_context( $request, $ability_id ),
 		);
 
 		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals', $params );
+	}
+
+	/**
+	 * Validates Adapter-owned proposal input before forwarding to Core.
+	 *
+	 * Only abilities with local execution profiles are validated here. Other
+	 * proposal-required abilities remain Core-owned at proposal creation time.
+	 *
+	 * @param string              $ability_id Ability id.
+	 * @param array<string,mixed> $input Proposal input.
+	 * @return true|WP_Error
+	 */
+	private function validate_proposal_create_input( string $ability_id, array $input, bool $allow_output_refs = false, ?int $action_index = null ) {
+		$ability_id = sanitize_text_field( $ability_id );
+		$profiles   = self::execution_profiles();
+		if ( ! isset( $profiles[ $ability_id ] ) ) {
+			return true;
+		}
+
+		return $this->validate_execute_action_input( 'proposal_create', $ability_id, $input, absint( $input['post_id'] ?? 0 ), $action_index, $allow_output_refs );
 	}
 
 	/**
@@ -995,14 +1943,107 @@ final class Controller {
 			);
 		}
 
+		$plan            = $this->object_param( $request, 'plan' );
+		$valid_plan_input = $this->validate_plan_write_action_inputs( $plan );
+		if ( is_wp_error( $valid_plan_input ) ) {
+			return $valid_plan_input;
+		}
+
 		$params = array(
 			'plan_ability_id' => $plan_ability_id,
-			'plan'            => $this->object_param( $request, 'plan' ),
+			'plan'            => $plan,
 			'plan_input'      => $this->object_param( $request, 'plan_input' ),
 			'caller'          => $this->proposal_caller_context( $request, $plan_ability_id ),
 		);
 
 		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/from-plan', $params );
+	}
+
+	/**
+	 * Validates profiled write action input before Core creates plan proposals.
+	 *
+	 * Core remains the proposal creation and blocked-item truth. Adapter only
+	 * rejects inputs it already owns through the execution profile registry, so
+	 * single proposal and plan-to-proposal intake fail on the same schema rules.
+	 *
+	 * @param array<string,mixed> $plan_payload Plan output or success envelope.
+	 * @return true|WP_Error
+	 */
+	private function validate_plan_write_action_inputs( array $plan_payload ) {
+		$plan = is_array( $plan_payload['data'] ?? null ) ? $plan_payload['data'] : $plan_payload;
+		if ( ! is_array( $plan ) ) {
+			return true;
+		}
+
+		$write_actions     = is_array( $plan['write_actions'] ?? null ) ? array_values( $plan['write_actions'] ) : array();
+		$blocked_items     = array();
+		$available_outputs = array();
+		foreach ( $write_actions as $index => $raw_action ) {
+			if ( ! is_array( $raw_action ) ) {
+				continue;
+			}
+
+			$target_ability_id = sanitize_text_field( (string) ( $raw_action['target_ability_id'] ?? '' ) );
+			if ( '' === $target_ability_id ) {
+				continue;
+			}
+
+			$action_id = sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) );
+			if ( '' === $action_id ) {
+				$action_id = 'action-' . ( $index + 1 );
+			}
+			if ( isset( $available_outputs[ $action_id ] ) ) {
+				$blocked_items[] = array(
+					'index'             => $index,
+					'action_id'         => $action_id,
+					'target_ability_id' => $target_ability_id,
+					'block_code'        => 'magick_ai_adapter_write_action_duplicate_id',
+					'reason'            => __( 'Each write_actions item must have a unique action_id.', 'magick-ai-adapter' ),
+				);
+				continue;
+			}
+
+			$input       = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
+			$valid_refs  = $this->validate_output_references( 'proposal_create', $input, $available_outputs, $index );
+			$valid_input = is_wp_error( $valid_refs ) ? $valid_refs : $this->validate_proposal_create_input( $target_ability_id, $input, true, $index );
+			if ( is_wp_error( $valid_input ) ) {
+				$error_data = $valid_input->get_error_data();
+				$error_data = is_array( $error_data ) ? $error_data : array();
+				$blocked    = array(
+					'index'             => $index,
+					'action_id'         => $action_id,
+					'target_ability_id' => $target_ability_id,
+					'block_code'        => $valid_input->get_error_code(),
+					'reason'            => $valid_input->get_error_message(),
+				);
+
+				foreach ( array( 'field', 'allowed_input_fields', 'allowed_values', 'reference' ) as $key ) {
+					if ( array_key_exists( $key, $error_data ) ) {
+						$blocked[ $key ] = $error_data[ $key ];
+					}
+				}
+
+				$blocked_items[] = $blocked;
+				continue;
+			}
+
+			$available_outputs[ $action_id ] = true;
+		}
+
+		if ( empty( $blocked_items ) ) {
+			return true;
+		}
+
+		return new WP_Error(
+			'magick_ai_adapter_plan_action_input_invalid',
+			__( 'Plan write action input failed Adapter proposal validation.', 'magick-ai-adapter' ),
+			array(
+				'status'         => 400,
+				'proposal_count' => 0,
+				'blocked_count'  => count( $blocked_items ),
+				'blocked_items'  => $blocked_items,
+			)
+		);
 	}
 
 	/**
@@ -1204,7 +2245,8 @@ final class Controller {
 	 * @return true|WP_Error
 	 */
 	private function validate_execute_ability( string $proposal_id, string $ability_id ) {
-		if ( isset( self::$allowed_execute_ability_ids[ $ability_id ] ) ) {
+		$profiles = self::execution_profiles();
+		if ( isset( $profiles[ $ability_id ] ) ) {
 			return true;
 		}
 
@@ -1215,9 +2257,409 @@ final class Controller {
 				'status'                      => 403,
 				'proposal_id'                 => $proposal_id,
 				'ability_id'                  => $ability_id,
-				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
 			)
 		);
+	}
+
+	/**
+	 * Validates the Adapter-owned execution input shape for one allowlisted ability.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param string              $ability_id Ability id.
+	 * @param array<string,mixed> $input Ability input.
+	 * @param int                 $post_id Post id when the ability targets an existing post.
+	 * @param int|null            $action_index Batch action index.
+	 * @param bool                $allow_output_refs Whether batch output references may satisfy id fields.
+	 * @return true|WP_Error
+	 */
+	private function validate_execute_action_input( string $proposal_id, string $ability_id, array $input, int $post_id, ?int $action_index = null, bool $allow_output_refs = false ) {
+		$error_data = array(
+			'status'      => 400,
+			'proposal_id' => $proposal_id,
+			'ability_id'  => $ability_id,
+		);
+		if ( null !== $action_index ) {
+			$error_data['action_index']      = $action_index;
+			$error_data['target_ability_id'] = $ability_id;
+		}
+
+		$profiles = self::execution_profiles();
+		$profile  = is_array( $profiles[ $ability_id ] ?? null ) ? $profiles[ $ability_id ] : array();
+
+		$allowed_input_fields = (array) ( $profile['allowed_input_fields'] ?? array() );
+		if ( ! empty( $allowed_input_fields ) ) {
+			foreach ( array_keys( $input ) as $field ) {
+				$field = (string) $field;
+				if ( in_array( $field, $allowed_input_fields, true ) ) {
+					continue;
+				}
+
+				return new WP_Error(
+					'magick_ai_adapter_ability_input_field_not_allowed',
+					__( 'Proposal input includes a field that is not allowed for this ability.', 'magick-ai-adapter' ),
+					array_merge(
+						$error_data,
+						array(
+							'field'                => $field,
+							'allowed_input_fields' => $allowed_input_fields,
+						)
+					)
+				);
+			}
+		}
+
+		$post_id_rule = is_array( $profile['require_post_id'] ?? null ) ? $profile['require_post_id'] : array();
+		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
+			if ( $allow_output_refs && $this->is_output_reference( $input['post_id'] ?? null ) ) {
+				$post_id_rule = array();
+			}
+		}
+		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
+			return new WP_Error(
+				(string) ( $post_id_rule['code'] ?? 'magick_ai_adapter_post_id_required' ),
+				(string) ( $post_id_rule['message'] ?? __( 'Execution input must include post_id.', 'magick-ai-adapter' ) ),
+				$error_data
+			);
+		}
+
+		foreach ( (array) ( $profile['required_text_fields'] ?? array() ) as $field => $rule ) {
+			$rule = is_array( $rule ) ? $rule : array();
+			if ( '' !== trim( sanitize_text_field( (string) ( $input[ $field ] ?? '' ) ) ) ) {
+				continue;
+			}
+
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_text_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required text field.', 'magick-ai-adapter' ) ),
+				$error_data
+			);
+		}
+
+		foreach ( (array) ( $profile['enum_fields'] ?? array() ) as $field => $rule ) {
+			if ( ! array_key_exists( $field, $input ) ) {
+				continue;
+			}
+
+			$rule    = is_array( $rule ) ? $rule : array();
+			$value   = sanitize_key( (string) $input[ $field ] );
+			$allowed = (array) ( $rule['allowed'] ?? array() );
+			if ( in_array( $value, $allowed, true ) ) {
+				continue;
+			}
+
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'magick_ai_adapter_input_enum_invalid' ),
+				(string) ( $rule['message'] ?? __( 'Proposal input includes an invalid enum value.', 'magick-ai-adapter' ) ),
+				array_merge(
+					$error_data,
+					array(
+						'field'          => (string) $field,
+						'value'          => $value,
+						'allowed_values' => $allowed,
+					)
+				)
+			);
+		}
+
+		$any_fields_rule = is_array( $profile['require_any_fields'] ?? null ) ? $profile['require_any_fields'] : array();
+		if ( ! empty( $any_fields_rule ) ) {
+			$has_any_field = false;
+			foreach ( (array) ( $any_fields_rule['fields'] ?? array() ) as $field ) {
+				if ( array_key_exists( $field, $input ) ) {
+					$has_any_field = true;
+					break;
+				}
+			}
+			if ( ! $has_any_field ) {
+				return new WP_Error(
+					(string) ( $any_fields_rule['code'] ?? 'magick_ai_adapter_required_fields_missing' ),
+					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'magick-ai-adapter' ) ),
+					$error_data
+				);
+			}
+		}
+
+		foreach ( (array) ( $profile['required_int_fields'] ?? array() ) as $field => $rule ) {
+			$rule = is_array( $rule ) ? $rule : array();
+			if ( 0 < absint( $input[ $field ] ?? 0 ) ) {
+				continue;
+			}
+			if ( $allow_output_refs && $this->is_output_reference( $input[ $field ] ?? null ) ) {
+				continue;
+			}
+
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_int_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required id.', 'magick-ai-adapter' ) ),
+				$error_data
+			);
+		}
+
+		if ( ! empty( $profile['validate_terms_input'] ) ) {
+			$taxonomy = sanitize_key( (string) ( $input['taxonomy'] ?? 'post_tag' ) );
+			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_taxonomy_required',
+					__( 'set-post-terms execution input must include a valid taxonomy.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$mode = sanitize_key( (string) ( $input['mode'] ?? 'replace' ) );
+			if ( ! in_array( $mode, array( 'replace', 'append', 'remove' ), true ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_term_mode_invalid',
+					__( 'set-post-terms execution mode must be replace, append, or remove.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$term_ids = is_array( $input['term_ids'] ?? null ) ? array_filter( array_map( 'absint', $input['term_ids'] ) ) : array();
+			$terms    = is_array( $input['terms'] ?? null ) ? array_filter(
+				array_map(
+					static function ( $term ) {
+						return trim( sanitize_text_field( (string) $term ) );
+					},
+					$input['terms']
+				)
+			) : array();
+			if ( empty( $term_ids ) && empty( $terms ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_terms_required',
+					__( 'set-post-terms execution input must include term_ids or terms.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			if ( ! empty( $input['create_missing'] ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_create_missing_terms_not_allowed',
+					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+		}
+
+		$comment_body_rule = is_array( $profile['require_comment_body'] ?? null ) ? $profile['require_comment_body'] : array();
+		if ( ! empty( $comment_body_rule ) ) {
+			$content = (string) ( $input['content'] ?? '' );
+			if ( '' === trim( wp_strip_all_tags( $content ) ) ) {
+				return new WP_Error(
+					(string) ( $comment_body_rule['code'] ?? 'magick_ai_adapter_comment_content_required' ),
+					(string) ( $comment_body_rule['message'] ?? __( 'Comment execution input must include content.', 'magick-ai-adapter' ) ),
+					$error_data
+				);
+			}
+		}
+
+		$content_format_rule = is_array( $profile['content_formats'] ?? null ) ? $profile['content_formats'] : array();
+		if ( ! empty( $content_format_rule ) ) {
+			$content_format = sanitize_key( (string) ( $input['content_format'] ?? 'html' ) );
+			if ( ! in_array( $content_format, (array) ( $content_format_rule['allowed'] ?? array() ), true ) ) {
+				return new WP_Error(
+					(string) ( $content_format_rule['code'] ?? 'magick_ai_adapter_content_format_invalid' ),
+					(string) ( $content_format_rule['message'] ?? __( 'Comment content_format is invalid.', 'magick-ai-adapter' ) ),
+					$error_data
+				);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Checks whether a value is an exact batch output reference.
+	 *
+	 * @param mixed $value Value.
+	 * @return bool
+	 */
+	private function is_output_reference( $value ): bool {
+		return is_string( $value ) && 1 === preg_match( '/^\$outputs\.[A-Za-z0-9_-]+\.[A-Za-z0-9_]+$/', $value );
+	}
+
+	/**
+	 * Collects exact batch output references from a value tree.
+	 *
+	 * @param mixed $value Value.
+	 * @return array<int,string>
+	 */
+	private function collect_output_references( $value ): array {
+		if ( $this->is_output_reference( $value ) ) {
+			return array( (string) $value );
+		}
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$references = array();
+		foreach ( $value as $child ) {
+			$references = array_merge( $references, $this->collect_output_references( $child ) );
+		}
+		return array_values( array_unique( $references ) );
+	}
+
+	/**
+	 * Finds a malformed output reference token in a value tree.
+	 *
+	 * @param mixed $value Value.
+	 * @return string
+	 */
+	private function invalid_output_reference_token( $value ): string {
+		if ( is_string( $value ) ) {
+			if ( false !== strpos( $value, '$outputs.' ) && ! $this->is_output_reference( $value ) ) {
+				return $value;
+			}
+			return '';
+		}
+		if ( ! is_array( $value ) ) {
+			return '';
+		}
+
+		foreach ( $value as $child ) {
+			$invalid = $this->invalid_output_reference_token( $child );
+			if ( '' !== $invalid ) {
+				return $invalid;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Parses one exact batch output reference.
+	 *
+	 * @param string $reference Reference.
+	 * @return array{action_id:string,field:string}|null
+	 */
+	private function parse_output_reference( string $reference ): ?array {
+		if ( 1 !== preg_match( '/^\$outputs\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_]+)$/', $reference, $matches ) ) {
+			return null;
+		}
+
+		return array(
+			'action_id' => sanitize_key( $matches[1] ),
+			'field'     => sanitize_key( $matches[2] ),
+		);
+	}
+
+	/**
+	 * Validates that output references only point to prior actions.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $input Action input.
+	 * @param array<string,bool>  $available_outputs Prior action ids.
+	 * @param int                 $action_index Action index.
+	 * @return true|WP_Error
+	 */
+	private function validate_output_references( string $proposal_id, array $input, array $available_outputs, int $action_index ) {
+		$invalid_reference = $this->invalid_output_reference_token( $input );
+		if ( '' !== $invalid_reference ) {
+			return new WP_Error(
+				'magick_ai_adapter_output_reference_invalid',
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'magick-ai-adapter' ),
+				array(
+					'status'       => 400,
+					'proposal_id'  => $proposal_id,
+					'action_index' => $action_index,
+					'reference'    => $invalid_reference,
+				)
+			);
+		}
+
+		foreach ( $this->collect_output_references( $input ) as $reference ) {
+			$parsed = $this->parse_output_reference( $reference );
+			if ( null === $parsed || empty( $available_outputs[ $parsed['action_id'] ] ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_output_reference_unavailable',
+					__( 'Batch output references must point to an earlier action in the same proposal.', 'magick-ai-adapter' ),
+					array(
+						'status'       => 400,
+						'proposal_id'  => $proposal_id,
+						'action_index' => $action_index,
+						'reference'    => $reference,
+					)
+				);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Resolves exact batch output references in an input value tree.
+	 *
+	 * @param mixed               $value Value.
+	 * @param array<string,array<string,mixed>> $outputs Prior outputs keyed by action id.
+	 * @param string              $proposal_id Proposal id.
+	 * @param int                 $action_index Action index.
+	 * @return mixed|WP_Error
+	 */
+	private function resolve_output_references( $value, array $outputs, string $proposal_id, int $action_index ) {
+		if ( $this->is_output_reference( $value ) ) {
+			$parsed = $this->parse_output_reference( (string) $value );
+			if (
+				null === $parsed
+				|| ! array_key_exists( $parsed['action_id'], $outputs )
+				|| ! array_key_exists( $parsed['field'], $outputs[ $parsed['action_id'] ] )
+			) {
+				return new WP_Error(
+					'magick_ai_adapter_output_reference_unresolved',
+					__( 'Batch output reference could not be resolved.', 'magick-ai-adapter' ),
+					array(
+						'status'       => 409,
+						'proposal_id'  => $proposal_id,
+						'action_index' => $action_index,
+						'reference'    => (string) $value,
+					)
+				);
+			}
+
+			return $outputs[ $parsed['action_id'] ][ $parsed['field'] ];
+		}
+
+		$invalid_reference = $this->invalid_output_reference_token( $value );
+		if ( '' !== $invalid_reference ) {
+			return new WP_Error(
+				'magick_ai_adapter_output_reference_invalid',
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'magick-ai-adapter' ),
+				array(
+					'status'       => 400,
+					'proposal_id'  => $proposal_id,
+					'action_index' => $action_index,
+					'reference'    => $invalid_reference,
+				)
+			);
+		}
+
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		$resolved = array();
+		foreach ( $value as $key => $child ) {
+			$resolved_child = $this->resolve_output_references( $child, $outputs, $proposal_id, $action_index );
+			if ( is_wp_error( $resolved_child ) ) {
+				return $resolved_child;
+			}
+			$resolved[ $key ] = $resolved_child;
+		}
+		return $resolved;
+	}
+
+	/**
+	 * Builds a flat output map for later batch actions.
+	 *
+	 * @param array<string,mixed> $result Executed action result.
+	 * @return array<string,mixed>
+	 */
+	private function output_map_from_action_result( array $result ): array {
+		$output = is_array( $result['result'] ?? null ) ? $result['result'] : array();
+		foreach ( array( 'post_id', 'ability_id', 'target_ability_id', 'post_status_before', 'post_status_after' ) as $field ) {
+			if ( array_key_exists( $field, $result ) ) {
+				$output[ $field ] = $result[ $field ];
+			}
+		}
+		return $output;
 	}
 
 	/**
@@ -1258,7 +2700,8 @@ final class Controller {
 				);
 			}
 
-			$actions = array();
+			$actions           = array();
+			$available_outputs = array();
 			foreach ( $write_actions as $index => $raw_action ) {
 				if ( ! is_array( $raw_action ) ) {
 					return new WP_Error(
@@ -1300,20 +2743,33 @@ final class Controller {
 					return $allowed;
 				}
 
-				$action_input = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
-				$post_id      = absint( $action_input['post_id'] ?? 0 );
-				if ( 'magick-ai/trash-post' === $target_ability_id && 0 === $post_id ) {
+				$action_id = sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) );
+				if ( '' === $action_id ) {
+					$action_id = 'action-' . ( $index + 1 );
+				}
+				if ( isset( $available_outputs[ $action_id ] ) ) {
 					return new WP_Error(
-						'magick_ai_adapter_post_id_required',
-						__( 'trash-post write action input must include post_id.', 'magick-ai-adapter' ),
+						'magick_ai_adapter_write_action_duplicate_id',
+						__( 'Each write_actions item must have a unique action_id.', 'magick-ai-adapter' ),
 						array(
-							'status'            => 400,
-							'proposal_id'       => $proposal_id,
-							'ability_id'        => $target_ability_id,
-							'action_index'      => $index,
-							'target_ability_id' => $target_ability_id,
+							'status'       => 400,
+							'proposal_id'  => $proposal_id,
+							'action_index' => $index,
+							'action_id'    => $action_id,
 						)
 					);
+				}
+
+				$action_input = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
+				$valid_refs   = $this->validate_output_references( $proposal_id, $action_input, $available_outputs, $index );
+				if ( is_wp_error( $valid_refs ) ) {
+					return $valid_refs;
+				}
+
+				$post_id      = absint( $action_input['post_id'] ?? 0 );
+				$valid_input  = $this->validate_execute_action_input( $proposal_id, $target_ability_id, $action_input, $post_id, $index, true );
+				if ( is_wp_error( $valid_input ) ) {
+					return $valid_input;
 				}
 
 				if ( array_key_exists( 'requires_approval', $raw_action ) && true !== (bool) $raw_action['requires_approval'] ) {
@@ -1368,11 +2824,6 @@ final class Controller {
 					);
 				}
 
-				$action_id = sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) );
-				if ( '' === $action_id ) {
-					$action_id = 'action-' . ( $index + 1 );
-				}
-
 				$actions[] = array(
 					'action_id'         => $action_id,
 					'action_index'      => $index,
@@ -1382,6 +2833,7 @@ final class Controller {
 					'input'             => $action_input,
 					'execution_mode'    => 'batch_write_actions',
 				);
+				$available_outputs[ $action_id ] = true;
 			}
 
 			return $actions;
@@ -1392,16 +2844,9 @@ final class Controller {
 			return $allowed;
 		}
 
-		if ( 'magick-ai/trash-post' === $proposal_ability_id && 0 === $top_level_post_id ) {
-			return new WP_Error(
-				'magick_ai_adapter_post_id_required',
-				__( 'trash-post proposal input must include post_id.', 'magick-ai-adapter' ),
-				array(
-					'status'      => 400,
-					'proposal_id' => $proposal_id,
-					'ability_id'  => $proposal_ability_id,
-				)
-			);
+		$valid_input = $this->validate_execute_action_input( $proposal_id, $proposal_ability_id, $input, $top_level_post_id );
+		if ( is_wp_error( $valid_input ) ) {
+			return $valid_input;
 		}
 
 		return array(
@@ -1431,15 +2876,23 @@ final class Controller {
 	private function execute_normalized_action( WP_REST_Request $request, string $proposal_id, array $action, array $approval_context, string $correlation_id, array $base_request_context ) {
 		$ability_id = sanitize_text_field( (string) ( $action['ability_id'] ?? '' ) );
 		$post_id    = absint( $action['post_id'] ?? 0 );
+		$profiles   = self::execution_profiles();
+		$profile    = is_array( $profiles[ $ability_id ] ?? null ) ? $profiles[ $ability_id ] : array();
 
 		$post_status_before = get_post_status( $post_id );
 		$post_status_before = false === $post_status_before ? '' : (string) $post_status_before;
 
-		$ability_input = array(
-			'post_id' => $post_id,
-			'dry_run' => false,
-			'commit'  => true,
-		);
+		$ability_input = is_array( $action['input'] ?? null ) ? $action['input'] : array();
+		if ( ! empty( $profile['force_post_input'] ) ) {
+			$ability_input = array(
+				'post_id' => $post_id,
+				'dry_run' => false,
+				'commit'  => true,
+			);
+		} else {
+			$ability_input['dry_run'] = false;
+			$ability_input['commit']  = true;
+		}
 
 		$route           = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
 		$request_context = $base_request_context;
@@ -1464,6 +2917,11 @@ final class Controller {
 			return $response;
 		}
 
+		$result_data = $response->get_data();
+		if ( ! empty( $profile['post_id_from_result'] ) && is_array( $result_data ) ) {
+			$post_id = absint( $result_data['post_id'] ?? $post_id );
+		}
+
 		$post_status_after = get_post_status( $post_id );
 
 		return array(
@@ -1476,7 +2934,7 @@ final class Controller {
 			'post_status_before' => $post_status_before,
 			'post_status_after'  => false === $post_status_after ? '' : (string) $post_status_after,
 			'adapter_request_id' => (string) ( $context['adapter_request_id'] ?? '' ),
-			'result'             => $response->get_data(),
+			'result'             => $result_data,
 		);
 	}
 
@@ -1568,7 +3026,52 @@ final class Controller {
 		$base_request_context['magick_ai_core'] = $magick_ai_core;
 
 		$results = array();
+		$outputs = array();
 		foreach ( $actions as $action ) {
+			$action_index = absint( $action['action_index'] ?? 0 );
+			$resolved_input = $this->resolve_output_references(
+				is_array( $action['input'] ?? null ) ? $action['input'] : array(),
+				$outputs,
+				$proposal_id,
+				$action_index
+			);
+			if ( is_wp_error( $resolved_input ) ) {
+				$resolved_input->add_data(
+					array_merge(
+						(array) $resolved_input->get_error_data(),
+						array(
+							'correlation_id'   => $correlation_id,
+							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+							'executed_results' => $results,
+						)
+					)
+				);
+				return $resolved_input;
+			}
+
+			$action['input']   = is_array( $resolved_input ) ? $resolved_input : array();
+			$action['post_id'] = absint( $action['input']['post_id'] ?? 0 );
+			$valid_input       = $this->validate_execute_action_input(
+				$proposal_id,
+				sanitize_text_field( (string) ( $action['ability_id'] ?? '' ) ),
+				$action['input'],
+				absint( $action['post_id'] ?? 0 ),
+				$action_index
+			);
+			if ( is_wp_error( $valid_input ) ) {
+				$valid_input->add_data(
+					array_merge(
+						(array) $valid_input->get_error_data(),
+						array(
+							'correlation_id'   => $correlation_id,
+							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+							'executed_results' => $results,
+						)
+					)
+				);
+				return $valid_input;
+			}
+
 			$result = $this->execute_normalized_action( $request, $proposal_id, $action, $approval_context, $correlation_id, $base_request_context );
 			if ( is_wp_error( $result ) ) {
 				$error_data = $result->get_error_data();
@@ -1595,6 +3098,7 @@ final class Controller {
 			}
 
 			$results[] = $result;
+			$outputs[ sanitize_key( (string) ( $result['action_id'] ?? '' ) ) ] = $this->output_map_from_action_result( $result );
 		}
 
 		$first_result      = is_array( $results[0] ?? null ) ? $results[0] : array();

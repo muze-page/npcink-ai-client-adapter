@@ -38,7 +38,7 @@ permissions。
 - 通过 WordPress Abilities API 路由 direct-read abilities。
 - 将受治理的写入请求转发到 Magick AI Core proposal routes。
 - 保持 Core approval、commit-preflight 和 audit 边界。
-- 为 OpenClaw 创建一次性 WordPress Application Password handoff。
+- 为 OpenClaw 创建一次性 WordPress Application Password 和非 secret connection manifest。
 - 保持 Adapter 很薄，不变成 ability registry、workflow runtime、MCP server 或通用写入执行器。
 
 ## 适合谁使用

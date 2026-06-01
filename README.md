@@ -26,7 +26,9 @@ execution allowlist rules.
 Batch plan execution is intentionally narrow. Adapter can execute
 `input.write_actions[]` only after Core approval and commit-preflight, and only
 when every action targets the current execution allowlist
-(`magick-ai/trash-post`). See
+(`magick-ai/trash-post`, `magick-ai/create-draft`,
+`magick-ai/update-post`, `magick-ai/set-post-terms`,
+`magick-ai/reply-comment`, `magick-ai/approve-comment`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
 
 ## Runtime Boundary
@@ -217,7 +219,8 @@ The page default view shows:
 - Adapter base URL, health URL, help URL, and capabilities URL;
 - Core and WordPress Abilities API connection status;
 - a `Create OpenClaw handoff` action that creates a WordPress Application
-  Password for the current administrator and shows it once;
+  Password for the current administrator, shows it once in the browser, and
+  emits a non-secret connection manifest;
 
 Advanced disclosures keep lower-frequency reference details available without
 turning the page into a control panel:
@@ -225,7 +228,12 @@ turning the page into a control panel:
 - supported read shortcut routes and their real `ability_id` values;
 - flat `GET /help` route rows under `routes`, plus human-readable
   `route_groups`;
-- Application Password handoff steps;
+- Application Password secret-field steps;
+- a non-secret connection manifest with `connection_id`, adapter URLs,
+  username, auth type, and `password_uuid`;
+- a copyable WorkBuddy setup block that reuses the same non-secret manifest and
+  tells WorkBuddy where the secret must be stored;
+- key-pair device pairing MVP endpoints and registered client key metadata;
 - copyable health and proposal example requests;
 - proposal list/detail, plan-to-proposal, commit-preflight, and
   approve-and-execute routes;
@@ -234,7 +242,55 @@ turning the page into a control panel:
 The page does not save adapter credentials, approval state, ability definitions,
 workflow state, or final write policy. The handoff action creates a normal
 WordPress Application Password and displays the raw value once; WordPress stores
-only its hash.
+only its hash. Copied env, manifest, and handoff text contain only placeholders
+or non-secret identifiers. Paste the Application Password only into OpenClaw's
+dedicated secret field, not chat, tool commands, logs, proposal payloads, files,
+or copied handoff text.
+
+Public Key Device Pairing: for clients with a local broker, the Adapter REST surface supports a key-pair
+device pairing MVP. The client generates an Ed25519 private key locally, sends
+only the public key to WordPress for admin approval, and signs later Adapter
+requests:
+
+```text
+GET  /wp-json/magick-ai-adapter/v1/connection/manifest
+POST /wp-json/magick-ai-adapter/v1/connect/device/start
+POST /wp-json/magick-ai-adapter/v1/connect/device/poll
+GET  /wp-json/magick-ai-adapter/v1/connection/key-pairs
+```
+
+For local validation, run the development script in this repo:
+
+```bash
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-device-pairing.mjs --site=https://magick-ai.local --profile=local --insecure-local-tls
+```
+
+The script opens the WordPress approval URL in the system browser. Approve the
+public key, and the script will save a local profile under
+`~/.magick-ai-adapter/keypair-profiles/` before testing a signed `GET /health`
+request. Use `--no-open` if you want to print the URL without opening a browser.
+The profile contains the local private key; do not paste or log it. Production
+clients should store the private key in the OS keychain or the client credential
+vault. The `--insecure-local-tls` flag is for LocalWP or `.local` self-signed
+HTTPS only; do not use it for a public or shared WordPress site. Transient local
+HTTPS polling resets are retried until the pairing code expires.
+After approval, WordPress shows a pairing result page; return to the terminal or
+local AI client and wait for polling to finish.
+
+After pairing, local clients can call Adapter through the signed request wrapper
+without reading or printing profile secrets:
+
+```bash
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /health
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /capabilities
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+```
+
+The wrapper accepts only Adapter-relative routes such as `/health`, signs the
+request locally, and prints only the Adapter JSON response.
+
+See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
+for the public-key pairing and request-signing contract.
 
 When the current site URL is local (`localhost`, loopback, or `.local`), the
 handoff form can include `MAGICK_AI_ADAPTER_INSECURE_SSL=true` in copied
@@ -259,8 +315,8 @@ Initial connection:
 
 1. Create a dedicated WordPress administrator Application Password for the
    OpenClaw environment.
-2. Give OpenClaw the site URL, adapter base URL, username, and Application
-   Password through the approved secret channel.
+2. Give OpenClaw the non-secret connection manifest. Paste the Application
+   Password only into OpenClaw's dedicated secret field or credential vault.
 3. OpenClaw calls `GET /health` and verifies:
    - `core_capabilities=true`
    - `abilities_catalog=true`
@@ -321,7 +377,9 @@ Proposal-required write flow:
    approval.
 8. The adapter relays Core preflight and preserves `commit_execution=false`.
 9. For the current approved proposal execution path, Adapter may execute only
-   `magick-ai/trash-post` through
+   `magick-ai/trash-post`, `magick-ai/create-draft`,
+   `magick-ai/update-post`, `magick-ai/set-post-terms`, or
+   `magick-ai/reply-comment`, or `magick-ai/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
    `POST /execute-approved-proposal`.
 10. Adapter fetches the Core proposal, calls Core commit-preflight, requires
@@ -355,7 +413,7 @@ a configured text generation provider/model. This example uses local Ollama
 when `qwen3.5:0.8b` is available:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"magick-ai/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
   "https://example.test/wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke"
@@ -378,23 +436,23 @@ default Core key with approval or rejection scopes.
 Example health request:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://example.test/wp-json/magick-ai-adapter/v1/health"
 ```
 
 Example proposal request:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
-  -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
+  -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
   "https://example.test/wp-json/magick-ai-adapter/v1/proposals"
 ```
 
 Example proposal status request:
 
 ```bash
-curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \
+curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   "https://example.test/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID"
 ```
 
@@ -420,14 +478,37 @@ Write or destructive abilities:
    Adapter `/proposals/{proposal_id}/commit-preflight` after
    approval.
 6. Adapter relays Core `commit_execution=false`.
-7. For approved proposal execution, only `magick-ai/trash-post` is supported in
-   this adapter. The execution input may be either a single `input.post_id` or
-   a bounded `input.write_actions[]` batch where every action targets
-   `magick-ai/trash-post`. OpenClaw calls `/proposals/{proposal_id}/execute`;
-   Adapter performs Core preflight again, passes `approval_context`, and
-   executes through WordPress Abilities API. New execution abilities must be
-   added one by one to the Adapter allowlist with dedicated smoke coverage;
-   this is not a generic proxy-execute surface.
+7. For approved proposal execution, only `magick-ai/trash-post`,
+   `magick-ai/create-draft`, `magick-ai/update-post`,
+   `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and
+   `magick-ai/approve-comment` are supported in
+   this adapter. The execution input may be a single allowlisted proposal input or a bounded
+   `input.write_actions[]` batch where every action targets the allowlist.
+   OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter performs Core
+   preflight again, passes `approval_context`, and executes through WordPress
+   Abilities API. New execution abilities must be added as explicit Adapter
+   execution profile entries with dedicated smoke coverage; this is not a
+   generic proxy-execute surface.
+
+Adapter derives the execution allowlist from its local execution profile registry.
+Capability discovery may show more proposal-required abilities, but
+only abilities with an Adapter execution profile can run final writes.
+For profiled abilities, Adapter also validates proposal input at
+`POST /proposals`, rejecting undeclared fields and invalid enum values before
+the proposal is sent to Core. The same Adapter-owned input schema check also
+runs for profiled `plan.write_actions[]` during `POST /proposals/from-plan`
+before Adapter forwards the plan to Core; invalid actions return
+`magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` carrying
+the action index, action id, target ability id, blocked field, and reused
+single-proposal block code. Exact `$outputs.<prior_action_id>.<field>`
+references are allowed in profiled plan action input only when they point to an
+earlier action in the same plan; Adapter revalidates the resolved value during
+approved batch execution. Embedded `$outputs.` tokens are rejected, and plan
+action ids must be unique before Adapter forwards the plan to Core.
+Within one approved `write_actions[]` batch, later actions may reference earlier
+action outputs with exact values such as `$outputs.create-draft.post_id`.
+Adapter resolves those references in memory during that batch only, then
+revalidates the resolved action input before execution.
 
 ## Non-Goals
 

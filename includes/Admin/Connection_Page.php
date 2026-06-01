@@ -23,6 +23,9 @@ final class Connection_Page {
 	const MENU_SLUG        = 'magick-ai-adapter';
 	const MENU_CAPABILITY  = 'manage_options';
 	const CREATE_ACTION    = 'magick_ai_adapter_create_openclaw_password';
+	const PAIR_MENU_SLUG   = 'magick-ai-adapter-pair';
+	const PAIR_ACTION      = 'magick_ai_adapter_pairing_decision';
+	const REVOKE_KEY_ACTION = 'magick_ai_adapter_revoke_client_key';
 
 	/**
 	 * Registers the menu item.
@@ -40,6 +43,15 @@ final class Connection_Page {
 			self::MENU_SLUG,
 			array( $this, 'render' ),
 			20
+		);
+
+		add_submenu_page(
+			null,
+			__( 'Approve Magick AI Client', 'magick-ai-adapter' ),
+			__( 'Approve Magick AI Client', 'magick-ai-adapter' ),
+			self::MENU_CAPABILITY,
+			self::PAIR_MENU_SLUG,
+			array( $this, 'render_pairing_page' )
 		);
 	}
 
@@ -175,6 +187,8 @@ final class Connection_Page {
 		$health_url      = rest_url( Controller::NAMESPACE . '/health' );
 		$help_url        = rest_url( Controller::NAMESPACE . '/help' );
 		$capabilities_url = rest_url( Controller::NAMESPACE . '/capabilities' );
+		$manifest_url    = rest_url( Controller::NAMESPACE . '/connection/manifest' );
+		$key_pairs_url   = rest_url( Controller::NAMESPACE . '/connection/key-pairs' );
 		$health          = $this->health();
 		$status          = $this->status( $health );
 		$shortcuts       = Controller::read_shortcuts();
@@ -185,7 +199,8 @@ final class Connection_Page {
 		$can_create_password = $this->can_create_application_password();
 		$user            = wp_get_current_user();
 		$username        = $user->exists() ? (string) $user->user_login : '';
-		$client_config   = $this->openclaw_env_text( $username, '<application_password>', $this->is_local_url( home_url() ) );
+		$client_config   = $this->openclaw_env_text( $username, $this->is_local_url( home_url() ) );
+		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
 		?>
 		<div class="wrap magick-ai-adapter-connection">
 			<h1><?php echo esc_html__( 'Magick AI Adapter', 'magick-ai-adapter' ); ?></h1>
@@ -430,7 +445,7 @@ final class Connection_Page {
 				<div class="maa-workspace">
 					<div class="maa-section maa-section-highlight">
 						<h2><?php echo esc_html__( 'Create OpenClaw handoff', 'magick-ai-adapter' ); ?></h2>
-						<p><?php echo esc_html__( 'Create a one-time Application Password handoff for the current administrator.', 'magick-ai-adapter' ); ?></p>
+						<p><?php echo esc_html__( 'Create a one-time Application Password and non-secret OpenClaw connection manifest for the current administrator.', 'magick-ai-adapter' ); ?></p>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 							<input type="hidden" name="action" value="<?php echo esc_attr( self::CREATE_ACTION ); ?>" />
 							<?php wp_nonce_field( self::CREATE_ACTION ); ?>
@@ -475,7 +490,7 @@ final class Connection_Page {
 						<div class="maa-copy-row">
 							<div>
 								<span class="maa-label"><?php echo esc_html__( 'Client config', 'magick-ai-adapter' ); ?></span>
-								<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder.', 'magick-ai-adapter' ); ?></p>
+								<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder. Paste the real password only into OpenClaw dedicated secret field.', 'magick-ai-adapter' ); ?></p>
 								<textarea id="maa-client-config" hidden readonly><?php echo esc_textarea( $client_config ); ?></textarea>
 							</div>
 							<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-client-config"><?php echo esc_html__( 'Copy env', 'magick-ai-adapter' ); ?></button>
@@ -494,6 +509,53 @@ final class Connection_Page {
 					<p><span class="maa-label"><?php echo esc_html__( 'Health', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $health_url ); ?></code></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Help', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $help_url ); ?></code></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $capabilities_url ); ?></code></p>
+				</details>
+
+				<details class="maa-section" open>
+					<summary>
+						<strong><?php echo esc_html__( 'Key pair clients', 'magick-ai-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Device-paired clients that sign Adapter requests.', 'magick-ai-adapter' ); ?></span>
+					</summary>
+					<p><?php echo esc_html__( 'Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval.', 'magick-ai-adapter' ); ?></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Manifest', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $manifest_url ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Key pairs', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $key_pairs_url ); ?></code></p>
+					<?php if ( empty( $key_records ) ) : ?>
+						<p class="description"><?php echo esc_html__( 'No key-pair clients are registered for this administrator yet.', 'magick-ai-adapter' ); ?></p>
+					<?php else : ?>
+						<table class="widefat striped">
+							<thead>
+								<tr>
+									<th><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Last used', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></th>
+									<th><?php echo esc_html__( 'Action', 'magick-ai-adapter' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach ( $key_records as $record ) : ?>
+									<tr>
+										<td><?php echo esc_html( (string) ( $record['client_name'] ?? '' ) ); ?><br><code><?php echo esc_html( (string) ( $record['key_id'] ?? '' ) ); ?></code></td>
+										<td><code><?php echo esc_html( (string) ( $record['fingerprint'] ?? '' ) ); ?></code></td>
+										<td><?php echo esc_html( implode( ', ', is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array() ) ); ?></td>
+										<td><?php echo esc_html( (string) ( $record['last_used_at'] ?? '' ) ); ?></td>
+										<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'magick-ai-adapter' ) : esc_html__( 'Revoked', 'magick-ai-adapter' ); ?></td>
+										<td>
+											<?php if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) : ?>
+												<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+													<input type="hidden" name="action" value="<?php echo esc_attr( self::REVOKE_KEY_ACTION ); ?>" />
+													<input type="hidden" name="key_id" value="<?php echo esc_attr( (string) ( $record['key_id'] ?? '' ) ); ?>" />
+													<?php wp_nonce_field( self::REVOKE_KEY_ACTION . '_' . (string) ( $record['key_id'] ?? '' ) ); ?>
+													<button type="submit" class="button"><?php echo esc_html__( 'Revoke', 'magick-ai-adapter' ); ?></button>
+												</form>
+											<?php endif; ?>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					<?php endif; ?>
 				</details>
 
 				<details class="maa-section">
@@ -522,7 +584,7 @@ final class Connection_Page {
 						<strong><?php echo esc_html__( 'Example requests', 'magick-ai-adapter' ); ?></strong>
 						<span class="description"><?php echo esc_html__( 'Curl examples for health and proposal checks.', 'magick-ai-adapter' ); ?></span>
 					</summary>
-					<p><?php echo esc_html__( 'Use a dedicated administrator Application Password for the first OpenClaw handoff.', 'magick-ai-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals.', 'magick-ai-adapter' ); ?></p>
 					<pre><?php echo esc_html( $example_request ); ?></pre>
 					<pre><?php echo esc_html( $proposal_request ); ?></pre>
 					<pre><?php echo esc_html( $proposal_status_request ); ?></pre>
@@ -596,6 +658,130 @@ final class Connection_Page {
 			</script>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Renders the WordPress admin device pairing approval page.
+	 *
+	 * @return void
+	 */
+	public function render_pairing_page(): void {
+		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'magick-ai-adapter' ) );
+		}
+
+		$user_code = isset( $_GET['user_code'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_GET['user_code'] ) ) ) : '';
+		$pairing   = ( new Controller() )->admin_device_pairing( $user_code );
+		$client    = is_array( $pairing['client'] ?? null ) ? $pairing['client'] : array();
+		$key       = is_array( $pairing['key'] ?? null ) ? $pairing['key'] : array();
+		$scopes    = is_array( $pairing['scopes'] ?? null ) ? $pairing['scopes'] : array();
+		$status    = (string) ( $pairing['status'] ?? 'pending' );
+		?>
+		<div class="wrap magick-ai-adapter-connection">
+			<h1><?php echo esc_html__( 'Approve Magick AI Client', 'magick-ai-adapter' ); ?></h1>
+			<?php if ( empty( $pairing ) ) : ?>
+				<div class="notice notice-error"><p><?php echo esc_html__( 'Device pairing code was not found or has expired.', 'magick-ai-adapter' ); ?></p></div>
+			<?php else : ?>
+				<?php if ( 'approved' === $status ) : ?>
+					<div class="notice notice-success">
+						<p><strong><?php echo esc_html__( 'Connection approved.', 'magick-ai-adapter' ); ?></strong></p>
+						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will finish polling and save its local profile. Adapter stores only the public key; the private key was never sent to WordPress.', 'magick-ai-adapter' ); ?></p>
+					</div>
+				<?php elseif ( 'rejected' === $status ) : ?>
+					<div class="notice notice-warning">
+						<p><strong><?php echo esc_html__( 'Connection rejected.', 'magick-ai-adapter' ); ?></strong></p>
+						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will stop polling with a rejected status.', 'magick-ai-adapter' ); ?></p>
+					</div>
+				<?php else : ?>
+					<p><?php echo esc_html__( 'Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer.', 'magick-ai-adapter' ); ?></p>
+				<?php endif; ?>
+				<table class="widefat striped" style="max-width: 860px;">
+					<tbody>
+						<tr><th scope="row"><?php echo esc_html__( 'User code', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( $user_code ); ?></code></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['name'] ?? '' ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Device', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['device_name'] ?? '' ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Broker', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( trim( (string) ( $client['broker'] ?? '' ) . ' ' . (string) ( $client['broker_version'] ?? '' ) ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $key['fingerprint'] ?? '' ) ); ?></code></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( implode( ', ', $scopes ) ); ?></td></tr>
+						<?php if ( 'approved' === $status ) : ?>
+							<tr><th scope="row"><?php echo esc_html__( 'Connection ID', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['connection_id'] ?? '' ) ); ?></code></td></tr>
+							<tr><th scope="row"><?php echo esc_html__( 'Key ID', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['key_id'] ?? '' ) ); ?></code></td></tr>
+						<?php endif; ?>
+					</tbody>
+				</table>
+				<?php if ( 'pending' === $status ) : ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 16px;">
+						<input type="hidden" name="action" value="<?php echo esc_attr( self::PAIR_ACTION ); ?>" />
+						<input type="hidden" name="user_code" value="<?php echo esc_attr( $user_code ); ?>" />
+						<?php wp_nonce_field( self::PAIR_ACTION . '_' . $user_code ); ?>
+						<button type="submit" name="decision" value="approve" class="button button-primary"><?php echo esc_html__( 'Approve connection', 'magick-ai-adapter' ); ?></button>
+						<button type="submit" name="decision" value="reject" class="button"><?php echo esc_html__( 'Reject', 'magick-ai-adapter' ); ?></button>
+					</form>
+				<?php endif; ?>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Handles device pairing approval or rejection.
+	 *
+	 * @return void
+	 */
+	public function handle_pairing_decision(): void {
+		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'magick-ai-adapter' ) );
+		}
+
+		$user_code = isset( $_POST['user_code'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_POST['user_code'] ) ) ) : '';
+		check_admin_referer( self::PAIR_ACTION . '_' . $user_code );
+
+		$decision   = isset( $_POST['decision'] ) ? sanitize_key( wp_unslash( (string) $_POST['decision'] ) ) : '';
+		$controller = new Controller();
+		if ( 'approve' === $decision ) {
+			$result = $controller->approve_device_pairing( $user_code );
+			if ( is_wp_error( $result ) ) {
+				wp_die( esc_html( $result->get_error_message() ) );
+			}
+			$result_status = 'approved';
+		} else {
+			$controller->reject_device_pairing( $user_code );
+			$result_status = 'rejected';
+		}
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'page'      => self::PAIR_MENU_SLUG,
+					'user_code' => $user_code,
+					'result'    => $result_status,
+				),
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Handles client key revocation from the admin page.
+	 *
+	 * @return void
+	 */
+	public function handle_revoke_client_key(): void {
+		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
+			wp_die( esc_html__( 'You do not have permission to revoke client keys.', 'magick-ai-adapter' ) );
+		}
+
+		$key_id = isset( $_POST['key_id'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['key_id'] ) ) : '';
+		check_admin_referer( self::REVOKE_KEY_ACTION . '_' . $key_id );
+
+		$result = ( new Controller() )->revoke_client_key_by_id( $key_id, get_current_user_id() );
+		if ( is_wp_error( $result ) ) {
+			wp_die( esc_html( $result->get_error_message() ) );
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG ) );
+		exit;
 	}
 
 	/**
@@ -684,7 +870,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function example_request( string $health_url ): string {
-		return 'curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \\' . "\n"
+		return 'curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \\' . "\n"
 			. '  ' . $health_url;
 	}
 
@@ -697,9 +883,10 @@ final class Connection_Page {
 	 * @return void
 	 */
 	private function render_created_handoff( string $password, array $item, bool $include_local_tls ): void {
-		$user     = wp_get_current_user();
-		$username = $user->exists() ? (string) $user->user_login : '';
-		$base_url = rest_url( Controller::NAMESPACE );
+		$user          = wp_get_current_user();
+		$username      = $user->exists() ? (string) $user->user_login : '';
+		$base_url      = rest_url( Controller::NAMESPACE );
+		$password_uuid = (string) ( $item['uuid'] ?? '' );
 		?>
 		<!doctype html>
 		<html <?php language_attributes(); ?>>
@@ -718,7 +905,8 @@ final class Connection_Page {
 				code, textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 				textarea { box-sizing: border-box; width: 100%; min-height: 96px; padding: 10px; border: 1px solid #8c8f94; background: #fff; color: #1d2327; }
 				.actions { margin-top: 20px; }
-				.button { display: inline-block; background: #2271b1; border: 1px solid #2271b1; border-radius: 3px; color: #fff; padding: 8px 14px; text-decoration: none; }
+				.inline-actions { margin: 8px 0 0; }
+				.button { display: inline-block; background: #2271b1; border: 1px solid #2271b1; border-radius: 3px; color: #fff; padding: 8px 14px; text-decoration: none; cursor: pointer; }
 				@media (max-width: 720px) { main { padding: 0 12px; } th, td { display: block; width: auto; } }
 			</style>
 		</head>
@@ -727,6 +915,7 @@ final class Connection_Page {
 				<h1><?php echo esc_html__( 'OpenClaw Handoff Created', 'magick-ai-adapter' ); ?></h1>
 				<div class="notice">
 					<p><?php echo esc_html__( 'Copy this Application Password now. WordPress shows it only once and stores only a hash.', 'magick-ai-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Paste it only into OpenClaw dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text.', 'magick-ai-adapter' ); ?></p>
 					<p><?php echo esc_html__( 'Use this only for OpenClaw access through Magick AI Adapter. Revoke it from the WordPress user profile when the client is retired.', 'magick-ai-adapter' ); ?></p>
 				</div>
 				<table>
@@ -741,24 +930,59 @@ final class Connection_Page {
 						</tr>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Password UUID', 'magick-ai-adapter' ); ?></th>
-							<td><code><?php echo esc_html( (string) ( $item['uuid'] ?? '' ) ); ?></code></td>
+							<td><code><?php echo esc_html( $password_uuid ); ?></code></td>
 						</tr>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'Application Password', 'magick-ai-adapter' ); ?></th>
-							<td><textarea rows="3" readonly><?php echo esc_textarea( $password ); ?></textarea></td>
+							<td><textarea id="maa-application-password" rows="3" readonly><?php echo esc_textarea( $password ); ?></textarea></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'OpenClaw env', 'magick-ai-adapter' ); ?></th>
-							<td><textarea rows="6" readonly><?php echo esc_textarea( $this->openclaw_env_text( $username, $password, $include_local_tls ) ); ?></textarea></td>
+							<th scope="row"><?php echo esc_html__( 'Connection manifest', 'magick-ai-adapter' ); ?></th>
+							<td>
+								<textarea id="maa-connection-manifest" rows="16" readonly><?php echo esc_textarea( $this->openclaw_connection_manifest_text( $username, $password_uuid ) ); ?></textarea>
+								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-connection-manifest"><?php echo esc_html__( 'Copy manifest', 'magick-ai-adapter' ); ?></button></p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row"><?php echo esc_html__( 'OpenClaw env placeholder', 'magick-ai-adapter' ); ?></th>
+							<td><textarea rows="6" readonly><?php echo esc_textarea( $this->openclaw_env_text( $username, $include_local_tls ) ); ?></textarea></td>
+						</tr>
+						<tr>
+							<th scope="row"><?php echo esc_html__( 'WorkBuddy setup', 'magick-ai-adapter' ); ?></th>
+							<td>
+								<textarea id="maa-workbuddy-setup" rows="18" readonly><?php echo esc_textarea( $this->workbuddy_handoff_text( $username, $password_uuid, $include_local_tls ) ); ?></textarea>
+								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-workbuddy-setup"><?php echo esc_html__( 'Copy WorkBuddy setup', 'magick-ai-adapter' ); ?></button></p>
+							</td>
 						</tr>
 						<tr>
 							<th scope="row"><?php echo esc_html__( 'OpenClaw handoff', 'magick-ai-adapter' ); ?></th>
-							<td><textarea rows="18" readonly><?php echo esc_textarea( $this->openclaw_created_handoff_text( $username, $password, $include_local_tls ) ); ?></textarea></td>
+							<td><textarea rows="18" readonly><?php echo esc_textarea( $this->openclaw_created_handoff_text( $username, $password_uuid, $include_local_tls ) ); ?></textarea></td>
 						</tr>
 					</tbody>
 				</table>
 				<p class="actions"><a class="button" href="<?php echo esc_url( menu_page_url( self::MENU_SLUG, false ) ); ?>"><?php echo esc_html__( 'Back to Magick AI Adapter', 'magick-ai-adapter' ); ?></a></p>
 			</main>
+			<script>
+				(function () {
+					document.querySelectorAll('[data-maa-created-copy-target]').forEach(function (button) {
+						button.addEventListener('click', function () {
+							var target = document.getElementById(button.getAttribute('data-maa-created-copy-target'));
+							var text = target ? (target.value || target.textContent || '') : '';
+							if (!text || !window.navigator.clipboard) {
+								return;
+							}
+
+							window.navigator.clipboard.writeText(text).then(function () {
+								var oldText = button.textContent;
+								button.textContent = '<?php echo esc_js( __( 'Copied', 'magick-ai-adapter' ) ); ?>';
+								window.setTimeout(function () {
+									button.textContent = oldText;
+								}, 1500);
+							});
+						});
+					});
+				})();
+			</script>
 		</body>
 		</html>
 		<?php
@@ -784,9 +1008,9 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function proposal_request( string $proposal_url ): string {
-		return 'curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \\' . "\n"
+		return 'curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \\' . "\n"
 			. '  -H "Content-Type: application/json" \\' . "\n"
-			. '  -d \'{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}\' \\' . "\n"
+			. '  -d \'{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}\' \\' . "\n"
 			. '  ' . $proposal_url;
 	}
 
@@ -797,7 +1021,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function proposal_status_request( string $proposal_detail_url ): string {
-		return 'curl -sS --user "OPENCLAW_USERNAME:APPLICATION_PASSWORD" \\' . "\n"
+		return 'curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \\' . "\n"
 			. '  ' . $proposal_detail_url;
 	}
 
@@ -810,14 +1034,15 @@ final class Connection_Page {
 	private function handoff_prompt( string $base_url ): string {
 		return "Use this WordPress site through Magick AI Adapter.\n"
 			. "Adapter base URL: {$base_url}\n"
-			. "Authenticate with WordPress REST Basic Auth using the provided username and Application Password.\n"
+			. "Authenticate with WordPress REST Basic Auth using the manifest username and an Application Password stored only in OpenClaw's dedicated secret field.\n"
+			. "Do not paste the secret into chat, tool commands, logs, proposal payloads, files, or copied handoff text.\n"
 			. "OpenClaw only connects to Adapter. Do not connect OpenClaw directly to Magick AI Core.\n"
 			. "Start by calling GET /health, GET /help, and GET /capabilities.\n"
 			. "For direct_read abilities, call the matching read shortcut or POST /run-read-ability with the real ability_id and input object.\n"
 			. "For proposal_required abilities, POST /proposals with the real ability_id, input, preview, and caller metadata. For read-only planning outputs, POST /proposals/from-plan to let Core create governed proposals.\n"
 			. "Poll GET /proposals/{proposal_id} for Core status. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute so Adapter calls Core approve, Core commit-preflight, and one allowlisted execution. If status=rejected, stop and show the rejection status. If status=approved and using the lower-level split path, call POST /proposals/{proposal_id}/commit-preflight.\n"
 			. "When you have proposal_id or commit-preflight correlation_id, pass them as log_context on POST /run-read-ability or as query fields on read shortcuts so Adapter can add them to AI Request Logs context through wpai_request_log_context. Core Governance Audit is the governance log; AI Request Logs are the provider request log. Adapter context includes ability_id, adapter_request_id, adapter_route, ai_provider, ai_model, governance_source=magick-ai-core, and nested magick_ai_core identifiers.\n"
-			. "POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject are disabled stubs that return approval_proxy_enabled=false. The only Adapter approval path is POST /proposals/{proposal_id}/approve-and-execute, currently allowlisted only for magick-ai/trash-post.\n"
+			. "POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject are disabled stubs that return approval_proxy_enabled=false. The only Adapter approval path is POST /proposals/{proposal_id}/approve-and-execute, currently allowlisted for magick-ai/trash-post, magick-ai/create-draft, magick-ai/update-post, magick-ai/set-post-terms, magick-ai/reply-comment, and magick-ai/approve-comment.\n"
 			. "Handle failures by code: magick_ai_adapter_approval_proxy_disabled means use approve-and-execute or Core admin; magick_ai_adapter_execute_ability_not_allowed means stop because the ability is outside the Adapter execution allowlist; magick_ai_adapter_proposal_rejected means stop and show the rejection; magick_ai_adapter_preflight_not_authorized or magick_ai_adapter_preflight_item_blocked means stop and show Core preflight details.\n"
 			. "Do not ask the adapter to store approval state, run workflows, batch destructive actions, or execute abilities outside the approve-and-execute allowlist. Preserve approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.";
 	}
@@ -840,15 +1065,14 @@ final class Connection_Page {
 	 * Builds OpenClaw env text.
 	 *
 	 * @param string $username WordPress username.
-	 * @param string $password Application Password.
 	 * @param bool   $include_local_tls Whether to include local TLS hints.
 	 * @return string
 	 */
-	private function openclaw_env_text( string $username, string $password, bool $include_local_tls ): string {
+	private function openclaw_env_text( string $username, bool $include_local_tls ): string {
 		$lines = array(
 			'MAGICK_AI_ADAPTER_BASE_URL=' . rest_url( Controller::NAMESPACE ),
 			'MAGICK_AI_ADAPTER_USERNAME=' . $username,
-			'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD=' . $password,
+			'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 		);
 
 		if ( $include_local_tls ) {
@@ -859,35 +1083,94 @@ final class Connection_Page {
 	}
 
 	/**
+	 * Builds the non-secret OpenClaw connection manifest.
+	 *
+	 * @param string $username WordPress username.
+	 * @param string $password_uuid Application Password UUID.
+	 * @return string
+	 */
+	private function openclaw_connection_manifest_text( string $username, string $password_uuid ): string {
+		$manifest = array(
+			'connection_id'    => 'local-wordpress',
+			'adapter_base_url' => rest_url( Controller::NAMESPACE ),
+			'username'         => $username,
+			'auth'             => array(
+				'type'          => 'wordpress_application_password',
+				'password_uuid' => $password_uuid,
+			),
+			'urls'             => array(
+				'health'       => rest_url( Controller::NAMESPACE . '/health' ),
+				'help'         => rest_url( Controller::NAMESPACE . '/help' ),
+				'capabilities' => rest_url( Controller::NAMESPACE . '/capabilities' ),
+			),
+			'note'             => 'Secret must be stored through OpenClaw credential store or dedicated secret field, not chat, tools, files, logs, proposal payloads, or copied handoff text.',
+		);
+
+		$json = wp_json_encode( $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+		return is_string( $json ) ? $json : '{}';
+	}
+
+	/**
 	 * Builds one-time OpenClaw handoff text.
 	 *
 	 * @param string $username WordPress username.
-	 * @param string $password Application Password.
+	 * @param string $password_uuid Application Password UUID.
 	 * @param bool   $include_local_tls Whether to include local TLS hints.
 	 * @return string
 	 */
-	private function openclaw_created_handoff_text( string $username, string $password, bool $include_local_tls ): string {
+	private function openclaw_created_handoff_text( string $username, string $password_uuid, bool $include_local_tls ): string {
 		return "Magick AI Adapter OpenClaw connection\n"
-			. $this->openclaw_env_text( $username, $password, $include_local_tls ) . "\n\n"
+			. "Connection manifest\n"
+			. $this->openclaw_connection_manifest_text( $username, $password_uuid ) . "\n\n"
+			. "Optional env placeholders\n"
+			. $this->openclaw_env_text( $username, $include_local_tls ) . "\n\n"
+			. "Secret handling\n"
+			. "Paste the secret only into OpenClaw's dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text.\n\n"
 			. "Agent rules\n"
 			. "1. Connect to Magick AI Adapter, not directly to Magick AI Core, for productized OpenClaw setup.\n"
-			. "2. Authenticate with WordPress REST Basic Auth using MAGICK_AI_ADAPTER_USERNAME and MAGICK_AI_ADAPTER_APPLICATION_PASSWORD.\n"
+			. "2. Authenticate with WordPress REST Basic Auth using the manifest username and the Application Password stored in OpenClaw's dedicated secret field.\n"
 			. "3. Call GET /health first and require core_capabilities=true, abilities_catalog=true, approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.\n"
 			. "4. Call GET /help to discover adapter routes, then GET /capabilities before reads or proposals and use only real ability_id values returned by Core.\n"
 			. "5. For direct_read abilities, call a read shortcut or POST /run-read-ability.\n"
 			. "6. For proposal_required abilities, POST /proposals and poll GET /proposals/{proposal_id}. For read-only planning outputs, POST /proposals/from-plan.\n"
-			. "7. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute. Adapter calls Core approve, Core commit-preflight, and one allowlisted execution. Current execution allowlist: magick-ai/trash-post.\n"
+			. "7. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute. Adapter calls Core approve, Core commit-preflight, and one allowlisted execution. Current execution allowlist: magick-ai/trash-post, magick-ai/create-draft, magick-ai/update-post, magick-ai/set-post-terms, magick-ai/reply-comment, magick-ai/approve-comment.\n"
 			. "7b. If status=rejected, stop and show the rejection status. If status=approved and using the lower-level split path, call POST /proposals/{proposal_id}/commit-preflight.\n"
 			. "8. Pass proposal_id and correlation_id as log_context or read shortcut query fields so AI Request Logs can correlate execution rows with Core audit. Core Governance Audit is the governance log; AI Request Logs are the provider request log. For provider smoke, POST /ai-provider-log-correlation-smoke with a configured text generation ai_provider and ai_model after commit-preflight; local Ollama examples use ai_provider=ollama and ai_model=qwen3.5:0.8b when available.\n"
 			. "9. Treat POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject as disabled stubs. Approval without execution is handled in Magick AI Core admin.\n"
 			. "10. Failure code handling: magick_ai_adapter_approval_proxy_disabled => use approve-and-execute or Core admin; magick_ai_adapter_execute_ability_not_allowed => stop; magick_ai_adapter_proposal_rejected => stop; magick_ai_adapter_preflight_not_authorized or magick_ai_adapter_preflight_item_blocked => show Core preflight details and do not retry execution.\n"
 			. "11. Do not ask the adapter to store approval state, run workflows, batch destructive actions, or execute abilities outside the approve-and-execute allowlist.\n"
 			. "12. Do not execute writes without Core commit preflight.\n"
-			. "13. Do not store or print the Application Password in logs, proposal payloads, prompts, or files.\n\n"
+			. "13. Do not store or print the secret in logs, proposal payloads, prompts, files, or copied handoff text.\n\n"
 			. "Example checks\n"
-			. "curl -sS --user \"{$username}:<application_password>\" " . rest_url( Controller::NAMESPACE . '/health' ) . "\n"
-			. "curl -sS --user \"{$username}:<application_password>\" " . rest_url( Controller::NAMESPACE . '/help' ) . "\n"
-			. "curl -sS --user \"{$username}:<application_password>\" " . rest_url( Controller::NAMESPACE . '/capabilities' );
+			. "curl -sS --user \"{$username}:<openclaw-secret-field-value>\" " . rest_url( Controller::NAMESPACE . '/health' ) . "\n"
+			. "curl -sS --user \"{$username}:<openclaw-secret-field-value>\" " . rest_url( Controller::NAMESPACE . '/help' ) . "\n"
+			. "curl -sS --user \"{$username}:<openclaw-secret-field-value>\" " . rest_url( Controller::NAMESPACE . '/capabilities' );
+	}
+
+	/**
+	 * Builds WorkBuddy setup text without embedding secrets.
+	 *
+	 * @param string $username WordPress username.
+	 * @param string $password_uuid Application Password UUID.
+	 * @param bool   $include_local_tls Whether to include local TLS hints.
+	 * @return string
+	 */
+	private function workbuddy_handoff_text( string $username, string $password_uuid, bool $include_local_tls ): string {
+		return "Magick AI Adapter WorkBuddy connection\n"
+			. "Paste this setup into WorkBuddy. It contains no Application Password value.\n\n"
+			. "Connection manifest\n"
+			. $this->openclaw_connection_manifest_text( $username, $password_uuid ) . "\n\n"
+			. "Secret field\n"
+			. "Name: wordpress_application_password\n"
+			. "Value: paste the one-time Application Password shown in WordPress only into WorkBuddy's secret field.\n\n"
+			. "Optional env placeholders\n"
+			. $this->openclaw_env_text( $username, $include_local_tls ) . "\n\n"
+			. "Connection check\n"
+			. "1. GET /health and require core_capabilities=true, abilities_catalog=true, approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.\n"
+			. "2. GET /help for route discovery.\n"
+			. "3. GET /capabilities before reads or proposals.\n"
+			. "4. Use direct_read routes for reads. Use /proposals and Core approval/preflight for writes.\n"
+			. "5. Do not put the secret into chat, tool commands, logs, proposal payloads, files, or copied setup text.";
 	}
 
 	/**
