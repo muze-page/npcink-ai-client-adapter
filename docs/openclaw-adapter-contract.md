@@ -137,6 +137,21 @@ The allowlist applies to both single-ability execution and each
 `write_actions[]` item. A batch containing any non-allowlisted action fails
 closed and executes no actions.
 
+The allowlist is derived from Adapter's local execution profile registry, not
+from capability discovery alone. Each profile entry is an explicit opt-in for
+final WordPress writes and must define the Adapter-owned execution shape:
+
+- ability id;
+- required input checks such as `post_id`, `comment_id`, or `title`;
+- ability-specific guards such as term taxonomy/mode validation;
+- whether execution input must be rebuilt before dispatch;
+- whether `post_id` should be read back from the ability result;
+- smoke coverage for both the success path and Adapter-owned rejection paths.
+
+OpenClaw may use capability discovery to decide what can be proposed, but
+Adapter must use execution profiles to decide what can be executed after Core
+approval and commit-preflight.
+
 For each execution request, Adapter must fetch the Core proposal, call Core
 commit-preflight, require `approval_commit_authorized=true`, require
 `commit_execution=false`, pass Core `approval_context` to WordPress Abilities
@@ -146,9 +161,9 @@ ability result.
 Adapter must not generate its own approval state, skip Core commit-preflight,
 skip `approval_context`, execute unapproved proposals outside the unified
 action, execute preflight failures, or batch silently execute destructive
-actions. Future execution abilities must be added one by one to the allowlist
-with dedicated smoke coverage; Adapter must not become a generic proxy-execute
-surface.
+actions. Future execution abilities must be added as explicit Adapter execution
+profile entries with dedicated smoke coverage; Adapter must not become a
+generic proxy-execute surface.
 
 ## AI Request Log Correlation
 

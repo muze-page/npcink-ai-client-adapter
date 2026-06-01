@@ -115,7 +115,11 @@ foreach (
 			'include_delete_candidates',
 			'allowed_plan_ability_ids',
 			'magick_ai_adapter_plan_ability_not_allowed',
+			'execution_profiles',
 			'allowed_execute_ability_ids',
+			'post_id_from_result',
+			'force_post_input',
+			'validate_terms_input',
 			'execute_approved_proposal_route',
 			'approve_and_execute_proposal_route',
 			'/execute-approved-proposal',
@@ -264,6 +268,7 @@ foreach (
 ) {
 	maa_adapter_assert( false !== strpos( $controller, $required ), 'Controller contains required text: ' . $required );
 }
+maa_adapter_assert( false === strpos( $controller, '$allowed_execute_ability_ids' ), 'Controller derives execute allowlist from execution profiles.' );
 maa_adapter_assert( false === strpos( $controller, 'include_log_tail' ), 'Adapter does not implement old include_log_tail compatibility.' );
 maa_adapter_assert( false === strpos( $controller, 'include_error_log' ), 'Adapter does not use old include_error_log diagnostics input.' );
 maa_adapter_assert( false === strpos( $controller, 'can_approve_proposals' ), 'Adapter does not call Core proposal approval permission path.' );
@@ -408,6 +413,8 @@ foreach (
 		'docs/openclaw-consumer-acceptance.md',
 		'docs/openclaw-batch-execution-policy.md',
 		'input.write_actions[]',
+		'execution profile registry',
+		'Capability discovery may show more proposal-required abilities',
 		'Create OpenClaw handoff',
 		'only its hash',
 			'Application Password secret-field',
@@ -780,6 +787,8 @@ foreach (
 		'magick-ai/set-post-terms',
 		'magick-ai/reply-comment',
 		'magick-ai/approve-comment',
+		'execution profile registry',
+		'capability discovery',
 		'POST /wp-json/magick-ai-core/v1/proposals/from-plan',
 		'The read path does not execute abilities marked `proposal_required`.',
 		'The adapter does not store proposal governance state.',
@@ -1053,6 +1062,9 @@ foreach (
 		'target_ability_id=magick-ai/set-post-terms',
 		'target_ability_id=magick-ai/reply-comment',
 		'target_ability_id=magick-ai/approve-comment',
+		'Execution Profile Registry',
+		'Capability discovery is not enough to execute a write ability',
+		'fail closed',
 		'Maximum batch size is 50 actions',
 		'Partial success is not a normal success mode',
 		'execution_mode=batch_write_actions',

@@ -60,6 +60,25 @@ for the proposal. Adapter requires Core approval commit authorization,
 Only after that does Adapter execute the normalized write actions through
 WordPress Abilities API.
 
+## Execution Profile Registry
+
+Adapter keeps final write execution opt-in through local execution profiles.
+Capability discovery is not enough to execute a write ability.
+
+Each profile entry is the implementation checklist for one executable ability:
+
+- `ability_id` is included in the derived execution allowlist;
+- required scalar input checks are declared in the profile;
+- special Adapter-owned guards are declared by profile flags;
+- dispatch behavior such as rebuilding post input is declared in the profile;
+- result handling such as `post_id` backfill is declared in the profile;
+- smoke tests cover success and Adapter-owned rejection behavior.
+
+Adding a new executable write ability means adding or updating exactly one
+profile entry plus the matching docs and smoke coverage. Abilities that are
+discoverable through Core or WordPress Abilities API but have no Adapter
+execution profile must fail closed.
+
 ## Batch Rules
 
 - Maximum batch size is 50 actions.
@@ -96,7 +115,8 @@ returns `execution_mode=single_post`, `post_ids`, `executed_count`,
 This policy does not:
 
 - add a generic write executor;
-- expand the Adapter execution allowlist without a dedicated implementation;
+- expand the Adapter execution allowlist without a dedicated execution profile
+  and implementation;
 - make Core execute final WordPress mutations;
 - turn Adapter into an MCP runtime or workflow runtime;
 - make Adapter store approval state;
@@ -105,6 +125,6 @@ This policy does not:
 ## Next Changes
 
 Each additional executable write ability requires a separate ADR or execution
-policy update that defines ability id, input schema, idempotency, failure
-handling, rollback or compensation behavior, log fields, Core preflight
-conditions, and smoke coverage.
+policy update that defines ability id, Adapter execution profile, input schema,
+idempotency, failure handling, rollback or compensation behavior, log fields,
+Core preflight conditions, and smoke coverage.

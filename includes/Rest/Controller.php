@@ -49,18 +49,91 @@ final class Controller {
 	);
 
 	/**
-	 * Abilities this adapter may execute after Core approval and commit preflight.
+	 * Returns Adapter-owned execution profiles for abilities that may run after
+	 * Core approval and commit preflight.
 	 *
-	 * @var array<string,bool>
+	 * Discovery tells Adapter which abilities exist; this registry is the
+	 * explicit opt-in policy for final WordPress writes.
+	 *
+	 * @return array<string,array<string,mixed>>
 	 */
-	private static $allowed_execute_ability_ids = array(
-		'magick-ai/trash-post'      => true,
-		'magick-ai/create-draft'    => true,
-		'magick-ai/update-post'     => true,
-		'magick-ai/set-post-terms'  => true,
-		'magick-ai/reply-comment'   => true,
-		'magick-ai/approve-comment' => true,
-	);
+	private static function execution_profiles(): array {
+		return array(
+			'magick-ai/trash-post'      => array(
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'trash-post execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'force_post_input'      => true,
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/create-draft'    => array(
+				'required_text_fields'  => array(
+					'title' => array(
+						'code'    => 'magick_ai_adapter_title_required',
+						'message' => __( 'create-draft execution input must include title.', 'magick-ai-adapter' ),
+					),
+				),
+				'post_id_from_result'   => true,
+			),
+			'magick-ai/update-post'     => array(
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'update-post execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'title', 'content', 'excerpt' ),
+					'code'    => 'magick_ai_adapter_update_fields_required',
+					'message' => __( 'update-post execution input must include title, content, or excerpt.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/set-post-terms'  => array(
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'set-post-terms execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'validate_terms_input'  => true,
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/reply-comment'   => array(
+				'required_int_fields'   => array(
+					'comment_id' => array(
+						'code'    => 'magick_ai_adapter_comment_id_required',
+						'message' => __( 'reply-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'require_comment_body'  => array(
+					'code'    => 'magick_ai_adapter_comment_content_required',
+					'message' => __( 'reply-comment execution input must include content.', 'magick-ai-adapter' ),
+				),
+				'content_formats'       => array(
+					'allowed' => array( 'html', 'markdown', 'plain' ),
+					'code'    => 'magick_ai_adapter_content_format_invalid',
+					'message' => __( 'reply-comment content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => true,
+			),
+			'magick-ai/approve-comment' => array(
+				'required_int_fields'   => array(
+					'comment_id' => array(
+						'code'    => 'magick_ai_adapter_comment_id_required',
+						'message' => __( 'approve-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'post_id_from_result'   => true,
+			),
+		);
+	}
+
+	/**
+	 * Returns ability ids this adapter may execute after Core approval.
+	 *
+	 * @return array<int,string>
+	 */
+	private static function allowed_execute_ability_ids(): array {
+		return array_keys( self::execution_profiles() );
+	}
 
 	/**
 	 * Registers REST routes.
@@ -1285,7 +1358,7 @@ final class Controller {
 					'POST /proposals/{proposal_id}/execute',
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
-				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
 				'execution_input_contract' => array(
 					'single' => 'proposal.input, with ability-specific required fields',
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
@@ -1326,7 +1399,7 @@ final class Controller {
 						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
 						'core_required_scope'  => 'commit:preflight',
 						'core_commit_execution' => false,
-						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+						'allowed_ability_ids'  => self::allowed_execute_ability_ids(),
 						'execution_input_contract' => array(
 							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
@@ -1339,7 +1412,7 @@ final class Controller {
 						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
 						'approval_surface'     => 'magick_ai_adapter_unified_action',
 						'core_commit_execution' => false,
-						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
+						'allowed_ability_ids'  => self::allowed_execute_ability_ids(),
 						'execution_input_contract' => array(
 							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
@@ -1451,7 +1524,7 @@ final class Controller {
 					'POST /proposals/{proposal_id}/execute',
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
-				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
 				'execution_input_contract' => array(
 					'single' => 'proposal.input, with ability-specific required fields',
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
@@ -2019,7 +2092,8 @@ final class Controller {
 	 * @return true|WP_Error
 	 */
 	private function validate_execute_ability( string $proposal_id, string $ability_id ) {
-		if ( isset( self::$allowed_execute_ability_ids[ $ability_id ] ) ) {
+		$profiles = self::execution_profiles();
+		if ( isset( $profiles[ $ability_id ] ) ) {
 			return true;
 		}
 
@@ -2030,7 +2104,7 @@ final class Controller {
 				'status'                      => 403,
 				'proposal_id'                 => $proposal_id,
 				'ability_id'                  => $ability_id,
-				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
+				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
 			)
 		);
 	}
@@ -2056,56 +2130,63 @@ final class Controller {
 			$error_data['target_ability_id'] = $ability_id;
 		}
 
-		if ( 'magick-ai/trash-post' === $ability_id && 0 === $post_id ) {
+		$profiles = self::execution_profiles();
+		$profile  = is_array( $profiles[ $ability_id ] ?? null ) ? $profiles[ $ability_id ] : array();
+
+		$post_id_rule = is_array( $profile['require_post_id'] ?? null ) ? $profile['require_post_id'] : array();
+		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
 			return new WP_Error(
-				'magick_ai_adapter_post_id_required',
-				__( 'trash-post execution input must include post_id.', 'magick-ai-adapter' ),
+				(string) ( $post_id_rule['code'] ?? 'magick_ai_adapter_post_id_required' ),
+				(string) ( $post_id_rule['message'] ?? __( 'Execution input must include post_id.', 'magick-ai-adapter' ) ),
 				$error_data
 			);
 		}
 
-		if ( 'magick-ai/create-draft' === $ability_id && '' === trim( sanitize_text_field( (string) ( $input['title'] ?? '' ) ) ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_title_required',
-				__( 'create-draft execution input must include title.', 'magick-ai-adapter' ),
-				$error_data
-			);
-		}
-
-		if ( 'magick-ai/update-post' === $ability_id ) {
-			if ( 0 === $post_id ) {
-				return new WP_Error(
-					'magick_ai_adapter_post_id_required',
-					__( 'update-post execution input must include post_id.', 'magick-ai-adapter' ),
-					$error_data
-				);
+		foreach ( (array) ( $profile['required_text_fields'] ?? array() ) as $field => $rule ) {
+			$rule = is_array( $rule ) ? $rule : array();
+			if ( '' !== trim( sanitize_text_field( (string) ( $input[ $field ] ?? '' ) ) ) ) {
+				continue;
 			}
 
-			$has_update_field = false;
-			foreach ( array( 'title', 'content', 'excerpt' ) as $field ) {
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_text_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required text field.', 'magick-ai-adapter' ) ),
+				$error_data
+			);
+		}
+
+		$any_fields_rule = is_array( $profile['require_any_fields'] ?? null ) ? $profile['require_any_fields'] : array();
+		if ( ! empty( $any_fields_rule ) ) {
+			$has_any_field = false;
+			foreach ( (array) ( $any_fields_rule['fields'] ?? array() ) as $field ) {
 				if ( array_key_exists( $field, $input ) ) {
-					$has_update_field = true;
+					$has_any_field = true;
 					break;
 				}
 			}
-			if ( ! $has_update_field ) {
+			if ( ! $has_any_field ) {
 				return new WP_Error(
-					'magick_ai_adapter_update_fields_required',
-					__( 'update-post execution input must include title, content, or excerpt.', 'magick-ai-adapter' ),
+					(string) ( $any_fields_rule['code'] ?? 'magick_ai_adapter_required_fields_missing' ),
+					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'magick-ai-adapter' ) ),
 					$error_data
 				);
 			}
 		}
 
-		if ( 'magick-ai/set-post-terms' === $ability_id ) {
-			if ( 0 === $post_id ) {
-				return new WP_Error(
-					'magick_ai_adapter_post_id_required',
-					__( 'set-post-terms execution input must include post_id.', 'magick-ai-adapter' ),
-					$error_data
-				);
+		foreach ( (array) ( $profile['required_int_fields'] ?? array() ) as $field => $rule ) {
+			$rule = is_array( $rule ) ? $rule : array();
+			if ( 0 < absint( $input[ $field ] ?? 0 ) ) {
+				continue;
 			}
 
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_int_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required id.', 'magick-ai-adapter' ) ),
+				$error_data
+			);
+		}
+
+		if ( ! empty( $profile['validate_terms_input'] ) ) {
 			$taxonomy = sanitize_key( (string) ( $input['taxonomy'] ?? 'post_tag' ) );
 			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
 				return new WP_Error(
@@ -2150,41 +2231,25 @@ final class Controller {
 			}
 		}
 
-		if ( 'magick-ai/reply-comment' === $ability_id ) {
-			$comment_id = absint( $input['comment_id'] ?? 0 );
-			if ( 0 === $comment_id ) {
-				return new WP_Error(
-					'magick_ai_adapter_comment_id_required',
-					__( 'reply-comment execution input must include comment_id.', 'magick-ai-adapter' ),
-					$error_data
-				);
-			}
-
+		$comment_body_rule = is_array( $profile['require_comment_body'] ?? null ) ? $profile['require_comment_body'] : array();
+		if ( ! empty( $comment_body_rule ) ) {
 			$content = (string) ( $input['content'] ?? '' );
 			if ( '' === trim( wp_strip_all_tags( $content ) ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_comment_content_required',
-					__( 'reply-comment execution input must include content.', 'magick-ai-adapter' ),
-					$error_data
-				);
-			}
-
-			$content_format = sanitize_key( (string) ( $input['content_format'] ?? 'html' ) );
-			if ( ! in_array( $content_format, array( 'html', 'markdown', 'plain' ), true ) ) {
-				return new WP_Error(
-					'magick_ai_adapter_content_format_invalid',
-					__( 'reply-comment content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					(string) ( $comment_body_rule['code'] ?? 'magick_ai_adapter_comment_content_required' ),
+					(string) ( $comment_body_rule['message'] ?? __( 'Comment execution input must include content.', 'magick-ai-adapter' ) ),
 					$error_data
 				);
 			}
 		}
 
-		if ( 'magick-ai/approve-comment' === $ability_id ) {
-			$comment_id = absint( $input['comment_id'] ?? 0 );
-			if ( 0 === $comment_id ) {
+		$content_format_rule = is_array( $profile['content_formats'] ?? null ) ? $profile['content_formats'] : array();
+		if ( ! empty( $content_format_rule ) ) {
+			$content_format = sanitize_key( (string) ( $input['content_format'] ?? 'html' ) );
+			if ( ! in_array( $content_format, (array) ( $content_format_rule['allowed'] ?? array() ), true ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_comment_id_required',
-					__( 'approve-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					(string) ( $content_format_rule['code'] ?? 'magick_ai_adapter_content_format_invalid' ),
+					(string) ( $content_format_rule['message'] ?? __( 'Comment content_format is invalid.', 'magick-ai-adapter' ) ),
 					$error_data
 				);
 			}
@@ -2388,12 +2453,14 @@ final class Controller {
 	private function execute_normalized_action( WP_REST_Request $request, string $proposal_id, array $action, array $approval_context, string $correlation_id, array $base_request_context ) {
 		$ability_id = sanitize_text_field( (string) ( $action['ability_id'] ?? '' ) );
 		$post_id    = absint( $action['post_id'] ?? 0 );
+		$profiles   = self::execution_profiles();
+		$profile    = is_array( $profiles[ $ability_id ] ?? null ) ? $profiles[ $ability_id ] : array();
 
 		$post_status_before = get_post_status( $post_id );
 		$post_status_before = false === $post_status_before ? '' : (string) $post_status_before;
 
 		$ability_input = is_array( $action['input'] ?? null ) ? $action['input'] : array();
-		if ( 'magick-ai/trash-post' === $ability_id ) {
+		if ( ! empty( $profile['force_post_input'] ) ) {
 			$ability_input = array(
 				'post_id' => $post_id,
 				'dry_run' => false,
@@ -2428,14 +2495,7 @@ final class Controller {
 		}
 
 		$result_data = $response->get_data();
-		if (
-			in_array(
-				$ability_id,
-				array( 'magick-ai/create-draft', 'magick-ai/reply-comment', 'magick-ai/approve-comment' ),
-				true
-			)
-			&& is_array( $result_data )
-		) {
+		if ( ! empty( $profile['post_id_from_result'] ) && is_array( $result_data ) ) {
 			$post_id = absint( $result_data['post_id'] ?? $post_id );
 		}
 

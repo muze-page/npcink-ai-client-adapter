@@ -486,9 +486,13 @@ Write or destructive abilities:
    `input.write_actions[]` batch where every action targets the allowlist.
    OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter performs Core
    preflight again, passes `approval_context`, and executes through WordPress
-   Abilities API. New execution abilities must be added one by one to the
-   Adapter allowlist with dedicated smoke coverage; this is not a generic
-   proxy-execute surface.
+   Abilities API. New execution abilities must be added as explicit Adapter
+   execution profile entries with dedicated smoke coverage; this is not a
+   generic proxy-execute surface.
+
+Adapter derives the execution allowlist from its local execution profile registry.
+Capability discovery may show more proposal-required abilities, but
+only abilities with an Adapter execution profile can run final writes.
 
 ## Non-Goals
 
