@@ -96,6 +96,12 @@ at execution time for older or externally-created proposals.
   and returns the upstream error with `executed_results` for inspection.
 - Terms, comments, media delete, and arbitrary write abilities outside the
   Adapter execution allowlist are not executable in this V1 policy.
+- An action input may use an exact `$outputs.<prior_action_id>.<field>`
+  reference to a previous action result in the same batch. Adapter resolves
+  those references immediately before executing the action, then revalidates
+  the resolved input against the target execution profile.
+- Output references cannot point forward, cannot cross proposal boundaries, and
+  cannot be embedded into larger strings.
 
 ## Response Contract
 

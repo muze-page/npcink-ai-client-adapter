@@ -496,6 +496,10 @@ only abilities with an Adapter execution profile can run final writes.
 For profiled abilities, Adapter also validates proposal input at
 `POST /proposals`, rejecting undeclared fields and invalid enum values before
 the proposal is sent to Core.
+Within one approved `write_actions[]` batch, later actions may reference earlier
+action outputs with exact values such as `$outputs.create-draft.post_id`.
+Adapter resolves those references in memory during that batch only, then
+revalidates the resolved action input before execution.
 
 ## Non-Goals
 

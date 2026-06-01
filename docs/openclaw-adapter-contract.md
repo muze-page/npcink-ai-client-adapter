@@ -165,6 +165,19 @@ commit-preflight, require `approval_commit_authorized=true`, require
 API, and return `proposal_id`, `correlation_id`, and `ability_id` with the
 ability result.
 
+Within one approved `write_actions[]` batch, Adapter may resolve exact output
+references in action input values:
+
+```text
+$outputs.<prior_action_id>.<field>
+```
+
+References are evaluated only in memory while executing that batch, must point
+to an earlier action in the same proposal, and must occupy the whole input
+value. Output references cannot be embedded into larger strings. Adapter does
+not persist run state, evaluate expressions, branch, loop, or resolve
+references across proposals.
+
 Adapter must not generate its own approval state, skip Core commit-preflight,
 skip `approval_context`, execute unapproved proposals outside the unified
 action, execute preflight failures, or batch silently execute destructive

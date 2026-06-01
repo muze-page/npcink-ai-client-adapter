@@ -2177,9 +2177,10 @@ final class Controller {
 	 * @param array<string,mixed> $input Ability input.
 	 * @param int                 $post_id Post id when the ability targets an existing post.
 	 * @param int|null            $action_index Batch action index.
+	 * @param bool                $allow_output_refs Whether batch output references may satisfy id fields.
 	 * @return true|WP_Error
 	 */
-	private function validate_execute_action_input( string $proposal_id, string $ability_id, array $input, int $post_id, ?int $action_index = null ) {
+	private function validate_execute_action_input( string $proposal_id, string $ability_id, array $input, int $post_id, ?int $action_index = null, bool $allow_output_refs = false ) {
 		$error_data = array(
 			'status'      => 400,
 			'proposal_id' => $proposal_id,
@@ -2216,6 +2217,11 @@ final class Controller {
 		}
 
 		$post_id_rule = is_array( $profile['require_post_id'] ?? null ) ? $profile['require_post_id'] : array();
+		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
+			if ( $allow_output_refs && $this->is_output_reference( $input['post_id'] ?? null ) ) {
+				$post_id_rule = array();
+			}
+		}
 		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
 			return new WP_Error(
 				(string) ( $post_id_rule['code'] ?? 'magick_ai_adapter_post_id_required' ),
@@ -2284,6 +2290,9 @@ final class Controller {
 		foreach ( (array) ( $profile['required_int_fields'] ?? array() ) as $field => $rule ) {
 			$rule = is_array( $rule ) ? $rule : array();
 			if ( 0 < absint( $input[ $field ] ?? 0 ) ) {
+				continue;
+			}
+			if ( $allow_output_refs && $this->is_output_reference( $input[ $field ] ?? null ) ) {
 				continue;
 			}
 
@@ -2367,6 +2376,159 @@ final class Controller {
 	}
 
 	/**
+	 * Checks whether a value is an exact batch output reference.
+	 *
+	 * @param mixed $value Value.
+	 * @return bool
+	 */
+	private function is_output_reference( $value ): bool {
+		return is_string( $value ) && 1 === preg_match( '/^\$outputs\.[A-Za-z0-9_-]+\.[A-Za-z0-9_]+$/', $value );
+	}
+
+	/**
+	 * Collects exact batch output references from a value tree.
+	 *
+	 * @param mixed $value Value.
+	 * @return array<int,string>
+	 */
+	private function collect_output_references( $value ): array {
+		if ( $this->is_output_reference( $value ) ) {
+			return array( (string) $value );
+		}
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$references = array();
+		foreach ( $value as $child ) {
+			$references = array_merge( $references, $this->collect_output_references( $child ) );
+		}
+		return array_values( array_unique( $references ) );
+	}
+
+	/**
+	 * Parses one exact batch output reference.
+	 *
+	 * @param string $reference Reference.
+	 * @return array{action_id:string,field:string}|null
+	 */
+	private function parse_output_reference( string $reference ): ?array {
+		if ( 1 !== preg_match( '/^\$outputs\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_]+)$/', $reference, $matches ) ) {
+			return null;
+		}
+
+		return array(
+			'action_id' => sanitize_key( $matches[1] ),
+			'field'     => sanitize_key( $matches[2] ),
+		);
+	}
+
+	/**
+	 * Validates that output references only point to prior actions.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $input Action input.
+	 * @param array<string,bool>  $available_outputs Prior action ids.
+	 * @param int                 $action_index Action index.
+	 * @return true|WP_Error
+	 */
+	private function validate_output_references( string $proposal_id, array $input, array $available_outputs, int $action_index ) {
+		foreach ( $this->collect_output_references( $input ) as $reference ) {
+			$parsed = $this->parse_output_reference( $reference );
+			if ( null === $parsed || empty( $available_outputs[ $parsed['action_id'] ] ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_output_reference_unavailable',
+					__( 'Batch output references must point to an earlier action in the same proposal.', 'magick-ai-adapter' ),
+					array(
+						'status'       => 400,
+						'proposal_id'  => $proposal_id,
+						'action_index' => $action_index,
+						'reference'    => $reference,
+					)
+				);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Resolves exact batch output references in an input value tree.
+	 *
+	 * @param mixed               $value Value.
+	 * @param array<string,array<string,mixed>> $outputs Prior outputs keyed by action id.
+	 * @param string              $proposal_id Proposal id.
+	 * @param int                 $action_index Action index.
+	 * @return mixed|WP_Error
+	 */
+	private function resolve_output_references( $value, array $outputs, string $proposal_id, int $action_index ) {
+		if ( $this->is_output_reference( $value ) ) {
+			$parsed = $this->parse_output_reference( (string) $value );
+			if (
+				null === $parsed
+				|| ! array_key_exists( $parsed['action_id'], $outputs )
+				|| ! array_key_exists( $parsed['field'], $outputs[ $parsed['action_id'] ] )
+			) {
+				return new WP_Error(
+					'magick_ai_adapter_output_reference_unresolved',
+					__( 'Batch output reference could not be resolved.', 'magick-ai-adapter' ),
+					array(
+						'status'       => 409,
+						'proposal_id'  => $proposal_id,
+						'action_index' => $action_index,
+						'reference'    => (string) $value,
+					)
+				);
+			}
+
+			return $outputs[ $parsed['action_id'] ][ $parsed['field'] ];
+		}
+
+		if ( is_string( $value ) && 0 === strpos( $value, '$outputs.' ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_output_reference_invalid',
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'magick-ai-adapter' ),
+				array(
+					'status'       => 400,
+					'proposal_id'  => $proposal_id,
+					'action_index' => $action_index,
+					'reference'    => $value,
+				)
+			);
+		}
+
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		$resolved = array();
+		foreach ( $value as $key => $child ) {
+			$resolved_child = $this->resolve_output_references( $child, $outputs, $proposal_id, $action_index );
+			if ( is_wp_error( $resolved_child ) ) {
+				return $resolved_child;
+			}
+			$resolved[ $key ] = $resolved_child;
+		}
+		return $resolved;
+	}
+
+	/**
+	 * Builds a flat output map for later batch actions.
+	 *
+	 * @param array<string,mixed> $result Executed action result.
+	 * @return array<string,mixed>
+	 */
+	private function output_map_from_action_result( array $result ): array {
+		$output = is_array( $result['result'] ?? null ) ? $result['result'] : array();
+		foreach ( array( 'post_id', 'ability_id', 'target_ability_id', 'post_status_before', 'post_status_after' ) as $field ) {
+			if ( array_key_exists( $field, $result ) ) {
+				$output[ $field ] = $result[ $field ];
+			}
+		}
+		return $output;
+	}
+
+	/**
 	 * Normalizes one proposal into concrete Adapter execution actions.
 	 *
 	 * @param string              $proposal_id Proposal id.
@@ -2404,7 +2566,8 @@ final class Controller {
 				);
 			}
 
-			$actions = array();
+			$actions           = array();
+			$available_outputs = array();
 			foreach ( $write_actions as $index => $raw_action ) {
 				if ( ! is_array( $raw_action ) ) {
 					return new WP_Error(
@@ -2446,9 +2609,31 @@ final class Controller {
 					return $allowed;
 				}
 
+				$action_id = sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) );
+				if ( '' === $action_id ) {
+					$action_id = 'action-' . ( $index + 1 );
+				}
+				if ( isset( $available_outputs[ $action_id ] ) ) {
+					return new WP_Error(
+						'magick_ai_adapter_write_action_duplicate_id',
+						__( 'Each write_actions item must have a unique action_id.', 'magick-ai-adapter' ),
+						array(
+							'status'       => 400,
+							'proposal_id'  => $proposal_id,
+							'action_index' => $index,
+							'action_id'    => $action_id,
+						)
+					);
+				}
+
 				$action_input = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
+				$valid_refs   = $this->validate_output_references( $proposal_id, $action_input, $available_outputs, $index );
+				if ( is_wp_error( $valid_refs ) ) {
+					return $valid_refs;
+				}
+
 				$post_id      = absint( $action_input['post_id'] ?? 0 );
-				$valid_input  = $this->validate_execute_action_input( $proposal_id, $target_ability_id, $action_input, $post_id, $index );
+				$valid_input  = $this->validate_execute_action_input( $proposal_id, $target_ability_id, $action_input, $post_id, $index, true );
 				if ( is_wp_error( $valid_input ) ) {
 					return $valid_input;
 				}
@@ -2505,11 +2690,6 @@ final class Controller {
 					);
 				}
 
-				$action_id = sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) );
-				if ( '' === $action_id ) {
-					$action_id = 'action-' . ( $index + 1 );
-				}
-
 				$actions[] = array(
 					'action_id'         => $action_id,
 					'action_index'      => $index,
@@ -2519,6 +2699,7 @@ final class Controller {
 					'input'             => $action_input,
 					'execution_mode'    => 'batch_write_actions',
 				);
+				$available_outputs[ $action_id ] = true;
 			}
 
 			return $actions;
@@ -2711,7 +2892,52 @@ final class Controller {
 		$base_request_context['magick_ai_core'] = $magick_ai_core;
 
 		$results = array();
+		$outputs = array();
 		foreach ( $actions as $action ) {
+			$action_index = absint( $action['action_index'] ?? 0 );
+			$resolved_input = $this->resolve_output_references(
+				is_array( $action['input'] ?? null ) ? $action['input'] : array(),
+				$outputs,
+				$proposal_id,
+				$action_index
+			);
+			if ( is_wp_error( $resolved_input ) ) {
+				$resolved_input->add_data(
+					array_merge(
+						(array) $resolved_input->get_error_data(),
+						array(
+							'correlation_id'   => $correlation_id,
+							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+							'executed_results' => $results,
+						)
+					)
+				);
+				return $resolved_input;
+			}
+
+			$action['input']   = is_array( $resolved_input ) ? $resolved_input : array();
+			$action['post_id'] = absint( $action['input']['post_id'] ?? 0 );
+			$valid_input       = $this->validate_execute_action_input(
+				$proposal_id,
+				sanitize_text_field( (string) ( $action['ability_id'] ?? '' ) ),
+				$action['input'],
+				absint( $action['post_id'] ?? 0 ),
+				$action_index
+			);
+			if ( is_wp_error( $valid_input ) ) {
+				$valid_input->add_data(
+					array_merge(
+						(array) $valid_input->get_error_data(),
+						array(
+							'correlation_id'   => $correlation_id,
+							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+							'executed_results' => $results,
+						)
+					)
+				);
+				return $valid_input;
+			}
+
 			$result = $this->execute_normalized_action( $request, $proposal_id, $action, $approval_context, $correlation_id, $base_request_context );
 			if ( is_wp_error( $result ) ) {
 				$error_data = $result->get_error_data();
@@ -2738,6 +2964,7 @@ final class Controller {
 			}
 
 			$results[] = $result;
+			$outputs[ sanitize_key( (string) ( $result['action_id'] ?? '' ) ) ] = $this->output_map_from_action_result( $result );
 		}
 
 		$first_result      = is_array( $results[0] ?? null ) ? $results[0] : array();

@@ -822,6 +822,82 @@ maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $batch_result['r
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $batch_post_id ), 'adapter batch approve-and-execute trashes first post' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $batch_second_post_id ), 'adapter batch approve-and-execute trashes second post' );
 
+$referenced_batch_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'title'      => 'Adapter output reference batch smoke',
+		'summary'    => 'Adapter resolves prior action outputs inside one approved write_actions batch.',
+		'input'      => array(
+			'write_actions' => array(
+				array(
+					'action_id'         => 'create-draft',
+					'target_ability_id' => 'magick-ai/create-draft',
+					'input'             => array(
+						'title'          => 'Adapter referenced batch draft',
+						'content'        => 'Adapter output reference batch smoke.',
+						'content_format' => 'plain',
+						'dry_run'        => true,
+						'commit'         => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+				array(
+					'action_id'         => 'update-created-draft',
+					'target_ability_id' => 'magick-ai/update-post',
+					'input'             => array(
+						'post_id'        => '$outputs.create-draft.post_id',
+						'title'          => 'Adapter referenced batch updated draft',
+						'content'        => 'Adapter resolved create-draft output before update.',
+						'content_format' => 'plain',
+						'dry_run'        => true,
+						'commit'         => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+				array(
+					'action_id'         => 'trash-created-draft',
+					'target_ability_id' => 'magick-ai/trash-post',
+					'input'             => array(
+						'post_id' => '$outputs.create-draft.post_id',
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+			),
+		),
+		'preview'    => array(
+			'action'           => 'batch_referenced_draft_lifecycle',
+			'action_count'     => 3,
+			'proposal_ready'   => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-output-reference-batch-smoke',
+		),
+	)
+);
+$referenced_batch_proposal_id = (string) ( $referenced_batch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $referenced_batch_proposal_id;
+maa_adapter_smoke_assert( '' !== $referenced_batch_proposal_id, 'adapter creates output-reference write_actions batch proposal' );
+$referenced_batch_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $referenced_batch_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $referenced_batch_result['success'] ?? false ), 'adapter batch approve-and-execute succeeds with output references' );
+maa_adapter_smoke_assert( 3 === (int) ( $referenced_batch_result['executed_count'] ?? 0 ), 'adapter output-reference batch executes all actions' );
+$referenced_batch_post_id = (int) ( $referenced_batch_result['results'][0]['post_id'] ?? 0 );
+$maa_adapter_smoke_cleanup_post_ids[] = $referenced_batch_post_id;
+maa_adapter_smoke_assert( $referenced_batch_post_id > 0, 'adapter output-reference batch creates a draft post' );
+maa_adapter_smoke_assert( $referenced_batch_post_id === (int) ( $referenced_batch_result['results'][1]['post_id'] ?? 0 ), 'adapter output-reference batch updates the created draft' );
+maa_adapter_smoke_assert( $referenced_batch_post_id === (int) ( $referenced_batch_result['results'][2]['post_id'] ?? 0 ), 'adapter output-reference batch trashes the created draft' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $referenced_batch_post_id ), 'adapter output-reference batch leaves created draft trashed' );
+
 $bad_batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $bad_batch_second_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $bad_batch_post_id;
