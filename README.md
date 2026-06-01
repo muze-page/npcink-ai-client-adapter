@@ -495,7 +495,15 @@ Capability discovery may show more proposal-required abilities, but
 only abilities with an Adapter execution profile can run final writes.
 For profiled abilities, Adapter also validates proposal input at
 `POST /proposals`, rejecting undeclared fields and invalid enum values before
-the proposal is sent to Core.
+the proposal is sent to Core. The same Adapter-owned input schema check also
+runs for profiled `plan.write_actions[]` during `POST /proposals/from-plan`
+before Adapter forwards the plan to Core; invalid actions return
+`magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` carrying
+the action index, action id, target ability id, blocked field, and reused
+single-proposal block code. Exact `$outputs.<prior_action_id>.<field>`
+references are allowed in profiled plan action input only when they point to an
+earlier action in the same plan; Adapter revalidates the resolved value during
+approved batch execution.
 Within one approved `write_actions[]` batch, later actions may reference earlier
 action outputs with exact values such as `$outputs.create-draft.post_id`.
 Adapter resolves those references in memory during that batch only, then

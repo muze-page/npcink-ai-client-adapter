@@ -439,6 +439,131 @@ $unallowed_plan_bridge = maa_adapter_smoke_rest_result(
 maa_adapter_smoke_assert( 400 === (int) $unallowed_plan_bridge['status'], 'adapter rejects unallowed plan-to-proposal ability before Core forwarding' );
 maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' === (string) ( $unallowed_plan_bridge['data']['code'] ?? '' ), 'adapter unallowed plan rejection uses adapter error code' );
 
+$invalid_plan_action_bridge = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'plan'            => array(
+			'requires_approval' => true,
+			'commit_execution'  => false,
+			'dry_run'           => true,
+			'write_actions'     => array(
+				array(
+					'action_id'         => 'invalid-update-post-status',
+					'target_ability_id' => 'magick-ai/update-post',
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+					'input'             => array(
+						'post_id' => 123,
+						'title'   => 'Adapter invalid plan action status should not apply',
+						'status'  => 'publish',
+						'dry_run' => true,
+						'commit'  => false,
+					),
+				),
+			),
+		),
+	)
+);
+$invalid_plan_action_error = is_array( $invalid_plan_action_bridge['data']['data'] ?? null ) ? $invalid_plan_action_bridge['data']['data'] : array();
+$invalid_plan_action_block = is_array( $invalid_plan_action_error['blocked_items'][0] ?? null ) ? $invalid_plan_action_error['blocked_items'][0] : array();
+maa_adapter_smoke_assert( 400 === (int) $invalid_plan_action_bridge['status'], 'adapter plan-to-proposal rejects invalid profiled action input before Core forwarding' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_plan_action_input_invalid' === (string) ( $invalid_plan_action_bridge['data']['code'] ?? '' ), 'adapter plan action input rejection uses adapter error code' );
+maa_adapter_smoke_assert( 0 === (int) ( $invalid_plan_action_error['proposal_count'] ?? -1 ), 'adapter plan action input rejection creates no proposals' );
+maa_adapter_smoke_assert( 0 === (int) ( $invalid_plan_action_block['index'] ?? -1 ), 'adapter plan action input rejection carries action index' );
+maa_adapter_smoke_assert( 'invalid-update-post-status' === (string) ( $invalid_plan_action_block['action_id'] ?? '' ), 'adapter plan action input rejection carries action id' );
+maa_adapter_smoke_assert( 'magick-ai/update-post' === (string) ( $invalid_plan_action_block['target_ability_id'] ?? '' ), 'adapter plan action input rejection carries target ability id' );
+maa_adapter_smoke_assert( 'status' === (string) ( $invalid_plan_action_block['field'] ?? '' ), 'adapter plan action input rejection carries field' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_ability_input_field_not_allowed' === (string) ( $invalid_plan_action_block['block_code'] ?? '' ), 'adapter plan action input rejection reuses proposal schema field error code' );
+
+$output_reference_plan_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'plan'            => array(
+			'success' => true,
+			'data'    => array(
+				'batch_id'         => 'adapter-plan-output-reference-smoke',
+				'issue_types'      => array( 'acceptance' ),
+				'write_actions'    => array(
+					array(
+						'action_id'         => 'create-draft-fixture',
+						'target_ability_id' => 'magick-ai/create-draft',
+						'input'             => array(
+							'status'         => 'draft',
+							'title'          => 'Adapter from-plan output reference draft',
+							'content'        => 'Adapter from-plan output reference smoke.',
+							'content_format' => 'plain',
+							'dry_run'        => true,
+							'commit'         => false,
+						),
+						'requires_approval' => true,
+						'commit_execution'  => false,
+						'proposal_ready'    => true,
+					),
+					array(
+						'action_id'         => 'update-created-draft',
+						'target_ability_id' => 'magick-ai/update-post',
+						'depends_on'        => array( 'create-draft-fixture' ),
+						'input'             => array(
+							'post_id'        => '$outputs.create-draft-fixture.post_id',
+							'title'          => 'Adapter from-plan output reference updated draft',
+							'content'        => 'Adapter resolved a from-plan output reference before update.',
+							'content_format' => 'plain',
+							'dry_run'        => true,
+							'commit'         => false,
+						),
+						'requires_approval' => true,
+						'commit_execution'  => false,
+						'proposal_ready'    => true,
+					),
+					array(
+						'action_id'         => 'trash-created-draft',
+						'target_ability_id' => 'magick-ai/trash-post',
+						'depends_on'        => array( 'create-draft-fixture' ),
+						'input'             => array(
+							'post_id' => '$outputs.create-draft-fixture.post_id',
+							'dry_run' => true,
+							'commit'  => false,
+						),
+						'requires_approval' => true,
+						'commit_execution'  => false,
+						'proposal_ready'    => true,
+					),
+				),
+				'preview'          => array(),
+				'risk'             => array(
+					'level'  => 'medium',
+					'reason' => 'Adapter from-plan output reference smoke.',
+				),
+				'requires_approval' => true,
+				'commit_execution' => false,
+				'dry_run'          => true,
+			),
+		),
+	)
+);
+maa_adapter_smoke_assert( 1 === (int) ( $output_reference_plan_bridge['proposal_count'] ?? 0 ), 'adapter from-plan output references create one batch proposal' );
+$output_reference_plan_proposal = is_array( $output_reference_plan_bridge['proposals'][0] ?? null ) ? $output_reference_plan_bridge['proposals'][0] : array();
+$output_reference_plan_proposal_id = (string) ( $output_reference_plan_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $output_reference_plan_proposal_id;
+$output_reference_plan_actions = is_array( $output_reference_plan_proposal['input']['write_actions'] ?? null ) ? array_values( $output_reference_plan_proposal['input']['write_actions'] ) : array();
+maa_adapter_smoke_assert( 'plan_to_proposal_batch' === (string) ( $output_reference_plan_proposal['preview']['source']['type'] ?? '' ), 'adapter from-plan output reference proposal records batch source' );
+maa_adapter_smoke_assert( 3 === count( $output_reference_plan_actions ), 'adapter from-plan output reference proposal preserves ordered actions' );
+maa_adapter_smoke_assert( '$outputs.create-draft-fixture.post_id' === (string) ( $output_reference_plan_actions[1]['input']['post_id'] ?? '' ), 'adapter from-plan output reference proposal preserves unresolved post_id reference' );
+$output_reference_plan_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $output_reference_plan_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $output_reference_plan_result['success'] ?? false ), 'adapter from-plan output-reference batch approve-and-execute succeeds' );
+maa_adapter_smoke_assert( 3 === (int) ( $output_reference_plan_result['executed_count'] ?? 0 ), 'adapter from-plan output-reference batch executes all actions' );
+$output_reference_plan_post_id = (int) ( $output_reference_plan_result['results'][0]['post_id'] ?? 0 );
+$maa_adapter_smoke_cleanup_post_ids[] = $output_reference_plan_post_id;
+maa_adapter_smoke_assert( $output_reference_plan_post_id > 0, 'adapter from-plan output-reference batch creates a draft post' );
+maa_adapter_smoke_assert( $output_reference_plan_post_id === (int) ( $output_reference_plan_result['results'][1]['post_id'] ?? 0 ), 'adapter from-plan output-reference batch updates the created draft' );
+maa_adapter_smoke_assert( $output_reference_plan_post_id === (int) ( $output_reference_plan_result['results'][2]['post_id'] ?? 0 ), 'adapter from-plan output-reference batch trashes the created draft' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $output_reference_plan_post_id ), 'adapter from-plan output-reference batch leaves created draft trashed' );
+
 $media_plan_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
 $maa_adapter_smoke_cleanup_attachment_ids[] = $media_plan_attachment_id;
 $media_e2e_input = array(

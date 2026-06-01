@@ -82,7 +82,15 @@ execution profile must fail closed.
 For profiled abilities, Adapter validates proposal input at `POST /proposals`
 before forwarding to Core. This validation rejects fields outside the profile
 input schema and invalid enum values, then reuses the same profile checks again
-at execution time for older or externally-created proposals.
+for profiled `plan.write_actions[]` during `POST /proposals/from-plan` before
+forwarding the plan to Core, and again at execution time for older or
+externally-created proposals. Plan action schema failures return
+`magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` carrying
+the action index, action id, target ability id, field, and reused
+single-proposal block code. Plan action input may contain exact
+`$outputs.<prior_action_id>.<field>` references for fields such as `post_id` or
+`comment_id`; Adapter validates that they point to earlier actions, then
+resolves and revalidates them during approved batch execution.
 
 ## Batch Rules
 

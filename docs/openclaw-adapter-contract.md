@@ -604,9 +604,15 @@ Adapter invariants:
 - It keeps Core as the approval, preflight, and audit truth source.
 
 For read-only planning abilities, OpenClaw may instead send the returned plan
-to `POST /proposals/from-plan`. Adapter only forwards the plan to Core and
-preserves Core's result; Core owns plan intake, proposal creation, blocked
-items, approval state, and audit truth.
+to `POST /proposals/from-plan`. Adapter only forwards the plan to Core after it
+has applied Adapter-owned schema checks to profiled `plan.write_actions[]`
+inputs. Invalid profiled action input returns
+`magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` and no
+Core proposal creation. Exact `$outputs.<prior_action_id>.<field>` references
+are accepted only when they point to an earlier action in the same plan, then
+resolved and revalidated during approved batch execution. Core still owns plan
+intake, proposal creation, remaining blocked items, approval state, and audit
+truth.
 
 Future standalone approval or rejection proxying is out of this default
 contract. It may only be added as a separate explicit trusted-host policy and

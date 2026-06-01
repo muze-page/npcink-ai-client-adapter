@@ -1914,14 +1914,14 @@ final class Controller {
 	 * @param array<string,mixed> $input Proposal input.
 	 * @return true|WP_Error
 	 */
-	private function validate_proposal_create_input( string $ability_id, array $input ) {
+	private function validate_proposal_create_input( string $ability_id, array $input, bool $allow_output_refs = false, ?int $action_index = null ) {
 		$ability_id = sanitize_text_field( $ability_id );
 		$profiles   = self::execution_profiles();
 		if ( ! isset( $profiles[ $ability_id ] ) ) {
 			return true;
 		}
 
-		return $this->validate_execute_action_input( 'proposal_create', $ability_id, $input, absint( $input['post_id'] ?? 0 ) );
+		return $this->validate_execute_action_input( 'proposal_create', $ability_id, $input, absint( $input['post_id'] ?? 0 ), $action_index, $allow_output_refs );
 	}
 
 	/**
@@ -1943,14 +1943,97 @@ final class Controller {
 			);
 		}
 
+		$plan            = $this->object_param( $request, 'plan' );
+		$valid_plan_input = $this->validate_plan_write_action_inputs( $plan );
+		if ( is_wp_error( $valid_plan_input ) ) {
+			return $valid_plan_input;
+		}
+
 		$params = array(
 			'plan_ability_id' => $plan_ability_id,
-			'plan'            => $this->object_param( $request, 'plan' ),
+			'plan'            => $plan,
 			'plan_input'      => $this->object_param( $request, 'plan_input' ),
 			'caller'          => $this->proposal_caller_context( $request, $plan_ability_id ),
 		);
 
 		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/from-plan', $params );
+	}
+
+	/**
+	 * Validates profiled write action input before Core creates plan proposals.
+	 *
+	 * Core remains the proposal creation and blocked-item truth. Adapter only
+	 * rejects inputs it already owns through the execution profile registry, so
+	 * single proposal and plan-to-proposal intake fail on the same schema rules.
+	 *
+	 * @param array<string,mixed> $plan_payload Plan output or success envelope.
+	 * @return true|WP_Error
+	 */
+	private function validate_plan_write_action_inputs( array $plan_payload ) {
+		$plan = is_array( $plan_payload['data'] ?? null ) ? $plan_payload['data'] : $plan_payload;
+		if ( ! is_array( $plan ) ) {
+			return true;
+		}
+
+		$write_actions     = is_array( $plan['write_actions'] ?? null ) ? array_values( $plan['write_actions'] ) : array();
+		$blocked_items     = array();
+		$available_outputs = array();
+		foreach ( $write_actions as $index => $raw_action ) {
+			if ( ! is_array( $raw_action ) ) {
+				continue;
+			}
+
+			$target_ability_id = sanitize_text_field( (string) ( $raw_action['target_ability_id'] ?? '' ) );
+			if ( '' === $target_ability_id ) {
+				continue;
+			}
+
+			$action_id = sanitize_key( (string) ( $raw_action['action_id'] ?? '' ) );
+			if ( '' === $action_id ) {
+				$action_id = 'action-' . ( $index + 1 );
+			}
+
+			$input       = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
+			$valid_refs  = $this->validate_output_references( 'proposal_create', $input, $available_outputs, $index );
+			$valid_input = is_wp_error( $valid_refs ) ? $valid_refs : $this->validate_proposal_create_input( $target_ability_id, $input, true, $index );
+			if ( is_wp_error( $valid_input ) ) {
+				$error_data = $valid_input->get_error_data();
+				$error_data = is_array( $error_data ) ? $error_data : array();
+				$blocked    = array(
+					'index'             => $index,
+					'action_id'         => $action_id,
+					'target_ability_id' => $target_ability_id,
+					'block_code'        => $valid_input->get_error_code(),
+					'reason'            => $valid_input->get_error_message(),
+				);
+
+				foreach ( array( 'field', 'allowed_input_fields', 'allowed_values', 'reference' ) as $key ) {
+					if ( array_key_exists( $key, $error_data ) ) {
+						$blocked[ $key ] = $error_data[ $key ];
+					}
+				}
+
+				$blocked_items[] = $blocked;
+				continue;
+			}
+
+			$available_outputs[ $action_id ] = true;
+		}
+
+		if ( empty( $blocked_items ) ) {
+			return true;
+		}
+
+		return new WP_Error(
+			'magick_ai_adapter_plan_action_input_invalid',
+			__( 'Plan write action input failed Adapter proposal validation.', 'magick-ai-adapter' ),
+			array(
+				'status'         => 400,
+				'proposal_count' => 0,
+				'blocked_count'  => count( $blocked_items ),
+				'blocked_items'  => $blocked_items,
+			)
+		);
 	}
 
 	/**
