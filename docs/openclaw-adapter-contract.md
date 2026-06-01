@@ -610,9 +610,10 @@ inputs. Invalid profiled action input returns
 `magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` and no
 Core proposal creation. Exact `$outputs.<prior_action_id>.<field>` references
 are accepted only when they point to an earlier action in the same plan, then
-resolved and revalidated during approved batch execution. Core still owns plan
-intake, proposal creation, remaining blocked items, approval state, and audit
-truth.
+resolved and revalidated during approved batch execution. Embedded `$outputs.`
+tokens and duplicate plan action ids fail closed before Core forwarding. Core
+still owns plan intake, proposal creation, remaining blocked items, approval
+state, and audit truth.
 
 Future standalone approval or rejection proxying is out of this default
 contract. It may only be added as a separate explicit trusted-host policy and

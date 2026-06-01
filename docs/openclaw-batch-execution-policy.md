@@ -90,7 +90,9 @@ the action index, action id, target ability id, field, and reused
 single-proposal block code. Plan action input may contain exact
 `$outputs.<prior_action_id>.<field>` references for fields such as `post_id` or
 `comment_id`; Adapter validates that they point to earlier actions, then
-resolves and revalidates them during approved batch execution.
+resolves and revalidates them during approved batch execution. Embedded output
+tokens such as `prefix-$outputs.create.post_id` are invalid and fail closed.
+Plan action ids must be unique before Adapter forwards the plan to Core.
 
 ## Batch Rules
 

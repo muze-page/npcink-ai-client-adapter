@@ -1992,6 +1992,16 @@ final class Controller {
 			if ( '' === $action_id ) {
 				$action_id = 'action-' . ( $index + 1 );
 			}
+			if ( isset( $available_outputs[ $action_id ] ) ) {
+				$blocked_items[] = array(
+					'index'             => $index,
+					'action_id'         => $action_id,
+					'target_ability_id' => $target_ability_id,
+					'block_code'        => 'magick_ai_adapter_write_action_duplicate_id',
+					'reason'            => __( 'Each write_actions item must have a unique action_id.', 'magick-ai-adapter' ),
+				);
+				continue;
+			}
 
 			$input       = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
 			$valid_refs  = $this->validate_output_references( 'proposal_create', $input, $available_outputs, $index );
@@ -2490,6 +2500,32 @@ final class Controller {
 	}
 
 	/**
+	 * Finds a malformed output reference token in a value tree.
+	 *
+	 * @param mixed $value Value.
+	 * @return string
+	 */
+	private function invalid_output_reference_token( $value ): string {
+		if ( is_string( $value ) ) {
+			if ( false !== strpos( $value, '$outputs.' ) && ! $this->is_output_reference( $value ) ) {
+				return $value;
+			}
+			return '';
+		}
+		if ( ! is_array( $value ) ) {
+			return '';
+		}
+
+		foreach ( $value as $child ) {
+			$invalid = $this->invalid_output_reference_token( $child );
+			if ( '' !== $invalid ) {
+				return $invalid;
+			}
+		}
+		return '';
+	}
+
+	/**
 	 * Parses one exact batch output reference.
 	 *
 	 * @param string $reference Reference.
@@ -2516,6 +2552,20 @@ final class Controller {
 	 * @return true|WP_Error
 	 */
 	private function validate_output_references( string $proposal_id, array $input, array $available_outputs, int $action_index ) {
+		$invalid_reference = $this->invalid_output_reference_token( $input );
+		if ( '' !== $invalid_reference ) {
+			return new WP_Error(
+				'magick_ai_adapter_output_reference_invalid',
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'magick-ai-adapter' ),
+				array(
+					'status'       => 400,
+					'proposal_id'  => $proposal_id,
+					'action_index' => $action_index,
+					'reference'    => $invalid_reference,
+				)
+			);
+		}
+
 		foreach ( $this->collect_output_references( $input ) as $reference ) {
 			$parsed = $this->parse_output_reference( $reference );
 			if ( null === $parsed || empty( $available_outputs[ $parsed['action_id'] ] ) ) {
@@ -2567,7 +2617,8 @@ final class Controller {
 			return $outputs[ $parsed['action_id'] ][ $parsed['field'] ];
 		}
 
-		if ( is_string( $value ) && 0 === strpos( $value, '$outputs.' ) ) {
+		$invalid_reference = $this->invalid_output_reference_token( $value );
+		if ( '' !== $invalid_reference ) {
 			return new WP_Error(
 				'magick_ai_adapter_output_reference_invalid',
 				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'magick-ai-adapter' ),
@@ -2575,7 +2626,7 @@ final class Controller {
 					'status'       => 400,
 					'proposal_id'  => $proposal_id,
 					'action_index' => $action_index,
-					'reference'    => $value,
+					'reference'    => $invalid_reference,
 				)
 			);
 		}

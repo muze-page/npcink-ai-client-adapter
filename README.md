@@ -503,7 +503,8 @@ the action index, action id, target ability id, blocked field, and reused
 single-proposal block code. Exact `$outputs.<prior_action_id>.<field>`
 references are allowed in profiled plan action input only when they point to an
 earlier action in the same plan; Adapter revalidates the resolved value during
-approved batch execution.
+approved batch execution. Embedded `$outputs.` tokens are rejected, and plan
+action ids must be unique before Adapter forwards the plan to Core.
 Within one approved `write_actions[]` batch, later actions may reference earlier
 action outputs with exact values such as `$outputs.create-draft.post_id`.
 Adapter resolves those references in memory during that batch only, then

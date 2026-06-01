@@ -478,6 +478,81 @@ maa_adapter_smoke_assert( 'magick-ai/update-post' === (string) ( $invalid_plan_a
 maa_adapter_smoke_assert( 'status' === (string) ( $invalid_plan_action_block['field'] ?? '' ), 'adapter plan action input rejection carries field' );
 maa_adapter_smoke_assert( 'magick_ai_adapter_ability_input_field_not_allowed' === (string) ( $invalid_plan_action_block['block_code'] ?? '' ), 'adapter plan action input rejection reuses proposal schema field error code' );
 
+$duplicate_plan_action_bridge = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'plan'            => array(
+			'requires_approval' => true,
+			'commit_execution'  => false,
+			'dry_run'           => true,
+			'write_actions'     => array(
+				array(
+					'action_id'         => 'duplicate-plan-action',
+					'target_ability_id' => 'magick-ai/create-draft',
+					'input'             => array(
+						'title'   => 'Adapter duplicate plan action one',
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+				array(
+					'action_id'         => 'duplicate-plan-action',
+					'target_ability_id' => 'magick-ai/create-draft',
+					'input'             => array(
+						'title'   => 'Adapter duplicate plan action two',
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+			),
+		),
+	)
+);
+$duplicate_plan_action_error = is_array( $duplicate_plan_action_bridge['data']['data'] ?? null ) ? $duplicate_plan_action_bridge['data']['data'] : array();
+$duplicate_plan_action_block = is_array( $duplicate_plan_action_error['blocked_items'][0] ?? null ) ? $duplicate_plan_action_error['blocked_items'][0] : array();
+maa_adapter_smoke_assert( 400 === (int) $duplicate_plan_action_bridge['status'], 'adapter plan-to-proposal rejects duplicate action ids before Core forwarding' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_write_action_duplicate_id' === (string) ( $duplicate_plan_action_block['block_code'] ?? '' ), 'adapter duplicate plan action rejection uses duplicate id block code' );
+
+$embedded_output_plan_bridge = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'plan'            => array(
+			'requires_approval' => true,
+			'commit_execution'  => false,
+			'dry_run'           => true,
+			'write_actions'     => array(
+				array(
+					'action_id'         => 'embedded-output-token',
+					'target_ability_id' => 'magick-ai/create-draft',
+					'input'             => array(
+						'title'   => 'Adapter embedded output token smoke',
+						'content' => 'prefix-$outputs.embedded-output-token.post_id',
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+			),
+		),
+	)
+);
+$embedded_output_error = is_array( $embedded_output_plan_bridge['data']['data'] ?? null ) ? $embedded_output_plan_bridge['data']['data'] : array();
+$embedded_output_block = is_array( $embedded_output_error['blocked_items'][0] ?? null ) ? $embedded_output_error['blocked_items'][0] : array();
+maa_adapter_smoke_assert( 400 === (int) $embedded_output_plan_bridge['status'], 'adapter plan-to-proposal rejects embedded output reference tokens before Core forwarding' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_output_reference_invalid' === (string) ( $embedded_output_block['block_code'] ?? '' ), 'adapter embedded plan output token rejection uses output reference invalid code' );
+
 $output_reference_plan_bridge = maa_adapter_smoke_rest(
 	'POST',
 	'/magick-ai-adapter/v1/proposals/from-plan',
@@ -1022,6 +1097,43 @@ maa_adapter_smoke_assert( $referenced_batch_post_id > 0, 'adapter output-referen
 maa_adapter_smoke_assert( $referenced_batch_post_id === (int) ( $referenced_batch_result['results'][1]['post_id'] ?? 0 ), 'adapter output-reference batch updates the created draft' );
 maa_adapter_smoke_assert( $referenced_batch_post_id === (int) ( $referenced_batch_result['results'][2]['post_id'] ?? 0 ), 'adapter output-reference batch trashes the created draft' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $referenced_batch_post_id ), 'adapter output-reference batch leaves created draft trashed' );
+
+$embedded_reference_batch_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'title'      => 'Adapter embedded output reference batch smoke',
+		'summary'    => 'Adapter must reject embedded output reference tokens before batch execution.',
+		'input'      => array(
+			'write_actions' => array(
+				array(
+					'action_id'         => 'embedded-output-reference',
+					'target_ability_id' => 'magick-ai/create-draft',
+					'input'             => array(
+						'title'   => 'Adapter embedded output reference batch',
+						'content' => 'prefix-$outputs.embedded-output-reference.post_id',
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => false,
+					'proposal_ready'    => true,
+				),
+			),
+		),
+		'preview'    => array(
+			'action'           => 'batch_embedded_output_reference',
+			'proposal_ready'   => true,
+			'commit_execution' => false,
+		),
+	)
+);
+$embedded_reference_batch_proposal_id = (string) ( $embedded_reference_batch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $embedded_reference_batch_proposal_id;
+$embedded_reference_batch_result = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $embedded_reference_batch_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 400 === (int) $embedded_reference_batch_result['status'], 'adapter batch approve-and-execute rejects embedded output reference tokens before execution' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_output_reference_invalid' === (string) ( $embedded_reference_batch_result['data']['code'] ?? '' ), 'adapter embedded output reference execution rejection uses output reference invalid code' );
 
 $bad_batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $bad_batch_second_post_id = maa_adapter_smoke_create_trash_post_fixture();
