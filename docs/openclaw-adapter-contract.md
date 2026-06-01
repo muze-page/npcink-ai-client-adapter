@@ -90,17 +90,21 @@ loop:
 POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
-For a pending `magick-ai/trash-post` or `magick-ai/create-draft` proposal,
-Adapter fetches the proposal from Core, calls Core approve, calls Core
-commit-preflight, verifies Core's approval context and executable preflight
-result, then executes one WordPress Abilities API call. For an already approved
-proposal, Adapter skips only the Core approve step and still runs
-commit-preflight before execution.
+For a pending `magick-ai/trash-post`, `magick-ai/create-draft`,
+`magick-ai/update-post`, `magick-ai/set-post-terms`, or
+`magick-ai/reply-comment` proposal, Adapter fetches the proposal from Core,
+calls Core approve, calls Core commit-preflight, verifies Core's approval
+context and executable preflight result, then executes one WordPress Abilities
+API call. For an already approved proposal, Adapter skips only the Core approve
+step and still runs commit-preflight before execution.
 
 The execution input may be either top-level `proposal.input` for an allowlisted
 ability or a bounded `proposal.input.write_actions[]` batch. `trash-post`
-requires `post_id`; `create-draft` requires `title` and uses the approved draft
-input. See
+requires `post_id`; `create-draft` requires `title`; `update-post` requires
+`post_id` plus at least one of `title`, `content`, or `excerpt`;
+`set-post-terms` requires `post_id`, a valid `taxonomy`, `mode`, and
+`term_ids` or `terms`, and does not create missing terms; `reply-comment`
+requires `comment_id`, non-empty `content`, and a valid `content_format`. See
 [`openclaw-batch-execution-policy.md`](openclaw-batch-execution-policy.md).
 
 The response must include `proposal_id`, `post_id`, `ability_id`,
@@ -122,6 +126,9 @@ The current allowlist is intentionally narrow:
 
 - `magick-ai/trash-post`
 - `magick-ai/create-draft`
+- `magick-ai/update-post`
+- `magick-ai/set-post-terms`
+- `magick-ai/reply-comment`
 
 The allowlist applies to both single-ability execution and each
 `write_actions[]` item. A batch containing any non-allowlisted action fails
@@ -540,8 +547,9 @@ OpenClaw must treat Core as the only proposal and approval truth:
 6. If using the lower-level split path and `status=approved`, call
    `POST /proposals/{proposal_id}/commit-preflight`.
 7. Stop at the returned Core preflight decision unless the ability is
-   allowlisted for Adapter execution, currently `magick-ai/trash-post` and
-   `magick-ai/create-draft`.
+   allowlisted for Adapter execution, currently `magick-ai/trash-post`,
+   `magick-ai/create-draft`, `magick-ai/update-post`, and
+   `magick-ai/set-post-terms`, and `magick-ai/reply-comment`.
 
 Adapter invariants:
 

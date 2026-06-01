@@ -54,8 +54,11 @@ final class Controller {
 	 * @var array<string,bool>
 	 */
 	private static $allowed_execute_ability_ids = array(
-		'magick-ai/trash-post'   => true,
-		'magick-ai/create-draft' => true,
+		'magick-ai/trash-post'     => true,
+		'magick-ai/create-draft'   => true,
+		'magick-ai/update-post'    => true,
+		'magick-ai/set-post-terms' => true,
+		'magick-ai/reply-comment'  => true,
 	);
 
 	/**
@@ -1283,7 +1286,7 @@ final class Controller {
 				),
 				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
 				'execution_input_contract' => array(
-					'single' => 'proposal.input, with post_id required for trash-post and title required for create-draft',
+					'single' => 'proposal.input, with ability-specific required fields',
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
@@ -1449,7 +1452,7 @@ final class Controller {
 				),
 				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
 				'execution_input_contract' => array(
-					'single' => 'proposal.input, with post_id required for trash-post and title required for create-draft',
+					'single' => 'proposal.input, with ability-specific required fields',
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
@@ -2068,6 +2071,113 @@ final class Controller {
 			);
 		}
 
+		if ( 'magick-ai/update-post' === $ability_id ) {
+			if ( 0 === $post_id ) {
+				return new WP_Error(
+					'magick_ai_adapter_post_id_required',
+					__( 'update-post execution input must include post_id.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$has_update_field = false;
+			foreach ( array( 'title', 'content', 'excerpt' ) as $field ) {
+				if ( array_key_exists( $field, $input ) ) {
+					$has_update_field = true;
+					break;
+				}
+			}
+			if ( ! $has_update_field ) {
+				return new WP_Error(
+					'magick_ai_adapter_update_fields_required',
+					__( 'update-post execution input must include title, content, or excerpt.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+		}
+
+		if ( 'magick-ai/set-post-terms' === $ability_id ) {
+			if ( 0 === $post_id ) {
+				return new WP_Error(
+					'magick_ai_adapter_post_id_required',
+					__( 'set-post-terms execution input must include post_id.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$taxonomy = sanitize_key( (string) ( $input['taxonomy'] ?? 'post_tag' ) );
+			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_taxonomy_required',
+					__( 'set-post-terms execution input must include a valid taxonomy.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$mode = sanitize_key( (string) ( $input['mode'] ?? 'replace' ) );
+			if ( ! in_array( $mode, array( 'replace', 'append', 'remove' ), true ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_term_mode_invalid',
+					__( 'set-post-terms execution mode must be replace, append, or remove.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$term_ids = is_array( $input['term_ids'] ?? null ) ? array_filter( array_map( 'absint', $input['term_ids'] ) ) : array();
+			$terms    = is_array( $input['terms'] ?? null ) ? array_filter(
+				array_map(
+					static function ( $term ) {
+						return trim( sanitize_text_field( (string) $term ) );
+					},
+					$input['terms']
+				)
+			) : array();
+			if ( empty( $term_ids ) && empty( $terms ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_terms_required',
+					__( 'set-post-terms execution input must include term_ids or terms.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			if ( ! empty( $input['create_missing'] ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_create_missing_terms_not_allowed',
+					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+		}
+
+		if ( 'magick-ai/reply-comment' === $ability_id ) {
+			$comment_id = absint( $input['comment_id'] ?? 0 );
+			if ( 0 === $comment_id ) {
+				return new WP_Error(
+					'magick_ai_adapter_comment_id_required',
+					__( 'reply-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$content = (string) ( $input['content'] ?? '' );
+			if ( '' === trim( wp_strip_all_tags( $content ) ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_comment_content_required',
+					__( 'reply-comment execution input must include content.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+
+			$content_format = sanitize_key( (string) ( $input['content_format'] ?? 'html' ) );
+			if ( ! in_array( $content_format, array( 'html', 'markdown', 'plain' ), true ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_content_format_invalid',
+					__( 'reply-comment content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+					$error_data
+				);
+			}
+		}
+
 		return true;
 	}
 
@@ -2306,7 +2416,7 @@ final class Controller {
 		}
 
 		$result_data = $response->get_data();
-		if ( 'magick-ai/create-draft' === $ability_id && is_array( $result_data ) ) {
+		if ( in_array( $ability_id, array( 'magick-ai/create-draft', 'magick-ai/reply-comment' ), true ) && is_array( $result_data ) ) {
 			$post_id = absint( $result_data['post_id'] ?? $post_id );
 		}
 

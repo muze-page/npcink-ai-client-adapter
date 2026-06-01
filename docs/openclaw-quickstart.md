@@ -369,9 +369,10 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
 8. Stop at Core's preflight response unless the ability is in Adapter's current
    approved proposal execution allowlist. Core still returns
    `commit_execution=false`.
-9. For approved proposal execution, only `magick-ai/trash-post` and
-   `magick-ai/create-draft` are currently supported. The preferred user path is
-   one Adapter/OpenClaw action:
+9. For approved proposal execution, only `magick-ai/trash-post`,
+   `magick-ai/create-draft`, `magick-ai/update-post`, and
+   `magick-ai/set-post-terms`, and `magick-ai/reply-comment` are currently
+   supported. The preferred user path is one Adapter/OpenClaw action:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \

@@ -55,8 +55,9 @@ The readiness pass verified:
 - proposal create, list, and detail;
 - Core approval through Adapter `approve-and-execute`;
 - Core commit-preflight before execution;
-- allowlisted final execution for `magick-ai/trash-post` and
-  `magick-ai/create-draft`;
+- allowlisted final execution for `magick-ai/trash-post`,
+  `magick-ai/create-draft`, `magick-ai/update-post`, and
+  `magick-ai/set-post-terms`, and `magick-ai/reply-comment`;
 - rejected proposals do not execute;
 - preflight-blocked proposals do not execute;
 - non-allowlisted proposals do not execute;
@@ -79,8 +80,9 @@ Adapter remains a thin OpenClaw channel layer:
 - Adapter does not own Core proposal or audit truth.
 - Adapter does not store provider credentials.
 - Adapter does not generically execute arbitrary write abilities.
-- Adapter execution allowlist currently includes `magick-ai/trash-post` and
-  `magick-ai/create-draft`.
+- Adapter execution allowlist currently includes `magick-ai/trash-post`,
+  `magick-ai/create-draft`, `magick-ai/update-post`, and
+  `magick-ai/set-post-terms`, and `magick-ai/reply-comment`.
 
 The disabled approve/reject stubs must remain disabled unless a future decision
 explicitly changes the product boundary. The current productized user action is
