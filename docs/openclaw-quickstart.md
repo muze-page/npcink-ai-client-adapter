@@ -369,8 +369,9 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
 8. Stop at Core's preflight response unless the ability is in Adapter's current
    approved proposal execution allowlist. Core still returns
    `commit_execution=false`.
-9. For approved proposal execution, only `magick-ai/trash-post` is currently
-   supported. The preferred user path is one Adapter/OpenClaw action:
+9. For approved proposal execution, only `magick-ai/trash-post` and
+   `magick-ai/create-draft` are currently supported. The preferred user path is
+   one Adapter/OpenClaw action:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
@@ -385,10 +386,10 @@ remains the governance backend for proposal state, approval, preflight, and
 audit.
 
 For a batch plan-shaped proposal, the same route accepts
-`input.write_actions[]` only when every action targets `magick-ai/trash-post`
-and includes `input.post_id`. Adapter still calls Core approve and Core
-commit-preflight before running the bounded batch, and returns per-action
-`results[]` with `execution_mode=batch_write_actions`.
+`input.write_actions[]` only when every action targets the Adapter execution
+allowlist and passes ability-specific input checks. Adapter still calls Core
+approve and Core commit-preflight before running the bounded batch, and returns
+per-action `results[]` with `execution_mode=batch_write_actions`.
 10. The lower-level execution route is available only for already approved
    proposals:
 

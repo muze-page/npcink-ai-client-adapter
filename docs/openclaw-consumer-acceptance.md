@@ -147,12 +147,12 @@ Run this order for a local acceptance pass:
     commit-preflight, returned `proposal_id`, `post_id`, `ability_id`, and
     `correlation_id`, and moved the test post to `trash`.
     For batch plan-shaped proposals, confirm `input.write_actions[]` executes
-    only when every item targets `magick-ai/trash-post`, includes
-    `input.post_id`, and passes Core preflight. Confirm the response includes
+    only when every item targets the Adapter execution allowlist and passes
+    ability-specific input checks. Confirm the response includes
     `execution_mode=batch_write_actions`, `executed_count`, `failed_count`,
     and per-action `results[]`.
 18. For lower-level approved proposal execution, use only the current
-    `magick-ai/trash-post` path and call
+    `magick-ai/trash-post` or `magick-ai/create-draft` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
     preflight, passed `approval_context`, returned `proposal_id`,
     `correlation_id`, and `ability_id`, and did not execute pending or
@@ -324,8 +324,8 @@ OpenClaw consumer acceptance is complete when:
   `ai_model` sent to the provider smoke even if the provider column is blank;
 - disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
   proposal state;
-- plan `write_actions` are executed only through the accepted
-  `magick-ai/trash-post` batch policy after Core approval and preflight;
+- plan `write_actions` are executed only through the accepted allowlisted batch
+  policy after Core approval and preflight;
 - `skipped_destructive_candidates` are never reported as Adapter-executed
   mutations;
 - `commit_execution=false` remains true at preflight;

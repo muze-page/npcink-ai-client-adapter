@@ -45,8 +45,9 @@ or:
 }
 ```
 
-V1 only supports `target_ability_id=magick-ai/trash-post`. The execution
-allowlist remains unchanged.
+V1 supports only the Adapter execution allowlist, currently
+`target_ability_id=magick-ai/trash-post` and
+`target_ability_id=magick-ai/create-draft`.
 
 Adapter calls Core approval when needed, then calls Core commit-preflight once
 for the proposal. Adapter requires Core approval commit authorization,
@@ -64,8 +65,8 @@ WordPress Abilities API.
 - If Core preflight blocks the proposal, Adapter executes no actions.
 - If an execution error occurs after prior actions have executed, Adapter stops
   and returns the upstream error with `executed_results` for inspection.
-- Terms, comments, media delete, and arbitrary write abilities are not
-  executable in this V1 policy.
+- Terms, comments, media delete, and arbitrary write abilities outside the
+  Adapter execution allowlist are not executable in this V1 policy.
 
 ## Response Contract
 
@@ -90,7 +91,7 @@ returns `execution_mode=single_post`, `post_ids`, `executed_count`,
 This policy does not:
 
 - add a generic write executor;
-- expand the Adapter execution allowlist beyond `magick-ai/trash-post`;
+- expand the Adapter execution allowlist without a dedicated implementation;
 - make Core execute final WordPress mutations;
 - turn Adapter into an MCP runtime or workflow runtime;
 - make Adapter store approval state;

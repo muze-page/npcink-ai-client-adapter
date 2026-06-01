@@ -54,7 +54,8 @@ final class Controller {
 	 * @var array<string,bool>
 	 */
 	private static $allowed_execute_ability_ids = array(
-		'magick-ai/trash-post' => true,
+		'magick-ai/trash-post'   => true,
+		'magick-ai/create-draft' => true,
 	);
 
 	/**
@@ -1282,8 +1283,8 @@ final class Controller {
 				),
 				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
 				'execution_input_contract' => array(
-					'single' => 'proposal.input.post_id',
-					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input.post_id',
+					'single' => 'proposal.input, with post_id required for trash-post and title required for create-draft',
+					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
 				),
@@ -1323,7 +1324,7 @@ final class Controller {
 						'core_commit_execution' => false,
 						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
 						'execution_input_contract' => array(
-							'single' => 'proposal.input.post_id',
+							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
 							'max_actions' => self::MAX_EXECUTION_ACTIONS,
 							'partial_success' => false,
@@ -1336,7 +1337,7 @@ final class Controller {
 						'core_commit_execution' => false,
 						'allowed_ability_ids'  => array_keys( self::$allowed_execute_ability_ids ),
 						'execution_input_contract' => array(
-							'single' => 'proposal.input.post_id',
+							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
 							'max_actions' => self::MAX_EXECUTION_ACTIONS,
 							'partial_success' => false,
@@ -1448,8 +1449,8 @@ final class Controller {
 				),
 				'allowed_execute_ability_ids' => array_keys( self::$allowed_execute_ability_ids ),
 				'execution_input_contract' => array(
-					'single' => 'proposal.input.post_id',
-					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input.post_id',
+					'single' => 'proposal.input, with post_id required for trash-post and title required for create-draft',
+					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
 				),
@@ -1581,9 +1582,9 @@ final class Controller {
 			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/commit-preflight' => 'Run Core commit preflight without executing final writes.',
-			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight; supports one post_id or allowlisted write_actions.',
-			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight; supports one post_id or allowlisted write_actions.',
-			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one post_id or allowlisted write_actions.',
+			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight; supports allowlisted single inputs or write_actions.',
+			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight; supports allowlisted single inputs or write_actions.',
+			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one allowlisted single input or write_actions.',
 			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
 			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
 		);
@@ -2031,6 +2032,46 @@ final class Controller {
 	}
 
 	/**
+	 * Validates the Adapter-owned execution input shape for one allowlisted ability.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param string              $ability_id Ability id.
+	 * @param array<string,mixed> $input Ability input.
+	 * @param int                 $post_id Post id when the ability targets an existing post.
+	 * @param int|null            $action_index Batch action index.
+	 * @return true|WP_Error
+	 */
+	private function validate_execute_action_input( string $proposal_id, string $ability_id, array $input, int $post_id, ?int $action_index = null ) {
+		$error_data = array(
+			'status'      => 400,
+			'proposal_id' => $proposal_id,
+			'ability_id'  => $ability_id,
+		);
+		if ( null !== $action_index ) {
+			$error_data['action_index']      = $action_index;
+			$error_data['target_ability_id'] = $ability_id;
+		}
+
+		if ( 'magick-ai/trash-post' === $ability_id && 0 === $post_id ) {
+			return new WP_Error(
+				'magick_ai_adapter_post_id_required',
+				__( 'trash-post execution input must include post_id.', 'magick-ai-adapter' ),
+				$error_data
+			);
+		}
+
+		if ( 'magick-ai/create-draft' === $ability_id && '' === trim( sanitize_text_field( (string) ( $input['title'] ?? '' ) ) ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_title_required',
+				__( 'create-draft execution input must include title.', 'magick-ai-adapter' ),
+				$error_data
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Normalizes one proposal into concrete Adapter execution actions.
 	 *
 	 * @param string              $proposal_id Proposal id.
@@ -2112,18 +2153,9 @@ final class Controller {
 
 				$action_input = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
 				$post_id      = absint( $action_input['post_id'] ?? 0 );
-				if ( 'magick-ai/trash-post' === $target_ability_id && 0 === $post_id ) {
-					return new WP_Error(
-						'magick_ai_adapter_post_id_required',
-						__( 'trash-post write action input must include post_id.', 'magick-ai-adapter' ),
-						array(
-							'status'            => 400,
-							'proposal_id'       => $proposal_id,
-							'ability_id'        => $target_ability_id,
-							'action_index'      => $index,
-							'target_ability_id' => $target_ability_id,
-						)
-					);
+				$valid_input  = $this->validate_execute_action_input( $proposal_id, $target_ability_id, $action_input, $post_id, $index );
+				if ( is_wp_error( $valid_input ) ) {
+					return $valid_input;
 				}
 
 				if ( array_key_exists( 'requires_approval', $raw_action ) && true !== (bool) $raw_action['requires_approval'] ) {
@@ -2202,16 +2234,9 @@ final class Controller {
 			return $allowed;
 		}
 
-		if ( 'magick-ai/trash-post' === $proposal_ability_id && 0 === $top_level_post_id ) {
-			return new WP_Error(
-				'magick_ai_adapter_post_id_required',
-				__( 'trash-post proposal input must include post_id.', 'magick-ai-adapter' ),
-				array(
-					'status'      => 400,
-					'proposal_id' => $proposal_id,
-					'ability_id'  => $proposal_ability_id,
-				)
-			);
+		$valid_input = $this->validate_execute_action_input( $proposal_id, $proposal_ability_id, $input, $top_level_post_id );
+		if ( is_wp_error( $valid_input ) ) {
+			return $valid_input;
 		}
 
 		return array(
@@ -2245,11 +2270,17 @@ final class Controller {
 		$post_status_before = get_post_status( $post_id );
 		$post_status_before = false === $post_status_before ? '' : (string) $post_status_before;
 
-		$ability_input = array(
-			'post_id' => $post_id,
-			'dry_run' => false,
-			'commit'  => true,
-		);
+		$ability_input = is_array( $action['input'] ?? null ) ? $action['input'] : array();
+		if ( 'magick-ai/trash-post' === $ability_id ) {
+			$ability_input = array(
+				'post_id' => $post_id,
+				'dry_run' => false,
+				'commit'  => true,
+			);
+		} else {
+			$ability_input['dry_run'] = false;
+			$ability_input['commit']  = true;
+		}
 
 		$route           = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
 		$request_context = $base_request_context;
@@ -2274,6 +2305,11 @@ final class Controller {
 			return $response;
 		}
 
+		$result_data = $response->get_data();
+		if ( 'magick-ai/create-draft' === $ability_id && is_array( $result_data ) ) {
+			$post_id = absint( $result_data['post_id'] ?? $post_id );
+		}
+
 		$post_status_after = get_post_status( $post_id );
 
 		return array(
@@ -2286,7 +2322,7 @@ final class Controller {
 			'post_status_before' => $post_status_before,
 			'post_status_after'  => false === $post_status_after ? '' : (string) $post_status_after,
 			'adapter_request_id' => (string) ( $context['adapter_request_id'] ?? '' ),
-			'result'             => $response->get_data(),
+			'result'             => $result_data,
 		);
 	}
 

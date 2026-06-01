@@ -26,7 +26,7 @@ execution allowlist rules.
 Batch plan execution is intentionally narrow. Adapter can execute
 `input.write_actions[]` only after Core approval and commit-preflight, and only
 when every action targets the current execution allowlist
-(`magick-ai/trash-post`). See
+(`magick-ai/trash-post`, `magick-ai/create-draft`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
 
 ## Runtime Boundary
@@ -375,7 +375,7 @@ Proposal-required write flow:
    approval.
 8. The adapter relays Core preflight and preserves `commit_execution=false`.
 9. For the current approved proposal execution path, Adapter may execute only
-   `magick-ai/trash-post` through
+   `magick-ai/trash-post` or `magick-ai/create-draft` through
    `POST /proposals/{proposal_id}/execute` or
    `POST /execute-approved-proposal`.
 10. Adapter fetches the Core proposal, calls Core commit-preflight, requires
@@ -441,7 +441,7 @@ Example proposal request:
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
-  -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
+  -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
   "https://example.test/wp-json/magick-ai-adapter/v1/proposals"
 ```
 
@@ -474,14 +474,15 @@ Write or destructive abilities:
    Adapter `/proposals/{proposal_id}/commit-preflight` after
    approval.
 6. Adapter relays Core `commit_execution=false`.
-7. For approved proposal execution, only `magick-ai/trash-post` is supported in
-   this adapter. The execution input may be either a single `input.post_id` or
-   a bounded `input.write_actions[]` batch where every action targets
-   `magick-ai/trash-post`. OpenClaw calls `/proposals/{proposal_id}/execute`;
-   Adapter performs Core preflight again, passes `approval_context`, and
-   executes through WordPress Abilities API. New execution abilities must be
-   added one by one to the Adapter allowlist with dedicated smoke coverage;
-   this is not a generic proxy-execute surface.
+7. For approved proposal execution, only `magick-ai/trash-post` and
+   `magick-ai/create-draft` are supported in this adapter. The execution input
+   may be a single allowlisted proposal input or a bounded
+   `input.write_actions[]` batch where every action targets the allowlist.
+   OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter performs Core
+   preflight again, passes `approval_context`, and executes through WordPress
+   Abilities API. New execution abilities must be added one by one to the
+   Adapter allowlist with dedicated smoke coverage; this is not a generic
+   proxy-execute surface.
 
 ## Non-Goals
 

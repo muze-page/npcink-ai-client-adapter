@@ -16,7 +16,7 @@ Magick AI Adapter gives OpenClaw one WordPress REST namespace for reading Magick
 
 Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, expose generic approve/reject proxying, or execute final write mutations without Core approval and commit-preflight.
 
-Current governed execution support is deliberately limited to individually approved proposal execution for `magick-ai/trash-post`.
+Current governed execution support is deliberately limited to individually approved proposal execution for `magick-ai/trash-post` and `magick-ai/create-draft`.
 
 == Installation ==
 
@@ -33,7 +33,7 @@ Only through the explicit `approve-and-execute` user action. Magick AI Core rema
 
 = Does Adapter execute arbitrary abilities? =
 
-No. Adapter only executes abilities that are explicitly allowlisted. The current minimal execution allowlist contains `magick-ai/trash-post`.
+No. Adapter only executes abilities that are explicitly allowlisted. The current minimal execution allowlist contains `magick-ai/trash-post` and `magick-ai/create-draft`.
 
 == Changelog ==
 

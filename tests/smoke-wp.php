@@ -287,6 +287,7 @@ maa_adapter_smoke_assert( in_array( 'POST /proposals/from-plan', (array) ( $heal
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approved proposal execution route' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approve-and-execute route' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/create-draft', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes create-draft execute allowlist' );
 
 $help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
@@ -945,14 +946,51 @@ $blocked_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1
 maa_adapter_smoke_assert( 409 === (int) $blocked_execute['status'], 'adapter approve-and-execute returns preflight failure' );
 maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $blocked_post_id ), 'adapter approve-and-execute does not execute preflight-blocked proposal' );
 
-$unallowed_proposal = maa_adapter_smoke_rest(
+$draft_proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
 	array(
 		'ability_id' => 'magick-ai/create-draft',
+		'title'      => 'Adapter draft approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one create-draft proposal.',
+		'input'      => array(
+			'title'          => 'Adapter approved draft smoke',
+			'content'        => 'Adapter approved draft execution smoke.',
+			'content_format' => 'plain',
+			'dry_run'        => true,
+			'commit'         => false,
+		),
+		'preview'    => array(
+			'action'           => 'create_draft',
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-create-draft-approve-execute-smoke',
+		),
+	)
+);
+$draft_proposal_id = (string) ( $draft_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $draft_proposal_id;
+maa_adapter_smoke_assert( '' !== $draft_proposal_id, 'adapter creates create-draft proposal for approve-and-execute smoke' );
+$draft_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $draft_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $draft_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending create-draft proposal' );
+maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $draft_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries create-draft ability id' );
+maa_adapter_smoke_assert( (int) ( $draft_execute['post_id'] ?? 0 ) > 0, 'adapter approve-and-execute returns created draft post id' );
+maa_adapter_smoke_assert( 'draft' === (string) ( $draft_execute['execution']['post_status_after'] ?? '' ), 'adapter approve-and-execute records draft status after creation' );
+maa_adapter_smoke_assert( false === (bool) ( $draft_execute['execution']['result']['dry_run'] ?? true ), 'adapter create-draft execution returns non-dry-run ability result' );
+$maa_adapter_smoke_cleanup_post_ids[] = (int) ( $draft_execute['post_id'] ?? 0 );
+maa_adapter_smoke_assert( 'draft' === (string) get_post_status( (int) ( $draft_execute['post_id'] ?? 0 ) ), 'adapter approve-and-execute creates a WordPress draft' );
+
+$unallowed_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/update-post',
 		'title'      => 'Adapter unallowed approve execute smoke',
 		'summary'    => 'Adapter must not approve-and-execute non-allowlisted proposals.',
 		'input'      => array(
+			'post_id' => $blocked_post_id,
 			'title'   => 'Adapter unallowed approve execute smoke',
 			'dry_run' => true,
 			'commit'  => false,
