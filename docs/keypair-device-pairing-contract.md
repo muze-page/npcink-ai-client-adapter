@@ -175,6 +175,25 @@ Adapter verifies:
 - Ed25519 signature is valid;
 - scopes allow the route.
 
+## Local Request Wrapper
+
+Development clients can use `tools/keypair-adapter-request.mjs` after pairing:
+
+```bash
+node tools/keypair-adapter-request.mjs --profile=local GET /health
+node tools/keypair-adapter-request.mjs --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+```
+
+The wrapper:
+
+- reads the local key-pair profile from
+  `~/.magick-ai-adapter/keypair-profiles/`;
+- signs the Adapter request locally;
+- rejects absolute URLs and accepts only Adapter-relative routes;
+- prints only the Adapter JSON response;
+- does not print the private key, profile JSON, `Authorization`, or
+  `X-Magick-*` signature headers.
+
 ## Scopes
 
 - `magick.status`: health, help, capabilities, connection metadata.

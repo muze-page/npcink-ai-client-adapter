@@ -416,6 +416,7 @@ foreach (
 			'key-pair device pairing MVP',
 			'docs/keypair-device-pairing-contract.md',
 			'tools/keypair-device-pairing.mjs',
+			'tools/keypair-adapter-request.mjs',
 			'Public Key Device Pairing',
 			'OpenClaw only connects to Adapter',
 			'productized OpenClaw user action',
@@ -529,6 +530,29 @@ foreach (
 	maa_adapter_assert( false !== strpos( $keypair_tool, $required ), 'Keypair pairing tool contains expected behavior: ' . $required );
 }
 maa_adapter_assert( false === strpos( $keypair_tool, 'console.log(private' ), 'Keypair tool does not print private key material.' );
+
+$keypair_request_tool = maa_adapter_read( $root . '/tools/keypair-adapter-request.mjs' );
+foreach (
+	array(
+		'createPrivateKey',
+		'private_key_jwk',
+		'keypair-profiles',
+		'isSafeAdapterRoute',
+		'--body-file',
+		'--query',
+		'--query-string',
+		'Magick-Signature',
+		'Authorization',
+		'X-Magick-Signature',
+		'MAGICK-AI-ADAPTER-V1',
+		'Object.keys(value).length === 0',
+		'wrapper_failed',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $keypair_request_tool, $required ), 'Keypair request wrapper contains expected behavior: ' . $required );
+}
+maa_adapter_assert( false === strpos( $keypair_request_tool, 'console.log(profile' ), 'Keypair request wrapper does not print profile data.' );
+maa_adapter_assert( false === strpos( $keypair_request_tool, 'console.log(headers' ), 'Keypair request wrapper does not print signature headers.' );
 
 $wporg_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (

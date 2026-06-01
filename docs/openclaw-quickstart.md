@@ -131,6 +131,25 @@ keeps retrying until the pairing code expires.
 After approval, WordPress shows a pairing result page. Return to the terminal or
 local AI client and wait for the polling command to finish.
 
+After pairing, OpenClaw-style local clients should call Adapter through the
+local request wrapper instead of reading the profile file:
+
+```bash
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /health
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /capabilities
+```
+
+For POST requests, write the non-secret request JSON to a temporary file and
+pass it with `--body-file`:
+
+```bash
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+```
+
+The wrapper rejects absolute URLs, signs the Adapter-relative route locally, and
+prints only the Adapter JSON response. Do not ask OpenClaw to read or summarize
+`~/.magick-ai-adapter/keypair-profiles/*.json`.
+
 ## Connection Check
 
 1. Call `GET /health`.

@@ -275,6 +275,18 @@ HTTPS polling resets are retried until the pairing code expires.
 After approval, WordPress shows a pairing result page; return to the terminal or
 local AI client and wait for polling to finish.
 
+After pairing, local clients can call Adapter through the signed request wrapper
+without reading or printing profile secrets:
+
+```bash
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /health
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /capabilities
+node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+```
+
+The wrapper accepts only Adapter-relative routes such as `/health`, signs the
+request locally, and prints only the Adapter JSON response.
+
 See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
 for the public-key pairing and request-signing contract.
 
