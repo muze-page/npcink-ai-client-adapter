@@ -111,6 +111,9 @@ Plan action ids must be unique before Adapter forwards the plan to Core.
   unresolved `requires_input`, or has `commit_execution=true`, Adapter fails
   closed before executing any action.
 - If Core preflight blocks the proposal, Adapter executes no actions.
+- If Adapter has already completed execution for the proposal, Adapter returns
+  `magick_ai_adapter_execution_already_completed` with the stored
+  `execution_record` and executes no actions.
 - If an execution error occurs after prior actions have executed, Adapter stops
   and returns the upstream error with `executed_results` for inspection.
 - Terms, comments, media delete, and arbitrary write abilities outside the

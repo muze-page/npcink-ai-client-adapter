@@ -133,8 +133,9 @@ mode, and records backup/rollback metadata;
 
 The response must include `proposal_id`, `post_id`, `ability_id`,
 `correlation_id`, `status_before`, whether Adapter performed approval, Core
-`commit_execution=false`, and the execution result. Rejected proposals,
-non-allowlisted abilities, and preflight failures must not execute.
+`commit_execution=false`, an `execution_record`, and the execution result.
+Rejected proposals, non-allowlisted abilities, preflight failures, and
+duplicate execution attempts must not execute.
 
 ## Approved Proposal Execution Contract
 
@@ -189,11 +190,15 @@ Adapter would later execute cannot be created with obviously invalid execution
 input. For example, `magick-ai/update-post` does not accept `status`, and
 `magick-ai/create-draft` only accepts `status=draft`.
 
-For each execution request, Adapter must fetch the Core proposal, call Core
-commit-preflight, require `approval_commit_authorized=true`, require
-`commit_execution=false`, pass Core `approval_context` to WordPress Abilities
-API, and return `proposal_id`, `correlation_id`, and `ability_id` with the
-ability result.
+For each execution request, Adapter must first reject any proposal with a
+completed Adapter execution record. If there is no completed record, Adapter
+must fetch the Core proposal, call Core commit-preflight, require
+`approval_commit_authorized=true`, require `commit_execution=false`, pass Core
+`approval_context` to WordPress Abilities API, and return `proposal_id`,
+`correlation_id`, `ability_id`, and `execution_record` with the ability result.
+After a successful execution, Adapter stores only a bounded public-safe
+execution record keyed by proposal id for replay protection; Core remains the
+proposal, approval, preflight, and audit truth source.
 
 Within one approved `write_actions[]` batch, Adapter may resolve exact output
 references in action input values:
@@ -634,7 +639,9 @@ Adapter invariants:
 
 - It can call Core approve only inside
   `POST /proposals/{proposal_id}/approve-and-execute`.
-- It does not store proposal state.
+- It does not store proposal or approval state.
+- It stores bounded execution records only to prevent replaying an already
+  completed Adapter write.
 - It does not expose a generic approve/reject proxy.
 - It does not execute final WordPress mutations outside the allowlisted
   approve-and-execute or approved-proposal execution path.

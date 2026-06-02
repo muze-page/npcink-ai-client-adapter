@@ -114,7 +114,8 @@ document before implementation. That document must define:
 
 - ability id;
 - input fields;
-- idempotency behavior;
+- idempotency behavior, including Adapter's completed execution record and
+  `magick_ai_adapter_execution_already_completed` replay rejection;
 - failure handling;
 - rollback or compensation behavior;
 - log fields;

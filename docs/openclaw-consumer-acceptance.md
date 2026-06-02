@@ -145,7 +145,11 @@ Run this order for a local acceptance pass:
     `POST /proposals/{proposal_id}/approve-and-execute` from Adapter/OpenClaw.
     Confirm Adapter approved through Core when status was pending, ran Core
     commit-preflight, returned `proposal_id`, `post_id`, `ability_id`, and
-    `correlation_id`, and moved the test post to `trash`.
+    `correlation_id`, returned an `execution_record`, and moved the test post
+    to `trash`.
+    Repeating the same execute or approve-and-execute request must return
+    `magick_ai_adapter_execution_already_completed` with the original
+    `execution_record` and must not run the WordPress ability again.
     For batch plan-shaped proposals, confirm `input.write_actions[]` executes
     only when every item targets the Adapter execution allowlist and passes
     ability-specific input checks. Confirm the response includes

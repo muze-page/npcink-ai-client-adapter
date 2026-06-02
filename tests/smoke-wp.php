@@ -956,6 +956,11 @@ maa_adapter_smoke_assert( false === (bool) ( $executed_trash['commit_execution']
 maa_adapter_smoke_assert( true === (bool) ( $executed_trash['result']['trashed'] ?? false ), 'adapter execute trashes post' );
 maa_adapter_smoke_assert( false === (bool) ( $executed_trash['result']['dry_run'] ?? true ), 'adapter execute returns non-dry-run ability result' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $trash_post_id ), 'adapter approved execution moves post to trash' );
+$duplicate_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/execute' );
+maa_adapter_smoke_assert( 409 === (int) $duplicate_execute['status'], 'adapter rejects duplicate approved proposal execution' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_execute['data']['code'] ?? '' ), 'adapter duplicate execute uses completed execution error code' );
+maa_adapter_smoke_assert( $trash_proposal_id === (string) ( $duplicate_execute['data']['data']['execution_record']['proposal_id'] ?? '' ), 'adapter duplicate execute returns stored execution record' );
+maa_adapter_smoke_assert( (string) ( $executed_trash['execution_record']['adapter_request_id'] ?? '' ) === (string) ( $duplicate_execute['data']['data']['execution_record']['adapter_request_id'] ?? '' ), 'adapter duplicate execute preserves original adapter request id' );
 
 $approve_execute_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approve_execute_post_id;
@@ -998,6 +1003,11 @@ maa_adapter_smoke_assert( 'publish' === (string) ( $approve_execute_result['exec
 maa_adapter_smoke_assert( 'trash' === (string) ( $approve_execute_result['execution']['post_status_after'] ?? '' ), 'adapter approve-and-execute records post status after execution' );
 maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['execution']['success'] ?? false ), 'adapter approve-and-execute execution result succeeds' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $approve_execute_post_id ), 'adapter approve-and-execute moves pending proposal post to trash' );
+$duplicate_approve_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approve_execute_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $duplicate_approve_execute['status'], 'adapter rejects duplicate approve-and-execute request' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_approve_execute['data']['code'] ?? '' ), 'adapter duplicate approve-and-execute uses completed execution error code' );
+maa_adapter_smoke_assert( $approve_execute_proposal_id === (string) ( $duplicate_approve_execute['data']['data']['execution_record']['proposal_id'] ?? '' ), 'adapter duplicate approve-and-execute returns stored execution record' );
+maa_adapter_smoke_assert( (string) ( $approve_execute_result['execution_record']['adapter_request_id'] ?? '' ) === (string) ( $duplicate_approve_execute['data']['data']['execution_record']['adapter_request_id'] ?? '' ), 'adapter duplicate approve-and-execute preserves original adapter request id' );
 
 $batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $batch_second_post_id = maa_adapter_smoke_create_trash_post_fixture();
@@ -1368,6 +1378,10 @@ maa_adapter_smoke_assert( 'draft' === (string) ( $draft_execute['execution']['po
 maa_adapter_smoke_assert( false === (bool) ( $draft_execute['execution']['result']['dry_run'] ?? true ), 'adapter create-draft execution returns non-dry-run ability result' );
 $maa_adapter_smoke_cleanup_post_ids[] = (int) ( $draft_execute['post_id'] ?? 0 );
 maa_adapter_smoke_assert( 'draft' === (string) get_post_status( (int) ( $draft_execute['post_id'] ?? 0 ) ), 'adapter approve-and-execute creates a WordPress draft' );
+$duplicate_draft_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $draft_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $duplicate_draft_execute['status'], 'adapter rejects duplicate create-draft approve-and-execute request' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_draft_execute['data']['code'] ?? '' ), 'adapter duplicate create-draft request uses completed execution error code' );
+maa_adapter_smoke_assert( (int) ( $draft_execute['post_id'] ?? 0 ) === (int) ( $duplicate_draft_execute['data']['data']['execution_record']['post_id'] ?? 0 ), 'adapter duplicate create-draft returns original created post id' );
 
 $update_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $update_post_id;
@@ -1622,6 +1636,10 @@ maa_adapter_smoke_assert( $set_terms_post_id === (int) ( $set_terms_execute['pos
 maa_adapter_smoke_assert( false === (bool) ( $set_terms_execute['execution']['result']['dry_run'] ?? true ), 'adapter set-post-terms execution returns non-dry-run ability result' );
 $assigned_term_ids = wp_get_post_terms( $set_terms_post_id, 'post_tag', array( 'fields' => 'ids' ) );
 maa_adapter_smoke_assert( ! is_wp_error( $assigned_term_ids ) && in_array( $set_terms_term_id, array_map( 'intval', (array) $assigned_term_ids ), true ), 'adapter approve-and-execute assigns existing post term' );
+$duplicate_set_terms_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $set_terms_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $duplicate_set_terms_execute['status'], 'adapter rejects duplicate set-post-terms approve-and-execute request' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_set_terms_execute['data']['code'] ?? '' ), 'adapter duplicate set-post-terms request uses completed execution error code' );
+maa_adapter_smoke_assert( $set_terms_post_id === (int) ( $duplicate_set_terms_execute['data']['data']['execution_record']['post_id'] ?? 0 ), 'adapter duplicate set-post-terms returns original post id' );
 
 $empty_terms_proposal = maa_adapter_smoke_rest_result(
 	'POST',

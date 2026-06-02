@@ -21,12 +21,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Exposes a thin OpenClaw adapter surface.
  */
 final class Controller {
-	const NAMESPACE = 'magick-ai-adapter/v1';
-	const MAX_EXECUTION_ACTIONS = 200;
-	const DEVICE_PAIRING_OPTION = 'magick_ai_adapter_device_pairings';
-	const CLIENT_KEYS_OPTION    = 'magick_ai_adapter_client_keys';
-	const DEVICE_PAIRING_TTL    = 600;
-	const SIGNATURE_NONCE_TTL   = 300;
+	const NAMESPACE                = 'magick-ai-adapter/v1';
+	const MAX_EXECUTION_ACTIONS    = 200;
+	const DEVICE_PAIRING_OPTION    = 'magick_ai_adapter_device_pairings';
+	const CLIENT_KEYS_OPTION       = 'magick_ai_adapter_client_keys';
+	const EXECUTION_RECORDS_OPTION = 'magick_ai_adapter_execution_records';
+	const DEVICE_PAIRING_TTL       = 600;
+	const SIGNATURE_NONCE_TTL      = 300;
+	const MAX_EXECUTION_RECORDS    = 500;
 
 	/**
 	 * Current request log context while an ability is running.
@@ -2344,6 +2346,7 @@ final class Controller {
 				'execution_surface'  => 'wp_abilities_rest',
 				'executed_count'     => $execution['executed_count'],
 				'failed_count'       => $execution['failed_count'],
+				'execution_record'   => $execution['execution_record'],
 				'results'            => $execution['results'],
 				'result'             => $execution['result'],
 			),
@@ -2448,6 +2451,7 @@ final class Controller {
 				'approval_context'      => $execution['approval_context'],
 				'executed_count'        => $execution['executed_count'],
 				'failed_count'          => $execution['failed_count'],
+				'execution_record'      => $execution['execution_record'],
 				'results'               => $execution['results'],
 				'execution'             => array(
 					'success'            => true,
@@ -3235,6 +3239,11 @@ final class Controller {
 	 */
 	private function execute_core_approved_proposal( WP_REST_Request $request, string $proposal_id, array $proposal ) {
 		$proposal_ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
+		$existing_record     = $this->completed_execution_record( $proposal_id );
+		if ( is_array( $existing_record ) ) {
+			return $this->execution_already_completed_error( $proposal_id, $existing_record );
+		}
+
 		$actions             = $this->normalize_execution_actions( $proposal_id, $proposal );
 		if ( is_wp_error( $actions ) ) {
 			return $actions;
@@ -3409,7 +3418,7 @@ final class Controller {
 		$execution_mode     = count( $actions ) > 1 || 'batch_write_actions' === (string) ( $actions[0]['execution_mode'] ?? '' ) ? 'batch_write_actions' : 'single_post';
 		$response_ability_id = 1 === count( $target_ability_ids ) ? $target_ability_ids[0] : $proposal_ability_id;
 
-		return array(
+		$execution = array(
 			'ability_id'          => $response_ability_id,
 			'post_id'             => absint( $first_result['post_id'] ?? 0 ),
 			'post_ids'            => $post_ids,
@@ -3431,6 +3440,158 @@ final class Controller {
 				'results'        => $results,
 			),
 		);
+		$execution['execution_record'] = $this->store_completed_execution_record( $proposal_id, $proposal, $execution );
+
+		return $execution;
+	}
+
+	/**
+	 * Returns the completed execution record for a proposal.
+	 *
+	 * @param string $proposal_id Proposal id.
+	 * @return array<string,mixed>|null
+	 */
+	private function completed_execution_record( string $proposal_id ): ?array {
+		$records = $this->execution_records();
+		$key     = $this->execution_record_key( $proposal_id );
+		$record  = is_array( $records[ $key ] ?? null ) ? $records[ $key ] : array();
+
+		if ( empty( $record ) || 'succeeded' !== (string) ( $record['status'] ?? '' ) ) {
+			return null;
+		}
+
+		return $record;
+	}
+
+	/**
+	 * Builds an error for a duplicate execution attempt.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $record Completed execution record.
+	 * @return WP_Error
+	 */
+	private function execution_already_completed_error( string $proposal_id, array $record ): WP_Error {
+		return new WP_Error(
+			'magick_ai_adapter_execution_already_completed',
+			__( 'Adapter has already completed execution for this proposal.', 'magick-ai-adapter' ),
+			array(
+				'status'              => 409,
+				'proposal_id'         => $proposal_id,
+				'ability_id'          => (string) ( $record['ability_id'] ?? '' ),
+				'approved_input_hash' => (string) ( $record['approved_input_hash'] ?? '' ),
+				'correlation_id'      => (string) ( $record['correlation_id'] ?? '' ),
+				'adapter_request_id'  => (string) ( $record['adapter_request_id'] ?? '' ),
+				'commit_execution'    => false,
+				'execution_record'    => $this->public_execution_record( $record ),
+			)
+		);
+	}
+
+	/**
+	 * Returns stored execution records.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function execution_records(): array {
+		$records = get_option( self::EXECUTION_RECORDS_OPTION, array() );
+		return is_array( $records ) ? $records : array();
+	}
+
+	/**
+	 * Stores one successful execution record.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @param array<string,mixed> $execution Execution result.
+	 * @return array<string,mixed>
+	 */
+	private function store_completed_execution_record( string $proposal_id, array $proposal, array $execution ): array {
+		$approval_context = is_array( $execution['approval_context'] ?? null ) ? $execution['approval_context'] : array();
+		$preflight        = is_array( $execution['preflight'] ?? null ) ? $execution['preflight'] : array();
+		$record           = array(
+			'status'              => 'succeeded',
+			'proposal_id'         => $proposal_id,
+			'ability_id'          => sanitize_text_field( (string) ( $execution['ability_id'] ?? '' ) ),
+			'proposal_ability_id' => sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) ),
+			'approved_input_hash' => sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? ( $preflight['approved_input_hash'] ?? '' ) ) ),
+			'correlation_id'      => sanitize_text_field( (string) ( $execution['correlation_id'] ?? '' ) ),
+			'adapter_request_id'  => sanitize_text_field( (string) ( $execution['adapter_request_id'] ?? '' ) ),
+			'execution_mode'      => sanitize_key( (string) ( $execution['execution_mode'] ?? '' ) ),
+			'execution_surface'   => 'wp_abilities_rest',
+			'commit_execution'    => false,
+			'post_id'             => absint( $execution['post_id'] ?? 0 ),
+			'post_ids'            => array_values( array_map( 'absint', is_array( $execution['post_ids'] ?? null ) ? $execution['post_ids'] : array() ) ),
+			'executed_count'      => absint( $execution['executed_count'] ?? 0 ),
+			'failed_count'        => absint( $execution['failed_count'] ?? 0 ),
+			'executed_at'         => gmdate( 'c' ),
+		);
+
+		$records = $this->execution_records();
+		$records[ $this->execution_record_key( $proposal_id ) ] = $record;
+		$records = $this->prune_execution_records( $records );
+		update_option( self::EXECUTION_RECORDS_OPTION, $records, false );
+
+		return $this->public_execution_record( $record );
+	}
+
+	/**
+	 * Removes old execution records after the bounded retention limit.
+	 *
+	 * @param array<string,array<string,mixed>> $records Records.
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function prune_execution_records( array $records ): array {
+		if ( count( $records ) <= self::MAX_EXECUTION_RECORDS ) {
+			return $records;
+		}
+
+		uasort(
+			$records,
+			static function ( $left, $right ): int {
+				$left_time  = is_array( $left ) ? (string) ( $left['executed_at'] ?? '' ) : '';
+				$right_time = is_array( $right ) ? (string) ( $right['executed_at'] ?? '' ) : '';
+
+				return strcmp( $left_time, $right_time );
+			}
+		);
+
+		return array_slice( $records, - self::MAX_EXECUTION_RECORDS, null, true );
+	}
+
+	/**
+	 * Returns a public-safe execution record.
+	 *
+	 * @param array<string,mixed> $record Record.
+	 * @return array<string,mixed>
+	 */
+	private function public_execution_record( array $record ): array {
+		return array(
+			'status'              => (string) ( $record['status'] ?? '' ),
+			'proposal_id'         => (string) ( $record['proposal_id'] ?? '' ),
+			'ability_id'          => (string) ( $record['ability_id'] ?? '' ),
+			'proposal_ability_id' => (string) ( $record['proposal_ability_id'] ?? '' ),
+			'approved_input_hash' => (string) ( $record['approved_input_hash'] ?? '' ),
+			'correlation_id'      => (string) ( $record['correlation_id'] ?? '' ),
+			'adapter_request_id'  => (string) ( $record['adapter_request_id'] ?? '' ),
+			'execution_mode'      => (string) ( $record['execution_mode'] ?? '' ),
+			'execution_surface'   => (string) ( $record['execution_surface'] ?? '' ),
+			'commit_execution'    => (bool) ( $record['commit_execution'] ?? false ),
+			'post_id'             => absint( $record['post_id'] ?? 0 ),
+			'post_ids'            => array_values( array_map( 'absint', is_array( $record['post_ids'] ?? null ) ? $record['post_ids'] : array() ) ),
+			'executed_count'      => absint( $record['executed_count'] ?? 0 ),
+			'failed_count'        => absint( $record['failed_count'] ?? 0 ),
+			'executed_at'         => (string) ( $record['executed_at'] ?? '' ),
+		);
+	}
+
+	/**
+	 * Builds the storage key for an execution record.
+	 *
+	 * @param string $proposal_id Proposal id.
+	 * @return string
+	 */
+	private function execution_record_key( string $proposal_id ): string {
+		return md5( $proposal_id );
 	}
 
 	/**

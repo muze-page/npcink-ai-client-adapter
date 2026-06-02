@@ -419,12 +419,16 @@ Proposal-required write flow:
    `POST /execute-approved-proposal`.
 10. Adapter fetches the Core proposal, calls Core commit-preflight, requires
     `approval_commit_authorized=true`, requires `commit_execution=false`, passes
-    Core `approval_context` to WordPress Abilities API, and returns
-    `proposal_id`, `correlation_id`, and `ability_id` with the ability result.
-11. Adapter does not create its own governance state and does not batch silently
-    execute destructive actions. The unified action only orchestrates Core
-    approve -> commit-preflight -> one allowlisted WordPress Abilities API
-    execution.
+    Core `approval_context` to WordPress Abilities API, stores a bounded
+    execution record, and returns `proposal_id`, `correlation_id`,
+    `ability_id`, and `execution_record` with the ability result. Repeating the
+    same proposal execution returns
+    `magick_ai_adapter_execution_already_completed` and does not run the
+    ability again.
+11. Adapter does not create its own proposal or approval state and does not
+    batch silently execute destructive actions. The unified action only
+    orchestrates Core approve -> commit-preflight -> one allowlisted WordPress
+    Abilities API execution.
 
 Proposal list/detail are read-only Core proxies. They preserve Core response
 fields such as `proposal_id`, `ability_id`, `status`, `title`, `summary`,
