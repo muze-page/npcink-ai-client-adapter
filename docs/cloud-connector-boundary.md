@@ -5,12 +5,15 @@ Date: 2026-05-30
 
 ## Purpose
 
-Magick AI Adapter is the connector between local WordPress and hosted Magick AI
-Cloud services.
+Magick AI Adapter is the OpenClaw channel layer. It is not the WordPress-side
+Cloud connector.
 
-It is a thin middle layer. It should make Cloud useful to OpenClaw and local
-WordPress without becoming a second control plane, a workflow engine, or a
-cloud product backend.
+Cloud runtime access, Cloud API key storage, request signing, entitlement
+reads, observability upload, and hosted-runtime transport belong to the
+standalone `magick-ai-cloud-addon`. Adapter may use that addon through its
+public PHP seam when OpenClaw needs a Cloud-backed operation, but Adapter must
+not grow its own Cloud settings, signing client, `/cloud/*` REST namespace, or
+Cloud execution truth.
 
 ## Project Roles
 
@@ -18,7 +21,8 @@ cloud product backend.
 | --- | --- | --- |
 | `magick-ai-abilities` | Canonical WordPress ability definitions, schemas, callbacks, permissions, dry-run previews, and read-only workflow recipe metadata. | Cloud calls, model routing, queues, billing, quota, approval state, audit truth, workflow runtime, or final writes. |
 | `magick-ai-core` | Governance, ability intake, proposal records, approval/rejection, commit preflight, scoped app keys, rate limits, and audit records. | Ability definitions, cloud execution, task queues, model routing, product workflows, or final write execution. |
-| `magick-ai-adapter` | OpenClaw-facing REST routes, non-secret WordPress connection manifest, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, one allowlisted approve-and-execute orchestration path, and bounded Cloud connector routes. | Ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, generic approve/reject proxying, or final write authority. |
+| `magick-ai-adapter` | OpenClaw-facing REST routes, non-secret WordPress connection manifest, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, one allowlisted approve-and-execute orchestration path, and optional calls into the Cloud Addon seam. | Cloud settings, Cloud API key storage, Cloud request signing, `/cloud/*` routes, ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, generic approve/reject proxying, or final write authority. |
+| `magick-ai-cloud-addon` | Cloud Base URL/API key settings, signed hosted runtime transport, run/result reads, entitlement and stats projections, media derivative transport helpers, and opt-in metadata-only plugin observability upload. | OpenClaw product UX, Core governance truth, local ability truth, approval truth, WordPress writes, prompt/router/preset control, scheduler truth, workflow/task queue control, or billing truth. |
 | `magick-ai-cloud` | Hosted runtime, Cloud API, worker execution, run status, provider telemetry, usage/stats, health, entitlement, quota, diagnostics, and Cloud-side analysis generation. | WordPress control plane, local ability truth, local approval truth, OpenClaw projection truth, or WordPress writes. |
 
 ## Recommended Cloud Flow
@@ -28,30 +32,34 @@ OpenClaw
   -> magick-ai-adapter
       -> magick-ai-core        // governance, approval, audit, preflight
       -> magick-ai-abilities   // local WordPress data and ability callbacks
-      -> magick-ai-cloud       // hosted execution, stats, analysis, workers
+      -> magick-ai-cloud-addon // signed Cloud transport seam
+          -> magick-ai-cloud   // hosted execution, stats, analysis, workers
 ```
 
-The adapter is the local entry point for OpenClaw. Cloud remains the hosted
-execution and analysis service. Core remains the governance authority. Abilities
-remain the canonical local capability and callback source.
+The adapter is the local entry point for OpenClaw. Cloud Addon is the WordPress-side Cloud connector. Cloud remains the hosted execution and analysis
+service. Core remains the governance authority. Abilities remain the canonical
+local capability and callback source.
 
 ## Adapter Responsibilities
 
-Adapter may add bounded Cloud connector code for:
+Adapter may add bounded Cloud Addon integration code for:
 
-- storing or reading Cloud connector settings;
-- validating Cloud reachability and connector health;
-- signing or authenticating Cloud API requests;
-- submitting hosted runtime or analysis requests to Cloud;
-- returning Cloud `run_id`, status, result, usage, stats, and diagnostics
-  summaries to OpenClaw;
+- detecting whether `magick-ai-cloud-addon` is active;
+- calling `magick_ai_cloud_addon_runtime_client()` or a more specific public
+  helper exposed by the addon;
+- returning Cloud Addon status or Cloud run/result projections to OpenClaw when
+  a user action explicitly needs a Cloud-backed operation;
 - carrying `proposal_id`, `correlation_id`, `external_thread_id`, and
   `openclaw_thread_id` across WordPress, Core, Cloud, and AI Request Logs;
 - translating local WordPress context from Abilities into a Cloud request
   payload when the operation is read-only or already approved by Core.
 
-Adapter must keep these routes thin. It should delegate durable execution,
-retry, queueing, analytics, and Cloud-side projections to `magick-ai-cloud`.
+Adapter must keep these calls thin. It delegates Cloud credentials, signing,
+endpoint allowlists, durable execution, retry, queueing, analytics, and
+Cloud-side projections to `magick-ai-cloud-addon` and `magick-ai-cloud`.
+
+Adapter must not register Adapter-owned `/cloud/*` routes unless a future ADR
+explicitly moves Cloud connector ownership back from Cloud Addon.
 
 ## Cloud Responsibilities
 
@@ -73,7 +81,7 @@ or proposal input for local review.
 1. Read-only requests may flow:
 
    ```text
-   OpenClaw -> Adapter -> Abilities -> Adapter -> Cloud
+   OpenClaw -> Adapter -> Abilities -> Adapter -> Cloud Addon -> Cloud
    ```
 
    Use this for context gathering, stats, diagnostics, and analysis inputs that
@@ -82,7 +90,7 @@ or proposal input for local review.
 2. Write or destructive requests must flow:
 
    ```text
-   OpenClaw -> Adapter -> Core proposal -> Core approval/preflight -> Adapter -> Cloud or local host
+   OpenClaw -> Adapter -> Core proposal -> Core approval/preflight -> Adapter -> Cloud Addon or local host
    ```
 
    Adapter must not bypass Core approval for any WordPress mutation.
@@ -101,18 +109,19 @@ or proposal input for local review.
    generic final write executor unless a future ADR explicitly changes that
    boundary.
 
-## Allowed Adapter Cloud Routes
+## Adapter Cloud Addon Seam
 
-Future Cloud-facing routes should be shaped as connector routes, for example:
+Adapter may consume only the Cloud Addon public seam. Current examples include:
 
-- `GET /wp-json/magick-ai-adapter/v1/cloud/health`
-- `POST /wp-json/magick-ai-adapter/v1/cloud/runs`
-- `GET /wp-json/magick-ai-adapter/v1/cloud/runs/{run_id}`
-- `POST /wp-json/magick-ai-adapter/v1/cloud/analysis`
-- `GET /wp-json/magick-ai-adapter/v1/cloud/stats`
+- `magick_ai_cloud_addon_runtime_client()`;
+- `magick_ai_cloud_addon_verified_runtime_client()`;
+- `magick_ai_cloud_addon_dispatch_media_derivative_cloud_request()`;
+- `magick_ai_cloud_addon_build_media_derivative_proposal_payload()`.
 
-These routes may aggregate local status and Cloud status, but they must not
-persist orchestration truth in Adapter.
+Adapter must not expose a parallel `/cloud/*` REST surface or duplicate Cloud
+Addon settings. If OpenClaw needs Cloud health, run status, results, stats,
+entitlement, or observability detail, Adapter should either link the operator to
+Cloud Addon or return a bounded projection obtained through Cloud Addon.
 
 ## Forbidden Adapter Shapes
 
@@ -120,6 +129,7 @@ Do not add these to Adapter:
 
 - local durable workflow runtime;
 - local task queue, retry engine, scheduler, or lease manager;
+- Adapter-owned Cloud settings, signing clients, or `/cloud/*` routes;
 - Cloud task execution truth;
 - Cloud analytics truth;
 - ability registry or fallback ability definitions;
@@ -130,45 +140,36 @@ Do not add these to Adapter:
 
 ## Next Implementation Sequence
 
-1. Add a small Cloud connector contract in Adapter:
-   - Cloud base URL;
-   - Cloud site key or connector credential reference;
-   - signed request helper;
-   - health check helper;
-   - no durable run storage.
+1. Detect Cloud Addon:
+   - check for the relevant public functions;
+   - fail closed with clear operator guidance when the addon is missing or
+     unverified;
+   - do not read Cloud credentials from Adapter.
 
-2. Add `GET /cloud/health`:
-   - verifies Adapter configuration;
-   - verifies Core and Abilities availability;
-   - verifies Cloud reachability;
-   - returns clear `ready` / `degraded` fields for OpenClaw.
-
-3. Add read-only Cloud analysis proof:
+2. Add Cloud-backed OpenClaw behavior only through Cloud Addon:
    - collect local context through existing Abilities routes;
-   - submit a Cloud analysis request;
-   - return Cloud `run_id` and status;
+   - call a Cloud Addon helper or runtime client allowlisted method;
+   - return Cloud `run_id`, status, result, or proposal input as a projection;
    - do not write WordPress.
 
-4. Add Cloud run status polling:
-   - proxy Cloud status/result by `run_id`;
-   - preserve correlation ids;
-   - avoid local result truth.
-
-5. Add governed write handoff only after read-only proof works:
+3. Add governed write handoff only after read-only proof works:
    - Cloud returns recommendation/proposal input;
    - Adapter submits or relays to Core proposal flow;
    - Core approval/preflight remains mandatory before any write.
 
-6. Add tests for boundary invariants:
+4. Add tests for boundary invariants:
    - Adapter has no queue or scheduler truth;
-   - Cloud connector routes do not expose standalone approve/reject proxying;
-   - Cloud connector routes do not execute final writes outside Adapter's
+   - Adapter does not register `/cloud/*` routes;
+   - Adapter does not store Cloud API keys or sign Cloud requests;
+   - Cloud Addon calls do not expose standalone approve/reject proxying;
+   - Cloud Addon calls do not execute final writes outside Adapter's
      Core-approved allowlisted path;
    - write-like Cloud outputs require Core proposal/preflight handoff.
 
 ## Decision Summary
 
-Adapter is the WordPress-to-Cloud connector. It is responsible for local
-transport, request shaping, authentication, status proxying, and correlation.
-It is not responsible for Cloud execution truth, local governance truth,
-ability truth, or WordPress write truth.
+Adapter is not the WordPress-to-Cloud connector. It is responsible for the
+OpenClaw channel, request shaping, Core/Abilities delegation, and correlation.
+Cloud Addon owns local Cloud transport and signing. Adapter is not responsible
+for Cloud execution truth, local governance truth, ability truth, or WordPress
+write truth.

@@ -15,7 +15,7 @@ the productized OpenClaw user action is exposed by Adapter.
 
 It does not define abilities, store approval state, run workflows, expose a
 generic approve/reject proxy, or execute final write mutations without Core
-approval and commit-preflight.
+approval, commit-preflight, and an explicit Adapter execution profile.
 
 OpenClaw Adapter consumer readiness is complete as of Adapter governance commit
 `b81dc2a`. Productized OpenClaw should use Adapter as the only entry point.
@@ -336,7 +336,10 @@ For productized OpenClaw acceptance, use
 For the admin page hierarchy and non-goals, use
 [`docs/admin-surface-standard.md`](docs/admin-surface-standard.md).
 
-The Cloud connector boundary and next implementation sequence are documented in
+Cloud runtime access belongs to the standalone `magick-ai-cloud-addon`.
+Adapter must not add its own Cloud settings, signing client, or `/cloud/*`
+routes. If an OpenClaw flow needs hosted runtime, Adapter should call the Cloud
+Addon public PHP seam described in
 [`docs/cloud-connector-boundary.md`](docs/cloud-connector-boundary.md).
 
 ## OpenClaw Integration
@@ -453,9 +456,14 @@ should pass those values to Adapter read or future execution requests as
 `magick_ai_adapter`, top-level context fields, and nested `magick_ai_core`
 context for provider request log correlation.
 
-For local readiness smoke, administrators can call the provider log route with
-a configured text generation provider/model. This example uses local Ollama
-when `qwen3.5:0.8b` is available:
+For local readiness smoke, administrators can manually call the provider log
+route with a configured text generation provider/model. This route is a
+diagnostic-only operability surface for AI Request Logs correlation. It must not
+be used as model routing, prompt management, product UX, or production workload
+execution. The prompt is used only for the bounded smoke request and is not
+stored by Adapter.
+
+This example uses local Ollama when `qwen3.5:0.8b` is available:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \

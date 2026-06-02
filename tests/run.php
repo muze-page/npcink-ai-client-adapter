@@ -459,6 +459,27 @@ foreach (
 	maa_adapter_assert( false !== strpos( $admin_surface_standard, $required ), 'Admin surface standard documents Adapter page boundary: ' . $required );
 }
 
+$cloud_boundary = maa_adapter_read( $root . '/docs/cloud-connector-boundary.md' );
+foreach (
+	array(
+		'Adapter is not the WordPress-to-Cloud connector',
+		'Cloud Addon is the WordPress-side Cloud connector',
+		'magick_ai_cloud_addon_runtime_client()',
+		'magick_ai_cloud_addon_verified_runtime_client()',
+		'Adapter must not expose a parallel `/cloud/*` REST surface',
+		'Adapter-owned Cloud settings, signing clients, or `/cloud/*` routes',
+		'Adapter does not register `/cloud/*` routes',
+		'Adapter does not store Cloud API keys or sign Cloud requests',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $cloud_boundary, $required ), 'Cloud boundary keeps Adapter behind Cloud Addon: ' . $required );
+}
+foreach ( array( '/cloud/health', '/cloud/runs', '/cloud/analysis', '/cloud/stats' ) as $forbidden ) {
+	maa_adapter_assert( false === strpos( $controller, $forbidden ), 'Controller does not register Adapter Cloud route: ' . $forbidden );
+}
+maa_adapter_assert( false === strpos( $controller, 'X-Magick-Signature' ), 'Adapter controller does not implement Cloud request signing.' );
+maa_adapter_assert( false === strpos( $cloud_boundary, 'Adapter is the WordPress-to-Cloud connector.' ), 'Cloud boundary no longer assigns Cloud connector ownership to Adapter.' );
+
 $readme = maa_adapter_read( $root . '/README.md' );
 foreach (
 	array(
@@ -466,6 +487,8 @@ foreach (
 		'read Magick AI Core capability guidance',
 		'run approved direct-read abilities through WordPress Abilities API',
 		'create Core proposals',
+		'Cloud runtime access belongs to the standalone `magick-ai-cloud-addon`',
+		'Adapter must not add its own Cloud settings, signing client, or `/cloud/*`',
 		'Proposal status',
 		'Adapter status/execution URLs',
 		'does not define abilities',
@@ -797,6 +820,10 @@ foreach (
 		'AI Request Logs',
 		'wp-diagnostics-summary` is only a quick overview',
 		'POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke',
+		'administrator-triggered diagnostics route',
+		'production workload route',
+		'prompt is used only for the bounded',
+		'prompt management',
 		'Core Governance Audit is the governance log',
 		'AI Request Logs are the provider request log',
 		'adapter_request_id',
@@ -955,6 +982,13 @@ foreach (
 	array(
 		'thin OpenClaw channel layer',
 		'does not own',
+		'explicit post-Core execution profile policy',
+		'generic final write authority',
+		'admin-authenticated AI Request Logs correlation smoke route',
+		'manual diagnostics route',
+		'not model routing, prompt management, product UX, or',
+		'magick-ai-cloud-addon',
+		'Do not add Adapter-owned Cloud',
 		'magick-ai-abilities',
 		'magick-ai-core',
 		'core_proxy_execute=false',
@@ -962,10 +996,14 @@ foreach (
 		'composer plugin-check:release',
 		'composer package:release',
 		'.distignore',
-	) as $required
+) as $required
 ) {
-maa_adapter_assert( false !== strpos( $agents, $required ), 'AGENTS.md contains required text: ' . $required );
+	maa_adapter_assert( false !== strpos( $agents, $required ), 'AGENTS.md contains required text: ' . $required );
 }
+maa_adapter_assert(
+	false === strpos( $agents, "- final write execution policy;" ),
+	'AGENTS.md no longer forbids the explicit post-Core execution profile policy.'
+);
 
 $smoke_sh = maa_adapter_read( $root . '/tests/smoke-wp.sh' );
 foreach (

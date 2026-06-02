@@ -300,7 +300,10 @@ POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke
 ```
 
 This route is bounded to proving WordPress AI Client / provider request log
-correlation. It is not workflow runtime, MCP runtime, model routing policy, or
+correlation. It is an administrator-triggered diagnostics route, not a
+production workload route. The request prompt is used only for the bounded
+smoke request and must not become Adapter prompt storage, prompt management, or
+product UX. It is not workflow runtime, MCP runtime, model routing policy, or
 final WordPress mutation.
 
 ## Proposal Status Read Proxy
@@ -670,6 +673,8 @@ Adapter invariants:
 - It does not store proposal or approval state.
 - It stores bounded execution records only to prevent replaying an already
   completed Adapter write.
+- It owns only explicit post-Core execution profile policy for allowlisted
+  approved writes.
 - It does not expose a generic approve/reject proxy.
 - It does not execute final WordPress mutations outside the allowlisted
   approve-and-execute or approved-proposal execution path.

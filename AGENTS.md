@@ -9,13 +9,15 @@ It owns:
 - OpenClaw-facing REST routes;
 - routing read ability execution to WordPress Abilities API;
 - routing proposal and commit-preflight requests to Magick AI Core;
+- explicit post-Core execution profile policy for allowlisted approved writes;
 - small health and diagnostics responses for adapter readiness.
 
 It does not own:
 
 - WordPress ability definitions or callbacks;
 - Core proposal storage, approval, or audit truth;
-- final write execution policy;
+- generic final write authority outside the explicit post-Core execution
+  profile allowlist;
 - workflow runtime, queues, MCP runtime, or Agent Gateway catalogs;
 - provider credentials, model routing, prompts, or product UX.
 
@@ -24,11 +26,19 @@ It does not own:
 - Keep this plugin thin. If a feature needs ability definitions, change
   `magick-ai-abilities`.
 - If a feature needs approval state, change `magick-ai-core`.
+- If a feature needs a new final write, add it only as an explicit execution
+  profile after Core approval and commit-preflight; do not add a generic final
+  write executor.
 - If a feature needs workflow runtime or long-running task orchestration, write
   a boundary note before implementing it here.
-- If a feature connects local WordPress to Cloud, follow
-  `docs/cloud-connector-boundary.md`: Adapter is the connector, while Cloud owns
-  hosted execution, stats, diagnostics, and analysis truth.
+- Provider/model/prompt execution in Adapter is limited to the
+  admin-authenticated AI Request Logs correlation smoke route. It must stay a
+  manual diagnostics route, not model routing, prompt management, product UX, or
+  production workload execution.
+- If a feature needs Cloud runtime or Cloud monitoring, call the standalone
+  `magick-ai-cloud-addon` public PHP seam. Do not add Adapter-owned Cloud
+  settings, signing clients, `/cloud/*` routes, or Cloud execution truth.
+  Do not add Adapter-owned Cloud connector routes.
 - Use WordPress REST authentication and capability checks.
 - Run `composer test:all` before committing.
 - For Plugin Check / PCP, use `composer plugin-check:release` so checks target
