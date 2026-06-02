@@ -7,6 +7,7 @@
 
 namespace MagickAI\Adapter\Rest;
 
+use MagickAI\Adapter\Observability;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -696,17 +697,21 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function start_device_pairing( WP_REST_Request $request ) {
+		$started = microtime( true );
 		$body = $this->request_json_body( $request );
 		if ( is_wp_error( $body ) ) {
+			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $body );
 			return $body;
 		}
 
 		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_sodium_unavailable',
 				__( 'Ed25519 device pairing requires the PHP sodium extension.', 'magick-ai-adapter' ),
 				array( 'status' => 501 )
 			);
+			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $error );
+			return $error;
 		}
 
 		$client = is_array( $body['client'] ?? null ) ? $body['client'] : array();
@@ -716,11 +721,13 @@ final class Controller {
 		$scopes = $this->connection_requested_scopes( is_array( $body['requested_scopes'] ?? null ) ? $body['requested_scopes'] : array() );
 
 		if ( '' === $name || 'Ed25519' !== (string) ( $key['alg'] ?? '' ) || 32 !== strlen( $this->base64url_decode( $public_key ) ) ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_device_pairing_invalid',
 				__( 'Device pairing requires client metadata and a base64url Ed25519 public key.', 'magick-ai-adapter' ),
 				array( 'status' => 400 )
 			);
+			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $error );
+			return $error;
 		}
 
 		$device_code = 'dev_' . $this->base64url_encode( random_bytes( 32 ) );
@@ -751,6 +758,8 @@ final class Controller {
 
 		$verification_uri = admin_url( 'admin.php?page=magick-ai-adapter-pair' );
 
+		$this->emit_operation_event( 'adapter.device_pairing.start', $started, null, array( 'status_detail' => 'pending' ) );
+
 		return new WP_REST_Response(
 			array(
 				'device_code'               => $device_code,
@@ -771,8 +780,10 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function poll_device_pairing( WP_REST_Request $request ) {
+		$started = microtime( true );
 		$body = $this->request_json_body( $request );
 		if ( is_wp_error( $body ) ) {
+			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $body );
 			return $body;
 		}
 
@@ -780,22 +791,27 @@ final class Controller {
 		$pairing     = $this->device_pairing_by_device_code( $device_code );
 
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_device_pairing_expired',
 				__( 'Device pairing is expired or invalid.', 'magick-ai-adapter' ),
 				array( 'status' => 401 )
 			);
+			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $error );
+			return $error;
 		}
 
 		if ( 'rejected' === (string) ( $pairing['status'] ?? '' ) ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_device_pairing_rejected',
 				__( 'Device pairing was rejected.', 'magick-ai-adapter' ),
 				array( 'status' => 403 )
 			);
+			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $error, array( 'status_detail' => 'rejected' ) );
+			return $error;
 		}
 
 		if ( 'approved' !== (string) ( $pairing['status'] ?? '' ) ) {
+			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, null, array( 'status_detail' => 'pending' ) );
 			return new WP_REST_Response(
 				array(
 					'ok'      => false,
@@ -807,6 +823,8 @@ final class Controller {
 		}
 
 		$scopes = is_array( $pairing['scopes_effective'] ?? null ) ? $pairing['scopes_effective'] : array();
+
+		$this->emit_operation_event( 'adapter.device_pairing.poll', $started, null, array( 'status_detail' => 'approved' ) );
 
 		return new WP_REST_Response(
 			array(
@@ -904,11 +922,14 @@ final class Controller {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	public function approve_device_pairing( string $user_code ) {
+		$started = microtime( true );
 		$user_code = strtoupper( sanitize_text_field( $user_code ) );
 		$pairings  = $this->device_pairings();
 		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
-			return new WP_Error( 'magick_ai_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'magick-ai-adapter' ) );
+			$error = new WP_Error( 'magick_ai_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'magick-ai-adapter' ) );
+			$this->emit_operation_event( 'adapter.device_pairing.approve', $started, $error );
+			return $error;
 		}
 
 		$user_id       = get_current_user_id();
@@ -947,6 +968,8 @@ final class Controller {
 		$pairings[ $user_code ]      = $pairing;
 		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
 
+		$this->emit_operation_event( 'adapter.device_pairing.approve', $started, null );
+
 		return $this->public_client_key_record( $record );
 	}
 
@@ -957,15 +980,23 @@ final class Controller {
 	 * @return bool
 	 */
 	public function reject_device_pairing( string $user_code ): bool {
+		$started = microtime( true );
 		$user_code = strtoupper( sanitize_text_field( $user_code ) );
 		$pairings  = $this->device_pairings();
 		if ( ! is_array( $pairings[ $user_code ] ?? null ) ) {
+			$this->emit_operation_event(
+				'adapter.device_pairing.reject',
+				$started,
+				new WP_Error( 'magick_ai_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'magick-ai-adapter' ) )
+			);
 			return false;
 		}
 
 		$pairings[ $user_code ]['status']      = 'rejected';
 		$pairings[ $user_code ]['rejected_at'] = gmdate( 'c' );
 		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
+
+		$this->emit_operation_event( 'adapter.device_pairing.reject', $started, null );
 
 		return true;
 	}
@@ -1948,10 +1979,12 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_proposal( WP_REST_Request $request ) {
+		$started    = microtime( true );
 		$ability_id  = (string) $request->get_param( 'ability_id' );
 		$input       = $this->object_param( $request, 'input' );
 		$valid_input = $this->validate_proposal_create_input( $ability_id, $input );
 		if ( is_wp_error( $valid_input ) ) {
+			$this->emit_operation_event( 'adapter.proposal.create', $started, $valid_input, array( 'ability_id' => $ability_id ) );
 			return $valid_input;
 		}
 
@@ -1964,7 +1997,10 @@ final class Controller {
 			'caller'     => $this->proposal_caller_context( $request, $ability_id ),
 		);
 
-		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals', $params );
+		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals', $params );
+		$this->emit_operation_event( 'adapter.proposal.create', $started, is_wp_error( $response ) ? $response : null, array( 'ability_id' => $ability_id ) );
+
+		return $response;
 	}
 
 	/**
@@ -1994,9 +2030,10 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_proposals_from_plan( WP_REST_Request $request ) {
+		$started = microtime( true );
 		$plan_ability_id = sanitize_text_field( (string) $request->get_param( 'plan_ability_id' ) );
 		if ( ! isset( self::$allowed_plan_ability_ids[ $plan_ability_id ] ) ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_plan_ability_not_allowed',
 				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'magick-ai-adapter' ),
 				array(
@@ -2004,11 +2041,14 @@ final class Controller {
 					'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
 				)
 			);
+			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $error, array( 'ability_id' => $plan_ability_id ) );
+			return $error;
 		}
 
 		$plan            = $this->object_param( $request, 'plan' );
 		$valid_plan_input = $this->validate_plan_write_action_inputs( $plan );
 		if ( is_wp_error( $valid_plan_input ) ) {
+			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $valid_plan_input, array( 'ability_id' => $plan_ability_id ) );
 			return $valid_plan_input;
 		}
 
@@ -2019,7 +2059,10 @@ final class Controller {
 			'caller'          => $this->proposal_caller_context( $request, $plan_ability_id ),
 		);
 
-		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/from-plan', $params );
+		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/from-plan', $params );
+		$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, is_wp_error( $response ) ? $response : null, array( 'ability_id' => $plan_ability_id ) );
+
+		return $response;
 	}
 
 	/**
@@ -2116,8 +2159,12 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function commit_preflight( WP_REST_Request $request ) {
+		$started = microtime( true );
 		$proposal_id = (string) $request->get_param( 'proposal_id' );
-		return $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+		$this->emit_operation_event( 'adapter.commit.preflight', $started, is_wp_error( $response ) ? $response : null, array( 'proposal_id' => $proposal_id ) );
+
+		return $response;
 	}
 
 	/**
@@ -2127,24 +2174,43 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function execute_approved_proposal_route( WP_REST_Request $request ) {
+		$started = microtime( true );
 		$proposal_id = sanitize_text_field( (string) $request->get_param( 'proposal_id' ) );
 		if ( '' === $proposal_id ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_proposal_id_required',
 				__( 'proposal_id is required.', 'magick-ai-adapter' ),
 				array( 'status' => 400 )
 			);
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error );
+			return $error;
 		}
 
 		$proposal = $this->get_core_proposal_data( $proposal_id );
 		if ( is_wp_error( $proposal ) ) {
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $proposal, array( 'proposal_id' => $proposal_id ) );
 			return $proposal;
 		}
 
 		$execution = $this->execute_core_approved_proposal( $request, $proposal_id, $proposal );
 		if ( is_wp_error( $execution ) ) {
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $execution, array( 'proposal_id' => $proposal_id ) );
 			return $execution;
 		}
+
+		$this->emit_operation_event(
+			'adapter.proposal.execute',
+			$started,
+			null,
+			array(
+				'proposal_id'        => $proposal_id,
+				'ability_id'         => (string) ( $execution['ability_id'] ?? '' ),
+				'correlation_id'     => (string) ( $execution['correlation_id'] ?? '' ),
+				'adapter_request_id' => (string) ( $execution['adapter_request_id'] ?? '' ),
+				'executed_count'     => (int) ( $execution['executed_count'] ?? 0 ),
+				'failed_count'       => (int) ( $execution['failed_count'] ?? 0 ),
+			)
+		);
 
 		return new WP_REST_Response(
 			array(
@@ -3242,15 +3308,17 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private function run_read_ability( string $ability_id, array $input, array $log_context = array() ) {
+		$started = microtime( true );
 		$ability_id = sanitize_text_field( $ability_id );
 		$capability = $this->find_core_capability( $ability_id );
 
 		if ( is_wp_error( $capability ) ) {
+			$this->emit_operation_event( 'adapter.ability.run_read', $started, $capability, array( 'ability_id' => $ability_id ) );
 			return $capability;
 		}
 
 		if ( 'direct_read' !== (string) ( $capability['governance_mode'] ?? '' ) || 'wp_abilities_rest' !== (string) ( $capability['execution_surface'] ?? '' ) ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_proposal_required',
 				__( 'This ability is not direct-read. Create a Core proposal instead.', 'magick-ai-adapter' ),
 				array(
@@ -3258,24 +3326,31 @@ final class Controller {
 					'capability' => $this->public_capability_guidance( $capability ),
 				)
 			);
+			$this->emit_operation_event( 'adapter.ability.run_read', $started, $error, array( 'ability_id' => $ability_id ) );
+			return $error;
 		}
 
 		if ( true === (bool) ( $capability['core_proxy_execute'] ?? false ) || true === (bool) ( $capability['commit_execution'] ?? false ) ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_invalid_core_guidance',
 				__( 'Core guidance unexpectedly allows proxy or commit execution.', 'magick-ai-adapter' ),
 				array( 'status' => 500 )
 			);
+			$this->emit_operation_event( 'adapter.ability.run_read', $started, $error, array( 'ability_id' => $ability_id ) );
+			return $error;
 		}
 
 		$route    = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
 		$response = $this->dispatch_upstream_with_request_log_context( $log_context, 'GET', $route, array( 'input' => $input ), true );
 
 		if ( is_wp_error( $response ) ) {
+			$this->emit_operation_event( 'adapter.ability.run_read', $started, $response, array( 'ability_id' => $ability_id ) );
 			return $response;
 		}
 
 		$data = $response->get_data();
+
+		$this->emit_operation_event( 'adapter.ability.run_read', $started, null, array( 'ability_id' => $ability_id ) );
 
 		return new WP_REST_Response(
 			array(
@@ -3429,6 +3504,7 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private function dispatch_upstream( string $method, string $route, array $params = array(), bool $query_params = false, bool $json_body = false, bool $use_core_app_token = true ) {
+		$started = microtime( true );
 		$request = new WP_REST_Request( $method, $route );
 		$token   = $use_core_app_token ? $this->core_app_token() : '';
 		$user_id = get_current_user_id();
@@ -3460,6 +3536,16 @@ final class Controller {
 			$code    = is_array( $data ) ? (string) ( $data['code'] ?? 'magick_ai_adapter_upstream_failed' ) : 'magick_ai_adapter_upstream_failed';
 			$message = is_array( $data ) ? (string) ( $data['message'] ?? __( 'The upstream WordPress REST request failed.', 'magick-ai-adapter' ) ) : __( 'The upstream WordPress REST request failed.', 'magick-ai-adapter' );
 
+			$this->emit_operation_event(
+				'adapter.core.request',
+				$started,
+				new WP_Error( $code, $message, array( 'status' => $status ) ),
+				array(
+					'method' => strtoupper( $method ),
+					'route'  => $route,
+				)
+			);
+
 			return new WP_Error(
 				$code,
 				$message,
@@ -3470,6 +3556,17 @@ final class Controller {
 				)
 			);
 		}
+
+		$this->emit_operation_event(
+			'adapter.core.request',
+			$started,
+			null,
+			array(
+				'method' => strtoupper( $method ),
+				'route'  => $route,
+				'status_code' => $status,
+			)
+		);
 
 		return new WP_REST_Response( $response->get_data(), $status );
 	}
@@ -4030,6 +4127,29 @@ final class Controller {
 			'execution_surface' => (string) ( $capability['execution_surface'] ?? '' ),
 			'core_proxy_execute' => (bool) ( $capability['core_proxy_execute'] ?? false ),
 			'commit_execution'  => (bool) ( $capability['commit_execution'] ?? false ),
+		);
+	}
+
+	/**
+	 * Emits a metadata-only operation event.
+	 *
+	 * @param string              $event_kind Event kind.
+	 * @param float               $started Start time.
+	 * @param WP_Error|null       $error Error result.
+	 * @param array<string,mixed> $context Safe context fields.
+	 * @return void
+	 */
+	private function emit_operation_event( string $event_kind, float $started, $error, array $context = array() ): void {
+		Observability::emit(
+			$event_kind,
+			array_merge(
+				array(
+					'status'     => is_wp_error( $error ) ? 'error' : 'ok',
+					'error_code' => is_wp_error( $error ) ? (string) $error->get_error_code() : '',
+					'latency_ms' => max( 0, (int) round( ( microtime( true ) - $started ) * 1000 ) ),
+				),
+				$context
+			)
 		);
 	}
 }
