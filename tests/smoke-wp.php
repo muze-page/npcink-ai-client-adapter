@@ -338,6 +338,7 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/pro
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/approve' ), 'adapter help exposes approval disabled stub route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/reject' ), 'adapter help exposes rejection disabled stub route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-provider-log-correlation-smoke' ), 'adapter help exposes provider log correlation smoke route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/media-metadata-optimization' ), 'adapter help exposes media metadata optimization route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
 maa_adapter_smoke_assert( in_array( 'GET /plugin-conflict-diagnostics', (array) ( $help['route_groups']['read_shortcuts'] ?? array() ), true ), 'adapter help keeps grouped read shortcut routes for humans' );
@@ -375,6 +376,7 @@ maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/get-workflow-recipe
 maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-content-inventory-fix-plan'] ), 'adapter capabilities expose content inventory fix plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-test-content-cleanup-plan'] ), 'adapter capabilities expose test content cleanup plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-inventory-fix-plan'] ), 'adapter capabilities expose media inventory fix plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['magick-ai/optimize-media-metadata'] ), 'adapter capabilities expose media metadata optimization through Core' );
 maa_adapter_smoke_assert( 'direct_read' === (string) ( $by_id['magick-ai-abilities/site-summary']['governance_mode'] ?? '' ), 'site-summary is direct read' );
 
 $content_plan_response = maa_adapter_smoke_rest(
@@ -827,6 +829,32 @@ $media = maa_adapter_smoke_rest(
 );
 maa_adapter_smoke_assert( 'magick-ai/list-media' === (string) ( $media['ability_id'] ?? '' ), 'adapter runs media shortcut with query input' );
 maa_adapter_smoke_assert( is_array( $media['result'] ?? null ), 'media shortcut returns a result object' );
+
+$media_metadata_optimization = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/media-metadata-optimization',
+	array(
+		'article_title' => 'Adapter media metadata smoke',
+		'focus_keyword' => 'adapter metadata',
+		'media_assets'  => array(
+			array(
+				'attachment_id' => 0,
+				'title'         => '',
+				'alt'           => '',
+				'caption'       => '',
+				'description'   => '',
+				'mime_type'     => 'image/jpeg',
+				'file_name'     => 'adapter-metadata-smoke.jpg',
+			),
+		),
+	)
+);
+$media_metadata_data = is_array( $media_metadata_optimization['result']['data'] ?? null ) ? $media_metadata_optimization['result']['data'] : array();
+$media_metadata_asset = is_array( $media_metadata_data['assets'][0] ?? null ) ? $media_metadata_data['assets'][0] : array();
+maa_adapter_smoke_assert( 'magick-ai/optimize-media-metadata' === (string) ( $media_metadata_optimization['ability_id'] ?? '' ), 'adapter runs media metadata optimization route through read ability' );
+maa_adapter_smoke_assert( 1 === (int) ( $media_metadata_data['summary']['asset_count'] ?? 0 ), 'media metadata optimization returns one asset suggestion' );
+maa_adapter_smoke_assert( is_array( $media_metadata_asset['suggestions'] ?? null ), 'media metadata optimization returns metadata suggestions' );
+maa_adapter_smoke_assert( false === in_array( 'magick-ai/optimize-media-metadata', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'media metadata optimization stays out of Adapter final write allowlist' );
 
 $pages = maa_adapter_smoke_rest(
 	'GET',

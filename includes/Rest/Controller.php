@@ -417,6 +417,53 @@ final class Controller {
 			)
 		);
 
+		register_rest_route(
+			self::NAMESPACE,
+			'/media-metadata-optimization',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'media_metadata_optimization_route' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'input'                => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'media_assets'         => array(
+							'type'    => 'array',
+							'default' => array(),
+						),
+						'article_title'        => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'article_excerpt'      => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_textarea_field',
+						),
+						'article_content'      => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'wp_kses_post',
+						),
+						'focus_keyword'        => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'vision_fallback_mode' => array(
+							'type'              => 'string',
+							'default'           => 'auto',
+							'sanitize_callback' => 'sanitize_key',
+						),
+						'log_context'          => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+					),
+				),
+			)
+		);
+
 		foreach ( self::read_shortcut_definitions() as $route => $definition ) {
 			$ability_id    = (string) ( $definition['ability_id'] ?? '' );
 			$default_input = is_array( $definition['default_input'] ?? null ) ? $definition['default_input'] : array();
@@ -1698,19 +1745,20 @@ final class Controller {
 	 */
 	private function help_route_groups(): array {
 		return array(
-				'connection'      => array(
-					'GET /health',
-					'GET /help',
-					'GET /capabilities',
-					'GET /connection/manifest',
-					'POST /connect/device/start',
-					'POST /connect/device/poll',
-					'GET /connection/key-pairs',
-					'DELETE /connection/key-pairs/{key_id}',
-				),
+			'connection'      => array(
+				'GET /health',
+				'GET /help',
+				'GET /capabilities',
+				'GET /connection/manifest',
+				'POST /connect/device/start',
+				'POST /connect/device/poll',
+				'GET /connection/key-pairs',
+				'DELETE /connection/key-pairs/{key_id}',
+			),
 			'read_shortcuts'  => $this->help_read_shortcuts(),
 			'generic_read'    => array(
 				'POST /run-read-ability',
+				'POST /media-metadata-optimization',
 			),
 			'provider_log_correlation' => array(
 				'POST /ai-provider-log-correlation-smoke',
@@ -1781,15 +1829,16 @@ final class Controller {
 	private function help_route_purpose( string $method, string $path, string $group ): string {
 		$key      = $method . ' ' . $path;
 		$purposes = array(
-				'GET /health' => 'Check adapter health and connection state.',
-				'GET /help' => 'Discover adapter routes and handoff guidance.',
-				'GET /capabilities' => 'List Core capabilities and governance guidance.',
-				'GET /connection/manifest' => 'Return the non-secret local broker connection manifest.',
-				'POST /connect/device/start' => 'Start a public-key device pairing session.',
-				'POST /connect/device/poll' => 'Poll a public-key device pairing session.',
-				'GET /connection/key-pairs' => 'List registered key-pair clients for the current user.',
-				'DELETE /connection/key-pairs/{key_id}' => 'Revoke a registered key-pair client.',
-				'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
+			'GET /health' => 'Check adapter health and connection state.',
+			'GET /help' => 'Discover adapter routes and handoff guidance.',
+			'GET /capabilities' => 'List Core capabilities and governance guidance.',
+			'GET /connection/manifest' => 'Return the non-secret local broker connection manifest.',
+			'POST /connect/device/start' => 'Start a public-key device pairing session.',
+			'POST /connect/device/poll' => 'Poll a public-key device pairing session.',
+			'GET /connection/key-pairs' => 'List registered key-pair clients for the current user.',
+			'DELETE /connection/key-pairs/{key_id}' => 'Revoke a registered key-pair client.',
+			'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
+			'POST /media-metadata-optimization' => 'Build read-only media title, alt, caption, description, source, and attribution suggestions.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
@@ -1836,6 +1885,22 @@ final class Controller {
 			(string) $request->get_param( 'ability_id' ),
 			$this->request_input( $request ),
 			$this->request_log_context( $request, (string) $request->get_param( 'ability_id' ) )
+		);
+	}
+
+	/**
+	 * Runs the media metadata optimization read helper.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function media_metadata_optimization_route( WP_REST_Request $request ) {
+		$ability_id = 'magick-ai/optimize-media-metadata';
+
+		return $this->run_read_ability(
+			$ability_id,
+			$this->media_metadata_optimization_input( $request ),
+			$this->request_log_context( $request, $ability_id )
 		);
 	}
 
@@ -3911,6 +3976,29 @@ final class Controller {
 	 */
 	private function request_input( WP_REST_Request $request ): array {
 		return $this->object_param( $request, 'input' );
+	}
+
+	/**
+	 * Returns media metadata optimization input.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return array<string,mixed>
+	 */
+	private function media_metadata_optimization_input( WP_REST_Request $request ): array {
+		$input = $this->request_input( $request );
+
+		foreach ( array( 'media_assets', 'article_title', 'article_excerpt', 'article_content', 'focus_keyword', 'vision_fallback_mode' ) as $key ) {
+			if ( array_key_exists( $key, $input ) ) {
+				continue;
+			}
+
+			$value = $request->get_param( $key );
+			if ( null !== $value ) {
+				$input[ $key ] = $this->sanitize_input_value( $value );
+			}
+		}
+
+		return $input;
 	}
 
 	/**

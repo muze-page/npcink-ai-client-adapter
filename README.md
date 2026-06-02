@@ -54,6 +54,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/help`
 - `GET /wp-json/magick-ai-adapter/v1/capabilities`
 - `POST /wp-json/magick-ai-adapter/v1/run-read-ability`
+- `POST /wp-json/magick-ai-adapter/v1/media-metadata-optimization`
 - `POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke`
 - `GET /wp-json/magick-ai-adapter/v1/site-info`
 - `GET /wp-json/magick-ai-adapter/v1/site-summary`
@@ -192,6 +193,14 @@ including the current `magick-ai/list-posts` filters, richer
 `magick-ai/get-post-context` output, term sample-post flags, user
 `author_profile`, comment post context, media `attached_to`/`usage`, and
 `magick-ai/get-menu` tree output.
+
+For media metadata optimization, `POST /media-metadata-optimization` calls the
+read-only `magick-ai/optimize-media-metadata` ability and returns suggestions
+for attachment title, alt, caption, description, source, photographer,
+attribution, and copyright fields. It does not write media records or replace
+files. To apply reviewed suggestions, create a governed Core proposal for
+`magick-ai/update-media-details`, then execute through Adapter's existing
+Core-approved allowlisted path.
 
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
