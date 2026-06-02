@@ -192,8 +192,10 @@ foreach (
 			'plugin_conflict_input',
 			'plugin_group_fields',
 			'error_log_summary_fields',
-			'workflow-recipes',
+		'workflow-recipes',
 		'/workflow-recipe',
+		'openclaw_recipes',
+		'article_draft_plan',
 		"'media'",
 		"'posts'",
 		"'post-context'",
@@ -595,6 +597,8 @@ foreach (
 		'magick-ai/build-test-content-cleanup-plan',
 		'magick-ai/build-media-inventory-fix-plan',
 		'magick-ai-toolbox/build-article-write-plan',
+		'openclaw_recipes.article_draft_plan',
+		'docs/openclaw-article-draft-plan-recipe.md',
 		'skipped_destructive_candidates',
 		'write_actions',
 		'Plan-to-proposal flow',
@@ -1037,6 +1041,10 @@ foreach (
 			'/magick-ai-adapter/v1/cron-events-detail',
 			'/magick-ai-adapter/v1/workflow-recipes',
 		'/magick-ai-adapter/v1/workflow-recipe',
+		'OpenClaw article draft plan entrypoint ability',
+		'adapter forwards Toolbox article plan to Core',
+		'adapter article plan creates one Core proposal',
+		'adapter article plan creates only a WordPress draft',
 		'/magick-ai-adapter/v1/proposals',
 		'/magick-ai-adapter/v1/proposals/from-plan',
 		'adapter plan-to-proposal rejects invalid profiled action input before Core forwarding',
@@ -1232,6 +1240,25 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $smoke_wp, $required ), 'WordPress smoke contains required text: ' . $required );
+}
+
+$article_recipe = maa_adapter_read( $root . '/docs/openclaw-article-draft-plan-recipe.md' );
+foreach (
+	array(
+		'OpenClaw Article Draft Plan Recipe',
+		'magick-ai-toolbox/build-article-write-plan',
+		'magick-ai/create-draft',
+		'POST /wp-json/magick-ai-adapter/v1/run-read-ability',
+		'POST /wp-json/magick-ai-adapter/v1/proposals/from-plan',
+		'POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute',
+		'artifact_type=article_write_plan',
+		'risk_level=high',
+		'blocked_claims',
+		'Cloud Addon is not part of this local control loop',
+		'Adapter must not publish, schedule, approve standalone, or execute arbitrary writes',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $article_recipe, $required ), 'Article draft recipe contains required text: ' . $required );
 }
 
 $batch_policy = maa_adapter_read( $root . '/docs/openclaw-batch-execution-policy.md' );

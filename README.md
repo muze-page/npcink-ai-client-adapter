@@ -330,6 +330,9 @@ it does not change WordPress or Adapter server-side TLS behavior.
 For local setup steps, see
 [`docs/openclaw-quickstart.md`](docs/openclaw-quickstart.md).
 
+For the OpenClaw article draft planning recipe, use
+[`docs/openclaw-article-draft-plan-recipe.md`](docs/openclaw-article-draft-plan-recipe.md).
+
 For productized OpenClaw acceptance, use
 [`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).
 
@@ -359,8 +362,8 @@ Initial connection:
    - `commit_execution=false`
 4. OpenClaw calls `GET /capabilities` and uses Core guidance as the only
    governance truth for each `ability_id`.
-5. OpenClaw may call `GET /help` to discover adapter route labels and current
-   non-goals.
+5. OpenClaw may call `GET /help` to discover adapter route labels, current
+   non-goals, and `openclaw_recipes.article_draft_plan`.
 
 Read-only execution:
 
@@ -398,7 +401,8 @@ Plan-to-proposal flow:
    For the Toolbox article write plan, Adapter still only forwards the
    reviewed `article_write_plan`; Core validates the plan and Adapter later
    executes `magick-ai/create-draft` only after Core approval and
-   commit-preflight.
+   commit-preflight. The machine-readable OpenClaw playbook is exposed as
+   `openclaw_recipes.article_draft_plan` from `GET /help`.
 
 Proposal-required write flow:
 

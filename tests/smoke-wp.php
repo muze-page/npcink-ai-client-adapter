@@ -343,6 +343,9 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/media-metadata-optimization' ), 'adapter help exposes media metadata optimization route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
+maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
+maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );
 maa_adapter_smoke_assert( in_array( 'GET /plugin-conflict-diagnostics', (array) ( $help['route_groups']['read_shortcuts'] ?? array() ), true ), 'adapter help keeps grouped read shortcut routes for humans' );
 maa_adapter_smoke_assert( false === (bool) ( $help['approval_proxy_enabled'] ?? true ), 'adapter help keeps approval proxy disabled' );
 maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $help['approval_surface'] ?? '' ), 'adapter help exposes Core admin approval surface' );
@@ -655,6 +658,108 @@ maa_adapter_smoke_assert( $output_reference_plan_post_id > 0, 'adapter from-plan
 maa_adapter_smoke_assert( $output_reference_plan_post_id === (int) ( $output_reference_plan_result['results'][1]['post_id'] ?? 0 ), 'adapter from-plan output-reference batch updates the created draft' );
 maa_adapter_smoke_assert( $output_reference_plan_post_id === (int) ( $output_reference_plan_result['results'][2]['post_id'] ?? 0 ), 'adapter from-plan output-reference batch trashes the created draft' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $output_reference_plan_post_id ), 'adapter from-plan output-reference batch leaves created draft trashed' );
+
+$article_plan = array(
+	'artifact_type'           => 'article_write_plan',
+	'version'                 => 1,
+	'batch_id'                => 'adapter-article-draft-plan-smoke',
+	'proposal_mode'           => 'single',
+	'requires_approval'       => true,
+	'commit_execution'        => false,
+	'dry_run'                 => true,
+	'article_goal_brief'      => array(
+		'title'    => 'Adapter article draft plan smoke',
+		'audience' => 'Local acceptance operator',
+		'goal'     => 'Verify OpenClaw article plan handoff creates only a draft.',
+	),
+	'research_evidence_pack'  => array(
+		'evidence_items' => array(
+			array(
+				'source'  => 'local smoke fixture',
+				'summary' => 'The fixture is bounded and contains no external claims.',
+			),
+		),
+	),
+	'article_outline'         => array(
+		'sections' => array(
+			array(
+				'heading' => 'Smoke coverage',
+				'points'  => array( 'Adapter forwards plan', 'Core governs proposal', 'Abilities creates draft' ),
+			),
+		),
+	),
+	'article_draft_candidate' => array(
+		'title'            => 'Adapter Article Draft Plan Smoke',
+		'content_markdown' => "Adapter article draft plan smoke.\n\nThis draft was created through Core approval and Adapter execution.",
+		'excerpt'          => 'Adapter article plan smoke draft.',
+	),
+	'discoverability_pack'    => array(
+		'focus_keyword'   => 'adapter article plan smoke',
+		'seo_title'       => 'Adapter Article Draft Plan Smoke',
+		'seo_description' => 'Local smoke verification for article draft plan handoff.',
+	),
+	'article_risk_report'     => array(
+		'ready_for_proposal' => true,
+		'risk_level'         => 'medium',
+		'blocked_claims'     => array(),
+		'notes'              => array( 'Fixture content is local and draft-only.' ),
+	),
+	'write_actions'           => array(
+		array(
+			'action_id'         => 'create-article-draft',
+			'target_ability_id' => 'magick-ai/create-draft',
+			'input'             => array(
+				'status'         => 'draft',
+				'title'          => 'Adapter Article Draft Plan Smoke',
+				'content'        => "Adapter article draft plan smoke.\n\nThis draft was created through Core approval and Adapter execution.",
+				'content_format' => 'plain',
+				'excerpt'        => 'Adapter article plan smoke draft.',
+				'dry_run'        => true,
+				'commit'         => false,
+			),
+			'requires_approval' => true,
+			'commit_execution'  => false,
+			'proposal_ready'    => true,
+		),
+	),
+	'preview'                 => array(),
+	'risk'                    => array(
+		'level'  => 'medium',
+		'reason' => 'Article fixture is draft-only and ready for proposal.',
+	),
+	'action_count'            => 1,
+);
+$article_plan_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'magick-ai-toolbox/build-article-write-plan',
+		'plan'               => $article_plan,
+		'plan_input'         => array(
+			'title' => 'Adapter Article Draft Plan Smoke',
+		),
+		'adapter_request_id' => 'adapter-article-plan-request',
+		'correlation_id'     => 'adapter-article-plan-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-article-plan-smoke',
+		),
+	)
+);
+maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-write-plan' === (string) ( $article_plan_bridge['plan_ability_id'] ?? '' ), 'adapter forwards Toolbox article plan to Core' );
+maa_adapter_smoke_assert( 1 === (int) ( $article_plan_bridge['proposal_count'] ?? 0 ), 'adapter article plan creates one Core proposal' );
+$article_plan_proposal    = is_array( $article_plan_bridge['proposals'][0] ?? null ) ? $article_plan_bridge['proposals'][0] : array();
+$article_plan_proposal_id = (string) ( $article_plan_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $article_plan_proposal_id;
+maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $article_plan_proposal['ability_id'] ?? '' ), 'adapter article plan creates a create-draft proposal' );
+maa_adapter_smoke_assert( 'draft' === (string) ( $article_plan_proposal['input']['status'] ?? '' ), 'adapter article plan proposal is draft-only' );
+maa_adapter_smoke_assert( 'article_write_plan' === (string) ( $article_plan_proposal['preview']['article_workflow']['artifact_type'] ?? '' ), 'adapter article plan proposal preserves article workflow preview' );
+$article_plan_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $article_plan_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $article_plan_execute['success'] ?? false ), 'adapter article plan approve-and-execute succeeds' );
+maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $article_plan_execute['ability_id'] ?? '' ), 'adapter article plan execution uses create-draft ability' );
+$article_plan_post_id = (int) ( $article_plan_execute['post_id'] ?? 0 );
+$maa_adapter_smoke_cleanup_post_ids[] = $article_plan_post_id;
+maa_adapter_smoke_assert( $article_plan_post_id > 0, 'adapter article plan execution returns created draft post id' );
+maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $article_plan_post_id ), 'adapter article plan creates only a WordPress draft' );
 
 $media_plan_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
 $maa_adapter_smoke_cleanup_attachment_ids[] = $media_plan_attachment_id;

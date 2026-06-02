@@ -168,7 +168,8 @@ prints only the Adapter JSON response. Do not ask OpenClaw to read or summarize
    - `commit_execution=false`
 3. Call `GET /help` to confirm route discovery includes proposal list/detail,
    `POST /proposals/from-plan`, `POST /proposals/{proposal_id}/execute`, and
-   `POST /proposals/{proposal_id}/approve-and-execute`.
+   `POST /proposals/{proposal_id}/approve-and-execute`. For article drafting,
+   read `openclaw_recipes.article_draft_plan`.
 4. Call `GET /capabilities`.
 5. Use the returned Core guidance as the only governance truth.
 
@@ -207,6 +208,12 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
   -d '{"plan_ability_id":"magick-ai/build-content-inventory-fix-plan","plan":{"batch_id":"example","issue_types":[],"requires_approval":true,"commit_execution":false,"dry_run":true,"action_count":0,"write_actions":[],"preview":[],"risk":{"level":"medium"}},"plan_input":{"per_page":1},"caller":{"external_thread_id":"OPENCLAW_THREAD"}}' \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/from-plan"
 ```
+
+For reviewed article draft planning, use the recipe exposed by `GET /help` at
+`openclaw_recipes.article_draft_plan`. The entrypoint ability is
+`magick-ai-toolbox/build-article-write-plan`; the final governed write remains
+`magick-ai/create-draft` after Core approval and commit preflight. See
+[`openclaw-article-draft-plan-recipe.md`](openclaw-article-draft-plan-recipe.md).
 
 Troubleshooting diagnostics:
 

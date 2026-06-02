@@ -1722,6 +1722,7 @@ final class Controller {
 				),
 				'routes'        => $this->help_routes_flat( $route_groups ),
 				'route_groups'  => $route_groups,
+				'openclaw_recipes' => $this->openclaw_recipes(),
 				'core_required_scopes' => array(
 					'proposal_status'  => 'proposals:read',
 					'proposal_create'  => 'proposals:create',
@@ -1828,6 +1829,60 @@ final class Controller {
 				'POST /execute-approved-proposal',
 				'POST /proposals/{proposal_id}/execute',
 				'POST /proposals/{proposal_id}/approve-and-execute',
+			),
+		);
+	}
+
+	/**
+	 * Returns machine-readable OpenClaw playbooks for fixed handoff flows.
+	 *
+	 * These are channel instructions only. Ability definitions stay in
+	 * Abilities/Toolbox and governance truth stays in Core.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function openclaw_recipes(): array {
+		return array(
+			'article_draft_plan' => array(
+				'title'       => 'Article draft plan',
+				'description' => 'Build a reviewed Toolbox article_write_plan, forward it to Core, then execute only the Core-approved draft creation.',
+				'entrypoint_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+				'plan_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+				'final_write_ability_id' => 'magick-ai/create-draft',
+				'steps'       => array(
+					array(
+						'order'      => 1,
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+						'purpose'    => 'Build the reviewed article_write_plan without writing WordPress content.',
+					),
+					array(
+						'order'   => 2,
+						'route'   => 'POST /proposals/from-plan',
+						'purpose' => 'Forward the Toolbox plan to Core plan intake with plan_ability_id and caller metadata.',
+					),
+					array(
+						'order'   => 3,
+						'route'   => 'GET /proposals/{proposal_id}',
+						'purpose' => 'Poll Core proposal status through Adapter.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted draft write.',
+					),
+				),
+				'guardrails'   => array(
+					'artifact_type'            => 'article_write_plan',
+					'core_preflight_required'  => true,
+					'draft_only'               => true,
+					'publish_allowed'          => false,
+					'core_proxy_execute'       => false,
+					'commit_execution'         => false,
+					'cloud_control_plane'      => false,
+					'generic_write_executor'   => false,
+				),
+				'docs'         => 'docs/openclaw-article-draft-plan-recipe.md',
 			),
 		);
 	}

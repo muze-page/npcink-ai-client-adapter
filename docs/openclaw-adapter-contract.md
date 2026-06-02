@@ -99,6 +99,21 @@ but Core validates readiness, risk, blocked claims, and draft-only
 `magick-ai/create-draft` intent before any proposal can be approved or
 executed.
 
+## OpenClaw Recipe Discovery
+
+`GET /help` includes `openclaw_recipes.article_draft_plan` for clients that need
+a machine-readable fixed flow. The recipe is channel guidance only:
+
+- entrypoint ability: `magick-ai-toolbox/build-article-write-plan`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write ability: `magick-ai/create-draft`
+
+The recipe must keep `core_proxy_execute=false`,
+`commit_execution=false`, `draft_only=true`, and `publish_allowed=false`.
+Adapter does not become an article workflow runtime or a Cloud control plane.
+
 `commit_execution=false` means no write happened, `dry_run=true` means preview
 only, and `requires_approval=true` means the plan must be handed to Core or the
 host governance layer. Adapter must not execute, approve, or promote

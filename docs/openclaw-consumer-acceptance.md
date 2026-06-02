@@ -95,6 +95,7 @@ Run this order for a local acceptance pass:
    - `GET /term`, whose purpose explains term detail uses list row `id` and
      infers `taxonomy` when possible
    - `route_groups` for human-readable grouped route labels
+   - `openclaw_recipes.article_draft_plan`
    - disabled approval and rejection stubs
    - direct-read shortcuts
 6. Call `GET /capabilities` and use only real `ability_id` values returned by
@@ -147,6 +148,10 @@ Run this order for a local acceptance pass:
 11. If a plan should become proposals, call `POST /proposals/from-plan` and
     confirm Adapter preserves Core's `proposal_count`, `proposals`,
     `blocked_items`, and `commit_execution=false` result.
+    For the article draft recipe, confirm the plan has
+    `artifact_type=article_write_plan`, Core creates a proposal for
+    `magick-ai/create-draft`, and `approve-and-execute` creates only a
+    WordPress `draft`.
 12. Query status through Adapter:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`
