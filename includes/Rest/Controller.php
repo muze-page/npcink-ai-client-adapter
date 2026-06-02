@@ -2224,6 +2224,7 @@ final class Controller {
 					'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
 				)
 			);
+			$error = $this->error_with_operator_feedback( $error, $this->plan_handoff_operator_feedback( $error, $plan_ability_id ) );
 			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $error, array( 'ability_id' => $plan_ability_id ) );
 			return $error;
 		}
@@ -2231,6 +2232,7 @@ final class Controller {
 		$plan            = $this->object_param( $request, 'plan' );
 		$valid_plan_input = $this->validate_plan_write_action_inputs( $plan );
 		if ( is_wp_error( $valid_plan_input ) ) {
+			$valid_plan_input = $this->error_with_operator_feedback( $valid_plan_input, $this->plan_handoff_operator_feedback( $valid_plan_input, $plan_ability_id ) );
 			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $valid_plan_input, array( 'ability_id' => $plan_ability_id ) );
 			return $valid_plan_input;
 		}
@@ -2243,6 +2245,9 @@ final class Controller {
 		);
 
 		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/from-plan', $params );
+		if ( is_wp_error( $response ) ) {
+			$response = $this->error_with_operator_feedback( $response, $this->plan_handoff_operator_feedback( $response, $plan_ability_id ) );
+		}
 		$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, is_wp_error( $response ) ? $response : null, array( 'ability_id' => $plan_ability_id ) );
 
 		return $response;
@@ -2486,10 +2491,11 @@ final class Controller {
 				$code,
 				__( 'This proposal cannot be approved and executed from its current status.', 'magick-ai-adapter' ),
 				array(
-					'status'        => 409,
-					'proposal_id'   => $proposal_id,
-					'ability_id'    => $ability_id,
-					'status_before' => $status_before,
+					'status'            => 409,
+					'proposal_id'       => $proposal_id,
+					'ability_id'        => $ability_id,
+					'status_before'     => $status_before,
+					'operator_feedback' => $this->proposal_status_operator_feedback( $proposal, $status_before ),
 				)
 			);
 		}
@@ -3315,7 +3321,7 @@ final class Controller {
 
 		$preflight_response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
 		if ( is_wp_error( $preflight_response ) ) {
-			return $preflight_response;
+			return $this->error_with_operator_feedback( $preflight_response, $this->preflight_operator_feedback( $preflight_response, $proposal ) );
 		}
 
 		$preflight = $preflight_response->get_data();
@@ -3333,9 +3339,10 @@ final class Controller {
 				'magick_ai_adapter_preflight_not_authorized',
 				__( 'Core commit preflight did not authorize approval commit.', 'magick-ai-adapter' ),
 				array(
-					'status'      => 409,
-					'proposal_id' => $proposal_id,
-					'preflight'   => $preflight,
+					'status'            => 409,
+					'proposal_id'       => $proposal_id,
+					'preflight'         => $preflight,
+					'operator_feedback' => $this->preflight_operator_feedback( null, $proposal, $preflight ),
 				)
 			);
 		}
@@ -3357,9 +3364,10 @@ final class Controller {
 				'magick_ai_adapter_preflight_item_blocked',
 				__( 'Core commit preflight did not mark the proposal item executable.', 'magick-ai-adapter' ),
 				array(
-					'status'      => 409,
-					'proposal_id' => $proposal_id,
-					'preflight'   => $preflight,
+					'status'            => 409,
+					'proposal_id'       => $proposal_id,
+					'preflight'         => $preflight,
+					'operator_feedback' => $this->preflight_operator_feedback( null, $proposal, $preflight ),
 				)
 			);
 		}
@@ -3507,6 +3515,281 @@ final class Controller {
 		$execution['execution_record'] = $this->store_completed_execution_record( $proposal_id, $proposal, $execution );
 
 		return $execution;
+	}
+
+	/**
+	 * Adds operator-facing feedback to an error without changing its code.
+	 *
+	 * @param WP_Error            $error Error.
+	 * @param array<string,mixed> $feedback Feedback payload.
+	 * @return WP_Error
+	 */
+	private function error_with_operator_feedback( WP_Error $error, array $feedback ): WP_Error {
+		$data = $error->get_error_data();
+		$data = is_array( $data ) ? $data : array();
+		if ( ! isset( $data['operator_feedback'] ) ) {
+			$data['operator_feedback'] = $feedback;
+		}
+		$error->add_data( $data );
+
+		return $error;
+	}
+
+	/**
+	 * Builds operator feedback for plan handoff failures.
+	 *
+	 * @param WP_Error $error Error.
+	 * @param string   $plan_ability_id Planning ability id.
+	 * @return array<string,mixed>
+	 */
+	private function plan_handoff_operator_feedback( WP_Error $error, string $plan_ability_id ): array {
+		$error_data = $this->error_data_array( $error );
+		$core_data  = $this->upstream_error_detail( $error );
+		$blocked    = is_array( $error_data['blocked_items'] ?? null ) ? $error_data['blocked_items'] : array();
+		if ( empty( $blocked ) && is_array( $core_data['blocked_items'] ?? null ) ) {
+			$blocked = $core_data['blocked_items'];
+		}
+
+		$reasons = $this->operator_reasons_from_blocked_items( $blocked );
+		if ( empty( $reasons ) ) {
+			$reasons[] = $error->get_error_message();
+		}
+
+		return array(
+			'status'                   => 'plan_revision_required',
+			'severity'                 => 'error',
+			'message'                  => __( 'The plan was not accepted for Core proposal intake.', 'magick-ai-adapter' ),
+			'reasons'                  => $reasons,
+			'revision_fields'          => $this->operator_revision_fields( $blocked, $core_data ),
+			'next_steps'               => array(
+				__( 'Show these reasons to the operator.', 'magick-ai-adapter' ),
+				__( 'Revise the Toolbox plan or reviewed draft, then submit a new from-plan request.', 'magick-ai-adapter' ),
+				__( 'Do not call approve-and-execute until Core creates a proposal.', 'magick-ai-adapter' ),
+			),
+			'can_retry_after_revision' => true,
+			'core_evidence'            => array(
+				'plan_ability_id'    => sanitize_text_field( $plan_ability_id ),
+				'adapter_error_code' => $error->get_error_code(),
+				'core_error_code'    => (string) ( $core_data['code'] ?? '' ),
+				'blocked_count'      => count( $blocked ),
+			),
+		);
+	}
+
+	/**
+	 * Builds operator feedback for proposal status failures.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @param string              $status_before Proposal status before execution.
+	 * @return array<string,mixed>
+	 */
+	private function proposal_status_operator_feedback( array $proposal, string $status_before ): array {
+		$proposal_id = sanitize_text_field( (string) ( $proposal['proposal_id'] ?? '' ) );
+		$ability_id  = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
+		$reasons     = 'rejected' === $status_before ? $this->core_rejection_reasons( $proposal ) : array();
+		if ( empty( $reasons ) ) {
+			$reasons[] = sprintf(
+				/* translators: %s: proposal status. */
+				__( 'Core proposal status is %s.', 'magick-ai-adapter' ),
+				$status_before
+			);
+		}
+
+		return array(
+			'status'                   => 'proposal_' . sanitize_key( $status_before ),
+			'severity'                 => 'error',
+			'message'                  => 'rejected' === $status_before
+				? __( 'Core rejected this proposal. Adapter will not execute it.', 'magick-ai-adapter' )
+				: __( 'This proposal is not in an executable Core status.', 'magick-ai-adapter' ),
+			'reasons'                  => $reasons,
+			'revision_fields'          => array(),
+			'next_steps'               => array(
+				__( 'Show the Core decision to the operator.', 'magick-ai-adapter' ),
+				__( 'Revise the source plan or draft, then create a new Core proposal.', 'magick-ai-adapter' ),
+				__( 'Do not retry approve-and-execute against this proposal id.', 'magick-ai-adapter' ),
+			),
+			'can_retry_after_revision' => true,
+			'core_evidence'            => array(
+				'proposal_id'  => $proposal_id,
+				'ability_id'   => $ability_id,
+				'status'       => sanitize_key( $status_before ),
+				'detail_route' => '/wp-json/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ),
+			),
+		);
+	}
+
+	/**
+	 * Builds operator feedback for commit-preflight failures.
+	 *
+	 * @param WP_Error|null       $error Error, when Core returned one.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @param array<string,mixed> $preflight Preflight payload, when available.
+	 * @return array<string,mixed>
+	 */
+	private function preflight_operator_feedback( ?WP_Error $error, array $proposal, array $preflight = array() ): array {
+		if ( empty( $preflight ) && null !== $error ) {
+			$preflight = $this->upstream_error_detail( $error );
+		}
+
+		$item_preflight = is_array( $preflight['proposal_item_preflight'] ?? null ) ? $preflight['proposal_item_preflight'] : array();
+		$blocked        = is_array( $item_preflight['blocked_items'] ?? null ) ? $item_preflight['blocked_items'] : array();
+		$needs_input    = array_values( array_map( 'sanitize_key', (array) ( $item_preflight['needs_input'] ?? array() ) ) );
+		$reasons        = $this->operator_reasons_from_blocked_items( $blocked );
+
+		foreach ( $needs_input as $field ) {
+			$reasons[] = sprintf(
+				/* translators: %s: missing field name. */
+				__( 'Missing required input: %s.', 'magick-ai-adapter' ),
+				$field
+			);
+		}
+
+		if ( false === (bool) ( $item_preflight['proposal_ready'] ?? true ) && empty( $reasons ) ) {
+			$reasons[] = __( 'Core marks the proposal item as not ready for execution.', 'magick-ai-adapter' );
+		}
+		if ( empty( $reasons ) ) {
+			$reasons[] = null !== $error ? $error->get_error_message() : __( 'Core commit preflight did not authorize execution.', 'magick-ai-adapter' );
+		}
+
+		return array(
+			'status'                   => 'preflight_blocked',
+			'severity'                 => 'error',
+			'message'                  => __( 'Core commit preflight blocked execution. Adapter did not run the write ability.', 'magick-ai-adapter' ),
+			'reasons'                  => array_values( array_unique( $reasons ) ),
+			'revision_fields'          => array_values( array_unique( $needs_input ) ),
+			'next_steps'               => array(
+				__( 'Show Core preflight blockers to the operator.', 'magick-ai-adapter' ),
+				__( 'Revise the proposal input or source plan, then create a new proposal.', 'magick-ai-adapter' ),
+				__( 'Do not retry approve-and-execute until Core preflight can pass.', 'magick-ai-adapter' ),
+			),
+			'can_retry_after_revision' => true,
+			'core_evidence'            => array(
+				'proposal_id'             => sanitize_text_field( (string) ( $proposal['proposal_id'] ?? '' ) ),
+				'ability_id'              => sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) ),
+				'status'                  => sanitize_key( (string) ( $proposal['status'] ?? '' ) ),
+				'core_error_code'         => null !== $error ? $error->get_error_code() : '',
+				'proposal_item_preflight' => $item_preflight,
+				'commit_execution'        => false,
+			),
+		);
+	}
+
+	/**
+	 * Returns rejection reasons from Core audit timeline.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<int,string>
+	 */
+	private function core_rejection_reasons( array $proposal ): array {
+		$reasons = array();
+		foreach ( (array) ( $proposal['audit_timeline'] ?? array() ) as $event ) {
+			if ( ! is_array( $event ) || 'proposal.rejected' !== (string) ( $event['event_name'] ?? '' ) ) {
+				continue;
+			}
+
+			$metadata = is_array( $event['metadata'] ?? null ) ? $event['metadata'] : array();
+			$note     = sanitize_textarea_field( (string) ( $metadata['note'] ?? '' ) );
+			if ( '' !== $note ) {
+				$reasons[] = $note;
+			}
+		}
+
+		return array_values( array_unique( $reasons ) );
+	}
+
+	/**
+	 * Extracts readable reasons from blocked item rows.
+	 *
+	 * @param array<int,mixed> $blocked_items Blocked items.
+	 * @return array<int,string>
+	 */
+	private function operator_reasons_from_blocked_items( array $blocked_items ): array {
+		$reasons = array();
+		foreach ( $blocked_items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			$reason = sanitize_textarea_field( (string) ( $item['reason'] ?? '' ) );
+			$code   = sanitize_key( (string) ( $item['block_code'] ?? ( $item['code'] ?? '' ) ) );
+			if ( '' !== $reason && '' !== $code ) {
+				$reasons[] = $code . ': ' . $reason;
+			} elseif ( '' !== $reason ) {
+				$reasons[] = $reason;
+			} elseif ( '' !== $code ) {
+				$reasons[] = $code;
+			}
+		}
+
+		return array_values( array_unique( $reasons ) );
+	}
+
+	/**
+	 * Extracts likely fields the operator needs to revise.
+	 *
+	 * @param array<int,mixed>    $blocked_items Blocked items.
+	 * @param array<string,mixed> $core_data Core or Adapter error data.
+	 * @return array<int,string>
+	 */
+	private function operator_revision_fields( array $blocked_items, array $core_data ): array {
+		$fields = array();
+		foreach ( $blocked_items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			if ( isset( $item['field'] ) ) {
+				$fields[] = sanitize_key( (string) $item['field'] );
+			}
+			foreach ( (array) ( $item['fields'] ?? array() ) as $field ) {
+				$fields[] = sanitize_key( (string) $field );
+			}
+		}
+
+		foreach ( (array) ( $core_data['needs_input'] ?? array() ) as $field ) {
+			$fields[] = sanitize_key( (string) $field );
+		}
+
+		return array_values( array_unique( array_filter( $fields ) ) );
+	}
+
+	/**
+	 * Returns a WP_Error data array.
+	 *
+	 * @param WP_Error $error Error.
+	 * @return array<string,mixed>
+	 */
+	private function error_data_array( WP_Error $error ): array {
+		$data = $error->get_error_data();
+		return is_array( $data ) ? $data : array();
+	}
+
+	/**
+	 * Extracts the upstream error detail payload from Adapter wrapped errors.
+	 *
+	 * @param WP_Error $error Error.
+	 * @return array<string,mixed>
+	 */
+	private function upstream_error_detail( WP_Error $error ): array {
+		$data     = $this->error_data_array( $error );
+		$upstream = is_array( $data['upstream_data'] ?? null ) ? $data['upstream_data'] : array();
+		if ( empty( $upstream ) ) {
+			return $data;
+		}
+
+		$detail = is_array( $upstream['data'] ?? null ) ? $upstream['data'] : $upstream;
+		if ( is_array( $detail['data'] ?? null ) ) {
+			$detail = $detail['data'];
+		}
+
+		if ( ! isset( $detail['code'] ) && isset( $upstream['code'] ) ) {
+			$detail['code'] = $upstream['code'];
+		}
+		if ( ! isset( $detail['message'] ) && isset( $upstream['message'] ) ) {
+			$detail['message'] = $upstream['message'];
+		}
+
+		return is_array( $detail ) ? $detail : array();
 	}
 
 	/**

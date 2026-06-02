@@ -761,6 +761,25 @@ $maa_adapter_smoke_cleanup_post_ids[] = $article_plan_post_id;
 maa_adapter_smoke_assert( $article_plan_post_id > 0, 'adapter article plan execution returns created draft post id' );
 maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $article_plan_post_id ), 'adapter article plan creates only a WordPress draft' );
 
+$blocked_article_plan = $article_plan;
+$blocked_article_plan['article_risk_report']['risk_level'] = 'high';
+$blocked_article_plan['article_risk_report']['ready_for_proposal'] = true;
+$blocked_article_handoff = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+		'plan'            => $blocked_article_plan,
+		'plan_input'      => array(
+			'title' => 'Adapter blocked article plan handoff',
+		),
+	)
+);
+maa_adapter_smoke_assert( 422 === (int) $blocked_article_handoff['status'], 'adapter article plan handoff returns Core intake failure' );
+maa_adapter_smoke_assert( 'plan_revision_required' === (string) ( $blocked_article_handoff['data']['data']['operator_feedback']['status'] ?? '' ), 'adapter article plan handoff returns operator feedback' );
+maa_adapter_smoke_assert( 'magick_ai_core_article_plan_risk_blocked' === (string) ( $blocked_article_handoff['data']['data']['operator_feedback']['core_evidence']['core_error_code'] ?? '' ), 'adapter article plan handoff feedback preserves Core error code' );
+maa_adapter_smoke_assert( true === (bool) ( $blocked_article_handoff['data']['data']['operator_feedback']['can_retry_after_revision'] ?? false ), 'adapter article plan handoff feedback marks revision retryable' );
+
 $media_plan_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
 $maa_adapter_smoke_cleanup_attachment_ids[] = $media_plan_attachment_id;
 $media_e2e_input = array(
@@ -1421,6 +1440,8 @@ maa_adapter_smoke_rest(
 );
 $rejected_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $rejected_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 409 === (int) $rejected_execute['status'], 'adapter approve-and-execute rejects rejected proposal' );
+maa_adapter_smoke_assert( 'proposal_rejected' === (string) ( $rejected_execute['data']['data']['operator_feedback']['status'] ?? '' ), 'adapter rejected proposal response returns operator feedback' );
+maa_adapter_smoke_assert( 'Reject Adapter approve-and-execute smoke.' === (string) ( $rejected_execute['data']['data']['operator_feedback']['reasons'][0] ?? '' ), 'adapter rejected proposal feedback preserves Core rejection note' );
 maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $rejected_post_id ), 'adapter approve-and-execute does not execute rejected proposal' );
 
 $blocked_post_id = maa_adapter_smoke_create_trash_post_fixture();
@@ -1454,6 +1475,8 @@ $blocked_proposal_id = (string) ( $blocked_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $blocked_proposal_id;
 $blocked_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $blocked_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 409 === (int) $blocked_execute['status'], 'adapter approve-and-execute returns preflight failure' );
+maa_adapter_smoke_assert( 'preflight_blocked' === (string) ( $blocked_execute['data']['data']['operator_feedback']['status'] ?? '' ), 'adapter preflight-blocked response returns operator feedback' );
+maa_adapter_smoke_assert( false === (bool) ( $blocked_execute['data']['data']['operator_feedback']['core_evidence']['commit_execution'] ?? true ), 'adapter preflight-blocked feedback preserves no Core execution' );
 maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $blocked_post_id ), 'adapter approve-and-execute does not execute preflight-blocked proposal' );
 
 $draft_proposal = maa_adapter_smoke_rest(

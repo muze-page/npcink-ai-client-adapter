@@ -296,6 +296,13 @@ OpenClaw must stop and report the reason when Adapter or Core returns:
   `magick_ai_adapter_preflight_item_blocked` when Core commit-preflight blocks
   execution.
 
+These failure responses should include additive `data.operator_feedback` for
+operator-facing revision loops. The object must preserve Core evidence without
+becoming a second approval truth: `status`, `message`, `reasons[]`,
+`revision_fields[]`, `next_steps[]`, `can_retry_after_revision`, and
+`core_evidence`. OpenClaw should display it, stop execution, and guide the
+operator to revise the plan or draft before creating a new proposal.
+
 The disabled approval and rejection stubs are part of the acceptance surface.
 They prove that OpenClaw can discover the routes while using
 `approve-and-execute` for the unified user action or Core admin for split

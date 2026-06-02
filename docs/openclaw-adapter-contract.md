@@ -135,6 +135,14 @@ POST /wp-json/magick-ai-core/v1/proposals/{proposal_id}/commit-preflight
 The adapter does not store proposal governance state. It may call Core approval
 only as part of the explicit unified approve-and-execute action.
 
+Failure responses for plan intake, rejected proposals, and commit-preflight
+blocks may include additive `data.operator_feedback`. This is an OpenClaw
+display contract, not an Adapter approval store. It summarizes Core or Adapter
+evidence as `status`, `severity`, `message`, `reasons[]`,
+`revision_fields[]`, `next_steps[]`, `can_retry_after_revision`, and
+`core_evidence` so the operator can revise the source plan or draft and create
+a new proposal.
+
 ## Unified Approve And Execute Contract
 
 Adapter exposes one user-facing action for the minimal destructive execution

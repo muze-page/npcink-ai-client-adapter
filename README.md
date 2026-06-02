@@ -17,6 +17,12 @@ It does not define abilities, store approval state, run workflows, expose a
 generic approve/reject proxy, or execute final write mutations without Core
 approval, commit-preflight, and an explicit Adapter execution profile.
 
+When Core or Adapter blocks a plan handoff, rejected proposal, or preflighted
+execution, error responses may include `data.operator_feedback`. OpenClaw should
+display that object to the operator and create a revised new proposal instead
+of retrying execution against the blocked proposal id. Core remains the
+governance truth.
+
 OpenClaw Adapter consumer readiness is complete as of Adapter governance commit
 `b81dc2a`. Productized OpenClaw should use Adapter as the only entry point.
 See [OpenClaw Adapter Consumer Readiness](docs/openclaw-adapter-consumer-readiness.md)

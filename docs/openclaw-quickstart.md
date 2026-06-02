@@ -499,6 +499,14 @@ Failure code handling:
   `magick_ai_adapter_preflight_item_blocked`: stop and show Core preflight
   details.
 
+For `from-plan`, rejected proposal, and preflight-blocked failures, prefer the
+additive `data.operator_feedback` object when present. It contains
+`status`, `severity`, `message`, `reasons[]`, `revision_fields[]`,
+`next_steps[]`, `can_retry_after_revision`, and `core_evidence`. OpenClaw
+should show this to the operator, revise the source plan or draft, and create a
+new proposal. It must not retry `approve-and-execute` against a rejected or
+preflight-blocked proposal id.
+
 If a direct Core app token is used for Core-side integration tests or a future
 trusted handoff, the key must include `proposals:read` for list/detail status.
 Do not put Core tokens in logs, proposal payloads, error responses, or docs
