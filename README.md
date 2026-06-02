@@ -17,8 +17,8 @@ It does not define abilities, store approval state, run workflows, expose a
 generic approve/reject proxy, or execute final write mutations without Core
 approval and commit-preflight.
 
-OpenClaw Adapter consumer readiness is complete as of Adapter commit
-`4ad2a0c`. Productized OpenClaw should use Adapter as the only entry point.
+OpenClaw Adapter consumer readiness is complete as of Adapter governance commit
+`b81dc2a`. Productized OpenClaw should use Adapter as the only entry point.
 See [OpenClaw Adapter Consumer Readiness](docs/openclaw-adapter-consumer-readiness.md)
 for the dependency snapshot, verified routes, closed loop, and next-stage
 execution allowlist rules.

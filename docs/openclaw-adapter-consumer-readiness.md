@@ -1,16 +1,16 @@
 # OpenClaw Adapter Consumer Readiness
 
 Status: complete
-Date: 2026-05-31
+Date: 2026-06-02
 
 ## Dependency Snapshot
 
-- `magick-ai-core` `master`: `19cca44 Address Plugin Check release blockers`
-- `magick-ai-adapter` `master`: `4ad2a0c Finalize OpenClaw Adapter handoff surface`
-- `magick-ai-abilities` `master`: `a1a3cfb Split article production read methods`
+- `magick-ai-core` `master`: `6acb159 Add read governance metadata to capabilities`
+- `magick-ai-adapter` `master`: `b81dc2a Add read governance envelopes and redaction`
+- `magick-ai-abilities` local checkout: `2ee47a7 Fix catalog observability event throttling`
 
-The snapshot records the local and remote `master` state used for this
-readiness closeout.
+The snapshot records the local checkout state used for the post-governance
+OpenClaw consumer acceptance pass.
 
 ## Product Entry
 

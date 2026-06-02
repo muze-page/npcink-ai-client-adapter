@@ -1,12 +1,14 @@
 # OpenClaw Consumer Acceptance
 
 Status: active acceptance checklist
-Date: 2026-05-30
+Date: 2026-06-02
 
 ## Latest Acceptance Result
 
-Adapter commit `4ad2a0c Finalize OpenClaw Adapter handoff surface` completed
-OpenClaw Adapter consumer readiness.
+Post-governance acceptance completed against:
+
+- Core commit `6acb159 Add read governance metadata to capabilities`
+- Adapter commit `b81dc2a Add read governance envelopes and redaction`
 
 Verified commands:
 
@@ -14,16 +16,17 @@ Verified commands:
 composer test:all
 composer smoke:wp
 git diff --check
-git diff --check HEAD~1..HEAD
+git push origin master
 ```
 
-An equivalent HTTP client acceptance pass also completed successfully. That
-pass connected to Adapter for the OpenClaw-facing flow and verified
-`/health`, `/help`, `/capabilities`, direct read, diagnostics, proposal
-create/list/detail, `approve-and-execute`, `commit-preflight`, final
-`magick-ai/trash-post` execution, returned `proposal_id`, `correlation_id`,
-`ability_id`, and `adapter_request_id`, plus Core Audit and AI Request Logs
-correlation.
+An HTTP client acceptance pass also completed successfully through a temporary
+WordPress Application Password. That pass connected to Adapter for the
+OpenClaw-facing flow and verified `/health`, `/help`, `/capabilities`, public,
+internal, and sensitive read envelopes, diagnostics redaction,
+proposal-required read refusal, proposal create/list/detail,
+`approve-and-execute`, duplicate execution replay protection, returned
+`proposal_id`, `correlation_id`, `ability_id`, `execution_record`, and
+`core_commit_execution=false`, plus Core Audit and AI Request Logs correlation.
 
 The next change to OpenClaw routes, the Adapter execution allowlist, or log
 correlation fields must rerun this acceptance checklist.
