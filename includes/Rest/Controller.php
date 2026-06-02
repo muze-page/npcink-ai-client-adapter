@@ -49,6 +49,7 @@ final class Controller {
 		'magick-ai/build-content-inventory-fix-plan' => true,
 		'magick-ai/build-test-content-cleanup-plan'  => true,
 		'magick-ai/build-media-inventory-fix-plan'   => true,
+		'magick-ai-toolbox/build-article-write-plan' => true,
 	);
 
 	/**

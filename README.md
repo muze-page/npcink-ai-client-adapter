@@ -383,8 +383,9 @@ Plan-to-proposal flow:
 
 1. OpenClaw runs one of the direct-read planning abilities:
    `magick-ai/build-content-inventory-fix-plan`,
-   `magick-ai/build-test-content-cleanup-plan`, or
-   `magick-ai/build-media-inventory-fix-plan`.
+   `magick-ai/build-test-content-cleanup-plan`,
+   `magick-ai/build-media-inventory-fix-plan`, or
+   `magick-ai-toolbox/build-article-write-plan`.
 2. The adapter preserves plan fields including `batch_id`, `issue_types`,
    `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
    `requires_approval`, `commit_execution`, `dry_run`, `manual_review`,
@@ -394,6 +395,10 @@ Plan-to-proposal flow:
 4. The adapter forwards that payload to Core
    `POST /magick-ai-core/v1/proposals/from-plan` and preserves Core status.
    Adapter does not promote destructive candidates into executable actions.
+   For the Toolbox article write plan, Adapter still only forwards the
+   reviewed `article_write_plan`; Core validates the plan and Adapter later
+   executes `magick-ai/create-draft` only after Core approval and
+   commit-preflight.
 
 Proposal-required write flow:
 

@@ -460,7 +460,7 @@ $invalid_plan_action_bridge = maa_adapter_smoke_rest_result(
 	'POST',
 	'/magick-ai-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'plan_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
 		'plan'            => array(
 			'requires_approval' => true,
 			'commit_execution'  => false,

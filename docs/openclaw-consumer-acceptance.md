@@ -128,8 +128,9 @@ Run this order for a local acceptance pass:
 9. Create a governed write proposal with `POST /proposals`.
 10. Run a planning ability such as
    `magick-ai/build-content-inventory-fix-plan`,
-   `magick-ai/build-test-content-cleanup-plan`, or
-   `magick-ai/build-media-inventory-fix-plan`. Confirm Adapter preserves
+   `magick-ai/build-test-content-cleanup-plan`,
+   `magick-ai/build-media-inventory-fix-plan`, or
+   `magick-ai-toolbox/build-article-write-plan`. Confirm Adapter preserves
    `write_actions`, `preview`, `risk`, `requires_approval`,
    `commit_execution=false`, and `dry_run=true`, and does not treat
    `write_actions` or destructive candidates as executed work. Confirm the

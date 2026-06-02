@@ -81,6 +81,7 @@ direct reads:
 - `magick-ai/build-content-inventory-fix-plan`
 - `magick-ai/build-test-content-cleanup-plan`
 - `magick-ai/build-media-inventory-fix-plan`
+- `magick-ai-toolbox/build-article-write-plan`
 
 OpenClaw may also use direct read execution for media format inspection:
 
@@ -91,6 +92,12 @@ preserve `batch_id`, `issue_types`, `post_ids`, `attachment_ids`,
 `write_actions`, `preview`, `risk`, `requires_approval`, `commit_execution`,
 `dry_run`, `manual_review`, `skipped_destructive_candidates`, `issue_counts`, and
 `action_count`.
+
+For Toolbox article writing, `magick-ai-toolbox/build-article-write-plan`
+returns a reviewed `article_write_plan`. Adapter may forward that plan to Core,
+but Core validates readiness, risk, blocked claims, and draft-only
+`magick-ai/create-draft` intent before any proposal can be approved or
+executed.
 
 `commit_execution=false` means no write happened, `dry_run=true` means preview
 only, and `requires_approval=true` means the plan must be handed to Core or the
