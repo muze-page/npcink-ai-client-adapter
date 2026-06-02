@@ -94,6 +94,7 @@ For a pending `magick-ai/trash-post`, `magick-ai/create-draft`,
 `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
 `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
 `magick-ai/delete-term`, `magick-ai/update-media-details`,
+`magick-ai/delete-media-permanently`,
 `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
 `magick-ai/approve-comment` proposal, Adapter
 fetches the proposal from Core,
@@ -111,9 +112,10 @@ requires `post_id`; `create-draft` requires `title`; `update-post` requires
 `set-post-terms` requires `post_id`, a valid `taxonomy`, `mode`, and
 `term_ids` or `terms`, and does not create missing terms; `delete-term`
 requires a valid `taxonomy` and `term_id`; `update-media-details` requires
-`attachment_id` plus at least one media detail field; `reply-comment` requires
-`comment_id`, non-empty `content`, and a valid `content_format`;
-`trash-comment` requires `comment_id`;
+`attachment_id` plus at least one media detail field;
+`delete-media-permanently` requires an existing attachment `attachment_id`;
+`reply-comment` requires `comment_id`, non-empty `content`, and a valid
+`content_format`; `trash-comment` requires `comment_id`;
 `approve-comment` requires `comment_id`. See
 [`openclaw-batch-execution-policy.md`](openclaw-batch-execution-policy.md).
 
@@ -142,6 +144,7 @@ The current allowlist is intentionally narrow:
 - `magick-ai/set-post-terms`
 - `magick-ai/delete-term`
 - `magick-ai/update-media-details`
+- `magick-ai/delete-media-permanently`
 - `magick-ai/reply-comment`
 - `magick-ai/trash-comment`
 - `magick-ai/approve-comment`
@@ -608,8 +611,8 @@ OpenClaw must treat Core as the only proposal and approval truth:
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
    `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-   `magick-ai/update-media-details`, `magick-ai/reply-comment`,
-   `magick-ai/trash-comment`, and
+   `magick-ai/update-media-details`, `magick-ai/delete-media-permanently`,
+   `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment`.
 
 Adapter invariants:

@@ -156,8 +156,8 @@ Run this order for a local acceptance pass:
     `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
     `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
     `magick-ai/delete-term`, `magick-ai/update-media-details`,
-    `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
-    `magick-ai/approve-comment` path and call
+    `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
+    `magick-ai/trash-comment`, or `magick-ai/approve-comment` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
     preflight, passed `approval_context`, returned `proposal_id`,
     `correlation_id`, and `ability_id`, and did not execute pending or

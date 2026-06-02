@@ -55,6 +55,7 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=magick-ai/set-post-terms`
 - `target_ability_id=magick-ai/delete-term`
 - `target_ability_id=magick-ai/update-media-details`
+- `target_ability_id=magick-ai/delete-media-permanently`
 - `target_ability_id=magick-ai/reply-comment`
 - `target_ability_id=magick-ai/trash-comment`
 - `target_ability_id=magick-ai/approve-comment`
@@ -101,7 +102,7 @@ Plan action ids must be unique before Adapter forwards the plan to Core.
 
 ## Batch Rules
 
-- Maximum batch size is 50 actions.
+- Maximum batch size is 200 actions.
 - Partial success is not a normal success mode.
 - If any action is malformed, non-allowlisted, not proposal-ready, has
   unresolved `requires_input`, or has `commit_execution=true`, Adapter fails

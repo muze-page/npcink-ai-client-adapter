@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Controller {
 	const NAMESPACE = 'magick-ai-adapter/v1';
-	const MAX_EXECUTION_ACTIONS = 50;
+	const MAX_EXECUTION_ACTIONS = 200;
 	const DEVICE_PAIRING_OPTION = 'magick_ai_adapter_device_pairings';
 	const CLIENT_KEYS_OPTION    = 'magick_ai_adapter_client_keys';
 	const DEVICE_PAIRING_TTL    = 600;
@@ -179,6 +179,17 @@ final class Controller {
 					'message' => __( 'update-media-details execution input must include at least one media detail field.', 'magick-ai-adapter' ),
 				),
 				'post_id_from_result'   => false,
+			),
+			'magick-ai/delete-media-permanently' => array(
+				'allowed_input_fields'     => array( 'attachment_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'required_int_fields'      => array(
+					'attachment_id' => array(
+						'code'    => 'magick_ai_adapter_attachment_id_required',
+						'message' => __( 'delete-media-permanently execution input must include attachment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'validate_attachment_input' => true,
+				'post_id_from_result'      => false,
 			),
 			'magick-ai/reply-comment'   => array(
 				'allowed_input_fields'  => array( 'comment_id', 'content', 'content_format', 'dry_run', 'commit', 'idempotency_key' ),
@@ -2536,6 +2547,23 @@ final class Controller {
 				(string) ( $rule['message'] ?? __( 'Execution input is missing a required id.', 'magick-ai-adapter' ) ),
 				$error_data
 			);
+		}
+
+		if ( ! empty( $profile['validate_attachment_input'] ) ) {
+			$attachment_id = absint( $input['attachment_id'] ?? 0 );
+			$defer_attachment_check = $allow_output_refs && $this->is_output_reference( $input['attachment_id'] ?? null );
+			if ( ! $defer_attachment_check && function_exists( 'get_post_type' ) && 'attachment' !== get_post_type( $attachment_id ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_attachment_required',
+					__( 'delete-media-permanently execution input must target an existing attachment.', 'magick-ai-adapter' ),
+					array_merge(
+						$error_data,
+						array(
+							'attachment_id' => $attachment_id,
+						)
+					)
+				);
+			}
 		}
 
 		if ( ! empty( $profile['validate_terms_input'] ) ) {

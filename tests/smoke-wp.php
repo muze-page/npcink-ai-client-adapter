@@ -323,6 +323,7 @@ maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-slug', (array) ( $health
 maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-terms', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-terms execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/delete-term', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-term execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/update-media-details', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-media-details execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/delete-media-permanently', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-media-permanently execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-comment execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/approve-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes approve-comment execute allowlist' );
@@ -1779,6 +1780,81 @@ $empty_media_details_proposal = maa_adapter_smoke_rest_result(
 	)
 );
 maa_adapter_smoke_assert( 400 === (int) $empty_media_details_proposal['status'], 'adapter proposal create rejects update-media-details without detail fields' );
+
+$delete_media_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
+$maa_adapter_smoke_cleanup_attachment_ids[] = $delete_media_attachment_id;
+$delete_media_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/delete-media-permanently',
+		'title'      => 'Adapter delete-media-permanently approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one delete-media-permanently proposal.',
+		'input'      => array(
+			'attachment_id' => $delete_media_attachment_id,
+			'dry_run'       => true,
+			'commit'        => false,
+		),
+		'preview'    => array(
+			'action'           => 'delete_media_permanently',
+			'attachment_id'    => $delete_media_attachment_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-delete-media-permanently-approve-execute-smoke',
+		),
+	)
+);
+$delete_media_proposal_id = (string) ( $delete_media_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $delete_media_proposal_id;
+maa_adapter_smoke_assert( '' !== $delete_media_proposal_id, 'adapter creates delete-media-permanently proposal for approve-and-execute smoke' );
+$delete_media_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $delete_media_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $delete_media_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending delete-media-permanently proposal' );
+maa_adapter_smoke_assert( 'magick-ai/delete-media-permanently' === (string) ( $delete_media_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries delete-media-permanently ability id' );
+maa_adapter_smoke_assert( $delete_media_attachment_id === (int) ( $delete_media_execute['execution']['result']['attachment_id'] ?? 0 ), 'adapter delete-media-permanently execution result carries attachment id' );
+maa_adapter_smoke_assert( true === (bool) ( $delete_media_execute['execution']['result']['deleted'] ?? false ), 'adapter delete-media-permanently execution reports deletion' );
+maa_adapter_smoke_assert( null === get_post( $delete_media_attachment_id ), 'adapter approve-and-execute deletes media attachment permanently' );
+
+$empty_delete_media_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/delete-media-permanently',
+		'title'      => 'Adapter empty delete-media-permanently smoke',
+		'summary'    => 'Adapter must not execute delete-media-permanently without attachment_id.',
+		'input'      => array(
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action' => 'delete_media_permanently',
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $empty_delete_media_proposal['status'], 'adapter proposal create rejects delete-media-permanently without attachment_id' );
+
+$non_attachment_delete_media_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $non_attachment_delete_media_post_id;
+$non_attachment_delete_media_proposal = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/delete-media-permanently',
+		'title'      => 'Adapter non-attachment delete-media-permanently smoke',
+		'summary'    => 'Adapter must not execute delete-media-permanently for non-attachment posts.',
+		'input'      => array(
+			'attachment_id' => $non_attachment_delete_media_post_id,
+			'dry_run'       => true,
+			'commit'        => false,
+		),
+		'preview'    => array(
+			'action'        => 'delete_media_permanently',
+			'attachment_id' => $non_attachment_delete_media_post_id,
+		),
+	)
+);
+maa_adapter_smoke_assert( 400 === (int) $non_attachment_delete_media_proposal['status'], 'adapter proposal create rejects delete-media-permanently for non-attachment post' );
 
 $reply_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $reply_post_id;
