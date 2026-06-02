@@ -32,6 +32,9 @@ The adapter may execute only capability rows where Core returns:
 {
   "governance_mode": "direct_read",
   "execution_surface": "wp_abilities_rest",
+  "read_policy": "direct_read_public",
+  "sensitivity": "public",
+  "redaction_required": false,
   "core_proxy_execute": false,
   "commit_execution": false
 }
@@ -44,6 +47,31 @@ The adapter executes those reads through:
 ```
 
 The read path does not execute abilities marked `proposal_required`.
+
+Every successful read response is an Adapter read envelope. It includes:
+
+- `ability_id`
+- `governance_mode=direct_read`
+- `execution_surface=wp_abilities_rest`
+- `read_policy`
+- `sensitivity`
+- `redaction_required`
+- `redaction_applied`
+- `redaction_summary`
+- `read_audit_mode`
+- `correlation_id`
+- `log_context`
+- `read_context`
+- `commit_execution=false`
+- `result`
+
+For `direct_read_sensitive` rows or any row with
+`redaction_required=true`, Adapter applies bounded recursive redaction before
+returning `result`. It redacts values under sensitive keys such as passwords,
+secrets, tokens, authorization headers, cookies, nonces, email fields, and API
+or private keys. This is a product-surface redaction layer; Core remains the
+capability guidance source and WordPress Abilities API remains the canonical
+ability execution surface.
 
 ## Read-Only Planning Contract
 

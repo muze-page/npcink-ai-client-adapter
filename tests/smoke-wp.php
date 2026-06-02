@@ -400,6 +400,9 @@ maa_adapter_smoke_assert( true === (bool) ( $content_plan['requires_approval'] ?
 maa_adapter_smoke_assert( false === (bool) ( $content_plan['commit_execution'] ?? true ), 'adapter plan read preserves commit_execution=false' );
 maa_adapter_smoke_assert( true === (bool) ( $content_plan['dry_run'] ?? false ), 'adapter plan read preserves dry_run=true' );
 maa_adapter_smoke_assert( false === (bool) ( $content_plan_response['commit_execution'] ?? true ), 'adapter plan wrapper does not report execution' );
+maa_adapter_smoke_assert( 'direct_read_internal' === (string) ( $content_plan_response['read_policy'] ?? '' ), 'adapter plan read carries internal read policy' );
+maa_adapter_smoke_assert( 'internal' === (string) ( $content_plan_response['sensitivity'] ?? '' ), 'adapter plan read carries internal sensitivity' );
+maa_adapter_smoke_assert( false === (bool) ( $content_plan_response['redaction_required'] ?? true ), 'adapter plan read does not require redaction' );
 
 $media_plan_response = maa_adapter_smoke_rest(
 	'POST',
@@ -719,10 +722,15 @@ maa_adapter_smoke_assert( 'adapter-plan-e2e-correlation' === (string) ( $plan_pr
 $site_summary = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/site-summary' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/site-summary' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-summary read ability' );
 maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-summary returns a result object' );
+maa_adapter_smoke_assert( 'direct_read_public' === (string) ( $site_summary['read_policy'] ?? '' ), 'adapter site-summary read carries public read policy' );
+maa_adapter_smoke_assert( '' !== (string) ( $site_summary['correlation_id'] ?? '' ), 'adapter read response carries generated correlation id' );
 
 $diagnostics = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/wp-diagnostics-summary' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/wp-diagnostics-summary' === (string) ( $diagnostics['ability_id'] ?? '' ), 'adapter runs diagnostics read ability' );
 maa_adapter_smoke_assert( is_array( $diagnostics['result'] ?? null ), 'diagnostics returns a result object' );
+maa_adapter_smoke_assert( 'direct_read_sensitive' === (string) ( $diagnostics['read_policy'] ?? '' ), 'adapter diagnostics read carries sensitive read policy' );
+maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_required'] ?? false ), 'adapter diagnostics read requires redaction' );
+maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_applied'] ?? false ), 'adapter diagnostics read applies sensitive redaction policy' );
 
 $active_plugins = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/active-plugins-detail' );
 maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $active_plugins['ability_id'] ?? '' ), 'adapter runs active plugins diagnostic shortcut through ops detail' );

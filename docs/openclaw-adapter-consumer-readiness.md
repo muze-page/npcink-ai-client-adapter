@@ -86,6 +86,8 @@ Adapter remains a thin OpenClaw channel layer:
 - Adapter does not own Core proposal or audit truth.
 - Adapter does not store provider credentials.
 - Adapter does not generically execute arbitrary write abilities.
+- Adapter does own the OpenClaw read envelope and bounded read-result redaction
+  layer for direct-read rows where Core reports sensitive policy guidance.
 - Adapter execution allowlist currently includes `magick-ai/trash-post`,
   `magick-ai/create-draft`, `magick-ai/update-post`,
   `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,

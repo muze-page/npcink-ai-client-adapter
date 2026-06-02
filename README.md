@@ -365,8 +365,14 @@ Read-only execution:
 2. The adapter re-checks Core for the real `ability_id`.
 3. The adapter runs only rows where
    `governance_mode=direct_read` and `execution_surface=wp_abilities_rest`.
-4. The adapter calls WordPress Abilities API and returns the result envelope.
-5. Planning ability output is returned as plan data. `write_actions`,
+4. The adapter calls WordPress Abilities API and returns a read envelope with
+   `read_policy`, `sensitivity`, `redaction_required`, `redaction_applied`,
+   `redaction_summary`, `read_audit_mode`, `correlation_id`, `read_context`,
+   and `commit_execution=false`.
+5. If Core marks the row `direct_read_sensitive` or
+   `redaction_required=true`, Adapter applies bounded read-result redaction
+   before returning `result`.
+6. Planning ability output is returned as plan data. `write_actions`,
    `preview`, `risk`, `manual_review`, and
    `skipped_destructive_candidates` are not execution results.
 

@@ -129,7 +129,17 @@ Run this order for a local acceptance pass:
    `magick-ai/build-media-inventory-fix-plan`. Confirm Adapter preserves
    `write_actions`, `preview`, `risk`, `requires_approval`,
    `commit_execution=false`, and `dry_run=true`, and does not treat
-   `write_actions` or destructive candidates as executed work.
+   `write_actions` or destructive candidates as executed work. Confirm the
+   read envelope carries `read_policy=direct_read_internal`,
+   `sensitivity=internal`, `redaction_applied=false`, a non-empty
+   `correlation_id`, and `commit_execution=false`.
+   For a public read such as `/site-summary`, confirm
+   `read_policy=direct_read_public`.
+   For a diagnostics read such as `/wp-diagnostics-summary`, confirm
+   `read_policy=direct_read_sensitive`, `redaction_required=true`, and
+   `redaction_applied=true`.
+   Attempting `POST /run-read-ability` with a proposal-required ability must
+   return `magick_ai_adapter_proposal_required`.
 11. If a plan should become proposals, call `POST /proposals/from-plan` and
     confirm Adapter preserves Core's `proposal_count`, `proposals`,
     `blocked_items`, and `commit_execution=false` result.

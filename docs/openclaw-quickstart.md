@@ -322,7 +322,11 @@ proposal flow instead of trying to execute the ability directly.
 
 Diagnostics shortcuts are aliases over `magick-ai-abilities` direct-read
 abilities. Adapter does not read arbitrary files, inspect database tables
-directly, or own redaction policy.
+directly, or own capability policy. It does own a bounded read envelope and
+read-result redaction layer for rows where Core reports
+`direct_read_sensitive` or `redaction_required=true`; those responses include
+`read_policy`, `sensitivity`, `redaction_applied`, `redaction_summary`,
+`read_audit_mode`, `correlation_id`, and `commit_execution=false`.
 
 ## Proposal-Required Write Flow
 

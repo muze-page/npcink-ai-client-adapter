@@ -1605,8 +1605,16 @@ final class Controller {
 				'diagnostics'             => $this->diagnostics_contract(),
 				'supported_guidance'     => array(
 					'read'  => array(
-						'governance_mode'   => 'direct_read',
-						'execution_surface' => 'wp_abilities_rest',
+						'governance_mode'           => 'direct_read',
+						'execution_surface'         => 'wp_abilities_rest',
+						'read_policy_values'        => array(
+							'direct_read_public',
+							'direct_read_internal',
+							'direct_read_sensitive',
+						),
+						'sensitivity_values'        => array( 'public', 'internal', 'sensitive' ),
+						'redaction_required_field' => 'redaction_required',
+						'read_audit_mode'           => 'adapter_read_envelope',
 					),
 					'proposal_status' => array(
 						'governance_mode'     => 'core_proposal_read_proxy',
@@ -3635,17 +3643,31 @@ final class Controller {
 			return $error;
 		}
 
-		$route    = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
-		$response = $this->dispatch_upstream_with_request_log_context( $log_context, 'GET', $route, array( 'input' => $input ), true );
+		$read_context = $this->read_governance_context( $capability, $log_context );
+		$route        = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
+		$response     = $this->dispatch_upstream_with_request_log_context( $read_context, 'GET', $route, array( 'input' => $input ), true );
 
 		if ( is_wp_error( $response ) ) {
 			$this->emit_operation_event( 'adapter.ability.run_read', $started, $response, array( 'ability_id' => $ability_id ) );
 			return $response;
 		}
 
-		$data = $response->get_data();
+		$redacted = $this->apply_read_redaction( $response->get_data(), $read_context );
+		$data     = $redacted['result'];
 
-		$this->emit_operation_event( 'adapter.ability.run_read', $started, null, array( 'ability_id' => $ability_id ) );
+		$this->emit_operation_event(
+			'adapter.ability.run_read',
+			$started,
+			null,
+			array(
+				'ability_id'          => $ability_id,
+				'read_policy'         => (string) ( $read_context['read_policy'] ?? '' ),
+				'sensitivity'         => (string) ( $read_context['sensitivity'] ?? '' ),
+				'redaction_applied'   => (bool) ( $redacted['redaction_applied'] ?? false ),
+				'correlation_id'      => (string) ( $read_context['correlation_id'] ?? '' ),
+				'adapter_request_id'  => (string) ( $read_context['adapter_request_id'] ?? '' ),
+			)
+		);
 
 		return new WP_REST_Response(
 			array(
@@ -3654,11 +3676,145 @@ final class Controller {
 				'execution_surface' => 'wp_abilities_rest',
 				'core_proxy_execute' => false,
 				'commit_execution'  => false,
-				'log_context'       => $log_context,
+				'read_policy'       => (string) ( $read_context['read_policy'] ?? '' ),
+				'sensitivity'       => (string) ( $read_context['sensitivity'] ?? '' ),
+				'redaction_required' => (bool) ( $read_context['redaction_required'] ?? false ),
+				'redaction_applied' => (bool) ( $redacted['redaction_applied'] ?? false ),
+				'redaction_summary' => is_array( $redacted['redaction_summary'] ?? null ) ? $redacted['redaction_summary'] : array(),
+				'read_audit_mode'   => (string) ( $read_context['read_audit_mode'] ?? '' ),
+				'correlation_id'    => (string) ( $read_context['correlation_id'] ?? '' ),
+				'log_context'       => $read_context,
+				'read_context'      => $read_context,
 				'result'            => $data,
 			),
 			200
 		);
+	}
+
+	/**
+	 * Builds read governance context from Core capability guidance.
+	 *
+	 * @param array<string,mixed> $capability Capability row.
+	 * @param array<string,mixed> $log_context Existing log context.
+	 * @return array<string,mixed>
+	 */
+	private function read_governance_context( array $capability, array $log_context ): array {
+		$sensitivity = sanitize_key( (string) ( $capability['sensitivity'] ?? '' ) );
+		if ( ! in_array( $sensitivity, array( 'public', 'internal', 'sensitive' ), true ) ) {
+			$sensitivity = $this->infer_read_sensitivity( sanitize_text_field( (string) ( $capability['ability_id'] ?? '' ) ) );
+		}
+
+		$read_policy = sanitize_key( (string) ( $capability['read_policy'] ?? '' ) );
+		if ( '' === $read_policy ) {
+			$read_policy = 'direct_read_' . $sensitivity;
+		}
+
+		$log_context['read_policy']        = $read_policy;
+		$log_context['sensitivity']        = $sensitivity;
+		$log_context['redaction_required'] = (bool) ( $capability['redaction_required'] ?? ( 'sensitive' === $sensitivity ) );
+		$log_context['read_audit_mode']    = sanitize_key( (string) ( $capability['read_audit_mode'] ?? 'adapter_read_envelope' ) );
+		$log_context['correlation_id']     = isset( $log_context['correlation_id'] ) && '' !== (string) $log_context['correlation_id']
+			? sanitize_text_field( (string) $log_context['correlation_id'] )
+			: wp_generate_uuid4();
+
+		$magick_ai_core = is_array( $log_context['magick_ai_core'] ?? null ) ? $log_context['magick_ai_core'] : array();
+		$magick_ai_core['correlation_id'] = $log_context['correlation_id'];
+		$log_context['magick_ai_core']    = $magick_ai_core;
+
+		return $this->sanitize_log_context( $log_context );
+	}
+
+	/**
+	 * Applies read redaction according to Core read policy.
+	 *
+	 * @param mixed               $result Read result.
+	 * @param array<string,mixed> $read_context Read context.
+	 * @return array{result:mixed,redaction_applied:bool,redaction_summary:array<string,mixed>}
+	 */
+	private function apply_read_redaction( $result, array $read_context ): array {
+		$required = (bool) ( $read_context['redaction_required'] ?? false );
+		$count    = 0;
+
+		if ( $required ) {
+			$result = $this->redact_read_value( $result, $count );
+		}
+
+		return array(
+			'result'             => $result,
+			'redaction_applied'  => $required,
+			'redaction_summary'  => array(
+				'policy_applied'        => $required,
+				'redacted_field_count'  => $count,
+			),
+		);
+	}
+
+	/**
+	 * Redacts sensitive values in a read result.
+	 *
+	 * @param mixed $value Value.
+	 * @param int   $count Redacted field count.
+	 * @return mixed
+	 */
+	private function redact_read_value( $value, int &$count ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		$clean = array();
+		foreach ( $value as $key => $item ) {
+			$key_string = is_string( $key ) ? $key : (string) $key;
+			if ( $this->is_sensitive_read_key( $key_string ) ) {
+				$clean[ $key ] = '[REDACTED]';
+				++$count;
+				continue;
+			}
+
+			$clean[ $key ] = $this->redact_read_value( $item, $count );
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Returns whether a read result key must be redacted.
+	 *
+	 * @param string $key Result key.
+	 * @return bool
+	 */
+	private function is_sensitive_read_key( string $key ): bool {
+		$key = strtolower( $key );
+		foreach ( array( 'password', 'pass', 'secret', 'token', 'authorization', 'cookie', 'nonce', 'user_email', 'email', 'api_key', 'private_key' ) as $needle ) {
+			if ( false !== strpos( $key, $needle ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Infers read sensitivity when Core capability guidance predates read policy.
+	 *
+	 * @param string $ability_id Ability id.
+	 * @return string
+	 */
+	private function infer_read_sensitivity( string $ability_id ): string {
+		$ability_id = strtolower( $ability_id );
+
+		foreach ( array( 'diagnostic', 'permissions', 'database', 'error-log', 'plugin-conflict', 'ops' ) as $needle ) {
+			if ( false !== strpos( $ability_id, $needle ) ) {
+				return 'sensitive';
+			}
+		}
+
+		foreach ( array( 'inventory', 'plan', 'media', 'pages', 'posts', 'users', 'menu', 'term', 'workflow' ) as $needle ) {
+			if ( false !== strpos( $ability_id, $needle ) ) {
+				return 'internal';
+			}
+		}
+
+		return 'public';
 	}
 
 	/**
