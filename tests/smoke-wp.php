@@ -421,12 +421,16 @@ $media_plan_shortcut = maa_adapter_smoke_rest(
 	array(
 		'per_page'                  => 1,
 		'max_actions'               => 1,
-		'include_delete_candidates' => 'false',
+		'include_delete_candidates'  => 'false',
+		'include_trash_parent_media' => 'false',
+		'include_unattached_test_media' => 'false',
 	)
 );
 $media_shortcut_plan = is_array( $media_plan_shortcut['result']['data'] ?? null ) ? $media_plan_shortcut['result']['data'] : array();
 foreach ( (array) ( $media_shortcut_plan['write_actions'] ?? array() ) as $media_shortcut_action ) {
 	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_delete_candidates=false as false' );
+	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_trash_parent_media=false as false' );
+	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_unattached_test_media=false as false' );
 }
 
 $unallowed_plan_bridge = maa_adapter_smoke_rest_result(

@@ -4006,8 +4006,12 @@ final class Controller {
 	 * @return array<string,mixed>
 	 */
 	private function normalize_shortcut_input( string $route, array $input ): array {
-		if ( 'media-inventory-fix-plan' === $route && array_key_exists( 'include_delete_candidates', $input ) ) {
-			$input['include_delete_candidates'] = $this->boolean_input_value( $input['include_delete_candidates'] );
+		if ( 'media-inventory-fix-plan' === $route ) {
+			foreach ( array( 'include_delete_candidates', 'include_trash_parent_media', 'include_unattached_test_media' ) as $boolean_key ) {
+				if ( array_key_exists( $boolean_key, $input ) ) {
+					$input[ $boolean_key ] = $this->boolean_input_value( $input[ $boolean_key ] );
+				}
+			}
 		}
 
 		if ( 'term' !== $route ) {
