@@ -76,6 +76,12 @@ password once in the browser. Copied OpenClaw env, manifest, and handoff text
 contain only placeholders or non-secret identifiers. The adapter does not store
 the raw password.
 
+The same page includes a `Proposal status` lookup. Paste the `Proposal ID`
+returned by Adapter after `POST /proposals` or `POST /proposals/from-plan` to
+read Core status through Adapter, open the matching Core approval detail, and
+copy the Adapter status or execution route for OpenClaw. Pending approvals
+remain in Core; Adapter is the status and approved-execution channel.
+
 ## REST Authentication
 
 OpenClaw should use WordPress REST Basic Auth with an Application Password:

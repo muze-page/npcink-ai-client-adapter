@@ -276,6 +276,12 @@ The adapter should preserve Core proposal list/detail fields, including
 returns it. If a Core app token is used in a direct Core auth path or future
 trusted handoff, that key must include `proposals:read`.
 
+The Adapter admin page may expose a focused `Proposal status` lookup that uses
+the same read-only proxy. That lookup can show Core status, link to the Core
+approval detail, and copy Adapter status or approved-execution endpoints. It
+must not become a Core approval table, Core audit table, or generic
+approve/reject proxy.
+
 The adapter must not print Core tokens in logs, proposal payloads, error
 responses, or documentation examples. It must not add proposal approval or
 rejection proxy routes by default.

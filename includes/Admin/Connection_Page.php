@@ -201,6 +201,8 @@ final class Connection_Page {
 		$username        = $user->exists() ? (string) $user->user_login : '';
 		$client_config   = $this->openclaw_env_text( $username, $this->is_local_url( home_url() ) );
 		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
+		$lookup_id       = isset( $_GET['adapter_proposal_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adapter_proposal_id'] ) ) : '';
+		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
 		?>
 		<div class="wrap magick-ai-adapter-connection">
 			<h1><?php echo esc_html__( 'Magick AI Adapter', 'magick-ai-adapter' ); ?></h1>
@@ -402,6 +404,16 @@ final class Connection_Page {
 				.magick-ai-adapter-connection .maa-form-actions {
 					margin: 12px 0 0;
 				}
+				.magick-ai-adapter-connection .maa-status-table th {
+					width: 160px;
+				}
+				.magick-ai-adapter-connection .maa-action-row {
+					display: flex;
+					flex-wrap: wrap;
+					gap: 8px;
+					align-items: center;
+					margin-top: 12px;
+				}
 				@media (max-width: 960px) {
 					.magick-ai-adapter-connection .maa-workspace {
 						grid-template-columns: 1fr;
@@ -497,6 +509,23 @@ final class Connection_Page {
 						</div>
 						<p class="description"><?php echo esc_html__( 'Writes require Core proposal approval before Adapter execution.', 'magick-ai-adapter' ); ?></p>
 					</div>
+				</div>
+
+				<div class="maa-section">
+					<h2><?php echo esc_html__( 'Proposal status', 'magick-ai-adapter' ); ?></h2>
+					<p><?php echo esc_html__( 'Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval.', 'magick-ai-adapter' ); ?></p>
+					<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
+						<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>" />
+						<p>
+							<label for="magick-ai-adapter-proposal-lookup"><span class="maa-label"><?php echo esc_html__( 'Proposal ID', 'magick-ai-adapter' ); ?></span></label>
+							<input id="magick-ai-adapter-proposal-lookup" class="regular-text" type="text" name="adapter_proposal_id" value="<?php echo esc_attr( $lookup_id ); ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+						</p>
+						<p class="maa-form-actions">
+							<button type="submit" class="button"><?php echo esc_html__( 'Check status', 'magick-ai-adapter' ); ?></button>
+							<a class="button" href="<?php echo esc_url( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?>"><?php echo esc_html__( 'Open proposal API', 'magick-ai-adapter' ); ?></a>
+						</p>
+					</form>
+					<?php $this->render_proposal_lookup_result( $lookup_id, $lookup_result ); ?>
 				</div>
 			</div>
 
@@ -861,6 +890,171 @@ final class Connection_Page {
 			'level' => 'warning',
 			'label' => __( 'Needs dependencies', 'magick-ai-adapter' ),
 		);
+	}
+
+	/**
+	 * Looks up one Core proposal through Adapter's read-only status route.
+	 *
+	 * @param string $proposal_id Proposal id.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function proposal_lookup( string $proposal_id ) {
+		$request  = new WP_REST_Request( 'GET', '/' . Controller::NAMESPACE . '/proposals/' . rawurlencode( $proposal_id ) );
+		$response = rest_do_request( $request );
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data = $response->get_data();
+		if ( $response->get_status() >= 400 ) {
+			return new WP_Error(
+				'magick_ai_adapter_proposal_lookup_failed',
+				__( 'Adapter could not read this Core proposal status.', 'magick-ai-adapter' ),
+				array(
+					'status' => $response->get_status(),
+					'data'   => $data,
+				)
+			);
+		}
+
+		return is_array( $data ) ? $data : array();
+	}
+
+	/**
+	 * Renders proposal lookup results for the Adapter connection page.
+	 *
+	 * @param string                         $proposal_id Proposal id.
+	 * @param array<string,mixed>|WP_Error|null $result Lookup result.
+	 * @return void
+	 */
+	private function render_proposal_lookup_result( string $proposal_id, $result ): void {
+		if ( '' === $proposal_id ) {
+			?>
+			<p class="maa-inline-note"><?php echo esc_html__( 'After OpenClaw creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes.', 'magick-ai-adapter' ); ?></p>
+			<?php
+			return;
+		}
+
+		if ( is_wp_error( $result ) ) {
+			$data   = $result->get_error_data();
+			$status = is_array( $data ) ? (int) ( $data['status'] ?? 0 ) : 0;
+			?>
+			<div class="notice notice-error inline">
+				<p><strong><?php echo esc_html__( 'Proposal not available.', 'magick-ai-adapter' ); ?></strong></p>
+				<p><?php echo esc_html( $result->get_error_message() ); ?><?php echo $status > 0 ? ' ' . esc_html( sprintf( __( 'HTTP %d', 'magick-ai-adapter' ), $status ) ) : ''; ?></p>
+			</div>
+			<?php
+			return;
+		}
+
+		$proposal = is_array( $result ) ? $result : array();
+		$status   = sanitize_key( (string) ( $proposal['status'] ?? '' ) );
+		$ability  = (string) ( $proposal['ability_id'] ?? '' );
+		$title    = (string) ( $proposal['title'] ?? '' );
+		$created  = (string) ( $proposal['created_at'] ?? '' );
+		$updated  = (string) ( $proposal['updated_at'] ?? '' );
+		$timeline = is_array( $proposal['audit_timeline'] ?? null ) ? $proposal['audit_timeline'] : array();
+		$core_url = add_query_arg(
+			array(
+				'page'        => 'magick-ai-core',
+				'proposal_id' => $proposal_id,
+			),
+			admin_url( 'admin.php' )
+		);
+		$status_url = rest_url( Controller::NAMESPACE . '/proposals/' . rawurlencode( $proposal_id ) );
+		$execute_url = rest_url( Controller::NAMESPACE . '/proposals/' . rawurlencode( $proposal_id ) . '/execute' );
+		$approve_execute_url = rest_url( Controller::NAMESPACE . '/proposals/' . rawurlencode( $proposal_id ) . '/approve-and-execute' );
+		?>
+		<table class="widefat striped maa-status-table" style="margin-top: 14px;">
+			<tbody>
+				<tr>
+					<th scope="row"><?php echo esc_html__( 'Proposal ID', 'magick-ai-adapter' ); ?></th>
+					<td><code><?php echo esc_html( $proposal_id ); ?></code></td>
+				</tr>
+				<tr>
+					<th scope="row"><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></th>
+					<td><span class="maa-status maa-status-<?php echo esc_attr( $this->proposal_status_level( $status ) ); ?>"><?php echo esc_html( '' !== $status ? $status : __( 'unknown', 'magick-ai-adapter' ) ); ?></span></td>
+				</tr>
+				<?php if ( '' !== $title ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Title', 'magick-ai-adapter' ); ?></th>
+						<td><?php echo esc_html( $title ); ?></td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( '' !== $ability ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Ability', 'magick-ai-adapter' ); ?></th>
+						<td><code><?php echo esc_html( $ability ); ?></code></td>
+					</tr>
+				<?php endif; ?>
+				<tr>
+					<th scope="row"><?php echo esc_html__( 'Created', 'magick-ai-adapter' ); ?></th>
+					<td><?php echo esc_html( '' !== $created ? $created : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
+				</tr>
+				<tr>
+					<th scope="row"><?php echo esc_html__( 'Updated', 'magick-ai-adapter' ); ?></th>
+					<td><?php echo esc_html( '' !== $updated ? $updated : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
+				</tr>
+				<tr>
+					<th scope="row"><?php echo esc_html__( 'Audit timeline', 'magick-ai-adapter' ); ?></th>
+					<td><?php echo esc_html( sprintf( __( '%d events', 'magick-ai-adapter' ), count( $timeline ) ) ); ?></td>
+				</tr>
+			</tbody>
+		</table>
+		<div class="maa-action-row">
+			<a class="button button-primary" href="<?php echo esc_url( $core_url ); ?>"><?php echo esc_html__( 'Open in Core', 'magick-ai-adapter' ); ?></a>
+			<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-proposal-status-url"><?php echo esc_html__( 'Copy status URL', 'magick-ai-adapter' ); ?></button>
+			<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-proposal-execute-url"><?php echo esc_html__( 'Copy execute URL', 'magick-ai-adapter' ); ?></button>
+		</div>
+		<p class="maa-inline-note"><?php echo esc_html( $this->proposal_next_step_text( $status ) ); ?></p>
+		<textarea id="maa-proposal-status-url" hidden readonly><?php echo esc_textarea( $status_url ); ?></textarea>
+		<textarea id="maa-proposal-execute-url" hidden readonly><?php echo esc_textarea( 'approved' === $status ? $execute_url : $approve_execute_url ); ?></textarea>
+		<?php
+	}
+
+	/**
+	 * Maps Core proposal status to Adapter UI status level.
+	 *
+	 * @param string $status Proposal status.
+	 * @return string
+	 */
+	private function proposal_status_level( string $status ): string {
+		if ( 'approved' === $status ) {
+			return 'ok';
+		}
+
+		if ( in_array( $status, array( 'rejected', 'expired', 'archived' ), true ) ) {
+			return 'error';
+		}
+
+		return 'warning';
+	}
+
+	/**
+	 * Returns the next operator action for a Core proposal status.
+	 *
+	 * @param string $status Proposal status.
+	 * @return string
+	 */
+	private function proposal_next_step_text( string $status ): string {
+		if ( 'pending' === $status ) {
+			return __( 'Next step: review this proposal in Core. Adapter should keep polling status and execute only after Core approval and commit preflight.', 'magick-ai-adapter' );
+		}
+
+		if ( 'approved' === $status ) {
+			return __( 'Next step: execute through Adapter. Adapter will still call Core commit preflight before any allowlisted WordPress ability execution.', 'magick-ai-adapter' );
+		}
+
+		if ( 'rejected' === $status ) {
+			return __( 'Next step: stop. Adapter should show the rejection and must not execute this proposal.', 'magick-ai-adapter' );
+		}
+
+		if ( in_array( $status, array( 'expired', 'archived' ), true ) ) {
+			return __( 'Next step: reopen or inspect this proposal in Core if it still needs a decision.', 'magick-ai-adapter' );
+		}
+
+		return __( 'Next step: use Core as the approval truth and Adapter as the OpenClaw status and execution channel.', 'magick-ai-adapter' );
 	}
 
 	/**

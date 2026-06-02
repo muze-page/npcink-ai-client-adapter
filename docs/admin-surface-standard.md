@@ -30,6 +30,14 @@ Default copyable values:
 - capabilities URL;
 - help URL when useful.
 
+Default workflow bridge:
+
+- Proposal ID status lookup through Adapter's read-only proposal proxy;
+- link to the matching Core approval detail;
+- copyable Adapter status and approved-execution endpoints;
+- status-specific next-step copy for `pending`, `approved`, `rejected`,
+  `expired`, and `archived`.
+
 ## Advanced Details
 
 Keep these behind explicit advanced sections:
@@ -52,6 +60,10 @@ Adapter admin must not add:
 - workflow runtime, queues, MCP runtime, Agent Gateway catalogs, router,
   prompt, preset, or provider credential settings;
 - generic approval/rejection proxy UX.
+
+The Proposal ID lookup is allowed because it keeps Adapter as the OpenClaw
+operator entry point while Core remains approval truth. It must stay a focused
+status bridge, not a duplicate Core review queue.
 
 ## Verification
 

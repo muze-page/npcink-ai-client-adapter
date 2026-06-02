@@ -224,6 +224,9 @@ The page default view shows:
 - a `Create OpenClaw handoff` action that creates a WordPress Application
   Password for the current administrator, shows it once in the browser, and
   emits a non-secret connection manifest;
+- a `Proposal status` lookup where operators paste the `Proposal ID` returned
+  to OpenClaw, see Core status through Adapter's read-only proposal proxy, open
+  the matching Core approval detail, and copy Adapter status/execution URLs.
 
 Advanced disclosures keep lower-frequency reference details available without
 turning the page into a control panel:
