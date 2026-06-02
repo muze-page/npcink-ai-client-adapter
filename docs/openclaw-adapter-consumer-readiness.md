@@ -59,7 +59,9 @@ The readiness pass verified:
   `magick-ai/create-draft`, `magick-ai/update-post`,
   `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-  `magick-ai/update-media-details`, `magick-ai/delete-media-permanently`,
+  `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
+  `magick-ai/replace-media-file`,
+  `magick-ai/delete-media-permanently`,
   `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
   `magick-ai/approve-comment`;
 - rejected proposals do not execute;
@@ -88,7 +90,9 @@ Adapter remains a thin OpenClaw channel layer:
   `magick-ai/create-draft`, `magick-ai/update-post`,
   `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-  `magick-ai/update-media-details`, `magick-ai/delete-media-permanently`,
+  `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
+  `magick-ai/replace-media-file`,
+  `magick-ai/delete-media-permanently`,
   `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
   `magick-ai/approve-comment`.
 

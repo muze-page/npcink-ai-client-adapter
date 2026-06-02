@@ -323,6 +323,8 @@ maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-slug', (array) ( $health
 maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-terms', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-terms execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/delete-term', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-term execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/update-media-details', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-media-details execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/optimize-media-asset', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes optimize-media-asset execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/replace-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes replace-media-file execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/delete-media-permanently', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-media-permanently execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-comment execute allowlist' );
@@ -1756,6 +1758,7 @@ $media_details_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
 $maa_adapter_smoke_cleanup_attachment_ids[] = $media_details_attachment_id;
 $media_details_title = 'Adapter media details smoke ' . wp_generate_uuid4();
 $media_details_alt = 'Adapter media details alt smoke.';
+$media_details_copyright = 'Generated asset for this site';
 $media_details_proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/magick-ai-adapter/v1/proposals',
@@ -1767,13 +1770,15 @@ $media_details_proposal = maa_adapter_smoke_rest(
 			'attachment_id' => $media_details_attachment_id,
 			'title'         => $media_details_title,
 			'alt'           => $media_details_alt,
+			'source_type'   => 'ai_generated',
+			'copyright_notice' => $media_details_copyright,
 			'dry_run'       => true,
 			'commit'        => false,
 		),
 		'preview'    => array(
 			'action'           => 'update_media_details',
 			'attachment_id'    => $media_details_attachment_id,
-			'changed_fields'   => array( 'title', 'alt' ),
+			'changed_fields'   => array( 'title', 'alt', 'source_type', 'copyright_notice' ),
 			'dry_run'          => true,
 			'commit_execution' => false,
 		),
@@ -1792,6 +1797,8 @@ maa_adapter_smoke_assert( $media_details_attachment_id === (int) ( $media_detail
 maa_adapter_smoke_assert( true === (bool) ( $media_details_execute['execution']['result']['updated'] ?? false ), 'adapter update-media-details execution reports update' );
 maa_adapter_smoke_assert( $media_details_title === (string) get_the_title( $media_details_attachment_id ), 'adapter approve-and-execute updates media title' );
 maa_adapter_smoke_assert( $media_details_alt === (string) get_post_meta( $media_details_attachment_id, '_wp_attachment_image_alt', true ), 'adapter approve-and-execute updates media alt text' );
+maa_adapter_smoke_assert( 'ai_generated' === (string) get_post_meta( $media_details_attachment_id, '_magick_ai_media_source_type', true ), 'adapter approve-and-execute updates media source type' );
+maa_adapter_smoke_assert( $media_details_copyright === (string) get_post_meta( $media_details_attachment_id, '_magick_ai_media_copyright_notice', true ), 'adapter approve-and-execute updates media copyright notice' );
 
 $empty_media_details_proposal = maa_adapter_smoke_rest_result(
 	'POST',

@@ -128,6 +128,13 @@ foreach (
 			'allowed_input_fields',
 			'enum_fields',
 			'magick_ai_adapter_ability_input_field_not_allowed',
+			'source_type',
+			'magick_ai_adapter_media_source_type_invalid',
+			'owned',
+			'ai_generated',
+			'stock',
+			'external',
+			'test',
 			'magick_ai_adapter_plan_action_input_invalid',
 			'validate_output_references',
 			'resolve_output_references',
@@ -282,6 +289,12 @@ foreach (
 		'magick-ai/build-content-inventory-fix-plan',
 		'magick-ai/build-test-content-cleanup-plan',
 		'magick-ai/build-media-inventory-fix-plan',
+		'magick-ai/inspect-media-asset',
+		'magick-ai/optimize-media-asset',
+		'magick-ai/replace-media-file',
+		'magick_ai_adapter_media_replace_mode_invalid',
+		'derivative_relative_file',
+		'replacement_id',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $controller, $required ), 'Controller contains required text: ' . $required );
@@ -295,6 +308,8 @@ maa_adapter_assert( false === strpos( $controller, 'approve_proposal' ), 'Adapte
 maa_adapter_assert( false === strpos( $controller, 'reject_proposal' ), 'Adapter does not call Core proposal rejection callback.' );
 maa_adapter_assert( false === strpos( $controller, 'proposals:approve' ), 'Adapter does not request proposal approval scope.' );
 maa_adapter_assert( false === strpos( $controller, 'proposals:reject' ), 'Adapter does not request proposal rejection scope.' );
+maa_adapter_assert( false === strpos( $controller, "'replace_original'" ), 'Adapter optimize-media-asset profile does not allow original replacement.' );
+maa_adapter_assert( false === strpos( $controller, "'replacement_url'" ), 'Adapter replace-media-file profile does not allow external replacement URLs.' );
 
 $plugin = maa_adapter_read( $root . '/includes/Plugin.php' );
 foreach (

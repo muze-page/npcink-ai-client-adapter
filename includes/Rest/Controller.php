@@ -166,7 +166,14 @@ final class Controller {
 				'post_id_from_result'       => false,
 			),
 			'magick-ai/update-media-details' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'title', 'alt', 'caption', 'description', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'dry_run', 'commit', 'idempotency_key' ),
+				'allowed_input_fields'  => array( 'attachment_id', 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'source_type' => array(
+						'allowed' => array( 'owned', 'ai_generated', 'stock', 'external', 'test' ),
+						'code'    => 'magick_ai_adapter_media_source_type_invalid',
+						'message' => __( 'update-media-details source_type must be owned, ai_generated, stock, external, or test.', 'magick-ai-adapter' ),
+					),
+				),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'magick_ai_adapter_attachment_id_required',
@@ -174,9 +181,43 @@ final class Controller {
 					),
 				),
 				'require_any_fields'    => array(
-					'fields'  => array( 'title', 'alt', 'caption', 'description', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice' ),
+					'fields'  => array( 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice' ),
 					'code'    => 'magick_ai_adapter_media_fields_required',
 					'message' => __( 'update-media-details execution input must include at least one media detail field.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/optimize-media-asset' => array(
+				'allowed_input_fields'  => array( 'attachment_id', 'target_max_width', 'preferred_format', 'quality', 'derivative_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'preferred_format' => array(
+						'allowed' => array( 'webp', 'jpeg', 'png' ),
+						'code'    => 'magick_ai_adapter_media_preferred_format_invalid',
+						'message' => __( 'optimize-media-asset preferred_format must be webp, jpeg, or png.', 'magick-ai-adapter' ),
+					),
+				),
+				'required_int_fields'   => array(
+					'attachment_id' => array(
+						'code'    => 'magick_ai_adapter_attachment_id_required',
+						'message' => __( 'optimize-media-asset execution input must include attachment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/replace-media-file' => array(
+				'allowed_input_fields'  => array( 'attachment_id', 'mode', 'derivative_relative_file', 'replacement_id', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'mode' => array(
+						'allowed' => array( 'replace', 'rollback' ),
+						'code'    => 'magick_ai_adapter_media_replace_mode_invalid',
+						'message' => __( 'replace-media-file mode must be replace or rollback.', 'magick-ai-adapter' ),
+					),
+				),
+				'required_int_fields'   => array(
+					'attachment_id' => array(
+						'code'    => 'magick_ai_adapter_attachment_id_required',
+						'message' => __( 'replace-media-file execution input must include attachment_id.', 'magick-ai-adapter' ),
+					),
 				),
 				'post_id_from_result'   => false,
 			),
@@ -3825,6 +3866,7 @@ final class Controller {
 			'publishing-calendar-context' => array( 'ability_id' => 'magick-ai/get-publishing-calendar-context' ),
 			'media-inventory-health' => array( 'ability_id' => 'magick-ai/get-media-inventory-health' ),
 			'media-inventory-fix-plan' => array( 'ability_id' => 'magick-ai/build-media-inventory-fix-plan' ),
+			'media-asset-inspection' => array( 'ability_id' => 'magick-ai/inspect-media-asset' ),
 			'taxonomy-inventory-health' => array( 'ability_id' => 'magick-ai/get-taxonomy-inventory-health' ),
 		);
 	}

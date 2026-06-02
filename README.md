@@ -30,6 +30,8 @@ when every action targets the current execution allowlist
 `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
 `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
 `magick-ai/delete-term`, `magick-ai/update-media-details`,
+`magick-ai/optimize-media-asset`,
+`magick-ai/replace-media-file`,
 `magick-ai/delete-media-permanently`,
 `magick-ai/reply-comment`, `magick-ai/trash-comment`,
 `magick-ai/approve-comment`). See
@@ -196,11 +198,23 @@ including the current `magick-ai/list-posts` filters, richer
 
 For media metadata optimization, `POST /media-metadata-optimization` calls the
 read-only `magick-ai/optimize-media-metadata` ability and returns suggestions
-for attachment title, alt, caption, description, source, photographer,
-attribution, and copyright fields. It does not write media records or replace
-files. To apply reviewed suggestions, create a governed Core proposal for
-`magick-ai/update-media-details`, then execute through Adapter's existing
-Core-approved allowlisted path.
+for attachment title, alt, caption, description, `source_type`, source,
+photographer, attribution, and copyright fields. It does not write media
+records or replace files. To apply reviewed suggestions, create a governed
+Core proposal for `magick-ai/update-media-details`, then execute through
+Adapter's existing Core-approved allowlisted path.
+
+For media format attention, `run-read-ability` may call
+`magick-ai/inspect-media-asset` directly, and the shortcut key
+`media-asset-inspection` maps to the same read-only ability. The response
+contains file size, dimensions, target format, compression, resize, and
+derivative recommendations only. To generate an optimized derivative, create a
+governed Core proposal for `magick-ai/optimize-media-asset`, then execute
+through Adapter's Core-approved allowlisted path. To switch the attachment main
+file, create a separate governed Core proposal for
+`magick-ai/replace-media-file` using a recorded optimized derivative; that
+ability records backup and rollback metadata. Adapter does not accept arbitrary
+replacement URLs or replace files outside Core-approved execution.
 
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
@@ -397,6 +411,8 @@ Proposal-required write flow:
    `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
    `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
    `magick-ai/delete-term`, `magick-ai/update-media-details`,
+   `magick-ai/optimize-media-asset`,
+   `magick-ai/replace-media-file`,
    `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
    `magick-ai/trash-comment`, or `magick-ai/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
@@ -501,7 +517,9 @@ Write or destructive abilities:
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
    `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-   `magick-ai/update-media-details`, `magick-ai/delete-media-permanently`,
+   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
+   `magick-ai/replace-media-file`,
+   `magick-ai/delete-media-permanently`,
    `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment` are supported in
    this adapter. The execution input may be a single allowlisted proposal input or a bounded

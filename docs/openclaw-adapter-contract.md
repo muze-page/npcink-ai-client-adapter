@@ -54,10 +54,14 @@ direct reads:
 - `magick-ai/build-test-content-cleanup-plan`
 - `magick-ai/build-media-inventory-fix-plan`
 
-Their outputs are plan data, not execution results. Adapter must preserve
-`batch_id`, `issue_types`, `post_ids`, `attachment_ids`, `write_actions`,
-`preview`, `risk`, `requires_approval`, `commit_execution`, `dry_run`,
-`manual_review`, `skipped_destructive_candidates`, `issue_counts`, and
+OpenClaw may also use direct read execution for media format inspection:
+
+- `magick-ai/inspect-media-asset`
+
+Planning ability outputs are plan data, not execution results. Adapter must
+preserve `batch_id`, `issue_types`, `post_ids`, `attachment_ids`,
+`write_actions`, `preview`, `risk`, `requires_approval`, `commit_execution`,
+`dry_run`, `manual_review`, `skipped_destructive_candidates`, `issue_counts`, and
 `action_count`.
 
 `commit_execution=false` means no write happened, `dry_run=true` means preview
@@ -94,6 +98,8 @@ For a pending `magick-ai/trash-post`, `magick-ai/create-draft`,
 `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
 `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
 `magick-ai/delete-term`, `magick-ai/update-media-details`,
+`magick-ai/optimize-media-asset`,
+`magick-ai/replace-media-file`,
 `magick-ai/delete-media-permanently`,
 `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
 `magick-ai/approve-comment` proposal, Adapter
@@ -112,7 +118,13 @@ requires `post_id`; `create-draft` requires `title`; `update-post` requires
 `set-post-terms` requires `post_id`, a valid `taxonomy`, `mode`, and
 `term_ids` or `terms`, and does not create missing terms; `delete-term`
 requires a valid `taxonomy` and `term_id`; `update-media-details` requires
-`attachment_id` plus at least one media detail field;
+`attachment_id` plus at least one media detail field; media `source_type`, when
+provided, must be one of `owned`, `ai_generated`, `stock`, `external`, or
+`test`; `optimize-media-asset` requires `attachment_id`, may accept bounded
+format, width, quality, and suffix inputs, and must preserve the original file;
+`replace-media-file` requires `attachment_id`, uses either a recorded
+`derivative_relative_file` for replace mode or a `replacement_id` for rollback
+mode, and records backup/rollback metadata;
 `delete-media-permanently` requires an existing attachment `attachment_id`;
 `reply-comment` requires `comment_id`, non-empty `content`, and a valid
 `content_format`; `trash-comment` requires `comment_id`;
@@ -144,6 +156,8 @@ The current allowlist is intentionally narrow:
 - `magick-ai/set-post-terms`
 - `magick-ai/delete-term`
 - `magick-ai/update-media-details`
+- `magick-ai/optimize-media-asset`
+- `magick-ai/replace-media-file`
 - `magick-ai/delete-media-permanently`
 - `magick-ai/reply-comment`
 - `magick-ai/trash-comment`
@@ -611,7 +625,8 @@ OpenClaw must treat Core as the only proposal and approval truth:
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
    `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-   `magick-ai/update-media-details`, `magick-ai/delete-media-permanently`,
+   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
+   `magick-ai/replace-media-file`, `magick-ai/delete-media-permanently`,
    `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment`.
 

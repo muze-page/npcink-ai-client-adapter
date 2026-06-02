@@ -55,6 +55,8 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=magick-ai/set-post-terms`
 - `target_ability_id=magick-ai/delete-term`
 - `target_ability_id=magick-ai/update-media-details`
+- `target_ability_id=magick-ai/optimize-media-asset`
+- `target_ability_id=magick-ai/replace-media-file`
 - `target_ability_id=magick-ai/delete-media-permanently`
 - `target_ability_id=magick-ai/reply-comment`
 - `target_ability_id=magick-ai/trash-comment`
@@ -75,6 +77,7 @@ Each profile entry is the implementation checklist for one executable ability:
 
 - `ability_id` is included in the derived execution allowlist;
 - required scalar input checks are declared in the profile;
+- enum input checks such as media `source_type` are declared in the profile;
 - special Adapter-owned guards are declared by profile flags;
 - dispatch behavior such as rebuilding post input is declared in the profile;
 - result handling such as `post_id` backfill is declared in the profile;
