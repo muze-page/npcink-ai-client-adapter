@@ -50,6 +50,8 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=magick-ai/trash-post`
 - `target_ability_id=magick-ai/create-draft`
 - `target_ability_id=magick-ai/update-post`
+- `target_ability_id=magick-ai/patch-post-content`
+- `target_ability_id=magick-ai/patch-setting-value`
 - `target_ability_id=magick-ai/set-post-seo-meta`
 - `target_ability_id=magick-ai/set-post-slug`
 - `target_ability_id=magick-ai/set-post-terms`
@@ -57,6 +59,7 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=magick-ai/update-media-details`
 - `target_ability_id=magick-ai/optimize-media-asset`
 - `target_ability_id=magick-ai/replace-media-file`
+- `target_ability_id=magick-ai/adopt-cloud-media-derivative`
 - `target_ability_id=magick-ai/delete-media-permanently`
 - `target_ability_id=magick-ai/reply-comment`
 - `target_ability_id=magick-ai/trash-comment`

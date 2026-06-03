@@ -380,13 +380,14 @@ maa_adapter_smoke_assert( false === (bool) ( $health['approval_proxy_enabled'] ?
 maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $health['approval_surface'] ?? '' ), 'adapter health exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $health ), 'adapter health exposes Core app token configured state without token value' );
 maa_adapter_smoke_assert( isset( $health['read_shortcuts']['media'] ), 'adapter health exposes expanded read shortcuts' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['active-plugins-detail'] ?? '' ), 'adapter active plugins shortcut uses ops diagnostics detail' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['plugin-conflict-diagnostics'] ?? '' ), 'adapter plugin conflict shortcut uses ops diagnostics detail' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['recent-error-log-tail'] ?? '' ), 'adapter explicit log shortcut uses ops diagnostics detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['active-plugins-detail'] ?? '' ), 'adapter active plugins shortcut uses ops diagnostics detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['plugin-conflict-diagnostics'] ?? '' ), 'adapter plugin conflict shortcut uses ops diagnostics detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['recent-error-log-tail'] ?? '' ), 'adapter explicit log shortcut uses ops diagnostics detail' );
 maa_adapter_smoke_assert( 'magick-ai/list-posts' === (string) ( $health['read_shortcuts']['posts'] ?? '' ), 'adapter health exposes posts shortcut' );
 maa_adapter_smoke_assert( 'magick-ai/get-post-context' === (string) ( $health['read_shortcuts']['post-context'] ?? '' ), 'adapter health exposes post context shortcut' );
 maa_adapter_smoke_assert( 'magick-ai/list-users' === (string) ( $health['read_shortcuts']['users'] ?? '' ), 'adapter health exposes users shortcut' );
 maa_adapter_smoke_assert( 'magick-ai/get-menu' === (string) ( $health['read_shortcuts']['menu'] ?? '' ), 'adapter health exposes menu shortcut' );
+maa_adapter_smoke_assert( 'magick-ai-toolbox/build-ai-article-writing-pack' === (string) ( $health['read_shortcuts']['article-writing-pack'] ?? '' ), 'adapter health exposes AI article writing pack shortcut' );
 maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_log_contents'] ?? true ), 'adapter health exposes diagnostics default without log contents' );
 maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_active_plugins'] ?? false ), 'adapter health exposes active plugin rows by default' );
 maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_inactive_plugins'] ?? true ), 'adapter health does not request inactive plugin rows by default' );
@@ -410,6 +411,7 @@ maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-e
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/create-draft', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes create-draft execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/update-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-post execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/patch-setting-value', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes patch-setting-value execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-seo-meta', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-seo-meta execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-slug', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-slug execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-terms', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-terms execute allowlist' );
@@ -417,6 +419,7 @@ maa_adapter_smoke_assert( in_array( 'magick-ai/delete-term', (array) ( $health['
 maa_adapter_smoke_assert( in_array( 'magick-ai/update-media-details', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-media-details execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/optimize-media-asset', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes optimize-media-asset execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/replace-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes replace-media-file execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/adopt-cloud-media-derivative', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes adopt-cloud-media-derivative execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/delete-media-permanently', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-media-permanently execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-comment execute allowlist' );
@@ -435,9 +438,13 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/media-metadata-optimization' ), 'adapter help exposes media metadata optimization route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/article-writing-pack' ), 'adapter help exposes AI article writing pack shortcut' );
 maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
 maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );
+maa_adapter_smoke_assert( 'magick-ai-toolbox/build-ai-article-writing-pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes AI article writing pack recipe entrypoint ability' );
+maa_adapter_smoke_assert( 'ai_article_writing_pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['artifact_type'] ?? '' ), 'adapter help marks AI article writing recipe artifact type' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['direct_wordpress_write'] ?? true ), 'adapter help marks AI article writing recipe as no direct write' );
 maa_adapter_smoke_assert( in_array( 'GET /plugin-conflict-diagnostics', (array) ( $help['route_groups']['read_shortcuts'] ?? array() ), true ), 'adapter help keeps grouped read shortcut routes for humans' );
 maa_adapter_smoke_assert( false === (bool) ( $help['approval_proxy_enabled'] ?? true ), 'adapter help keeps approval proxy disabled' );
 maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $help['approval_surface'] ?? '' ), 'adapter help exposes Core admin approval surface' );
@@ -478,16 +485,18 @@ maa_adapter_smoke_assert( 404 === (int) ( $core_request_error_event['status_code
 maa_adapter_smoke_assert( '' !== (string) ( $core_request_error_event['error_code'] ?? '' ), 'adapter Core relay failure event carries stable error code' );
 maa_adapter_smoke_assert_observability_safe( $core_request_error_event, 'adapter Core relay failure event' );
 $by_id        = maa_adapter_smoke_capabilities_by_id( $capabilities );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/site-summary'] ), 'adapter exposes site-summary capability through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/wp-diagnostics-summary'] ), 'adapter exposes diagnostics capability through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/wp-ops-diagnostics-detail'] ), 'adapter exposes ops diagnostics capability through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/list-workflow-recipes'] ), 'adapter exposes workflow recipe list capability through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/get-workflow-recipe'] ), 'adapter exposes workflow recipe detail capability through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/site-summary'] ), 'adapter exposes site-summary capability through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/wp-diagnostics-summary'] ), 'adapter exposes diagnostics capability through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/wp-ops-diagnostics-detail'] ), 'adapter exposes ops diagnostics capability through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/list-workflow-recipes'] ), 'adapter exposes workflow recipe list capability through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/get-workflow-recipe'] ), 'adapter exposes workflow recipe detail capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-content-inventory-fix-plan'] ), 'adapter capabilities expose content inventory fix plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-test-content-cleanup-plan'] ), 'adapter capabilities expose test content cleanup plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-inventory-fix-plan'] ), 'adapter capabilities expose media inventory fix plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-reference-repair-plan'] ), 'adapter capabilities expose media reference repair plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-settings-reference-repair-plan'] ), 'adapter capabilities expose media settings reference repair plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai/optimize-media-metadata'] ), 'adapter capabilities expose media metadata optimization through Core' );
-maa_adapter_smoke_assert( 'direct_read' === (string) ( $by_id['magick-ai-abilities/site-summary']['governance_mode'] ?? '' ), 'site-summary is direct read' );
+maa_adapter_smoke_assert( 'direct_read' === (string) ( $by_id['npcink-abilities-toolkit/site-summary']['governance_mode'] ?? '' ), 'site-summary is direct read' );
 
 $content_plan_response = maa_adapter_smoke_rest(
 	'POST',
@@ -963,20 +972,20 @@ maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_propos
 maa_adapter_smoke_assert( 'adapter-plan-e2e-correlation' === (string) ( $plan_proposal_detail['caller']['correlation_id'] ?? '' ), 'adapter e2e proposal detail preserves correlation id in caller' );
 
 $site_summary = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/site-summary' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/site-summary' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-summary read ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-summary' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-summary read ability' );
 maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-summary returns a result object' );
 maa_adapter_smoke_assert( 'direct_read_public' === (string) ( $site_summary['read_policy'] ?? '' ), 'adapter site-summary read carries public read policy' );
 maa_adapter_smoke_assert( '' !== (string) ( $site_summary['correlation_id'] ?? '' ), 'adapter read response carries generated correlation id' );
 
 $diagnostics = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/wp-diagnostics-summary' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-diagnostics-summary' === (string) ( $diagnostics['ability_id'] ?? '' ), 'adapter runs diagnostics read ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-diagnostics-summary' === (string) ( $diagnostics['ability_id'] ?? '' ), 'adapter runs diagnostics read ability' );
 maa_adapter_smoke_assert( is_array( $diagnostics['result'] ?? null ), 'diagnostics returns a result object' );
 maa_adapter_smoke_assert( 'direct_read_sensitive' === (string) ( $diagnostics['read_policy'] ?? '' ), 'adapter diagnostics read carries sensitive read policy' );
 maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_required'] ?? false ), 'adapter diagnostics read requires redaction' );
 maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_applied'] ?? false ), 'adapter diagnostics read applies sensitive redaction policy' );
 
 $active_plugins = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/active-plugins-detail' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $active_plugins['ability_id'] ?? '' ), 'adapter runs active plugins diagnostic shortcut through ops detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $active_plugins['ability_id'] ?? '' ), 'adapter runs active plugins diagnostic shortcut through ops detail' );
 maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins'] ?? null ), 'active plugins diagnostic returns plugin details object' );
 $plugin_result = (array) ( $active_plugins['result']['plugins'] ?? array() );
 maa_adapter_smoke_assert( is_array( $plugin_result['groups_included'] ?? null ), 'active plugins diagnostic returns plugin group inclusion metadata' );
@@ -998,18 +1007,18 @@ if ( isset( $active_plugins['result']['plugins']['active'][0] ) && is_array( $ac
 }
 
 $plugin_conflict = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/plugin-conflict-diagnostics' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $plugin_conflict['ability_id'] ?? '' ), 'adapter runs plugin conflict diagnostic shortcut through ops detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $plugin_conflict['ability_id'] ?? '' ), 'adapter runs plugin conflict diagnostic shortcut through ops detail' );
 maa_adapter_smoke_assert( true === (bool) ( $plugin_conflict['result']['plugins']['groups_included']['inactive'] ?? false ), 'plugin conflict diagnostic requests inactive plugin rows' );
 maa_adapter_smoke_assert( 200 === (int) ( $plugin_conflict['result']['plugins']['max_plugins_per_group'] ?? 0 ), 'plugin conflict diagnostic uses deep plugin group limit' );
 maa_adapter_smoke_assert( is_array( $plugin_conflict['result']['plugins']['inactive'] ?? null ), 'plugin conflict diagnostic returns inactive plugin rows array' );
 
 $current_user_permissions = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/current-user-permissions' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $current_user_permissions['ability_id'] ?? '' ), 'adapter runs current user permissions diagnostic shortcut through ops detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $current_user_permissions['ability_id'] ?? '' ), 'adapter runs current user permissions diagnostic shortcut through ops detail' );
 maa_adapter_smoke_assert( is_array( $current_user_permissions['result']['current_user'] ?? null ), 'current user permissions diagnostic returns user capability object' );
 maa_adapter_smoke_assert( array_key_exists( 'capabilities', (array) ( $current_user_permissions['result']['current_user'] ?? array() ) ), 'current user permissions diagnostic returns capability details' );
 
 $recent_error_log = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/recent-error-log' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $recent_error_log['ability_id'] ?? '' ), 'adapter runs default error log diagnostic through ops detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $recent_error_log['ability_id'] ?? '' ), 'adapter runs default error log diagnostic through ops detail' );
 maa_adapter_smoke_assert( false === (bool) ( $recent_error_log['result']['error_log']['contents_included'] ?? true ), 'default error log diagnostic does not include log contents' );
 maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary'] ?? null ), 'default error log diagnostic exposes severity summary without log contents' );
 foreach ( array( 'returned_lines', 'fatal_count', 'error_count', 'warning_count', 'deprecated_count', 'notice_count', 'info_count', 'unknown_count', 'summary_source' ) as $summary_field ) {
@@ -1018,13 +1027,13 @@ foreach ( array( 'returned_lines', 'fatal_count', 'error_count', 'warning_count'
 maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary']['by_severity'] ?? null ), 'default error log diagnostic exposes severity summary' );
 
 $recent_error_log_tail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/recent-error-log-tail' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $recent_error_log_tail['ability_id'] ?? '' ), 'adapter runs explicit error log tail diagnostic through ops detail' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $recent_error_log_tail['ability_id'] ?? '' ), 'adapter runs explicit error log tail diagnostic through ops detail' );
 maa_adapter_smoke_assert( true === (bool) ( $recent_error_log_tail['result']['error_log']['contents_included'] ?? false ), 'explicit error log tail diagnostic includes log contents' );
 maa_adapter_smoke_assert( is_array( $recent_error_log_tail['result']['error_log']['tail_entries'] ?? null ), 'explicit error log tail diagnostic exposes redacted tail entries' );
 maa_adapter_smoke_assert( is_array( $recent_error_log_tail['result']['error_log']['summary']['by_severity'] ?? null ), 'explicit error log tail diagnostic exposes severity summary' );
 
 $database_info = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/database-info' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $database_info['ability_id'] ?? '' ), 'adapter runs database diagnostic shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $database_info['ability_id'] ?? '' ), 'adapter runs database diagnostic shortcut' );
 maa_adapter_smoke_assert( is_array( $database_info['result']['database'] ?? null ), 'database diagnostic returns database object' );
 maa_adapter_smoke_assert( is_array( $database_info['result']['php']['extensions']['loaded'] ?? null ), 'database diagnostic result preserves PHP extension details' );
 maa_adapter_smoke_assert( is_array( $database_info['result']['object_cache'] ?? null ), 'database diagnostic result preserves object cache details' );
@@ -1042,7 +1051,7 @@ maa_adapter_smoke_assert( array_key_exists( 'security_summary', (array) ( $datab
 maa_adapter_smoke_assert( array_key_exists( 'performance_summary', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves performance summary' );
 
 $cron_events_detail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/cron-events-detail' );
-maa_adapter_smoke_assert( 'magick-ai-abilities/wp-ops-diagnostics-detail' === (string) ( $cron_events_detail['ability_id'] ?? '' ), 'adapter runs cron events diagnostic shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $cron_events_detail['ability_id'] ?? '' ), 'adapter runs cron events diagnostic shortcut' );
 maa_adapter_smoke_assert( is_array( $cron_events_detail['result']['cron_events'] ?? null ), 'cron events diagnostic returns cron object' );
 maa_adapter_smoke_assert( array_key_exists( 'events', (array) ( $cron_events_detail['result']['cron_events'] ?? array() ) ), 'cron events diagnostic returns event details' );
 
@@ -1056,7 +1065,7 @@ $workflow_recipe = maa_adapter_smoke_rest(
 		'recipe_id' => 'workflow/wordpress_comment_compliance_handoff',
 	)
 );
-maa_adapter_smoke_assert( 'magick-ai-abilities/get-workflow-recipe' === (string) ( $workflow_recipe['ability_id'] ?? '' ), 'adapter runs workflow recipe detail ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-workflow-recipe' === (string) ( $workflow_recipe['ability_id'] ?? '' ), 'adapter runs workflow recipe detail ability' );
 maa_adapter_smoke_assert( 'magick-ai/get-comment-compliance-handoff' === (string) ( $workflow_recipe['result']['entrypoint_ability_id'] ?? '' ), 'adapter returns workflow recipe detail result' );
 
 $site_info = maa_adapter_smoke_rest(

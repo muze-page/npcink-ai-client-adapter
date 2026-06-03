@@ -49,6 +49,8 @@ final class Controller {
 		'magick-ai/build-content-inventory-fix-plan' => true,
 		'magick-ai/build-test-content-cleanup-plan'  => true,
 		'magick-ai/build-media-inventory-fix-plan'   => true,
+		'magick-ai/build-media-reference-repair-plan' => true,
+		'magick-ai/build-media-settings-reference-repair-plan' => true,
 		'magick-ai-toolbox/build-article-write-plan' => true,
 	);
 
@@ -111,6 +113,41 @@ final class Controller {
 					'fields'  => array( 'title', 'content', 'excerpt' ),
 					'code'    => 'magick_ai_adapter_update_fields_required',
 					'message' => __( 'update-post execution input must include title, content, or excerpt.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/patch-post-content' => array(
+				'allowed_input_fields'  => array( 'post_id', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'patch-post-content execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'operations' ),
+					'code'    => 'magick_ai_adapter_patch_operations_required',
+					'message' => __( 'patch-post-content execution input must include operations.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/patch-setting-value' => array(
+				'allowed_input_fields'  => array( 'target_type', 'target_name', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'target_type' => array(
+						'allowed' => array( 'option', 'theme_mod' ),
+						'code'    => 'magick_ai_adapter_setting_target_type_invalid',
+						'message' => __( 'patch-setting-value target_type must be option or theme_mod.', 'magick-ai-adapter' ),
+					),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'operations' ),
+					'code'    => 'magick_ai_adapter_patch_operations_required',
+					'message' => __( 'patch-setting-value execution input must include operations.', 'magick-ai-adapter' ),
+				),
+				'required_text_fields'  => array(
+					'target_name' => array(
+						'code'    => 'magick_ai_adapter_setting_target_required',
+						'message' => __( 'patch-setting-value execution input must include target_name.', 'magick-ai-adapter' ),
+					),
 				),
 				'post_id_from_result'   => false,
 			),
@@ -221,6 +258,21 @@ final class Controller {
 						'code'    => 'magick_ai_adapter_attachment_id_required',
 						'message' => __( 'replace-media-file execution input must include attachment_id.', 'magick-ai-adapter' ),
 					),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/adopt-cloud-media-derivative' => array(
+				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'required_int_fields'   => array(
+					'attachment_id' => array(
+						'code'    => 'magick_ai_adapter_attachment_id_required',
+						'message' => __( 'adopt-cloud-media-derivative execution input must include attachment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'derivative_artifact' ),
+					'code'    => 'magick_ai_adapter_derivative_artifact_required',
+					'message' => __( 'adopt-cloud-media-derivative execution input must include derivative_artifact evidence.', 'magick-ai-adapter' ),
 				),
 				'post_id_from_result'   => false,
 			),
@@ -657,6 +709,57 @@ final class Controller {
 
 		register_rest_route(
 			self::NAMESPACE,
+			'/media-derivative-artifacts/(?P<artifact_id>[A-Za-z0-9._:-]+)/preview',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'download_media_derivative_artifact_preview' ),
+					'permission_callback' => array( $this, 'can_use_media_derivative_artifact_preview' ),
+					'args'                => array(
+						'artifact_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'expires_at'  => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'expires_ts'  => array(
+							'type'              => 'integer',
+							'sanitize_callback' => 'absint',
+						),
+						'mime_type'   => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'checksum'    => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'sha256'      => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'run_id'      => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'trace_id'    => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'preview_sig' => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
 			'/proposals',
 			array(
 				array(
@@ -891,6 +994,25 @@ final class Controller {
 		}
 
 		return $request instanceof WP_REST_Request && $this->authenticate_signed_request( $request );
+	}
+
+	/**
+	 * Authorizes one local media derivative preview URL.
+	 *
+	 * Browser image requests cannot send X-WP-Nonce headers. The projection
+	 * URL therefore carries a short-lived local HMAC over the artifact
+	 * descriptor, while normal Adapter auth still works for authenticated REST
+	 * callers.
+	 *
+	 * @param WP_REST_Request|null $request Request.
+	 * @return bool
+	 */
+	public function can_use_media_derivative_artifact_preview( ?WP_REST_Request $request = null ): bool {
+		if ( $this->can_use_adapter( $request ) ) {
+			return true;
+		}
+
+		return $request instanceof WP_REST_Request && $this->valid_media_derivative_artifact_preview_signature( $request );
 	}
 
 	/**
@@ -1927,6 +2049,7 @@ final class Controller {
 				'POST /media-derivative-runs',
 				'GET /media-derivative-runs/{run_id}',
 				'GET /media-derivative-runs/{run_id}/result',
+				'GET /media-derivative-artifacts/{artifact_id}/preview',
 				'POST /media-derivative-proposal-payload',
 			),
 			'provider_log_correlation' => array(
@@ -2043,6 +2166,50 @@ final class Controller {
 				),
 				'docs'         => 'docs/openclaw-content-discoverability-recipe.md',
 			),
+			'ai_article_draft_with_discoverability' => array(
+				'title'       => 'AI article draft with discoverability',
+				'description' => 'For natural-language article requests, build one Toolbox AI article writing pack with SEO/AEO/GEO context and drafting guardrails before OpenClaw writes the candidate article.',
+				'entrypoint_ability_id' => 'magick-ai-toolbox/build-ai-article-writing-pack',
+				'steps'       => array(
+					array(
+						'order'      => 1,
+						'route'      => 'GET /article-writing-pack?topic={topic} or POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/build-ai-article-writing-pack',
+						'purpose'    => 'Build one suggestion-only writing pack from Toolbox content context, validation, discoverability brief, style rules, and forbidden claims.',
+					),
+					array(
+						'order'   => 2,
+						'route'   => 'OpenClaw local drafting step',
+						'purpose' => 'Draft article content, SEO title/description, AEO answer summary, FAQ, GEO summary, and proposal candidates from the pack without writing WordPress data.',
+					),
+					array(
+						'order'      => 3,
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+						'purpose'    => 'After operator review, convert the reviewed draft into a Core-ready article_write_plan.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'POST /proposals/from-plan when a reviewed final write is needed',
+						'purpose' => 'Use Core governance for any final WordPress write-like outcome.',
+					),
+				),
+				'guardrails'   => array(
+					'artifact_type'           => 'ai_article_writing_pack',
+					'write_posture'           => 'suggestion_only',
+					'direct_wordpress_write'  => false,
+					'provider_execution'      => 'none',
+					'core_preflight_required_for_writes' => true,
+					'mutate_post_content'     => false,
+					'mutate_seo_meta'         => false,
+					'mutate_slug'             => false,
+					'mutate_excerpt'          => false,
+					'mutate_schema'           => false,
+					'publish_allowed'         => false,
+					'generic_write_executor'  => false,
+				),
+				'docs'         => 'docs/openclaw-ai-article-writing-pack-recipe.md',
+			),
 			'media_derivative_cloud' => array(
 				'title'       => 'Media derivative Cloud artifact',
 				'description' => 'Build a local media derivative request, dispatch it through Cloud Addon, then hand the resulting artifact back to Core governance before any WordPress adoption.',
@@ -2066,11 +2233,16 @@ final class Controller {
 					),
 					array(
 						'order'   => 4,
+						'route'   => 'GET /media-derivative-artifacts/{artifact_id}/preview',
+						'purpose' => 'Serve one non-expired derivative artifact through the local signed preview proxy without storing artifact truth.',
+					),
+					array(
+						'order'   => 5,
 						'route'   => 'POST /media-derivative-proposal-payload',
 						'purpose' => 'Build a Core-ready proposal payload without creating, approving, or executing the proposal.',
 					),
 					array(
-						'order'   => 5,
+						'order'   => 6,
 						'route'   => 'POST /proposals',
 						'purpose' => 'Use Core proposal intake for any local recording, attachment metadata, or media replacement decision.',
 					),
@@ -2152,6 +2324,7 @@ final class Controller {
 			'POST /media-derivative-runs' => 'Build the local media derivative Cloud request ability, upload or reference source artifacts through Cloud Addon, and return a Cloud run projection without writing WordPress media.',
 			'GET /media-derivative-runs/{run_id}' => 'Poll a Cloud media derivative run through Cloud Addon without storing Adapter run truth.',
 			'GET /media-derivative-runs/{run_id}/result' => 'Read a Cloud media derivative result projection through Cloud Addon.',
+			'GET /media-derivative-artifacts/{artifact_id}/preview' => 'Proxy one non-expired derivative artifact through Cloud Addon for same-origin local preview; does not store artifact truth.',
 			'POST /media-derivative-proposal-payload' => 'Build a Core-ready proposal payload from a derivative artifact; does not create, approve, or execute a proposal.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
@@ -2401,6 +2574,58 @@ final class Controller {
 	}
 
 	/**
+	 * Proxies a short-TTL Cloud derivative artifact as a local same-origin preview.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_Error|null
+	 */
+	public function download_media_derivative_artifact_preview( WP_REST_Request $request ) {
+		if ( ! function_exists( 'magick_ai_cloud_addon_download_media_derivative_artifact' ) ) {
+			return $this->cloud_addon_unavailable_error();
+		}
+
+		$artifact = $this->sanitize_media_derivative_artifact_descriptor(
+			array(
+				'artifact_id' => sanitize_text_field( (string) $request->get_param( 'artifact_id' ) ),
+				'expires_at'  => $this->media_derivative_preview_expires_at( $request ),
+				'mime_type'   => sanitize_text_field( (string) $request->get_param( 'mime_type' ) ),
+				'checksum'    => sanitize_text_field( (string) $request->get_param( 'checksum' ) ),
+				'sha256'      => sanitize_text_field( (string) $request->get_param( 'sha256' ) ),
+				'run_id'      => sanitize_text_field( (string) $request->get_param( 'run_id' ) ),
+			)
+		);
+
+		$download = magick_ai_cloud_addon_download_media_derivative_artifact(
+			$artifact,
+			sanitize_text_field( (string) $request->get_param( 'trace_id' ) )
+		);
+		if ( is_wp_error( $download ) ) {
+			return $download;
+		}
+
+		$contents    = is_string( $download['contents'] ?? null ) ? $download['contents'] : '';
+		$mime_type   = sanitize_text_field( (string) ( $download['mime_type'] ?? 'application/octet-stream' ) );
+		$artifact_id = sanitize_file_name( (string) ( $download['artifact_id'] ?? $artifact['artifact_id'] ?? 'derivative-artifact' ) );
+		$filename    = $artifact_id . $this->media_derivative_extension_for_mime( $mime_type );
+
+		if ( function_exists( 'status_header' ) ) {
+			status_header( 200 );
+		}
+		if ( function_exists( 'nocache_headers' ) ) {
+			nocache_headers();
+		}
+
+		header( 'Content-Type: ' . $mime_type );
+		header( 'Content-Length: ' . strlen( $contents ) );
+		header( 'Content-Disposition: inline; filename="' . $filename . '"' );
+		header( 'Cache-Control: private, no-store, max-age=0' );
+		header( 'X-Content-Type-Options: nosniff' );
+		header( 'X-Magick-AI-Artifact-ID: ' . $artifact_id );
+		echo $contents; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		exit;
+	}
+
+	/**
 	 * Runs a workflow recipe detail helper.
 	 *
 	 * @param WP_REST_Request $request Request.
@@ -2408,11 +2633,11 @@ final class Controller {
 	 */
 	public function workflow_recipe( WP_REST_Request $request ) {
 		return $this->run_read_ability(
-			'magick-ai-abilities/get-workflow-recipe',
+			'npcink-abilities-toolkit/get-workflow-recipe',
 			array(
 				'recipe_id' => (string) $request->get_param( 'recipe_id' ),
 			),
-			$this->request_log_context( $request, 'magick-ai-abilities/get-workflow-recipe' )
+			$this->request_log_context( $request, 'npcink-abilities-toolkit/get-workflow-recipe' )
 		);
 	}
 
@@ -4829,12 +5054,12 @@ final class Controller {
 	 * @return array<string,array{ability_id:string,default_input?:array<string,mixed>}>
 	 */
 	private static function read_shortcut_definitions(): array {
-		$summary_ability = 'magick-ai-abilities/wp-diagnostics-summary';
-		$ops_ability     = 'magick-ai-abilities/wp-ops-diagnostics-detail';
+		$summary_ability = 'npcink-abilities-toolkit/wp-diagnostics-summary';
+		$ops_ability     = 'npcink-abilities-toolkit/wp-ops-diagnostics-detail';
 
 		return array(
 			'site-info'              => array( 'ability_id' => 'magick-ai/site-info' ),
-			'site-summary'           => array( 'ability_id' => 'magick-ai-abilities/site-summary' ),
+			'site-summary'           => array( 'ability_id' => 'npcink-abilities-toolkit/site-summary' ),
 			'wp-diagnostics-summary' => array( 'ability_id' => $summary_ability ),
 			'active-plugins-detail'  => array(
 				'ability_id'     => $ops_ability,
@@ -4924,7 +5149,7 @@ final class Controller {
 				'ability_id'     => $ops_ability,
 				'default_input'  => self::ops_diagnostics_input(),
 			),
-			'workflow-recipes'       => array( 'ability_id' => 'magick-ai-abilities/list-workflow-recipes' ),
+			'workflow-recipes'       => array( 'ability_id' => 'npcink-abilities-toolkit/list-workflow-recipes' ),
 			'posts'                  => array( 'ability_id' => 'magick-ai/list-posts' ),
 			'post-context'           => array( 'ability_id' => 'magick-ai/get-post-context' ),
 			'media'                  => array( 'ability_id' => 'magick-ai/list-media' ),
@@ -4950,6 +5175,7 @@ final class Controller {
 			'content-discoverability-context' => array( 'ability_id' => 'magick-ai-toolbox/get-content-discoverability-context' ),
 			'content-discoverability-validation' => array( 'ability_id' => 'magick-ai-toolbox/validate-content-discoverability-context' ),
 			'content-discoverability-brief' => array( 'ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief' ),
+			'article-writing-pack' => array( 'ability_id' => 'magick-ai-toolbox/build-ai-article-writing-pack' ),
 			'site-operations-dashboard' => array( 'ability_id' => 'magick-ai/get-site-operations-dashboard' ),
 			'publishing-calendar-context' => array( 'ability_id' => 'magick-ai/get-publishing-calendar-context' ),
 			'media-inventory-health' => array( 'ability_id' => 'magick-ai/get-media-inventory-health' ),
@@ -5031,7 +5257,7 @@ final class Controller {
 		return array(
 			'summary_route'          => 'GET /wp-diagnostics-summary',
 			'detail_route'           => 'GET /wp-ops-diagnostics-detail',
-			'detail_ability_id'      => 'magick-ai-abilities/wp-ops-diagnostics-detail',
+			'detail_ability_id'      => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
 			'default_input'          => self::ops_diagnostics_input(),
 			'plugin_conflict_input'  => self::ops_diagnostics_plugin_conflict_input(),
 			'explicit_log_input'     => self::ops_diagnostics_log_input(),
@@ -5292,6 +5518,10 @@ final class Controller {
 	private function public_media_derivative_cloud_projection( array $cloud_response ): array {
 		$data       = is_array( $cloud_response['data'] ?? null ) ? $cloud_response['data'] : $cloud_response;
 		$derivative = $this->media_derivative_artifact_from_cloud_result( $data );
+		$preview_url = $this->media_derivative_artifact_preview_url( $derivative );
+		if ( '' !== $preview_url ) {
+			$derivative['preview_url'] = $preview_url;
+		}
 		$error      = is_array( $data['error'] ?? null ) ? $data['error'] : array();
 		$warnings   = is_array( $data['warnings'] ?? null ) ? $data['warnings'] : array();
 		if ( empty( $warnings ) && is_array( $derivative['processing_warnings'] ?? null ) ) {
@@ -5357,6 +5587,138 @@ final class Controller {
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Builds a local same-origin preview proxy URL from a Cloud artifact descriptor.
+	 *
+	 * @param array<string,mixed> $artifact Artifact descriptor.
+	 * @return string
+	 */
+	private function media_derivative_artifact_preview_url( array $artifact ): string {
+		$artifact_id = sanitize_text_field( (string) ( $artifact['artifact_id'] ?? $artifact['id'] ?? '' ) );
+		$expires_at  = sanitize_text_field( (string) ( $artifact['expires_at'] ?? '' ) );
+		$expires_ts  = strtotime( $expires_at );
+		if ( '' === $artifact_id || '' === $expires_at || false === $expires_ts ) {
+			return '';
+		}
+
+		$query = array(
+			'expires_ts' => (string) $expires_ts,
+		);
+		foreach ( array( 'mime_type', 'checksum', 'sha256', 'run_id' ) as $key ) {
+			if ( '' !== (string) ( $artifact[ $key ] ?? '' ) ) {
+				$query[ $key ] = (string) $artifact[ $key ];
+			}
+		}
+		$query['preview_sig'] = $this->media_derivative_artifact_preview_signature( $artifact_id, $query );
+
+		return add_query_arg(
+			$query,
+			rest_url( self::NAMESPACE . '/media-derivative-artifacts/' . rawurlencode( $artifact_id ) . '/preview' )
+		);
+	}
+
+	/**
+	 * Returns a local HMAC for one derivative preview descriptor.
+	 *
+	 * @param string              $artifact_id Artifact id.
+	 * @param array<string,mixed> $query Preview query descriptor.
+	 * @return string
+	 */
+	private function media_derivative_artifact_preview_signature( string $artifact_id, array $query ): string {
+		return hash_hmac(
+			'sha256',
+			$this->media_derivative_artifact_preview_signature_payload( $artifact_id, $query ),
+			wp_salt( 'auth' )
+		);
+	}
+
+	/**
+	 * Verifies a local HMAC preview signature from a REST image request.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function valid_media_derivative_artifact_preview_signature( WP_REST_Request $request ): bool {
+		$artifact_id = sanitize_text_field( (string) $request->get_param( 'artifact_id' ) );
+		$expires_at  = $this->media_derivative_preview_expires_at( $request );
+		$signature   = strtolower( sanitize_text_field( (string) $request->get_param( 'preview_sig' ) ) );
+		if ( '' === $artifact_id || '' === $expires_at || '' === $signature ) {
+			return false;
+		}
+
+		$expires = strtotime( $expires_at );
+		if ( false === $expires || $expires <= time() ) {
+			return false;
+		}
+
+		$query = array(
+			'expires_ts' => (string) $expires,
+		);
+		foreach ( array( 'mime_type', 'checksum', 'sha256', 'run_id' ) as $key ) {
+			$value = sanitize_text_field( (string) $request->get_param( $key ) );
+			if ( '' !== $value ) {
+				$query[ $key ] = $value;
+			}
+		}
+
+		$expected = $this->media_derivative_artifact_preview_signature( $artifact_id, $query );
+
+		return hash_equals( $expected, $signature );
+	}
+
+	/**
+	 * Builds the signed preview descriptor payload.
+	 *
+	 * @param string              $artifact_id Artifact id.
+	 * @param array<string,mixed> $query Preview query descriptor.
+	 * @return string
+	 */
+	private function media_derivative_artifact_preview_signature_payload( string $artifact_id, array $query ): string {
+		$payload = array(
+			'artifact_id' => sanitize_text_field( $artifact_id ),
+			'expires_ts'  => absint( $query['expires_ts'] ?? 0 ),
+			'mime_type'   => sanitize_text_field( (string) ( $query['mime_type'] ?? '' ) ),
+			'checksum'    => sanitize_text_field( (string) ( $query['checksum'] ?? '' ) ),
+			'sha256'      => sanitize_text_field( (string) ( $query['sha256'] ?? '' ) ),
+			'run_id'      => sanitize_text_field( (string) ( $query['run_id'] ?? '' ) ),
+		);
+
+		return wp_json_encode( $payload );
+	}
+
+	/**
+	 * Returns the preview artifact expiry from either timestamp or legacy ISO query.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return string
+	 */
+	private function media_derivative_preview_expires_at( WP_REST_Request $request ): string {
+		$expires_ts = absint( $request->get_param( 'expires_ts' ) );
+		if ( $expires_ts > 0 ) {
+			return gmdate( 'c', $expires_ts );
+		}
+
+		return sanitize_text_field( (string) $request->get_param( 'expires_at' ) );
+	}
+
+	/**
+	 * Returns a stable file extension for supported derivative preview mimes.
+	 *
+	 * @param string $mime_type Mime type.
+	 * @return string
+	 */
+	private function media_derivative_extension_for_mime( string $mime_type ): string {
+		$map = array(
+			'image/avif' => '.avif',
+			'image/gif'  => '.gif',
+			'image/jpeg' => '.jpg',
+			'image/png'  => '.png',
+			'image/webp' => '.webp',
+		);
+
+		return (string) ( $map[ strtolower( trim( $mime_type ) ) ] ?? '.bin' );
 	}
 
 	/**

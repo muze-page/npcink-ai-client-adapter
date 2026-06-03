@@ -82,6 +82,7 @@ Addon orchestration seam:
 POST /wp-json/magick-ai-adapter/v1/media-derivative-runs
 GET  /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}
 GET  /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}/result
+GET  /wp-json/magick-ai-adapter/v1/media-derivative-artifacts/{artifact_id}/preview
 POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload
 ```
 
@@ -98,10 +99,15 @@ The route returns a Cloud run projection and the local ability response. It
 does not store run truth, artifact truth, Cloud credentials, approval truth, or
 media registry state. `GET /media-derivative-runs/{run_id}` and
 `GET /media-derivative-runs/{run_id}/result` read bounded run/result
-projections through Cloud Addon. `POST /media-derivative-proposal-payload`
-builds a Core-ready local proposal payload from the ability response, Cloud
-result, and derivative artifact, but does not create, approve, preflight, or
-execute a proposal.
+projections through Cloud Addon. The result projection may include a same-origin
+`preview_url`; `GET /media-derivative-artifacts/{artifact_id}/preview` serves
+one non-expired derivative artifact through Cloud Addon for local preview only.
+Browser image requests may use WordPress REST auth or the short-lived local
+`preview_sig` embedded in the URL. It does not store artifact truth, expose a
+public Cloud URL, or write WordPress media. `POST
+/media-derivative-proposal-payload` builds a Core-ready local proposal payload
+from the ability response, Cloud result, and derivative artifact, but does not
+create, approve, preflight, or execute a proposal.
 
 The returned payloads must preserve:
 
@@ -122,6 +128,8 @@ direct reads:
 - `magick-ai/build-content-inventory-fix-plan`
 - `magick-ai/build-test-content-cleanup-plan`
 - `magick-ai/build-media-inventory-fix-plan`
+- `magick-ai/build-media-reference-repair-plan`
+- `magick-ai/build-media-settings-reference-repair-plan`
 - `magick-ai-toolbox/build-article-write-plan`
 
 OpenClaw may also use direct read execution for media format inspection:
@@ -197,8 +205,11 @@ For a pending `magick-ai/trash-post`, `magick-ai/create-draft`,
 `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
 `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
 `magick-ai/delete-term`, `magick-ai/update-media-details`,
+`magick-ai/patch-post-content`,
+`magick-ai/patch-setting-value`,
 `magick-ai/optimize-media-asset`,
 `magick-ai/replace-media-file`,
+`magick-ai/adopt-cloud-media-derivative`,
 `magick-ai/delete-media-permanently`,
 `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
 `magick-ai/approve-comment` proposal, Adapter
@@ -219,11 +230,16 @@ requires `post_id`; `create-draft` requires `title`; `update-post` requires
 requires a valid `taxonomy` and `term_id`; `update-media-details` requires
 `attachment_id` plus at least one media detail field; media `source_type`, when
 provided, must be one of `owned`, `ai_generated`, `stock`, `external`, or
-`test`; `optimize-media-asset` requires `attachment_id`, may accept bounded
+`test`; `patch-post-content` requires `post_id` and bounded exact replacement
+`operations`; `patch-setting-value` requires `target_type`, `target_name`, and
+bounded exact replacement `operations`; `optimize-media-asset` requires `attachment_id`, may accept bounded
 format, width, quality, and suffix inputs, and must preserve the original file;
 `replace-media-file` requires `attachment_id`, uses either a recorded
 `derivative_relative_file` for replace mode or a `replacement_id` for rollback
 mode, and records backup/rollback metadata;
+`adopt-cloud-media-derivative` requires `attachment_id` and
+`derivative_artifact` evidence, then delegates any approved local download,
+backup, attachment pointer, and metadata writes to the WordPress ability;
 `delete-media-permanently` requires an existing attachment `attachment_id`;
 `reply-comment` requires `comment_id`, non-empty `content`, and a valid
 `content_format`; `trash-comment` requires `comment_id`;
@@ -256,8 +272,11 @@ The current allowlist is intentionally narrow:
 - `magick-ai/set-post-terms`
 - `magick-ai/delete-term`
 - `magick-ai/update-media-details`
+- `magick-ai/patch-post-content`
+- `magick-ai/patch-setting-value`
 - `magick-ai/optimize-media-asset`
 - `magick-ai/replace-media-file`
+- `magick-ai/adopt-cloud-media-derivative`
 - `magick-ai/delete-media-permanently`
 - `magick-ai/reply-comment`
 - `magick-ai/trash-comment`
@@ -528,7 +547,7 @@ status itself.
 `wp-diagnostics-summary` is only a quick overview. OpenClaw must not use it to
 decide whether plugin details, current-user permission details, or error-log
 details are missing. All P0/P1/P2 troubleshooting detail shortcuts call
-`magick-ai-abilities/wp-ops-diagnostics-detail`.
+`npcink-abilities-toolkit/wp-ops-diagnostics-detail`.
 
 Default detail input:
 
@@ -732,8 +751,11 @@ OpenClaw must treat Core as the only proposal and approval truth:
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
    `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
-   `magick-ai/replace-media-file`, `magick-ai/delete-media-permanently`,
+   `magick-ai/update-media-details`, `magick-ai/patch-post-content`,
+   `magick-ai/patch-setting-value`,
+   `magick-ai/optimize-media-asset`,
+   `magick-ai/replace-media-file`, `magick-ai/adopt-cloud-media-derivative`,
+   `magick-ai/delete-media-permanently`,
    `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment`.
 

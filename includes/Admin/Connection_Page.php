@@ -646,7 +646,31 @@ final class Connection_Page {
 						return;
 					}
 
-					function setTab(tabName) {
+					function hasTab(tabName) {
+						var found = false;
+						root.querySelectorAll('[data-maa-tab]').forEach(function (tab) {
+							if (tab.getAttribute('data-maa-tab') === tabName) {
+								found = true;
+							}
+						});
+						return found;
+					}
+
+					function updateTabUrl(tabName) {
+						if (!window.history || !window.history.replaceState || !window.URL) {
+							return;
+						}
+
+						var url = new window.URL(window.location.href);
+						url.searchParams.set('maa_tab', tabName);
+						window.history.replaceState({}, '', url.toString());
+					}
+
+					function setTab(tabName, updateUrl) {
+						if (!hasTab(tabName)) {
+							return;
+						}
+
 						root.querySelectorAll('[data-maa-tab]').forEach(function (tab) {
 							var active = tab.getAttribute('data-maa-tab') === tabName;
 							tab.classList.toggle('is-active', active);
@@ -658,13 +682,24 @@ final class Connection_Page {
 							panel.classList.toggle('is-active', active);
 							panel.hidden = !active;
 						});
+
+						if (updateUrl) {
+							updateTabUrl(tabName);
+						}
 					}
 
 					root.querySelectorAll('[data-maa-tab]').forEach(function (tab) {
 						tab.addEventListener('click', function () {
-							setTab(tab.getAttribute('data-maa-tab'));
+							setTab(tab.getAttribute('data-maa-tab'), true);
 						});
 					});
+
+					if (window.URL) {
+						var initialTab = new window.URL(window.location.href).searchParams.get('maa_tab');
+						if (initialTab) {
+							setTab(initialTab, false);
+						}
+					}
 
 					root.querySelectorAll('[data-maa-copy-target]').forEach(function (button) {
 						button.addEventListener('click', function () {
@@ -1233,7 +1268,8 @@ final class Connection_Page {
 			. "OpenClaw only connects to Adapter. Do not connect OpenClaw directly to Magick AI Core.\n"
 			. "Start by calling GET /health, GET /help, and GET /capabilities.\n"
 			. "For direct_read abilities, call the matching read shortcut or POST /run-read-ability with the real ability_id and input object.\n"
-			. "For SEO/AEO/GEO suggestions, follow openclaw_recipes.content_discoverability_suggestions: validate Toolbox context, read Toolbox context, build one content_discoverability_brief, and return suggestions only.\n"
+			. "For SEO/GEO/AEO suggestions, the primary entrypoint is content-discoverability-brief through openclaw_recipes.content_discoverability_suggestions: validate Toolbox context, read Toolbox context, build one content_discoverability_brief, and return suggestions only.\n"
+			. "Use article-writing-pack only for broad natural-language article requests such as \"help me write an article\": follow openclaw_recipes.ai_article_draft_with_discoverability, draft from the returned ai_article_writing_pack, then use Core proposals for reviewed final writes.\n"
 			. "For proposal_required abilities, POST /proposals with the real ability_id, input, preview, and caller metadata. For read-only planning outputs, POST /proposals/from-plan to let Core create governed proposals.\n"
 			. "Poll GET /proposals/{proposal_id} for Core status. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute so Adapter calls Core approve, Core commit-preflight, and one allowlisted execution. If status=rejected, stop and show the rejection status. If status=approved and using the lower-level split path, call POST /proposals/{proposal_id}/commit-preflight.\n"
 			. "When you have proposal_id or commit-preflight correlation_id, pass them as log_context on POST /run-read-ability or as query fields on read shortcuts so Adapter can add them to AI Request Logs context through wpai_request_log_context. Core Governance Audit is the governance log; AI Request Logs are the provider request log. Adapter context includes ability_id, adapter_request_id, adapter_route, ai_provider, ai_model, governance_source=magick-ai-core, and nested magick_ai_core identifiers.\n"
@@ -1327,9 +1363,10 @@ final class Connection_Page {
 			. "3. Call GET /health first and require core_capabilities=true, abilities_catalog=true, approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.\n"
 			. "4. Call GET /help to discover adapter routes, then GET /capabilities before reads or proposals and use only real ability_id values returned by Core.\n"
 			. "5. For direct_read abilities, call a read shortcut or POST /run-read-ability.\n"
-			. "5b. For SEO/AEO/GEO suggestions, use content_discoverability_suggestions: call content-discoverability-validation, content-discoverability-context, then content-discoverability-brief for one post_id or supplied topic. Return suggestions only; do not write SEO meta, slug, excerpt, schema, media, or posts.\n"
+			. "5b. For SEO/GEO/AEO suggestions, the primary entrypoint is content-discoverability-brief: use content_discoverability_suggestions, call content-discoverability-validation, content-discoverability-context, then content-discoverability-brief for one post_id or supplied topic. Return suggestions only; do not write SEO meta, slug, excerpt, schema, media, or posts.\n"
+			. "5c. Use article-writing-pack only for broad article requests like \"help me write an article\" or \"write an AI topic article\": use ai_article_draft_with_discoverability, draft only from the returned pack, and send any reviewed final write through Core proposal/preflight.\n"
 			. "6. For proposal_required abilities, POST /proposals and poll GET /proposals/{proposal_id}. For read-only planning outputs, POST /proposals/from-plan.\n"
-			. "7. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute. Adapter calls Core approve, Core commit-preflight, and one allowlisted execution. Current execution allowlist: magick-ai/trash-post, magick-ai/create-draft, magick-ai/update-post, magick-ai/set-post-seo-meta, magick-ai/set-post-slug, magick-ai/set-post-terms, magick-ai/delete-term, magick-ai/update-media-details, magick-ai/delete-media-permanently, magick-ai/reply-comment, magick-ai/trash-comment, magick-ai/approve-comment.\n"
+			. "7. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute. Adapter calls Core approve, Core commit-preflight, and one allowlisted execution. Current execution allowlist: magick-ai/trash-post, magick-ai/create-draft, magick-ai/update-post, magick-ai/patch-post-content, magick-ai/patch-setting-value, magick-ai/set-post-seo-meta, magick-ai/set-post-slug, magick-ai/set-post-terms, magick-ai/delete-term, magick-ai/update-media-details, magick-ai/delete-media-permanently, magick-ai/reply-comment, magick-ai/trash-comment, magick-ai/approve-comment.\n"
 			. "7b. If status=rejected, stop and show the rejection status. If status=approved and using the lower-level split path, call POST /proposals/{proposal_id}/commit-preflight.\n"
 			. "8. Pass proposal_id and correlation_id as log_context or read shortcut query fields so AI Request Logs can correlate execution rows with Core audit. Core Governance Audit is the governance log; AI Request Logs are the provider request log. For provider smoke, POST /ai-provider-log-correlation-smoke with a configured text generation ai_provider and ai_model after commit-preflight; local Ollama examples use ai_provider=ollama and ai_model=qwen3.5:0.8b when available.\n"
 			. "9. Treat POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject as disabled stubs. Approval without execution is handled in Magick AI Core admin.\n"

@@ -129,13 +129,15 @@ routes:
 - `POST /media-derivative-runs`;
 - `GET /media-derivative-runs/{run_id}`;
 - `GET /media-derivative-runs/{run_id}/result`;
+- `GET /media-derivative-artifacts/{artifact_id}/preview`;
 - `POST /media-derivative-proposal-payload`.
 
 Those routes build the local read-only request contract, pass source or
 watermark uploads/artifact references through Cloud Addon, return Cloud
-run/result projections, and build a Core-ready proposal payload. They must not
-create Core proposals, approve adoption, update attachment metadata, replace
-media files, or store artifact truth.
+run/result projections, stream one same-origin local preview through Cloud
+Addon, and build a Core-ready proposal payload. They must not create Core
+proposals, approve adoption, update attachment metadata, replace media files,
+or store artifact truth.
 
 ## Forbidden Adapter Shapes
 

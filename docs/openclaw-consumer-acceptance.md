@@ -95,12 +95,14 @@ Run this order for a local acceptance pass:
    - `POST /media-derivative-runs`
    - `GET /media-derivative-runs/{run_id}`
    - `GET /media-derivative-runs/{run_id}/result`
+   - `GET /media-derivative-artifacts/{artifact_id}/preview`
    - `POST /media-derivative-proposal-payload`
    - `GET /term`, whose purpose explains term detail uses list row `id` and
      infers `taxonomy` when possible
    - `route_groups` for human-readable grouped route labels
    - `openclaw_recipes.article_draft_plan`
    - `openclaw_recipes.content_discoverability_suggestions`
+   - `openclaw_recipes.ai_article_draft_with_discoverability`
    - `openclaw_recipes.media_derivative_cloud`
    - disabled approval and rejection stubs
    - direct-read shortcuts
@@ -116,7 +118,7 @@ Run this order for a local acceptance pass:
    - `GET /current-user-permissions`
    - `GET /database-info`
    Confirm diagnostics details come from
-   `magick-ai-abilities/wp-ops-diagnostics-detail`, not from
+   `npcink-abilities-toolkit/wp-ops-diagnostics-detail`, not from
    `wp-diagnostics-summary`.
    With default `include_log_contents=false`, log contents are not explicitly
    requested and must not be marked missing.
@@ -136,7 +138,9 @@ Run this order for a local acceptance pass:
 10. Run a planning ability such as
    `magick-ai/build-content-inventory-fix-plan`,
    `magick-ai/build-test-content-cleanup-plan`,
-   `magick-ai/build-media-inventory-fix-plan`, or
+   `magick-ai/build-media-inventory-fix-plan`,
+   `magick-ai/build-media-reference-repair-plan`, or
+   `magick-ai/build-media-settings-reference-repair-plan`, or
    `magick-ai-toolbox/build-article-write-plan`. Confirm Adapter preserves
    `write_actions`, `preview`, `risk`, `requires_approval`,
    `commit_execution=false`, and `dry_run=true`, and does not treat
@@ -150,6 +154,13 @@ Run this order for a local acceptance pass:
    `GET /content-discoverability-brief?post_id=POST_ID`; confirm the result has
    `artifact_type=content_discoverability_brief`,
    `write_posture=suggestion_only`, `direct_wordpress_write=false`, and
+   `final_write_path=core_proposal_required`.
+   For broad natural-language article requests, run
+   `magick-ai-toolbox/build-ai-article-writing-pack` through
+   `POST /run-read-ability` or `GET /article-writing-pack?topic=AI_TOPIC`;
+   confirm the result has `artifact_type=ai_article_writing_pack`,
+   `write_posture=suggestion_only`, `provider_execution=none`,
+   `direct_wordpress_write=false`, and
    `final_write_path=core_proposal_required`.
    For a public read such as `/site-summary`, confirm
    `read_policy=direct_read_public`.
@@ -176,6 +187,10 @@ Run this order for a local acceptance pass:
     Adapter's `media-derivative-runs` projection routes, then call
     `POST /media-derivative-proposal-payload` and confirm it returns a
     Core-ready payload without creating, approving, or executing a proposal.
+    If the preview should replace the attachment main file, create a separate
+    Core proposal for `magick-ai/adopt-cloud-media-derivative` using the
+    non-expired `derivative_artifact`; Adapter can execute that proposal only
+    after Core approval and commit-preflight.
 12. Query status through Adapter:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`
@@ -203,6 +218,8 @@ Run this order for a local acceptance pass:
     `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
     `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
     `magick-ai/delete-term`, `magick-ai/update-media-details`,
+    `magick-ai/patch-post-content`,
+    `magick-ai/patch-setting-value`,
     `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
     `magick-ai/trash-comment`, or `magick-ai/approve-comment` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core

@@ -35,9 +35,12 @@ when every action targets the current execution allowlist
 (`magick-ai/trash-post`, `magick-ai/create-draft`,
 `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
 `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
-`magick-ai/delete-term`, `magick-ai/update-media-details`,
+`magick-ai/delete-term`, `magick-ai/patch-post-content`,
+`magick-ai/patch-setting-value`,
+`magick-ai/update-media-details`,
 `magick-ai/optimize-media-asset`,
 `magick-ai/replace-media-file`,
+`magick-ai/adopt-cloud-media-derivative`,
 `magick-ai/delete-media-permanently`,
 `magick-ai/reply-comment`, `magick-ai/trash-comment`,
 `magick-ai/approve-comment`). See
@@ -66,6 +69,7 @@ authentication, such as an administrator Application Password.
 - `POST /wp-json/magick-ai-adapter/v1/media-derivative-runs`
 - `GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}`
 - `GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}/result`
+- `GET /wp-json/magick-ai-adapter/v1/media-derivative-artifacts/{artifact_id}/preview`
 - `POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload`
 - `POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke`
 - `GET /wp-json/magick-ai-adapter/v1/site-info`
@@ -120,6 +124,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/content-discoverability-context`
 - `GET /wp-json/magick-ai-adapter/v1/content-discoverability-validation`
 - `GET /wp-json/magick-ai-adapter/v1/content-discoverability-brief`
+- `GET /wp-json/magick-ai-adapter/v1/article-writing-pack`
 - `GET /wp-json/magick-ai-adapter/v1/site-operations-dashboard`
 - `GET /wp-json/magick-ai-adapter/v1/publishing-calendar-context`
 - `GET /wp-json/magick-ai-adapter/v1/media-inventory-health`
@@ -143,7 +148,7 @@ GET shortcut query parameters are forwarded as ability `input`. For example,
 Diagnostics shortcuts are Adapter aliases over existing direct-read abilities
 from `magick-ai-abilities`; Adapter does not collect these facts itself.
 `wp-diagnostics-summary` is only a quick overview. P0/P1/P2 troubleshooting
-detail shortcuts call `magick-ai-abilities/wp-ops-diagnostics-detail`.
+detail shortcuts call `npcink-abilities-toolkit/wp-ops-diagnostics-detail`.
 
 Default diagnostics detail input is:
 
@@ -230,7 +235,10 @@ policy defaults when available, supplies the local source attachment file or a
 caller-provided short-TTL artifact reference, and dispatches only through
 `magick-ai-cloud-addon`. The route returns a Cloud run projection plus the
 ability response. Poll `GET /media-derivative-runs/{run_id}` and
-`GET /media-derivative-runs/{run_id}/result`, then call
+`GET /media-derivative-runs/{run_id}/result`. The result projection may include
+a same-origin `preview_url`; browser clients can load it through
+`GET /media-derivative-artifacts/{artifact_id}/preview` with WordPress REST
+auth or the short-lived local `preview_sig` emitted in the URL. Then call
 `POST /media-derivative-proposal-payload` with the ability response, Cloud
 result, and derivative artifact. That payload is Core-ready but not submitted,
 approved, or executed by Adapter. See
@@ -238,13 +246,13 @@ approved, or executed by Adapter. See
 
 Adapter does not create a media registry, artifact registry, Cloud settings
 surface, approval truth, attachment metadata update, or file replacement. To
-record or adopt a derivative, create a governed Core proposal for the local
-write ability, then execute only through Adapter's Core-approved allowlisted
-path. To switch the attachment main file, create a separate governed Core
-proposal for `magick-ai/replace-media-file` using a recorded optimized
-derivative; that ability records backup and rollback metadata. Adapter does not
-accept arbitrary replacement URLs or replace files outside Core-approved
-execution.
+adopt a Cloud derivative artifact as the attachment main file, create a
+governed Core proposal for `magick-ai/adopt-cloud-media-derivative`, then
+execute only through Adapter's Core-approved allowlisted path. To switch the
+attachment main file to an already recorded local derivative, create a governed
+Core proposal for `magick-ai/replace-media-file`; both write abilities record
+backup and rollback metadata. Adapter does not accept arbitrary replacement
+URLs or replace files outside Core-approved execution.
 
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
@@ -365,6 +373,17 @@ For the OpenClaw article draft planning recipe, use
 
 For the OpenClaw SEO/AEO/GEO suggestion recipe, use
 [`docs/openclaw-content-discoverability-recipe.md`](docs/openclaw-content-discoverability-recipe.md).
+The primary SEO/GEO/AEO entrypoint is
+`GET /content-discoverability-brief` or
+`magick-ai-toolbox/build-content-discoverability-brief`.
+Use `article-writing-pack` only for broad natural-language requests such as
+"help me write an article".
+
+For broad natural-language article requests, use
+[`docs/openclaw-ai-article-writing-pack-recipe.md`](docs/openclaw-ai-article-writing-pack-recipe.md).
+The shortcut `GET /article-writing-pack` forwards input to
+`magick-ai-toolbox/build-ai-article-writing-pack` and returns a
+suggestion-only writing pack for OpenClaw drafting.
 
 For productized OpenClaw acceptance, use
 [`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).
@@ -436,7 +455,9 @@ Plan-to-proposal flow:
 1. OpenClaw runs one of the direct-read planning abilities:
    `magick-ai/build-content-inventory-fix-plan`,
    `magick-ai/build-test-content-cleanup-plan`,
-   `magick-ai/build-media-inventory-fix-plan`, or
+   `magick-ai/build-media-inventory-fix-plan`,
+   `magick-ai/build-media-reference-repair-plan`, or
+   `magick-ai/build-media-settings-reference-repair-plan`, or
    `magick-ai-toolbox/build-article-write-plan`.
 2. The adapter preserves plan fields including `batch_id`, `issue_types`,
    `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
@@ -476,11 +497,14 @@ Proposal-required write flow:
 9. For the current approved proposal execution path, Adapter may execute only
    `magick-ai/trash-post`, `magick-ai/create-draft`,
    `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
-   `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
-   `magick-ai/delete-term`, `magick-ai/update-media-details`,
-   `magick-ai/optimize-media-asset`,
-   `magick-ai/replace-media-file`,
-   `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
+	   `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
+	   `magick-ai/delete-term`, `magick-ai/patch-post-content`,
+	   `magick-ai/patch-setting-value`,
+	   `magick-ai/update-media-details`,
+	   `magick-ai/optimize-media-asset`,
+	   `magick-ai/replace-media-file`,
+	   `magick-ai/adopt-cloud-media-derivative`,
+	   `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
    `magick-ai/trash-comment`, or `magick-ai/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
    `POST /execute-approved-proposal`.
@@ -591,11 +615,13 @@ Write or destructive abilities:
 6. Adapter relays Core `commit_execution=false`.
 7. For approved proposal execution, only `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,
+   `magick-ai/patch-post-content`, `magick-ai/patch-setting-value`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
-   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
-   `magick-ai/replace-media-file`,
-   `magick-ai/delete-media-permanently`,
+	   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
+	   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
+	   `magick-ai/replace-media-file`,
+	   `magick-ai/adopt-cloud-media-derivative`,
+	   `magick-ai/delete-media-permanently`,
    `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment` are supported in
    this adapter. The execution input may be a single allowlisted proposal input or a bounded

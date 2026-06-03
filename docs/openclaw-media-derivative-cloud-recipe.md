@@ -41,15 +41,30 @@ replace media files.
    - The result should include derivative artifact evidence such as
      `artifact_id`, `download_url`, `expires_at`, `mime_type`, dimensions,
      filesize, checksum, and warnings when available.
+   - The derivative projection may include `preview_url`, a same-origin Adapter
+     preview proxy URL.
 
-4. `POST /media-derivative-proposal-payload`
+4. `GET /media-derivative-artifacts/{artifact_id}/preview`
+   - Requires WordPress REST auth/nonce or the short-lived local `preview_sig`
+     emitted in `preview_url`, plus a non-expired artifact descriptor in the
+     query string.
+   - Cloud Addon signs the Cloud artifact download and Adapter streams the
+     bytes as a local preview only.
+   - Does not store artifact truth, expose a public Cloud URL, or write
+     WordPress media.
+
+5. `POST /media-derivative-proposal-payload`
    - Input: `ability_response`, `cloud_result`, and `derivative_artifact`.
    - Returns a Core-ready proposal payload only.
    - Does not create, approve, preflight, or execute a proposal.
 
-5. `POST /proposals`
-   - Use Core governance for any local recording, attachment metadata update, or
-     media replacement decision.
+6. `POST /proposals`
+   - For preview review only, use the returned proposal payload as evidence.
+   - To replace the attachment main file, create a Core proposal for
+     `magick-ai/adopt-cloud-media-derivative` with `attachment_id` and the
+     non-expired `derivative_artifact` descriptor.
+   - Adapter may later execute that approved local write ability, but it does
+     not download artifacts or write WordPress media itself.
 
 ## Guardrails
 

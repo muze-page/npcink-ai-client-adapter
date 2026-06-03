@@ -291,7 +291,7 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
 ```
 
 All P0/P1/P2 diagnostics detail shortcuts call
-`magick-ai-abilities/wp-ops-diagnostics-detail`. Do not use
+`npcink-abilities-toolkit/wp-ops-diagnostics-detail`. Do not use
 `wp-diagnostics-summary` to decide whether plugin details, user permissions, or
 log details are missing. Default inactive plugin rows are not missing; they are
 default not requested. Adapter does not add Magick AI runtime, MCP, or cloud
@@ -392,6 +392,7 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
    `magick-ai/set-post-terms`, `magick-ai/delete-term`,
    `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
    `magick-ai/replace-media-file`,
+   `magick-ai/adopt-cloud-media-derivative`,
    `magick-ai/delete-media-permanently`,
    `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment` are currently supported. The preferred user path

@@ -7,6 +7,15 @@ This recipe lets OpenClaw use Toolbox SEO, AEO, and GEO context without
 turning Adapter into a prompt owner, proposal store, approval surface, or final
 write executor.
 
+The primary SEO/GEO/AEO entrypoint is `content-discoverability-brief`, backed by
+`magick-ai-toolbox/build-content-discoverability-brief`.
+Use `article-writing-pack` only for broad natural-language requests such as
+"help me write an article".
+
+For those broad article requests, use
+`openclaw_recipes.ai_article_draft_with_discoverability` and
+`GET /wp-json/magick-ai-adapter/v1/article-writing-pack?topic=TOPIC`.
+
 ## Boundary
 
 Layer ownership stays fixed:
