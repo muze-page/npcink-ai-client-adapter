@@ -508,6 +508,116 @@ final class Controller {
 			)
 		);
 
+		register_rest_route(
+			self::NAMESPACE,
+			'/media-derivative-runs',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_media_derivative_run' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'input'              => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'source_artifact'    => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'watermark_artifact' => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'trace_id'           => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'idempotency_key'    => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'log_context'        => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/media-derivative-runs/(?P<run_id>[A-Za-z0-9._:-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_media_derivative_run' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'run_id'   => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'trace_id' => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/media-derivative-runs/(?P<run_id>[A-Za-z0-9._:-]+)/result',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_media_derivative_run_result' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'run_id'   => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'trace_id' => array(
+							'type'              => 'string',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/media-derivative-proposal-payload',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'build_media_derivative_proposal_payload' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'ability_response'    => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'cloud_result'        => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'derivative_artifact' => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+					),
+				),
+			)
+		);
+
 		foreach ( self::read_shortcut_definitions() as $route => $definition ) {
 			$ability_id    = (string) ( $definition['ability_id'] ?? '' );
 			$default_input = is_array( $definition['default_input'] ?? null ) ? $definition['default_input'] : array();
@@ -1813,6 +1923,12 @@ final class Controller {
 				'POST /run-read-ability',
 				'POST /media-metadata-optimization',
 			),
+			'media_derivative_cloud' => array(
+				'POST /media-derivative-runs',
+				'GET /media-derivative-runs/{run_id}',
+				'GET /media-derivative-runs/{run_id}/result',
+				'POST /media-derivative-proposal-payload',
+			),
 			'provider_log_correlation' => array(
 				'POST /ai-provider-log-correlation-smoke',
 			),
@@ -1927,6 +2043,50 @@ final class Controller {
 				),
 				'docs'         => 'docs/openclaw-content-discoverability-recipe.md',
 			),
+			'media_derivative_cloud' => array(
+				'title'       => 'Media derivative Cloud artifact',
+				'description' => 'Build a local media derivative request, dispatch it through Cloud Addon, then hand the resulting artifact back to Core governance before any WordPress adoption.',
+				'entrypoint_ability_id' => 'magick-ai/build-media-derivative-cloud-request',
+				'steps'       => array(
+					array(
+						'order'      => 1,
+						'route'      => 'POST /media-derivative-runs',
+						'ability_id' => 'magick-ai/build-media-derivative-cloud-request',
+						'purpose'    => 'Build the read-only local request contract and dispatch source or watermark artifacts through Cloud Addon.',
+					),
+					array(
+						'order'   => 2,
+						'route'   => 'GET /media-derivative-runs/{run_id}',
+						'purpose' => 'Poll Cloud run status through Cloud Addon without Adapter run truth.',
+					),
+					array(
+						'order'   => 3,
+						'route'   => 'GET /media-derivative-runs/{run_id}/result',
+						'purpose' => 'Read the derivative artifact projection and processing evidence.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'POST /media-derivative-proposal-payload',
+						'purpose' => 'Build a Core-ready proposal payload without creating, approving, or executing the proposal.',
+					),
+					array(
+						'order'   => 5,
+						'route'   => 'POST /proposals',
+						'purpose' => 'Use Core proposal intake for any local recording, attachment metadata, or media replacement decision.',
+					),
+				),
+				'guardrails'   => array(
+					'artifact_type'              => 'media_derivative_cloud_artifact',
+					'cloud_transport_owner'      => 'magick-ai-cloud-addon',
+					'final_write_owner'          => 'local_wordpress_host',
+					'wordpress_write_included'   => false,
+					'attachment_metadata_write_included' => false,
+					'core_preflight_required_for_writes' => true,
+					'adapter_cloud_control_plane' => false,
+					'adapter_artifact_registry'  => false,
+				),
+				'docs'         => 'docs/openclaw-media-derivative-cloud-recipe.md',
+			),
 		);
 	}
 
@@ -1989,6 +2149,10 @@ final class Controller {
 			'DELETE /connection/key-pairs/{key_id}' => 'Revoke a registered key-pair client.',
 			'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
 			'POST /media-metadata-optimization' => 'Build read-only media title, alt, caption, description, source, and attribution suggestions.',
+			'POST /media-derivative-runs' => 'Build the local media derivative Cloud request ability, upload or reference source artifacts through Cloud Addon, and return a Cloud run projection without writing WordPress media.',
+			'GET /media-derivative-runs/{run_id}' => 'Poll a Cloud media derivative run through Cloud Addon without storing Adapter run truth.',
+			'GET /media-derivative-runs/{run_id}/result' => 'Read a Cloud media derivative result projection through Cloud Addon.',
+			'POST /media-derivative-proposal-payload' => 'Build a Core-ready proposal payload from a derivative artifact; does not create, approve, or execute a proposal.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
@@ -2051,6 +2215,188 @@ final class Controller {
 			$ability_id,
 			$this->media_metadata_optimization_input( $request ),
 			$this->request_log_context( $request, $ability_id )
+		);
+	}
+
+	/**
+	 * Creates one Cloud media derivative run through the Cloud Addon seam.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_media_derivative_run( WP_REST_Request $request ) {
+		if ( ! function_exists( 'magick_ai_cloud_addon_dispatch_media_derivative_cloud_request' ) ) {
+			return $this->cloud_addon_unavailable_error();
+		}
+
+		$ability_id     = 'magick-ai/build-media-derivative-cloud-request';
+		$ability_input  = $this->media_derivative_ability_input( $request );
+		$log_context    = $this->request_log_context( $request, $ability_id );
+		$ability_result = $this->run_read_ability( $ability_id, $ability_input, $log_context );
+		if ( is_wp_error( $ability_result ) ) {
+			return $ability_result;
+		}
+
+		$ability_envelope = $ability_result->get_data();
+		$ability_response = is_array( $ability_envelope['result'] ?? null ) ? $ability_envelope['result'] : array();
+		if ( empty( $ability_response ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_media_derivative_ability_response_invalid',
+				__( 'Media derivative ability response is invalid.', 'magick-ai-adapter' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		$source_artifact = $this->media_derivative_source_artifact( $request, $ability_response, $ability_input );
+		if ( is_wp_error( $source_artifact ) ) {
+			return $source_artifact;
+		}
+
+		$watermark_artifact = $this->media_derivative_watermark_artifact( $request, $ability_response, $ability_input );
+		if ( is_wp_error( $watermark_artifact ) ) {
+			return $watermark_artifact;
+		}
+
+		$trace_id        = sanitize_text_field( (string) ( $request->get_param( 'trace_id' ) ?: ( $log_context['correlation_id'] ?? '' ) ) );
+		$idempotency_key = sanitize_text_field( (string) $request->get_param( 'idempotency_key' ) );
+		$dispatch        = magick_ai_cloud_addon_dispatch_media_derivative_cloud_request(
+			$ability_response,
+			$source_artifact,
+			$trace_id,
+			$idempotency_key,
+			$watermark_artifact
+		);
+		if ( is_wp_error( $dispatch ) ) {
+			return $dispatch;
+		}
+
+		$run_id = $this->media_derivative_run_id( $dispatch );
+
+		return new WP_REST_Response(
+			array(
+				'contract_version'       => 'media_derivative_adapter_run.v1',
+				'status'                 => 'submitted',
+				'ability_id'             => $ability_id,
+				'expected_request_contract_version' => 'media_derivative_cloud_request.v1',
+				'request_contract_version' => (string) ( $this->media_derivative_contract_data( $ability_response )['request_contract_version'] ?? '' ),
+				'run_id'                 => $run_id,
+				'cloud_run'              => $this->public_media_derivative_cloud_projection( $dispatch ),
+				'ability_response'       => $ability_response,
+				'local_adoption'         => array(
+					'final_write_owner'             => 'local_wordpress_host',
+					'wordpress_write_included'      => false,
+					'attachment_metadata_write_included' => false,
+					'approval_required'             => true,
+				),
+				'next_steps'             => array(
+					'poll_run'            => '' !== $run_id ? rest_url( self::NAMESPACE . '/media-derivative-runs/' . rawurlencode( $run_id ) ) : '',
+					'poll_result'         => '' !== $run_id ? rest_url( self::NAMESPACE . '/media-derivative-runs/' . rawurlencode( $run_id ) . '/result' ) : '',
+					'build_proposal_payload' => rest_url( self::NAMESPACE . '/media-derivative-proposal-payload' ),
+					'core_proposal_required' => true,
+				),
+			),
+			202
+		);
+	}
+
+	/**
+	 * Returns one media derivative Cloud run projection through Cloud Addon.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_media_derivative_run( WP_REST_Request $request ) {
+		$client = $this->media_derivative_runtime_client();
+		if ( is_wp_error( $client ) ) {
+			return $client;
+		}
+
+		$result = $client->get_run(
+			sanitize_text_field( (string) $request->get_param( 'run_id' ) ),
+			sanitize_text_field( (string) $request->get_param( 'trace_id' ) )
+		);
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'contract_version' => 'media_derivative_adapter_run_status.v1',
+				'run_id'           => $this->media_derivative_run_id( $result ),
+				'cloud_run'        => $this->public_media_derivative_cloud_projection( $result ),
+				'commit_execution' => false,
+			),
+			200
+		);
+	}
+
+	/**
+	 * Returns one media derivative Cloud result projection through Cloud Addon.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_media_derivative_run_result( WP_REST_Request $request ) {
+		$client = $this->media_derivative_runtime_client();
+		if ( is_wp_error( $client ) ) {
+			return $client;
+		}
+
+		$result = $client->get_run_result(
+			sanitize_text_field( (string) $request->get_param( 'run_id' ) ),
+			sanitize_text_field( (string) $request->get_param( 'trace_id' ) )
+		);
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'contract_version' => 'media_derivative_adapter_run_result.v1',
+				'run_id'           => $this->media_derivative_run_id( $result ),
+				'cloud_result'     => $this->public_media_derivative_cloud_projection( $result ),
+				'commit_execution' => false,
+				'next_step'        => 'POST /media-derivative-proposal-payload with ability_response, cloud_result, and derivative_artifact before Core proposal intake.',
+			),
+			200
+		);
+	}
+
+	/**
+	 * Builds a Core-ready proposal payload from a Cloud derivative artifact.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function build_media_derivative_proposal_payload( WP_REST_Request $request ) {
+		if ( ! function_exists( 'magick_ai_cloud_addon_build_media_derivative_proposal_payload' ) ) {
+			return $this->cloud_addon_unavailable_error();
+		}
+
+		$ability_response = $this->object_param( $request, 'ability_response' );
+		$cloud_result     = $this->object_param( $request, 'cloud_result' );
+		$artifact         = $this->object_param( $request, 'derivative_artifact' );
+		if ( empty( $artifact ) ) {
+			$artifact = $this->media_derivative_artifact_from_cloud_result( $cloud_result );
+		}
+
+		$payload = magick_ai_cloud_addon_build_media_derivative_proposal_payload(
+			$ability_response,
+			$cloud_result,
+			$artifact
+		);
+		if ( is_wp_error( $payload ) ) {
+			return $payload;
+		}
+
+		return new WP_REST_Response(
+			array(
+				'contract_version' => 'media_derivative_adapter_proposal_payload.v1',
+				'proposal_payload' => $payload,
+				'core_proposal_required' => true,
+				'commit_execution' => false,
+			),
+			200
 		);
 	}
 
@@ -4760,6 +5106,244 @@ final class Controller {
 	 */
 	private function request_input( WP_REST_Request $request ): array {
 		return $this->object_param( $request, 'input' );
+	}
+
+	/**
+	 * Returns input for the local media derivative request ability.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return array<string,mixed>
+	 */
+	private function media_derivative_ability_input( WP_REST_Request $request ): array {
+		$overrides = $this->request_input( $request );
+		foreach ( array( 'attachment_id', 'preferred_format', 'target_format', 'target_max_width', 'max_width', 'quality', 'watermark' ) as $key ) {
+			$value = $request->get_param( $key );
+			if ( null !== $value && ! array_key_exists( $key, $overrides ) ) {
+				$overrides[ $key ] = $this->sanitize_input_value( $value );
+			}
+		}
+		if ( isset( $overrides['target_format'] ) && ! isset( $overrides['preferred_format'] ) ) {
+			$overrides['preferred_format'] = $overrides['target_format'];
+		}
+		if ( isset( $overrides['max_width'] ) && ! isset( $overrides['target_max_width'] ) ) {
+			$overrides['target_max_width'] = $overrides['max_width'];
+		}
+
+		if ( function_exists( 'magick_ai_core_build_media_derivative_ability_input' ) ) {
+			return magick_ai_core_build_media_derivative_ability_input( $overrides );
+		}
+
+		return $overrides;
+	}
+
+	/**
+	 * Returns the source artifact or local upload descriptor for a derivative run.
+	 *
+	 * @param WP_REST_Request     $request Request.
+	 * @param array<string,mixed> $ability_response Ability response.
+	 * @param array<string,mixed> $ability_input Ability input.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function media_derivative_source_artifact( WP_REST_Request $request, array $ability_response, array $ability_input ) {
+		$source_artifact = $this->object_param( $request, 'source_artifact' );
+		if ( ! empty( $source_artifact ) ) {
+			return $this->sanitize_media_derivative_artifact_descriptor( $source_artifact );
+		}
+
+		$contract      = $this->media_derivative_contract_data( $ability_response );
+		$attachment_id = absint( $contract['attachment_id'] ?? $ability_input['attachment_id'] ?? 0 );
+		if ( $attachment_id <= 0 ) {
+			return new WP_Error(
+				'magick_ai_adapter_media_derivative_attachment_required',
+				__( 'attachment_id is required when no source_artifact is supplied.', 'magick-ai-adapter' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return $this->attachment_upload_descriptor( $attachment_id, 'source_file' );
+	}
+
+	/**
+	 * Returns an optional watermark artifact or local upload descriptor.
+	 *
+	 * @param WP_REST_Request     $request Request.
+	 * @param array<string,mixed> $ability_response Ability response.
+	 * @param array<string,mixed> $ability_input Ability input.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function media_derivative_watermark_artifact( WP_REST_Request $request, array $ability_response, array $ability_input ) {
+		$watermark_artifact = $this->object_param( $request, 'watermark_artifact' );
+		if ( ! empty( $watermark_artifact ) ) {
+			return $this->sanitize_media_derivative_artifact_descriptor( $watermark_artifact );
+		}
+
+		$contract    = $this->media_derivative_contract_data( $ability_response );
+		$job_payload = is_array( $contract['cloud_job_payload'] ?? null ) ? $contract['cloud_job_payload'] : array();
+		$watermark   = is_array( $job_payload['watermark'] ?? null ) ? $job_payload['watermark'] : array();
+		if ( empty( $watermark ) || ! empty( $watermark['artifact_id'] ) ) {
+			return array();
+		}
+
+		$attachment_id = absint( $ability_input['watermark_attachment_id'] ?? 0 );
+		if ( $attachment_id <= 0 && function_exists( 'magick_ai_core_get_media_derivative_settings' ) ) {
+			$settings      = magick_ai_core_get_media_derivative_settings();
+			$attachment_id = absint( is_array( $settings ) ? ( $settings['watermark_attachment_id'] ?? 0 ) : 0 );
+		}
+		if ( $attachment_id <= 0 ) {
+			return array();
+		}
+
+		return $this->attachment_upload_descriptor( $attachment_id, 'watermark_file' );
+	}
+
+	/**
+	 * Builds a multipart upload descriptor for a local attachment.
+	 *
+	 * @param int    $attachment_id Attachment id.
+	 * @param string $field_name Multipart field name.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function attachment_upload_descriptor( int $attachment_id, string $field_name ) {
+		$path = function_exists( 'get_attached_file' ) ? get_attached_file( $attachment_id ) : '';
+		if ( ! is_string( $path ) || '' === $path || ! is_readable( $path ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_media_derivative_file_unreadable',
+				__( 'The local attachment file is not readable for media derivative upload.', 'magick-ai-adapter' ),
+				array(
+					'status'        => 400,
+					'attachment_id' => $attachment_id,
+				)
+			);
+		}
+
+		return array(
+			'path'      => $path,
+			'filename'  => sanitize_file_name( basename( $path ) ),
+			'mime_type' => sanitize_text_field( (string) get_post_mime_type( $attachment_id ) ),
+			'field_name' => sanitize_key( $field_name ),
+		);
+	}
+
+	/**
+	 * Returns a verified Cloud runtime client through Cloud Addon.
+	 *
+	 * @return object|WP_Error
+	 */
+	private function media_derivative_runtime_client() {
+		if ( ! function_exists( 'magick_ai_cloud_addon_verified_runtime_client' ) ) {
+			return $this->cloud_addon_unavailable_error();
+		}
+
+		$client = magick_ai_cloud_addon_verified_runtime_client();
+		if ( ! is_object( $client ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_cloud_addon_unverified',
+				__( 'Magick AI Cloud Addon must be configured and verified before media derivative run reads.', 'magick-ai-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		return $client;
+	}
+
+	/**
+	 * Returns a clear Cloud Addon dependency error.
+	 *
+	 * @return WP_Error
+	 */
+	private function cloud_addon_unavailable_error(): WP_Error {
+		return new WP_Error(
+			'magick_ai_adapter_cloud_addon_unavailable',
+			__( 'Magick AI Cloud Addon is required for media derivative Cloud transport.', 'magick-ai-adapter' ),
+			array(
+				'status'        => 501,
+				'required_plugin' => 'magick-ai-cloud-addon',
+			)
+		);
+	}
+
+	/**
+	 * Extracts ability contract data from a response envelope.
+	 *
+	 * @param array<string,mixed> $ability_response Ability response.
+	 * @return array<string,mixed>
+	 */
+	private function media_derivative_contract_data( array $ability_response ): array {
+		return is_array( $ability_response['data'] ?? null ) ? $ability_response['data'] : $ability_response;
+	}
+
+	/**
+	 * Extracts a run id from Cloud response shapes.
+	 *
+	 * @param array<string,mixed> $cloud_response Cloud response.
+	 * @return string
+	 */
+	private function media_derivative_run_id( array $cloud_response ): string {
+		$data = is_array( $cloud_response['data'] ?? null ) ? $cloud_response['data'] : $cloud_response;
+		return sanitize_text_field( (string) ( $data['run_id'] ?? $data['id'] ?? $cloud_response['run_id'] ?? '' ) );
+	}
+
+	/**
+	 * Returns a bounded Cloud run/result projection.
+	 *
+	 * @param array<string,mixed> $cloud_response Cloud response.
+	 * @return array<string,mixed>
+	 */
+	private function public_media_derivative_cloud_projection( array $cloud_response ): array {
+		$data       = is_array( $cloud_response['data'] ?? null ) ? $cloud_response['data'] : $cloud_response;
+		$derivative = is_array( $data['derivative'] ?? null ) ? $data['derivative'] : array();
+		$error      = is_array( $data['error'] ?? null ) ? $data['error'] : array();
+
+		return array(
+			'run_id'     => sanitize_text_field( (string) ( $data['run_id'] ?? $data['id'] ?? '' ) ),
+			'status'     => sanitize_key( (string) ( $data['status'] ?? $cloud_response['status'] ?? '' ) ),
+			'job_type'   => sanitize_key( (string) ( $data['job_type'] ?? $data['cloud_job_payload']['job_type'] ?? '' ) ),
+			'created_at' => sanitize_text_field( (string) ( $data['created_at'] ?? '' ) ),
+			'updated_at' => sanitize_text_field( (string) ( $data['updated_at'] ?? '' ) ),
+			'derivative' => $this->sanitize_media_derivative_artifact_descriptor( $derivative ),
+			'warnings'   => array_values( array_map( 'sanitize_text_field', is_array( $data['warnings'] ?? null ) ? $data['warnings'] : array() ) ),
+			'error'      => $this->sanitize_input_value( $error ),
+		);
+	}
+
+	/**
+	 * Infers a derivative artifact descriptor from a Cloud result.
+	 *
+	 * @param array<string,mixed> $cloud_result Cloud result.
+	 * @return array<string,mixed>
+	 */
+	private function media_derivative_artifact_from_cloud_result( array $cloud_result ): array {
+		$data       = is_array( $cloud_result['data'] ?? null ) ? $cloud_result['data'] : $cloud_result;
+		$derivative = is_array( $data['derivative'] ?? null ) ? $data['derivative'] : array();
+
+		return $this->sanitize_media_derivative_artifact_descriptor( $derivative );
+	}
+
+	/**
+	 * Sanitizes a Cloud artifact or local upload descriptor.
+	 *
+	 * @param array<string,mixed> $descriptor Descriptor.
+	 * @return array<string,mixed>
+	 */
+	private function sanitize_media_derivative_artifact_descriptor( array $descriptor ): array {
+		$clean = array();
+		foreach ( array( 'artifact_id', 'id', 'download_url', 'url', 'expires_at', 'run_id', 'mime_type', 'path', 'file_path', 'tmp_name', 'filename', 'name', 'field_name', 'sha256' ) as $key ) {
+			if ( isset( $descriptor[ $key ] ) && is_scalar( $descriptor[ $key ] ) ) {
+				$clean[ $key ] = sanitize_text_field( (string) $descriptor[ $key ] );
+			}
+		}
+		foreach ( array( 'width', 'height', 'filesize_bytes', 'size_bytes' ) as $key ) {
+			if ( isset( $descriptor[ $key ] ) ) {
+				$clean[ $key ] = absint( $descriptor[ $key ] );
+			}
+		}
+		foreach ( array( 'bytes', 'content' ) as $key ) {
+			if ( isset( $descriptor[ $key ] ) && is_string( $descriptor[ $key ] ) ) {
+				$clean[ $key ] = $descriptor[ $key ];
+			}
+		}
+
+		return $clean;
 	}
 
 	/**

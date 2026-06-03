@@ -123,6 +123,20 @@ Addon settings. If OpenClaw needs Cloud health, run status, results, stats,
 entitlement, or observability detail, Adapter should either link the operator to
 Cloud Addon or return a bounded projection obtained through Cloud Addon.
 
+For media derivatives, Adapter may expose only the bounded OpenClaw channel
+routes:
+
+- `POST /media-derivative-runs`;
+- `GET /media-derivative-runs/{run_id}`;
+- `GET /media-derivative-runs/{run_id}/result`;
+- `POST /media-derivative-proposal-payload`.
+
+Those routes build the local read-only request contract, pass source or
+watermark uploads/artifact references through Cloud Addon, return Cloud
+run/result projections, and build a Core-ready proposal payload. They must not
+create Core proposals, approve adoption, update attachment metadata, replace
+media files, or store artifact truth.
+
 ## Forbidden Adapter Shapes
 
 Do not add these to Adapter:

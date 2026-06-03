@@ -63,6 +63,10 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/capabilities`
 - `POST /wp-json/magick-ai-adapter/v1/run-read-ability`
 - `POST /wp-json/magick-ai-adapter/v1/media-metadata-optimization`
+- `POST /wp-json/magick-ai-adapter/v1/media-derivative-runs`
+- `GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}`
+- `GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}/result`
+- `POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload`
 - `POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke`
 - `GET /wp-json/magick-ai-adapter/v1/site-info`
 - `GET /wp-json/magick-ai-adapter/v1/site-summary`
@@ -217,13 +221,30 @@ For media format attention, `run-read-ability` may call
 `magick-ai/inspect-media-asset` directly, and the shortcut key
 `media-asset-inspection` maps to the same read-only ability. The response
 contains file size, dimensions, target format, compression, resize, and
-derivative recommendations only. To generate an optimized derivative, create a
-governed Core proposal for `magick-ai/optimize-media-asset`, then execute
-through Adapter's Core-approved allowlisted path. To switch the attachment main
-file, create a separate governed Core proposal for
-`magick-ai/replace-media-file` using a recorded optimized derivative; that
-ability records backup and rollback metadata. Adapter does not accept arbitrary
-replacement URLs or replace files outside Core-approved execution.
+derivative recommendations only.
+
+For Cloud-generated media derivatives, use `POST /media-derivative-runs`.
+Adapter builds the local read-only
+`magick-ai/build-media-derivative-cloud-request` contract, uses Core media
+policy defaults when available, supplies the local source attachment file or a
+caller-provided short-TTL artifact reference, and dispatches only through
+`magick-ai-cloud-addon`. The route returns a Cloud run projection plus the
+ability response. Poll `GET /media-derivative-runs/{run_id}` and
+`GET /media-derivative-runs/{run_id}/result`, then call
+`POST /media-derivative-proposal-payload` with the ability response, Cloud
+result, and derivative artifact. That payload is Core-ready but not submitted,
+approved, or executed by Adapter. See
+[OpenClaw Media Derivative Cloud Recipe](docs/openclaw-media-derivative-cloud-recipe.md).
+
+Adapter does not create a media registry, artifact registry, Cloud settings
+surface, approval truth, attachment metadata update, or file replacement. To
+record or adopt a derivative, create a governed Core proposal for the local
+write ability, then execute only through Adapter's Core-approved allowlisted
+path. To switch the attachment main file, create a separate governed Core
+proposal for `magick-ai/replace-media-file` using a recorded optimized
+derivative; that ability records backup and rollback metadata. Adapter does not
+accept arbitrary replacement URLs or replace files outside Core-approved
+execution.
 
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,

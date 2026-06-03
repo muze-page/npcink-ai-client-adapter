@@ -92,11 +92,16 @@ Run this order for a local acceptance pass:
    - `POST /proposals/from-plan`
    - `POST /proposals/{proposal_id}/execute`
    - `POST /proposals/{proposal_id}/approve-and-execute`
+   - `POST /media-derivative-runs`
+   - `GET /media-derivative-runs/{run_id}`
+   - `GET /media-derivative-runs/{run_id}/result`
+   - `POST /media-derivative-proposal-payload`
    - `GET /term`, whose purpose explains term detail uses list row `id` and
      infers `taxonomy` when possible
    - `route_groups` for human-readable grouped route labels
    - `openclaw_recipes.article_draft_plan`
    - `openclaw_recipes.content_discoverability_suggestions`
+   - `openclaw_recipes.media_derivative_cloud`
    - disabled approval and rejection stubs
    - direct-read shortcuts
 6. Call `GET /capabilities` and use only real `ability_id` values returned by
@@ -160,6 +165,17 @@ Run this order for a local acceptance pass:
     `artifact_type=article_write_plan`, Core creates a proposal for
     `magick-ai/create-draft`, and `approve-and-execute` creates only a
     WordPress `draft`.
+    For the media derivative recipe, call `POST /media-derivative-runs` with a
+    test image attachment and confirm the response returns
+    `contract_version=media_derivative_adapter_run.v1`,
+    `request_contract_version=media_derivative_cloud_request.v1`,
+    `core_proposal_required=true`, and local adoption fields with
+    `final_write_owner=local_wordpress_host`,
+    `wordpress_write_included=false`, and
+    `attachment_metadata_write_included=false`. Poll status/result only through
+    Adapter's `media-derivative-runs` projection routes, then call
+    `POST /media-derivative-proposal-payload` and confirm it returns a
+    Core-ready payload without creating, approving, or executing a proposal.
 12. Query status through Adapter:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`

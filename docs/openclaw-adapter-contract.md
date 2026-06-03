@@ -73,6 +73,47 @@ or private keys. This is a product-surface redaction layer; Core remains the
 capability guidance source and WordPress Abilities API remains the canonical
 ability execution surface.
 
+## Media Derivative Cloud Contract
+
+For optimized media derivative generation, Adapter exposes a bounded Cloud
+Addon orchestration seam:
+
+```text
+POST /wp-json/magick-ai-adapter/v1/media-derivative-runs
+GET  /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}
+GET  /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}/result
+POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload
+```
+
+`POST /media-derivative-runs` builds the local
+`magick-ai/build-media-derivative-cloud-request` direct-read ability response,
+uses Core media derivative defaults when available, and dispatches only through
+the Cloud Addon public media derivative helper. Source media can be sent as the
+local attachment file or as a caller-provided short-TTL source artifact
+descriptor. Watermark media can be sent as a caller-provided short-TTL artifact
+or as the locally configured Core watermark attachment when a watermark plan is
+present.
+
+The route returns a Cloud run projection and the local ability response. It
+does not store run truth, artifact truth, Cloud credentials, approval truth, or
+media registry state. `GET /media-derivative-runs/{run_id}` and
+`GET /media-derivative-runs/{run_id}/result` read bounded run/result
+projections through Cloud Addon. `POST /media-derivative-proposal-payload`
+builds a Core-ready local proposal payload from the ability response, Cloud
+result, and derivative artifact, but does not create, approve, preflight, or
+execute a proposal.
+
+The returned payloads must preserve:
+
+- `final_write_owner=local_wordpress_host`;
+- `wordpress_write_included=false`;
+- `attachment_metadata_write_included=false`;
+- `commit_execution=false`.
+
+Any recording, attachment metadata update, media replacement, or rollback must
+enter Core proposal governance and pass Core approval plus commit-preflight
+before Adapter's allowlisted final execution path can run.
+
 ## Read-Only Planning Contract
 
 The adapter may execute these planning abilities only when Core reports them as
