@@ -24,6 +24,17 @@ magick-ai/build-media-derivative-cloud-request
 This is a read-only WordPress ability. It builds the one-run request contract
 for Cloud media derivative processing.
 
+Bulk planning ability:
+
+```text
+magick-ai/build-media-derivative-batch-plan
+```
+
+This is also read-only. Use it before natural-language bulk requests such as
+"convert April media library images to PNG". It returns bounded candidates,
+skipped reasons, and per-candidate single-image request input. It does not call
+Cloud, create proposals, approve adoption, or return a WordPress write decision.
+
 Verified local REST discovery:
 
 ```text
@@ -57,7 +68,10 @@ write WordPress.
 AI callers should use Adapter's bounded media derivative recipe, not direct
 Cloud runtime calls:
 
-1. Select or receive a WordPress image `attachment_id`.
+1. Select or receive a WordPress image `attachment_id`. For bulk requests, first
+   call `magick-ai/build-media-derivative-batch-plan` through
+   `/run-read-ability`, review `candidates` and `skipped`, and process only a
+   small approved slice.
 2. Call:
 
    ```http
@@ -142,6 +156,24 @@ Example body:
 This returns only the local request contract. The caller must still use Cloud
 Addon or Adapter recipe routes to dispatch the Cloud job.
 
+For batch planning:
+
+```json
+{
+  "ability_id": "magick-ai/build-media-derivative-batch-plan",
+  "input": {
+    "date_from": "2026-04-01",
+    "date_to": "2026-04-30 23:59:59",
+    "target_format": "png",
+    "exclude_formats": ["png"],
+    "max_items": 20
+  }
+}
+```
+
+Then call `POST /media-derivative-runs` once per reviewed candidate using that
+candidate's `cloud_request_input`.
+
 ## Adoption Write Ability
 
 Write ability:
@@ -169,6 +201,8 @@ execution path.
 Do:
 
 - use `POST /media-derivative-runs` as the normal entrypoint;
+- use `magick-ai/build-media-derivative-batch-plan` before bulk conversion
+  requests;
 - treat Cloud artifacts as short-lived previews;
 - preserve `run_id`, `artifact_id`, `expires_at`, checksum, dimensions, and
   warnings as proposal evidence;

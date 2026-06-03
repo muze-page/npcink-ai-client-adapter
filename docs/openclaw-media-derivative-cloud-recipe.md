@@ -10,7 +10,8 @@ WordPress write ownership local.
 - Core owns local media policy defaults, proposal governance, approval,
   commit-preflight, and audit.
 - Abilities own the canonical
-  `magick-ai/build-media-derivative-cloud-request` read-only contract.
+  `magick-ai/build-media-derivative-cloud-request` read-only contract and the
+  `magick-ai/build-media-derivative-batch-plan` read-only candidate planner.
 - Cloud Addon owns Cloud credentials, signing, media derivative transport, run
   reads, and result reads.
 - Cloud owns runtime processing and short-TTL derivative artifacts.
@@ -21,6 +22,16 @@ media or artifact registry, approve adoption, update attachment metadata, or
 replace media files.
 
 ## Flow
+
+0. Optional bulk planning through `POST /run-read-ability`
+   - Ability: `magick-ai/build-media-derivative-batch-plan`.
+   - Use for requests like "convert April media library images to PNG".
+   - Inputs may include `date_from`, `date_to`, `target_format`,
+     `exclude_formats`, size/dimension filters, and `max_items`.
+   - Returns candidates, skipped reasons, and per-candidate
+     `cloud_request_input`.
+   - Does not call Cloud, create proposals, approve writes, or mutate
+     WordPress.
 
 1. `POST /media-derivative-runs`
    - Required: `input.attachment_id`.
@@ -73,4 +84,6 @@ replace media files.
 - `attachment_metadata_write_included=false`.
 - Cloud artifacts are short-TTL processing artifacts, not canonical truth.
 - Adapter returns derivative artifact and processing evidence only.
+- Bulk conversion must start with a bounded local batch plan and proceed through
+  reviewed per-attachment preview runs.
 - Final adoption requires Core proposal approval and commit preflight.

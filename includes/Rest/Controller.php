@@ -2212,37 +2212,44 @@ final class Controller {
 			),
 			'media_derivative_cloud' => array(
 				'title'       => 'Media derivative Cloud artifact',
-				'description' => 'Build a local media derivative request, dispatch it through Cloud Addon, then hand the resulting artifact back to Core governance before any WordPress adoption.',
+				'description' => 'Build a local single-image or bounded batch media derivative plan, dispatch selected candidates through Cloud Addon, then hand resulting artifacts back to Core governance before any WordPress adoption.',
 				'entrypoint_ability_id' => 'magick-ai/build-media-derivative-cloud-request',
+				'batch_plan_ability_id' => 'magick-ai/build-media-derivative-batch-plan',
 				'steps'       => array(
 					array(
 						'order'      => 1,
-						'route'      => 'POST /media-derivative-runs',
-						'ability_id' => 'magick-ai/build-media-derivative-cloud-request',
-						'purpose'    => 'Build the read-only local request contract and dispatch source or watermark artifacts through Cloud Addon.',
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'magick-ai/build-media-derivative-batch-plan',
+						'purpose'    => 'For natural-language bulk requests, build a bounded read-only candidate plan first; review skipped reasons and never treat it as a write decision.',
 					),
 					array(
-						'order'   => 2,
+						'order'      => 2,
+						'route'      => 'POST /media-derivative-runs',
+						'ability_id' => 'magick-ai/build-media-derivative-cloud-request',
+						'purpose'    => 'For each reviewed candidate, build the read-only local request contract and dispatch source or watermark artifacts through Cloud Addon.',
+					),
+					array(
+						'order'   => 3,
 						'route'   => 'GET /media-derivative-runs/{run_id}',
 						'purpose' => 'Poll Cloud run status through Cloud Addon without Adapter run truth.',
 					),
 					array(
-						'order'   => 3,
+						'order'   => 4,
 						'route'   => 'GET /media-derivative-runs/{run_id}/result',
 						'purpose' => 'Read the derivative artifact projection and processing evidence.',
 					),
 					array(
-						'order'   => 4,
+						'order'   => 5,
 						'route'   => 'GET /media-derivative-artifacts/{artifact_id}/preview',
 						'purpose' => 'Serve one non-expired derivative artifact through the local signed preview proxy without storing artifact truth.',
 					),
 					array(
-						'order'   => 5,
+						'order'   => 6,
 						'route'   => 'POST /media-derivative-proposal-payload',
 						'purpose' => 'Build a Core-ready proposal payload without creating, approving, or executing the proposal.',
 					),
 					array(
-						'order'   => 6,
+						'order'   => 7,
 						'route'   => 'POST /proposals',
 						'purpose' => 'Use Core proposal intake for any local recording, attachment metadata, or media replacement decision.',
 					),
