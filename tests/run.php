@@ -1459,6 +1459,9 @@ foreach (
 		'blocked_claims',
 		'Cloud Addon is not part of this local control loop',
 		'Adapter must not publish, schedule, approve standalone, or execute arbitrary writes',
+		'local article assistant handoff',
+		'not a bulk writing flow',
+		'hosted drafting path',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $article_recipe, $required ), 'Article draft recipe contains required text: ' . $required );
@@ -1509,6 +1512,10 @@ foreach (
 		'magick-ai-toolbox/build-article-write-plan',
 		'POST /wp-json/magick-ai-adapter/v1/proposals/from-plan',
 		'Do not publish, schedule, upload media, set featured images, write SEO meta',
+		'not an article generator product',
+		'local review candidate',
+		'batch article writing',
+		'Do not present OpenClaw as the article generator',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $article_writing_pack_recipe, $required ), 'AI article writing pack recipe contains required text: ' . $required );

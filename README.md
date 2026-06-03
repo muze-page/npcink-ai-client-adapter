@@ -393,7 +393,9 @@ For broad natural-language article requests, use
 [`docs/openclaw-ai-article-writing-pack-recipe.md`](docs/openclaw-ai-article-writing-pack-recipe.md).
 The shortcut `GET /article-writing-pack` forwards input to
 `magick-ai-toolbox/build-ai-article-writing-pack` and returns a
-suggestion-only writing pack for OpenClaw drafting.
+suggestion-only writing pack for a local OpenClaw review candidate. This is an
+article assistant path, not an article generator, Cloud writer, or batch
+publishing surface.
 
 For productized OpenClaw acceptance, use
 [`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).

@@ -7,6 +7,10 @@ This recipe lets OpenClaw use the Toolbox article planning artifact without
 becoming the article generator, proposal store, approval surface, or final write
 owner.
 
+It is a local article assistant handoff. The recipe accepts one reviewed draft
+and creates one governed draft proposal; it is not a bulk writing flow, Cloud
+writing import, or autonomous article generation surface.
+
 ## Boundary
 
 Layer ownership stays fixed:
@@ -19,6 +23,8 @@ Layer ownership stays fixed:
 - Cloud Addon is not part of this local control loop.
 
 Adapter must not publish, schedule, approve standalone, or execute arbitrary writes for this recipe.
+Adapter must also not add a prompt library, authoring runtime, batch article
+queue, hosted drafting path, or Cloud article import for this recipe.
 
 ## Recipe
 

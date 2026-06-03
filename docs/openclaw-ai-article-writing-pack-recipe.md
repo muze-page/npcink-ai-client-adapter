@@ -5,14 +5,19 @@ Date: 2026-06-03
 
 This recipe gives OpenClaw one high-level entrypoint for broad article requests
 such as "write an AI topic article". Adapter exposes the Toolbox writing pack
-as a direct-read shortcut; Toolbox builds the context pack; OpenClaw drafts the
-candidate article from that pack; Core remains the only proposal, approval,
-commit-preflight, and audit truth for any final WordPress write.
+as a direct-read shortcut; Toolbox builds the context pack; OpenClaw may help
+prepare a local review candidate from that pack; Core remains the only
+proposal, approval, commit-preflight, and audit truth for any final WordPress
+write.
 
 For SEO/GEO/AEO suggestions on a known post, title, topic, or draft body, use
 `content-discoverability-brief` as the primary entrypoint.
 Use `article-writing-pack` only for broad natural-language requests such as
 "help me write an article".
+
+This is an OpenClaw article assistant recipe, not an article generator product.
+It must stay local, single-article, suggestion-only, and operator-reviewed
+until a separate `article_write_plan` is submitted through Core governance.
 
 ## Boundary
 
@@ -21,8 +26,9 @@ Layer ownership stays fixed:
 - Toolbox owns the operator-filled SEO/AEO/GEO context and the
   `ai_article_writing_pack` planning artifact.
 - Adapter exposes the read shortcut and machine-readable OpenClaw recipe.
-- OpenClaw may draft text from the pack, but it must treat that output as a
-  candidate for operator review.
+- OpenClaw may prepare a draft candidate from the pack, but it must treat that
+  output as a local candidate for operator review, not generated WordPress
+  content.
 - Core decides whether each ability is `direct_read` and owns proposal,
   approval, commit-preflight, and audit truth.
 - WordPress Abilities API runs the Toolbox callbacks.
@@ -30,6 +36,10 @@ Layer ownership stays fixed:
 Adapter must not own prompts, provider selection, model execution, drafting
 runtime, SEO writes, media writes, publishing, or a second workflow registry.
 Reviewed final writes must go through Core proposal governance.
+
+Do not add Cloud article writing, batch article writing, hosted article
+drafting, prompt-library ownership, or an Adapter-owned authoring runtime to
+this recipe.
 
 ## Recipe
 
@@ -134,6 +144,8 @@ Only include fields allowed by the writing pack's `proposal_allowed_fields`.
 
 - Do not invent product facts, customer stories, rankings, citations,
   guarantees, or unsupported features.
+- Do not present OpenClaw as the article generator; it is only preparing a
+  local review candidate from a Toolbox pack.
 - Respect `forbidden_claims`, `allowed_claims`, and `brand_voice`.
 - Do not treat the writing pack or draft candidate as permission to mutate
   WordPress.
