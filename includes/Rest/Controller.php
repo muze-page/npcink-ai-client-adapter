@@ -5291,8 +5291,12 @@ final class Controller {
 	 */
 	private function public_media_derivative_cloud_projection( array $cloud_response ): array {
 		$data       = is_array( $cloud_response['data'] ?? null ) ? $cloud_response['data'] : $cloud_response;
-		$derivative = is_array( $data['derivative'] ?? null ) ? $data['derivative'] : array();
+		$derivative = $this->media_derivative_artifact_from_cloud_result( $data );
 		$error      = is_array( $data['error'] ?? null ) ? $data['error'] : array();
+		$warnings   = is_array( $data['warnings'] ?? null ) ? $data['warnings'] : array();
+		if ( empty( $warnings ) && is_array( $derivative['processing_warnings'] ?? null ) ) {
+			$warnings = $derivative['processing_warnings'];
+		}
 
 		return array(
 			'run_id'     => sanitize_text_field( (string) ( $data['run_id'] ?? $data['id'] ?? '' ) ),
@@ -5300,8 +5304,8 @@ final class Controller {
 			'job_type'   => sanitize_key( (string) ( $data['job_type'] ?? $data['cloud_job_payload']['job_type'] ?? '' ) ),
 			'created_at' => sanitize_text_field( (string) ( $data['created_at'] ?? '' ) ),
 			'updated_at' => sanitize_text_field( (string) ( $data['updated_at'] ?? '' ) ),
-			'derivative' => $this->sanitize_media_derivative_artifact_descriptor( $derivative ),
-			'warnings'   => array_values( array_map( 'sanitize_text_field', is_array( $data['warnings'] ?? null ) ? $data['warnings'] : array() ) ),
+			'derivative' => $derivative,
+			'warnings'   => array_values( array_map( 'sanitize_text_field', $warnings ) ),
 			'error'      => $this->sanitize_input_value( $error ),
 		);
 	}
@@ -5315,6 +5319,9 @@ final class Controller {
 	private function media_derivative_artifact_from_cloud_result( array $cloud_result ): array {
 		$data       = is_array( $cloud_result['data'] ?? null ) ? $cloud_result['data'] : $cloud_result;
 		$derivative = is_array( $data['derivative'] ?? null ) ? $data['derivative'] : array();
+		if ( empty( $derivative ) && is_array( $data['result']['artifact'] ?? null ) ) {
+			$derivative = $data['result']['artifact'];
+		}
 
 		return $this->sanitize_media_derivative_artifact_descriptor( $derivative );
 	}
@@ -5327,15 +5334,21 @@ final class Controller {
 	 */
 	private function sanitize_media_derivative_artifact_descriptor( array $descriptor ): array {
 		$clean = array();
-		foreach ( array( 'artifact_id', 'id', 'download_url', 'url', 'expires_at', 'run_id', 'mime_type', 'path', 'file_path', 'tmp_name', 'filename', 'name', 'field_name', 'sha256' ) as $key ) {
+		foreach ( array( 'artifact_id', 'id', 'download_url', 'url', 'expires_at', 'run_id', 'mime_type', 'format', 'path', 'file_path', 'tmp_name', 'filename', 'name', 'field_name', 'sha256', 'checksum' ) as $key ) {
 			if ( isset( $descriptor[ $key ] ) && is_scalar( $descriptor[ $key ] ) ) {
 				$clean[ $key ] = sanitize_text_field( (string) $descriptor[ $key ] );
 			}
+		}
+		if ( ! isset( $clean['sha256'] ) && isset( $clean['checksum'] ) && 0 === strpos( strtolower( (string) $clean['checksum'] ), 'sha256:' ) ) {
+			$clean['sha256'] = substr( strtolower( (string) $clean['checksum'] ), 7 );
 		}
 		foreach ( array( 'width', 'height', 'filesize_bytes', 'size_bytes' ) as $key ) {
 			if ( isset( $descriptor[ $key ] ) ) {
 				$clean[ $key ] = absint( $descriptor[ $key ] );
 			}
+		}
+		if ( is_array( $descriptor['processing_warnings'] ?? null ) ) {
+			$clean['processing_warnings'] = array_values( array_map( 'sanitize_text_field', $descriptor['processing_warnings'] ) );
 		}
 		foreach ( array( 'bytes', 'content' ) as $key ) {
 			if ( isset( $descriptor[ $key ] ) && is_string( $descriptor[ $key ] ) ) {
