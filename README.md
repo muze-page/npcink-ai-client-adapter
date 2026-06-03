@@ -304,7 +304,8 @@ turning the page into a control panel:
   username, auth type, and `password_uuid`;
 - a copyable WorkBuddy setup block that reuses the same non-secret manifest and
   tells WorkBuddy where the secret must be stored;
-- key-pair device pairing MVP endpoints and registered client key metadata;
+- key-pair device pairing MVP endpoints, local CLI setup, and registered
+  client key metadata;
 - copyable health and proposal example requests;
 - proposal list/detail, plan-to-proposal, commit-preflight, and
   approve-and-execute routes;
@@ -330,10 +331,11 @@ POST /wp-json/magick-ai-adapter/v1/connect/device/poll
 GET  /wp-json/magick-ai-adapter/v1/connection/key-pairs
 ```
 
-For local validation, run the development script in this repo:
+For local validation, use the unified local CLI in this repo:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-device-pairing.mjs --site=https://magick-ai.local --profile=local --insecure-local-tls
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
@@ -348,17 +350,21 @@ HTTPS polling resets are retried until the pairing code expires.
 After approval, WordPress shows a pairing result page; return to the terminal or
 local AI client and wait for polling to finish.
 
-After pairing, local clients can call Adapter through the signed request wrapper
+After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /health
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /capabilities
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /health
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /capabilities
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
 ```
 
-The wrapper accepts only Adapter-relative routes such as `/health`, signs the
-request locally, and prints only the Adapter JSON response.
+The request command accepts only Adapter-relative routes such as `/health`,
+signs the request locally, and prints only the Adapter JSON response. It also
+accepts `--body-stdin` for non-secret POST bodies.
+The lower-level development scripts remain available as
+`tools/keypair-device-pairing.mjs` and `tools/keypair-adapter-request.mjs`, but
+the preferred local client entrypoint is `tools/magick-adapter.mjs`.
 
 See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
 for the public-key pairing and request-signing contract.

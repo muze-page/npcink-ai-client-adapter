@@ -25,12 +25,18 @@ const route = positionals[1] || '';
 const profile = args.get('profile') || 'default';
 const profilePath = args.get('profile-file') || join(homedir(), '.magick-ai-adapter', 'keypair-profiles', `${profile}.json`);
 const bodyFile = args.get('body-file') || '';
+const bodyStdin = args.has('body-stdin');
 const queryJson = args.get('query') || '';
 const queryString = args.get('query-string') || '';
 const insecureLocalTls = args.has('insecure-local-tls');
 
 if (!['GET', 'POST', 'DELETE'].includes(method) || !isSafeAdapterRoute(route)) {
-  console.error('Usage: node tools/keypair-adapter-request.mjs --profile=local [--insecure-local-tls] METHOD /adapter-route [--query=\'{"key":"value"}\'|--query-string=key=value] [--body-file=/tmp/body.json]');
+  console.error('Usage: node tools/keypair-adapter-request.mjs --profile=local [--insecure-local-tls] METHOD /adapter-route [--query=\'{"key":"value"}\'|--query-string=key=value] [--body-file=/tmp/body.json|--body-stdin]');
+  process.exit(2);
+}
+
+if (bodyFile && bodyStdin) {
+  console.error('Use only one of --body-file or --body-stdin.');
   process.exit(2);
 }
 
@@ -203,9 +209,9 @@ try {
   const cleanRoute = routeUrl.pathname;
   const params = routeSearchParams();
   const queryStringOut = params.toString();
-  const body = bodyFile ? readFileSync(bodyFile, 'utf8') : '';
-  if (body && JSON.parse(body) === undefined) {
-    throw new Error('Invalid JSON body.');
+  const body = bodyFile ? readFileSync(bodyFile, 'utf8') : bodyStdin ? readFileSync(0, 'utf8') : '';
+  if (body) {
+    JSON.parse(body);
   }
   const adapterUrl = `${profileData.adapterBaseUrl}${cleanRoute}${queryStringOut ? `?${queryStringOut}` : ''}`;
   const restRoute = new URL(adapterUrl).pathname.replace(/^\/wp-json/, '');

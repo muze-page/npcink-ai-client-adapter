@@ -119,10 +119,11 @@ and starts pairing with the public key. WordPress shows an admin approval page;
 after approval, Adapter stores only the public key and later verifies signed
 Adapter requests.
 
-For local validation, this repository includes a development-only verifier:
+For local validation, this repository includes a unified local CLI:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-device-pairing.mjs --site=https://magick-ai.local --profile=local --insecure-local-tls
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
@@ -141,20 +142,24 @@ After pairing, OpenClaw-style local clients should call Adapter through the
 local request wrapper instead of reading the profile file:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /health
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls GET /capabilities
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /health
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /capabilities
 ```
 
 For POST requests, write the non-secret request JSON to a temporary file and
-pass it with `--body-file`:
+pass it with `--body-file`, or pass non-secret JSON through stdin:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/keypair-adapter-request.mjs --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+printf '%s' '{"plan":{}}' | node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin
 ```
 
 The wrapper rejects absolute URLs, signs the Adapter-relative route locally, and
 prints only the Adapter JSON response. Do not ask OpenClaw to read or summarize
 `~/.magick-ai-adapter/keypair-profiles/*.json`.
+The lower-level development scripts remain available as
+`tools/keypair-device-pairing.mjs` and `tools/keypair-adapter-request.mjs`, but
+the preferred local client entrypoint is `tools/magick-adapter.mjs`.
 
 ## Connection Check
 

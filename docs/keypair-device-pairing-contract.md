@@ -177,11 +177,13 @@ Adapter verifies:
 
 ## Local Request Wrapper
 
-Development clients can use `tools/keypair-adapter-request.mjs` after pairing:
+Development clients can use `tools/magick-adapter.mjs` after pairing:
 
 ```bash
-node tools/keypair-adapter-request.mjs --profile=local GET /health
-node tools/keypair-adapter-request.mjs --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+node tools/magick-adapter.mjs connect --site=https://example.test --profile=local
+node tools/magick-adapter.mjs status --profile=local
+node tools/magick-adapter.mjs request --profile=local GET /health
+node tools/magick-adapter.mjs request --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
 ```
 
 The wrapper:

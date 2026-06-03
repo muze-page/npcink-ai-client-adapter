@@ -530,6 +530,11 @@ foreach (
 		'<openclaw-secret-field-value>',
 		'Key pair clients',
 		'Device-paired clients',
+		'OpenClaw local CLI setup',
+		'Copy CLI setup',
+		'local_cli_setup_text',
+		'tools/magick-adapter.mjs',
+		'Do not read, cat, print, summarize, or copy the local keypair profile file',
 		'key_pairs_url',
 		'REVOKE_KEY_ACTION',
 		'Connection approved.',
@@ -639,6 +644,7 @@ foreach (
 			'docs/keypair-device-pairing-contract.md',
 			'tools/keypair-device-pairing.mjs',
 			'tools/keypair-adapter-request.mjs',
+			'tools/magick-adapter.mjs',
 			'Public Key Device Pairing',
 			'OpenClaw only connects to Adapter',
 			'productized OpenClaw user action',
@@ -784,6 +790,7 @@ foreach (
 		'keypair-profiles',
 		'isSafeAdapterRoute',
 		'--body-file',
+		'body-stdin',
 		'--query',
 		'--query-string',
 		'Magick-Signature',
@@ -798,6 +805,26 @@ foreach (
 }
 maa_adapter_assert( false === strpos( $keypair_request_tool, 'console.log(profile' ), 'Keypair request wrapper does not print profile data.' );
 maa_adapter_assert( false === strpos( $keypair_request_tool, 'console.log(headers' ), 'Keypair request wrapper does not print signature headers.' );
+
+$magick_adapter_tool = maa_adapter_read( $root . '/tools/magick-adapter.mjs' );
+foreach (
+	array(
+		'connect',
+		'status',
+		'request',
+		'keypair-device-pairing.mjs',
+		'keypair-adapter-request.mjs',
+		'missing_profile',
+		'health_failed',
+		'profile_path',
+		'core_capabilities',
+		'abilities_catalog',
+		'commit_execution',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $magick_adapter_tool, $required ), 'Unified local CLI contains expected behavior: ' . $required );
+}
+maa_adapter_assert( false === strpos( $magick_adapter_tool, 'private_key_jwk' ), 'Unified local CLI does not print or inspect private key material by name.' );
 
 $wporg_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (

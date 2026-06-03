@@ -200,6 +200,7 @@ final class Connection_Page {
 		$user            = wp_get_current_user();
 		$username        = $user->exists() ? (string) $user->user_login : '';
 		$client_config   = $this->openclaw_env_text( $username, $this->is_local_url( home_url() ) );
+		$local_cli_setup = $this->local_cli_setup_text( $this->is_local_url( home_url() ) );
 		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
 		$lookup_id       = isset( $_GET['adapter_proposal_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adapter_proposal_id'] ) ) : '';
 		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
@@ -509,6 +510,15 @@ final class Connection_Page {
 						</div>
 						<p class="description"><?php echo esc_html__( 'Writes require Core proposal approval before Adapter execution.', 'magick-ai-adapter' ); ?></p>
 					</div>
+				</div>
+
+				<div class="maa-section">
+					<h2><?php echo esc_html__( 'OpenClaw local CLI setup', 'magick-ai-adapter' ); ?></h2>
+					<p><?php echo esc_html__( 'Copy this prompt to OpenClaw after pairing. It uses one local CLI entrypoint and does not include private keys, signatures, or Application Passwords.', 'magick-ai-adapter' ); ?></p>
+					<textarea id="maa-local-cli-setup" rows="16" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
+					<p class="maa-action-row">
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy CLI setup', 'magick-ai-adapter' ); ?></button>
+					</p>
 				</div>
 
 				<div class="maa-section">
@@ -1404,6 +1414,34 @@ final class Connection_Page {
 			. "3. GET /capabilities before reads or proposals.\n"
 			. "4. Use direct_read routes for reads. Use /proposals and Core approval/preflight for writes.\n"
 			. "5. Do not put the secret into chat, tool commands, logs, proposal payloads, files, or copied setup text.";
+	}
+
+	/**
+	 * Builds the local CLI prompt for OpenClaw-style clients.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_setup_text( bool $include_local_tls ): string {
+		$cli_path = wp_normalize_path( dirname( dirname( __DIR__ ) ) . '/tools/magick-adapter.mjs' );
+		$tls_flag = $include_local_tls ? ' --insecure-local-tls' : '';
+
+		return "Magick AI Adapter local CLI setup\n\n"
+			. "Use this local CLI to call Adapter. Do not read, print, summarize, or copy ~/.magick-ai-adapter/keypair-profiles/*.json.\n\n"
+			. "Pairing command for the user terminal:\n"
+			. "node {$cli_path} connect --site=" . home_url() . " --profile=local{$tls_flag}\n\n"
+			. "Connection status:\n"
+			. "node {$cli_path} status --profile=local{$tls_flag}\n\n"
+			. "Adapter requests:\n"
+			. "node {$cli_path} request --profile=local{$tls_flag} GET /health\n"
+			. "node {$cli_path} request --profile=local{$tls_flag} GET /capabilities\n"
+			. "node {$cli_path} request --profile=local{$tls_flag} POST /proposals/from-plan --body-file=/tmp/magick-proposal.json\n\n"
+			. "Rules for OpenClaw:\n"
+			. "1. Do not read, cat, print, summarize, or copy the local keypair profile file.\n"
+			. "2. Do not output private_key_jwk, public_key_jwk, Authorization, X-Magick-Signature, or any signing headers.\n"
+			. "3. POST bodies must contain only non-secret JSON. Use --body-file or --body-stdin.\n"
+			. "4. Use only Adapter-relative routes such as /health, /capabilities, or /proposals.\n"
+			. "5. WordPress writes must still go through Core proposal, approval, and preflight.";
 	}
 
 	/**
