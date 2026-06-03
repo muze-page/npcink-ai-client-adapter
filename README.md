@@ -289,6 +289,8 @@ The page default view shows:
 - a `Create OpenClaw handoff` action that creates a WordPress Application
   Password for the current administrator, shows it once in the browser, and
   emits a non-secret connection manifest;
+- a `Local OpenClaw CLI` section that copies the unified CLI commands and lets
+  administrators revoke authorized key-pair public keys;
 - a `Proposal status` lookup where operators paste the `Proposal ID` returned
   to OpenClaw, see Core status through Adapter's read-only proposal proxy, open
   the matching Core approval detail, and copy Adapter status/execution URLs.
@@ -304,8 +306,7 @@ turning the page into a control panel:
   username, auth type, and `password_uuid`;
 - a copyable WorkBuddy setup block that reuses the same non-secret manifest and
   tells WorkBuddy where the secret must be stored;
-- key-pair device pairing MVP endpoints, local CLI setup, and registered
-  client key metadata;
+- key-pair device pairing MVP endpoints and local CLI reference details;
 - copyable health and proposal example requests;
 - proposal list/detail, plan-to-proposal, commit-preflight, and
   approve-and-execute routes;

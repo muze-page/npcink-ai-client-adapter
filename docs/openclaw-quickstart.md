@@ -161,6 +161,10 @@ The lower-level development scripts remain available as
 `tools/keypair-device-pairing.mjs` and `tools/keypair-adapter-request.mjs`, but
 the preferred local client entrypoint is `tools/magick-adapter.mjs`.
 
+Administrators manage authorized public keys from `Magick AI -> Adapter` in the
+`Local OpenClaw CLI` section. Revoke a key there to stop the corresponding local
+profile from authenticating.
+
 ## Connection Check
 
 1. Call `GET /health`.

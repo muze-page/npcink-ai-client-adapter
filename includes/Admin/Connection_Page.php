@@ -199,8 +199,11 @@ final class Connection_Page {
 		$can_create_password = $this->can_create_application_password();
 		$user            = wp_get_current_user();
 		$username        = $user->exists() ? (string) $user->user_login : '';
-		$client_config   = $this->openclaw_env_text( $username, $this->is_local_url( home_url() ) );
-		$local_cli_setup = $this->local_cli_setup_text( $this->is_local_url( home_url() ) );
+		$include_local_tls = $this->is_local_url( home_url() );
+		$client_config   = $this->openclaw_env_text( $username, $include_local_tls );
+		$local_cli_setup = $this->local_cli_setup_text( $include_local_tls );
+		$local_cli_connect_command = $this->local_cli_connect_command( $include_local_tls );
+		$local_cli_status_command = $this->local_cli_status_command( $include_local_tls );
 		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
 		$lookup_id       = isset( $_GET['adapter_proposal_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adapter_proposal_id'] ) ) : '';
 		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
@@ -513,12 +516,31 @@ final class Connection_Page {
 				</div>
 
 				<div class="maa-section">
-					<h2><?php echo esc_html__( 'OpenClaw local CLI setup', 'magick-ai-adapter' ); ?></h2>
-					<p><?php echo esc_html__( 'Copy this prompt to OpenClaw after pairing. It uses one local CLI entrypoint and does not include private keys, signatures, or Application Passwords.', 'magick-ai-adapter' ); ?></p>
-					<textarea id="maa-local-cli-setup" rows="16" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
-					<p class="maa-action-row">
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy CLI setup', 'magick-ai-adapter' ); ?></button>
+					<h2><?php echo esc_html__( 'Local OpenClaw CLI', 'magick-ai-adapter' ); ?></h2>
+					<p><?php echo esc_html__( 'Manage the local key-pair connection used by OpenClaw. Adapter stores only public keys; local private keys stay in the user profile file.', 'magick-ai-adapter' ); ?></p>
+					<div class="maa-copy-row">
+						<div>
+							<span class="maa-label"><?php echo esc_html__( 'Status command', 'magick-ai-adapter' ); ?></span>
+							<code class="maa-copy-value" id="maa-local-cli-status-command"><?php echo esc_html( $local_cli_status_command ); ?></code>
+						</div>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-status-command"><?php echo esc_html__( 'Copy status command', 'magick-ai-adapter' ); ?></button>
+					</div>
+					<div class="maa-copy-row">
+						<div>
+							<span class="maa-label"><?php echo esc_html__( 'Reconnect command', 'magick-ai-adapter' ); ?></span>
+							<code class="maa-copy-value" id="maa-local-cli-connect-command"><?php echo esc_html( $local_cli_connect_command ); ?></code>
+						</div>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-connect-command"><?php echo esc_html__( 'Copy reconnect command', 'magick-ai-adapter' ); ?></button>
+					</div>
+					<p>
+						<label for="maa-local-cli-setup"><span class="maa-label"><?php echo esc_html__( 'OpenClaw instructions', 'magick-ai-adapter' ); ?></span></label>
+						<textarea id="maa-local-cli-setup" rows="14" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
 					</p>
+					<p class="maa-action-row">
+						<button type="button" class="button button-primary maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy OpenClaw CLI instructions', 'magick-ai-adapter' ); ?></button>
+					</p>
+					<h3><?php echo esc_html__( 'Authorized public keys', 'magick-ai-adapter' ); ?></h3>
+					<?php $this->render_key_pair_clients_table( $key_records ); ?>
 				</div>
 
 				<div class="maa-section">
@@ -558,43 +580,7 @@ final class Connection_Page {
 					<p><?php echo esc_html__( 'Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval.', 'magick-ai-adapter' ); ?></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Manifest', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $manifest_url ); ?></code></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Key pairs', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $key_pairs_url ); ?></code></p>
-					<?php if ( empty( $key_records ) ) : ?>
-						<p class="description"><?php echo esc_html__( 'No key-pair clients are registered for this administrator yet.', 'magick-ai-adapter' ); ?></p>
-					<?php else : ?>
-						<table class="widefat striped">
-							<thead>
-								<tr>
-									<th><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th>
-									<th><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th>
-									<th><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th>
-									<th><?php echo esc_html__( 'Last used', 'magick-ai-adapter' ); ?></th>
-									<th><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></th>
-									<th><?php echo esc_html__( 'Action', 'magick-ai-adapter' ); ?></th>
-								</tr>
-							</thead>
-							<tbody>
-								<?php foreach ( $key_records as $record ) : ?>
-									<tr>
-										<td><?php echo esc_html( (string) ( $record['client_name'] ?? '' ) ); ?><br><code><?php echo esc_html( (string) ( $record['key_id'] ?? '' ) ); ?></code></td>
-										<td><code><?php echo esc_html( (string) ( $record['fingerprint'] ?? '' ) ); ?></code></td>
-										<td><?php echo esc_html( implode( ', ', is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array() ) ); ?></td>
-										<td><?php echo esc_html( (string) ( $record['last_used_at'] ?? '' ) ); ?></td>
-										<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'magick-ai-adapter' ) : esc_html__( 'Revoked', 'magick-ai-adapter' ); ?></td>
-										<td>
-											<?php if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) : ?>
-												<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-													<input type="hidden" name="action" value="<?php echo esc_attr( self::REVOKE_KEY_ACTION ); ?>" />
-													<input type="hidden" name="key_id" value="<?php echo esc_attr( (string) ( $record['key_id'] ?? '' ) ); ?>" />
-													<?php wp_nonce_field( self::REVOKE_KEY_ACTION . '_' . (string) ( $record['key_id'] ?? '' ) ); ?>
-													<button type="submit" class="button"><?php echo esc_html__( 'Revoke', 'magick-ai-adapter' ); ?></button>
-												</form>
-											<?php endif; ?>
-										</td>
-									</tr>
-								<?php endforeach; ?>
-							</tbody>
-						</table>
-					<?php endif; ?>
+					<p class="description"><?php echo esc_html__( 'Manage authorized public keys from the Local OpenClaw CLI section on the Connection tab.', 'magick-ai-adapter' ); ?></p>
 				</details>
 
 				<details class="maa-section">
@@ -1423,25 +1409,125 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function local_cli_setup_text( bool $include_local_tls ): string {
-		$cli_path = wp_normalize_path( dirname( dirname( __DIR__ ) ) . '/tools/magick-adapter.mjs' );
-		$tls_flag = $include_local_tls ? ' --insecure-local-tls' : '';
+		$status_command = $this->local_cli_status_command( $include_local_tls );
+		$connect_command = $this->local_cli_connect_command( $include_local_tls );
+		$request_prefix = $this->local_cli_request_prefix( $include_local_tls );
 
 		return "Magick AI Adapter local CLI setup\n\n"
 			. "Use this local CLI to call Adapter. Do not read, print, summarize, or copy ~/.magick-ai-adapter/keypair-profiles/*.json.\n\n"
 			. "Pairing command for the user terminal:\n"
-			. "node {$cli_path} connect --site=" . home_url() . " --profile=local{$tls_flag}\n\n"
+			. $connect_command . "\n\n"
 			. "Connection status:\n"
-			. "node {$cli_path} status --profile=local{$tls_flag}\n\n"
+			. $status_command . "\n\n"
 			. "Adapter requests:\n"
-			. "node {$cli_path} request --profile=local{$tls_flag} GET /health\n"
-			. "node {$cli_path} request --profile=local{$tls_flag} GET /capabilities\n"
-			. "node {$cli_path} request --profile=local{$tls_flag} POST /proposals/from-plan --body-file=/tmp/magick-proposal.json\n\n"
+			. "{$request_prefix} GET /health\n"
+			. "{$request_prefix} GET /capabilities\n"
+			. "{$request_prefix} POST /proposals/from-plan --body-file=/tmp/magick-proposal.json\n\n"
 			. "Rules for OpenClaw:\n"
 			. "1. Do not read, cat, print, summarize, or copy the local keypair profile file.\n"
 			. "2. Do not output private_key_jwk, public_key_jwk, Authorization, X-Magick-Signature, or any signing headers.\n"
 			. "3. POST bodies must contain only non-secret JSON. Use --body-file or --body-stdin.\n"
 			. "4. Use only Adapter-relative routes such as /health, /capabilities, or /proposals.\n"
 			. "5. WordPress writes must still go through Core proposal, approval, and preflight.";
+	}
+
+	/**
+	 * Renders registered local key-pair clients.
+	 *
+	 * @param array<int,array<string,mixed>> $key_records Key records.
+	 * @return void
+	 */
+	private function render_key_pair_clients_table( array $key_records ): void {
+		if ( empty( $key_records ) ) :
+			?>
+			<p class="description"><?php echo esc_html__( 'No key-pair clients are registered for this administrator yet. Run the reconnect command, approve the browser prompt, then refresh this page.', 'magick-ai-adapter' ); ?></p>
+			<?php
+			return;
+		endif;
+		?>
+		<table class="widefat striped">
+			<thead>
+				<tr>
+					<th><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Last used', 'magick-ai-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Action', 'magick-ai-adapter' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $key_records as $record ) : ?>
+					<tr>
+						<td><?php echo esc_html( (string) ( $record['client_name'] ?? '' ) ); ?><br><code><?php echo esc_html( (string) ( $record['key_id'] ?? '' ) ); ?></code></td>
+						<td><code><?php echo esc_html( (string) ( $record['fingerprint'] ?? '' ) ); ?></code></td>
+						<td><?php echo esc_html( implode( ', ', is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array() ) ); ?></td>
+						<td><?php echo esc_html( (string) ( $record['last_used_at'] ?? '' ) ); ?></td>
+						<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'magick-ai-adapter' ) : esc_html__( 'Revoked', 'magick-ai-adapter' ); ?></td>
+						<td>
+							<?php if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) : ?>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+									<input type="hidden" name="action" value="<?php echo esc_attr( self::REVOKE_KEY_ACTION ); ?>" />
+									<input type="hidden" name="key_id" value="<?php echo esc_attr( (string) ( $record['key_id'] ?? '' ) ); ?>" />
+									<?php wp_nonce_field( self::REVOKE_KEY_ACTION . '_' . (string) ( $record['key_id'] ?? '' ) ); ?>
+									<button type="submit" class="button"><?php echo esc_html__( 'Revoke', 'magick-ai-adapter' ); ?></button>
+								</form>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<?php
+	}
+
+	/**
+	 * Builds the local CLI connect command.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_connect_command( bool $include_local_tls ): string {
+		return $this->local_cli_prefix() . ' connect --site=' . home_url() . ' --profile=local' . $this->local_cli_tls_flag( $include_local_tls );
+	}
+
+	/**
+	 * Builds the local CLI status command.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_status_command( bool $include_local_tls ): string {
+		return $this->local_cli_prefix() . ' status --profile=local' . $this->local_cli_tls_flag( $include_local_tls );
+	}
+
+	/**
+	 * Builds the local CLI request command prefix.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_request_prefix( bool $include_local_tls ): string {
+		return $this->local_cli_prefix() . ' request --profile=local' . $this->local_cli_tls_flag( $include_local_tls );
+	}
+
+	/**
+	 * Builds the local CLI executable prefix.
+	 *
+	 * @return string
+	 */
+	private function local_cli_prefix(): string {
+		return 'node ' . wp_normalize_path( dirname( dirname( __DIR__ ) ) . '/tools/magick-adapter.mjs' );
+	}
+
+	/**
+	 * Builds the local TLS flag for LocalWP URLs.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_tls_flag( bool $include_local_tls ): string {
+		return $include_local_tls ? ' --insecure-local-tls' : '';
 	}
 
 	/**
