@@ -127,6 +127,93 @@ function maa_adapter_smoke_rest_result( string $method, string $route, array $pa
 }
 
 /**
+ * Captured Adapter observability events.
+ *
+ * @var array<int,array<string,mixed>>
+ */
+$GLOBALS['maa_adapter_smoke_observability_events'] = array();
+
+/**
+ * Captures Adapter observability events for smoke assertions.
+ *
+ * @param mixed $event Event payload.
+ * @return void
+ */
+function maa_adapter_smoke_capture_observability_event( $event ): void {
+	if ( ! is_array( $event ) || 'magick-ai-adapter' !== (string) ( $event['plugin_slug'] ?? '' ) ) {
+		return;
+	}
+
+	$GLOBALS['maa_adapter_smoke_observability_events'][] = $event;
+}
+add_action( 'magick_ai_observability_event', 'maa_adapter_smoke_capture_observability_event' );
+
+/**
+ * Finds the latest captured Adapter observability event.
+ *
+ * @param string $event_kind Event kind.
+ * @param string $status Status, or empty for any.
+ * @param string $route Route, or empty for any.
+ * @return array<string,mixed>
+ */
+function maa_adapter_smoke_observability_event( string $event_kind, string $status = '', string $route = '' ): array {
+	$maa_adapter_smoke_observability_events = is_array( $GLOBALS['maa_adapter_smoke_observability_events'] ?? null ) ? $GLOBALS['maa_adapter_smoke_observability_events'] : array();
+	for ( $index = count( $maa_adapter_smoke_observability_events ) - 1; $index >= 0; --$index ) {
+		$event = $maa_adapter_smoke_observability_events[ $index ];
+		if ( $event_kind !== (string) ( $event['event_kind'] ?? '' ) ) {
+			continue;
+		}
+		if ( '' !== $status && $status !== (string) ( $event['status'] ?? '' ) ) {
+			continue;
+		}
+		if ( '' !== $route && $route !== (string) ( $event['route'] ?? '' ) ) {
+			continue;
+		}
+
+		return $event;
+	}
+
+	return array();
+}
+
+/**
+ * Returns whether a payload tree contains a key.
+ *
+ * @param mixed  $value Payload value.
+ * @param string $needle Key to find.
+ * @return bool
+ */
+function maa_adapter_smoke_payload_has_key( $value, string $needle ): bool {
+	if ( ! is_array( $value ) ) {
+		return false;
+	}
+
+	foreach ( $value as $key => $child ) {
+		if ( $needle === (string) $key || maa_adapter_smoke_payload_has_key( $child, $needle ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Asserts an observability event is metadata-only.
+ *
+ * @param array<string,mixed> $event Event payload.
+ * @param string              $label Assertion label.
+ * @return void
+ */
+function maa_adapter_smoke_assert_observability_safe( array $event, string $label ): void {
+	$event_id = (string) ( $event['event_id'] ?? '' );
+	maa_adapter_smoke_assert( '' !== $event_id, $label . ' includes a stable event id' );
+	maa_adapter_smoke_assert( 1 === preg_match( '/^[a-z0-9_]+$/', $event_id ), $label . ' event id uses safe characters' );
+	foreach ( array( 'input', 'plan', 'preview', 'response', 'upstream_data', 'authorization', 'token', 'secret', 'prompt', 'content', 'write_actions' ) as $forbidden ) {
+		maa_adapter_smoke_assert( ! maa_adapter_smoke_payload_has_key( $event, $forbidden ), $label . ' excludes raw key ' . $forbidden );
+	}
+}
+
+/**
  * Returns capability rows keyed by ability id.
  *
  * @param array<string,mixed> $capabilities Capabilities response.
@@ -280,6 +367,11 @@ $maa_adapter_smoke_cleanup_comment_ids = array();
 $maa_adapter_smoke_cleanup_terms = array();
 
 $health = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/health' );
+$health_dispatch_event = maa_adapter_smoke_observability_event( 'adapter.openclaw.dispatch.completed', 'ok', '/magick-ai-adapter/v1/health' );
+maa_adapter_smoke_assert( ! empty( $health_dispatch_event ), 'adapter emits OpenClaw dispatch completed event for health' );
+maa_adapter_smoke_assert( 'GET' === (string) ( $health_dispatch_event['method'] ?? '' ), 'adapter health dispatch event carries method' );
+maa_adapter_smoke_assert( 200 === (int) ( $health_dispatch_event['status_code'] ?? 0 ), 'adapter health dispatch event carries status code' );
+maa_adapter_smoke_assert_observability_safe( $health_dispatch_event, 'adapter health dispatch event' );
 maa_adapter_smoke_assert( true === (bool) ( $health['core_capabilities'] ?? false ), 'adapter sees Core capabilities route' );
 maa_adapter_smoke_assert( true === (bool) ( $health['abilities_catalog'] ?? false ), 'adapter sees WordPress Abilities catalog route' );
 maa_adapter_smoke_assert( false === (bool) ( $health['core_proxy_execute'] ?? true ), 'adapter keeps Core proxy execution disabled' );
@@ -372,6 +464,19 @@ $term_detail = maa_adapter_smoke_rest(
 maa_adapter_smoke_assert( 'magick-ai/get-term' === (string) ( $term_detail['ability_id'] ?? '' ), 'adapter resolves term detail from list id' );
 
 $capabilities = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/capabilities' );
+$core_request_event = maa_adapter_smoke_observability_event( 'adapter.core.request', 'ok', '/magick-ai-core/v1/capabilities' );
+maa_adapter_smoke_assert( ! empty( $core_request_event ), 'adapter emits Core relay success event for capabilities' );
+maa_adapter_smoke_assert( 'GET' === (string) ( $core_request_event['method'] ?? '' ), 'adapter Core relay success event carries method' );
+maa_adapter_smoke_assert( 200 === (int) ( $core_request_event['status_code'] ?? 0 ), 'adapter Core relay success event carries status code' );
+maa_adapter_smoke_assert_observability_safe( $core_request_event, 'adapter Core relay success event' );
+
+$missing_core_proposal = maa_adapter_smoke_rest_result( 'GET', '/magick-ai-adapter/v1/proposals/missing-observability-smoke' );
+maa_adapter_smoke_assert( 404 === (int) $missing_core_proposal['status'], 'adapter Core relay failure smoke returns missing proposal status' );
+$core_request_error_event = maa_adapter_smoke_observability_event( 'adapter.core.request', 'error', '/magick-ai-core/v1/proposals/missing-observability-smoke' );
+maa_adapter_smoke_assert( ! empty( $core_request_error_event ), 'adapter emits Core relay failure event for missing proposal' );
+maa_adapter_smoke_assert( 404 === (int) ( $core_request_error_event['status_code'] ?? 0 ), 'adapter Core relay failure event carries status code' );
+maa_adapter_smoke_assert( '' !== (string) ( $core_request_error_event['error_code'] ?? '' ), 'adapter Core relay failure event carries stable error code' );
+maa_adapter_smoke_assert_observability_safe( $core_request_error_event, 'adapter Core relay failure event' );
 $by_id        = maa_adapter_smoke_capabilities_by_id( $capabilities );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/site-summary'] ), 'adapter exposes site-summary capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['magick-ai-abilities/wp-diagnostics-summary'] ), 'adapter exposes diagnostics capability through Core' );
@@ -458,6 +563,15 @@ $unallowed_plan_bridge = maa_adapter_smoke_rest_result(
 );
 maa_adapter_smoke_assert( 400 === (int) $unallowed_plan_bridge['status'], 'adapter rejects unallowed plan-to-proposal ability before Core forwarding' );
 maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' === (string) ( $unallowed_plan_bridge['data']['code'] ?? '' ), 'adapter unallowed plan rejection uses adapter error code' );
+$plan_ingest_error_event = maa_adapter_smoke_observability_event( 'adapter.proposal.plan_ingest', 'error', '/magick-ai-adapter/v1/proposals/from-plan' );
+maa_adapter_smoke_assert( ! empty( $plan_ingest_error_event ), 'adapter emits plan handoff failure observability event' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' === (string) ( $plan_ingest_error_event['error_code'] ?? '' ), 'adapter plan handoff failure event carries stable error code' );
+maa_adapter_smoke_assert( 400 === (int) ( $plan_ingest_error_event['status_code'] ?? 0 ), 'adapter plan handoff failure event carries status code' );
+maa_adapter_smoke_assert_observability_safe( $plan_ingest_error_event, 'adapter plan handoff failure event' );
+$plan_dispatch_error_event = maa_adapter_smoke_observability_event( 'adapter.openclaw.dispatch.failed', 'error', '/magick-ai-adapter/v1/proposals/from-plan' );
+maa_adapter_smoke_assert( ! empty( $plan_dispatch_error_event ), 'adapter emits OpenClaw dispatch failed event for plan handoff failure' );
+maa_adapter_smoke_assert( 400 === (int) ( $plan_dispatch_error_event['status_code'] ?? 0 ), 'adapter dispatch failed event carries status code' );
+maa_adapter_smoke_assert_observability_safe( $plan_dispatch_error_event, 'adapter dispatch failed event' );
 
 $invalid_plan_action_bridge = maa_adapter_smoke_rest_result(
 	'POST',
@@ -753,6 +867,11 @@ $maa_adapter_smoke_cleanup_proposal_ids[] = $article_plan_proposal_id;
 maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $article_plan_proposal['ability_id'] ?? '' ), 'adapter article plan creates a create-draft proposal' );
 maa_adapter_smoke_assert( 'draft' === (string) ( $article_plan_proposal['input']['status'] ?? '' ), 'adapter article plan proposal is draft-only' );
 maa_adapter_smoke_assert( 'article_write_plan' === (string) ( $article_plan_proposal['preview']['article_workflow']['artifact_type'] ?? '' ), 'adapter article plan proposal preserves article workflow preview' );
+$plan_ingest_success_event = maa_adapter_smoke_observability_event( 'adapter.proposal.plan_ingest', 'ok', '/magick-ai-adapter/v1/proposals/from-plan' );
+maa_adapter_smoke_assert( ! empty( $plan_ingest_success_event ), 'adapter emits plan handoff success observability event' );
+maa_adapter_smoke_assert( 'adapter-article-plan-request' === (string) ( $plan_ingest_success_event['adapter_request_id'] ?? '' ), 'adapter plan handoff success event carries adapter request id' );
+maa_adapter_smoke_assert( 'adapter-article-plan-correlation' === (string) ( $plan_ingest_success_event['correlation_id'] ?? '' ), 'adapter plan handoff success event carries correlation id' );
+maa_adapter_smoke_assert_observability_safe( $plan_ingest_success_event, 'adapter plan handoff success event' );
 $article_plan_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $article_plan_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $article_plan_execute['success'] ?? false ), 'adapter article plan approve-and-execute succeeds' );
 maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $article_plan_execute['ability_id'] ?? '' ), 'adapter article plan execution uses create-draft ability' );
@@ -1057,6 +1176,10 @@ $trash_proposal_id = (string) ( $trash_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $trash_proposal_id;
 maa_adapter_smoke_assert( '' !== $trash_proposal_id, 'adapter creates trash-post proposal for approved execution smoke' );
 maa_adapter_smoke_assert( 'pending' === (string) ( $trash_proposal['status'] ?? '' ), 'adapter trash-post proposal starts pending' );
+$proposal_create_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'ok', '/magick-ai-adapter/v1/proposals' );
+maa_adapter_smoke_assert( ! empty( $proposal_create_event ), 'adapter emits proposal create success observability event' );
+maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $proposal_create_event['ability_id'] ?? '' ), 'adapter proposal create success event carries ability id' );
+maa_adapter_smoke_assert_observability_safe( $proposal_create_event, 'adapter proposal create success event' );
 
 $pending_execute = maa_adapter_smoke_rest_result(
 	'POST',
@@ -1579,6 +1702,11 @@ $empty_update_proposal = maa_adapter_smoke_rest_result(
 );
 maa_adapter_smoke_assert( 400 === (int) $empty_update_proposal['status'], 'adapter proposal create rejects update-post without update fields' );
 maa_adapter_smoke_assert( 'Adapter updated post smoke' === (string) get_the_title( $update_post_id ), 'adapter empty update-post rejection leaves post unchanged' );
+$proposal_create_error_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'error', '/magick-ai-adapter/v1/proposals' );
+maa_adapter_smoke_assert( ! empty( $proposal_create_error_event ), 'adapter emits proposal create failure observability event' );
+maa_adapter_smoke_assert( 'magick_ai_adapter_update_fields_required' === (string) ( $proposal_create_error_event['error_code'] ?? '' ), 'adapter proposal create failure event carries stable error code' );
+maa_adapter_smoke_assert( 400 === (int) ( $proposal_create_error_event['status_code'] ?? 0 ), 'adapter proposal create failure event carries status code' );
+maa_adapter_smoke_assert_observability_safe( $proposal_create_error_event, 'adapter proposal create failure event' );
 
 $invalid_update_status_proposal = maa_adapter_smoke_rest_result(
 	'POST',
@@ -2337,6 +2465,18 @@ $correlation_id = (string) ( $preflight['correlation_id'] ?? '' );
 maa_adapter_smoke_assert( '' !== $correlation_id, 'adapter commit preflight returns correlation id for provider log smoke' );
 maa_adapter_smoke_assert( false === (bool) ( $preflight['commit_execution'] ?? true ), 'adapter commit preflight keeps final execution disabled for provider log smoke' );
 maa_adapter_smoke_assert( $correlation_id === (string) ( $preflight['approval_context']['correlation_id'] ?? '' ), 'adapter commit preflight approval context carries matching correlation id' );
+$commit_preflight_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'ok', '/magick-ai-adapter/v1/proposals/' . $proposal_id . '/commit-preflight' );
+maa_adapter_smoke_assert( ! empty( $commit_preflight_event ), 'adapter emits commit preflight success observability event' );
+maa_adapter_smoke_assert( $proposal_id === (string) ( $commit_preflight_event['proposal_id'] ?? '' ), 'adapter commit preflight success event carries proposal id' );
+maa_adapter_smoke_assert_observability_safe( $commit_preflight_event, 'adapter commit preflight success event' );
+
+$missing_preflight = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/missing-observability-smoke/commit-preflight' );
+maa_adapter_smoke_assert( 404 === (int) $missing_preflight['status'], 'adapter commit preflight failure smoke returns missing proposal status' );
+$commit_preflight_error_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'error', '/magick-ai-adapter/v1/proposals/missing-observability-smoke/commit-preflight' );
+maa_adapter_smoke_assert( ! empty( $commit_preflight_error_event ), 'adapter emits commit preflight failure observability event' );
+maa_adapter_smoke_assert( 404 === (int) ( $commit_preflight_error_event['status_code'] ?? 0 ), 'adapter commit preflight failure event carries status code' );
+maa_adapter_smoke_assert( '' !== (string) ( $commit_preflight_error_event['error_code'] ?? '' ), 'adapter commit preflight failure event carries stable error code' );
+maa_adapter_smoke_assert_observability_safe( $commit_preflight_error_event, 'adapter commit preflight failure event' );
 
 $provider_model = maa_adapter_smoke_text_generation_model();
 $provider_smoke = maa_adapter_smoke_rest(

@@ -30,6 +30,7 @@ final class Observability {
 		do_action(
 			'magick_ai_observability_event',
 			array_merge(
+				self::sanitize_payload( $payload ),
 				array(
 					'schema_version' => '2026-06-01',
 					'plugin_slug'    => 'magick-ai-adapter',
@@ -37,9 +38,76 @@ final class Observability {
 					'source'         => 'local',
 					'event_kind'     => $event_kind,
 					'emitted_at'     => gmdate( 'c' ),
-				),
-				$payload
+				)
 			)
 		);
+	}
+
+	/**
+	 * Keeps observability metadata bounded and safe for optional collection.
+	 *
+	 * @param array<string,mixed> $payload Event details.
+	 * @return array<string,mixed>
+	 */
+	private static function sanitize_payload( array $payload ): array {
+		$allowed = array(
+			'event_id'           => 'key',
+			'status'             => 'status',
+			'error_code'         => 'key',
+			'status_detail'      => 'key',
+			'latency_ms'         => 'int',
+			'ability_id'         => 'text',
+			'proposal_id'        => 'text',
+			'correlation_id'     => 'text',
+			'adapter_request_id' => 'text',
+			'method'             => 'method',
+			'route'              => 'text',
+			'status_code'        => 'int',
+			'mode'               => 'key',
+			'deduplicated'       => 'bool',
+			'proposal_count'     => 'int',
+			'blocked_count'      => 'int',
+			'executed_count'     => 'int',
+			'failed_count'       => 'int',
+			'read_policy'        => 'key',
+			'sensitivity'        => 'key',
+		);
+		$clean = array();
+
+		foreach ( $allowed as $key => $type ) {
+			if ( ! array_key_exists( $key, $payload ) ) {
+				continue;
+			}
+
+			$value = $payload[ $key ];
+			if ( 'int' === $type ) {
+				$clean[ $key ] = max( 0, (int) $value );
+				continue;
+			}
+
+			if ( 'bool' === $type ) {
+				$clean[ $key ] = (bool) $value;
+				continue;
+			}
+
+			if ( is_array( $value ) || is_object( $value ) ) {
+				continue;
+			}
+
+			$value = substr( sanitize_text_field( (string) $value ), 0, 200 );
+			if ( 'status' === $type && ! in_array( $value, array( 'ok', 'warning', 'error' ), true ) ) {
+				$value = 'error';
+			} elseif ( 'method' === $type ) {
+				$value = strtoupper( sanitize_key( $value ) );
+			} elseif ( 'key' === $type ) {
+				$value = sanitize_key( $value );
+			}
+
+			if ( '' !== $value ) {
+				$clean[ $key ] = $value;
+			}
+		}
+
+		return $clean;
 	}
 }

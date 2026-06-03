@@ -96,6 +96,7 @@ Run this order for a local acceptance pass:
      infers `taxonomy` when possible
    - `route_groups` for human-readable grouped route labels
    - `openclaw_recipes.article_draft_plan`
+   - `openclaw_recipes.content_discoverability_suggestions`
    - disabled approval and rejection stubs
    - direct-read shortcuts
 6. Call `GET /capabilities` and use only real `ability_id` values returned by
@@ -138,6 +139,13 @@ Run this order for a local acceptance pass:
    read envelope carries `read_policy=direct_read_internal`,
    `sensitivity=internal`, `redaction_applied=false`, a non-empty
    `correlation_id`, and `commit_execution=false`.
+   For the SEO/AEO/GEO suggestion recipe, run
+   `magick-ai-toolbox/build-content-discoverability-brief` through
+   `POST /run-read-ability` or
+   `GET /content-discoverability-brief?post_id=POST_ID`; confirm the result has
+   `artifact_type=content_discoverability_brief`,
+   `write_posture=suggestion_only`, `direct_wordpress_write=false`, and
+   `final_write_path=core_proposal_required`.
    For a public read such as `/site-summary`, confirm
    `read_policy=direct_read_public`.
    For a diagnostics read such as `/wp-diagnostics-summary`, confirm

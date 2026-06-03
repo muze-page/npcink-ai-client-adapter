@@ -68,6 +68,14 @@ foreach (
 		'magick-ai/optimize-media-metadata',
 		'/ai-provider-log-correlation-smoke',
 		'ai_provider_log_correlation_smoke',
+		'observability_request_context',
+		'safe_observability_context',
+		'adapter.core.request',
+		'adapter.proposal.create',
+		'adapter.proposal.plan_ingest',
+		'adapter.commit.preflight',
+		'adapter.proposal.execute',
+		'status_code',
 		'/site-info',
 		'/site-summary',
 			'/wp-diagnostics-summary',
@@ -203,6 +211,15 @@ foreach (
 		'/workflow-recipe',
 		'openclaw_recipes',
 		'article_draft_plan',
+		'content_discoverability_suggestions',
+		"'content-discoverability-context'",
+		"'content-discoverability-validation'",
+		"'content-discoverability-brief'",
+		'magick-ai-toolbox/get-content-discoverability-context',
+		'magick-ai-toolbox/validate-content-discoverability-context',
+		'magick-ai-toolbox/build-content-discoverability-brief',
+		'content_discoverability_brief',
+		'suggestion_only',
 		"'media'",
 		"'posts'",
 		"'post-context'",
@@ -316,6 +333,7 @@ foreach (
 		'magick-ai/build-test-content-cleanup-plan',
 		'magick-ai/build-media-inventory-fix-plan',
 		'magick-ai-toolbox/build-article-write-plan',
+		'magick-ai-toolbox/build-content-discoverability-brief',
 		'magick-ai/inspect-media-asset',
 		'magick-ai/optimize-media-asset',
 		'magick-ai/replace-media-file',
@@ -337,10 +355,28 @@ maa_adapter_assert( false === strpos( $controller, 'proposals:approve' ), 'Adapt
 maa_adapter_assert( false === strpos( $controller, 'proposals:reject' ), 'Adapter does not request proposal rejection scope.' );
 maa_adapter_assert( false === strpos( $controller, "'replace_original'" ), 'Adapter optimize-media-asset profile does not allow original replacement.' );
 maa_adapter_assert( false === strpos( $controller, "'replacement_url'" ), 'Adapter replace-media-file profile does not allow external replacement URLs.' );
+$safe_observability = substr( $controller, (int) strpos( $controller, 'private function safe_observability_context' ) );
+foreach ( array( "'input'", "'plan'", "'preview'", "'response'", "'upstream_data'", "'authorization'", "'token'", "'secret'", "'prompt'", "'content'" ) as $forbidden ) {
+	maa_adapter_assert( false === strpos( $safe_observability, $forbidden ), 'Safe observability context excludes raw field: ' . $forbidden );
+}
+$observability = maa_adapter_read( $root . '/includes/Observability.php' );
+foreach ( array( 'sanitize_payload', "'event_id'", "'adapter_request_id'", "'status_code'", "'executed_count'", "'failed_count'" ) as $required ) {
+	maa_adapter_assert( false !== strpos( $observability, $required ), 'Observability bridge keeps allowlisted field: ' . $required );
+}
+foreach ( array( "'input'", "'plan'", "'preview'", "'response'", "'upstream_data'", "'authorization'", "'token'", "'secret'", "'prompt'", "'content'" ) as $forbidden ) {
+	maa_adapter_assert( false === strpos( $observability, $forbidden ), 'Observability bridge excludes raw field: ' . $forbidden );
+}
 
 $plugin = maa_adapter_read( $root . '/includes/Plugin.php' );
 foreach (
 	array(
+		'rest_request_before_callbacks',
+		'rest_request_after_callbacks',
+		'capture_adapter_dispatch_start',
+		'emit_adapter_dispatch_event',
+		'adapter.openclaw.dispatch.completed',
+		'adapter.openclaw.dispatch.failed',
+		'adapter.dispatch_failed',
 		'admin_menu',
 		'admin_post_magick_ai_adapter_create_openclaw_password',
 		'register_admin_page',
@@ -378,6 +414,11 @@ foreach (
 		'WordPress user',
 		'Copy env',
 		'Connection manifest',
+		'content_discoverability_suggestions',
+		'content-discoverability-validation',
+		'content-discoverability-context',
+		'content-discoverability-brief',
+		'Return suggestions only; do not write SEO meta',
 		'openclaw_connection_manifest_text',
 		'WorkBuddy setup',
 		'Copy WorkBuddy setup',
@@ -499,6 +540,12 @@ foreach (
 		'create Core proposals',
 		'Cloud runtime access belongs to the standalone `magick-ai-cloud-addon`',
 		'Adapter must not add its own Cloud settings, signing client, or `/cloud/*`',
+		'Adapter emits local metadata-only events through',
+		'magick_ai_observability_event',
+		'canonical Adapter event kinds are',
+		'adapter.openclaw.dispatch.completed',
+		'adapter.openclaw.dispatch.failed',
+		'They must not include raw OpenClaw requests',
 		'Proposal status',
 		'Adapter status/execution URLs',
 		'does not define abilities',
@@ -980,6 +1027,7 @@ foreach (
 		'magick-ai/build-test-content-cleanup-plan',
 		'magick-ai/build-media-inventory-fix-plan',
 		'magick-ai-toolbox/build-article-write-plan',
+		'magick-ai-toolbox/build-content-discoverability-brief',
 		'plan-to-proposal forwarding',
 		'skipped_destructive_candidates',
 		'write_actions',
@@ -1244,9 +1292,21 @@ foreach (
 			'AI provider smoke found a configured text generation model',
 			'adapter provider smoke succeeds with configured text model',
 			'adapter provider smoke context carries selected provider',
-			'adapter provider smoke context carries selected model',
-			'AI Request Logs context contains proposal id',
+		'adapter provider smoke context carries selected model',
+		'AI Request Logs context contains proposal id',
 		'AI Request Logs context contains correlation id',
+		'maa_adapter_smoke_capture_observability_event',
+		'adapter emits OpenClaw dispatch completed event for health',
+		'adapter emits OpenClaw dispatch failed event for plan handoff failure',
+		'adapter emits Core relay success event for capabilities',
+		'adapter emits Core relay failure event for missing proposal',
+		'adapter emits proposal create success observability event',
+		'adapter emits proposal create failure observability event',
+		'adapter emits plan handoff success observability event',
+		'adapter emits plan handoff failure observability event',
+		'adapter emits commit preflight success observability event',
+		'adapter emits commit preflight failure observability event',
+		'excludes raw key ',
 		'AI Request Logs context contains explicit provider even if provider column is blank',
 		'AI Request Logs context contains explicit model even if provider column is blank',
 		'Core Governance Audit filters by the same provider smoke correlation id',
@@ -1273,6 +1333,29 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $article_recipe, $required ), 'Article draft recipe contains required text: ' . $required );
+}
+
+$content_discoverability_recipe = maa_adapter_read( $root . '/docs/openclaw-content-discoverability-recipe.md' );
+foreach (
+	array(
+		'OpenClaw Content Discoverability Recipe',
+		'magick-ai-toolbox/validate-content-discoverability-context',
+		'magick-ai-toolbox/get-content-discoverability-context',
+		'magick-ai-toolbox/build-content-discoverability-brief',
+		'GET /wp-json/magick-ai-adapter/v1/content-discoverability-validation',
+		'GET /wp-json/magick-ai-adapter/v1/content-discoverability-context',
+		'GET /wp-json/magick-ai-adapter/v1/content-discoverability-brief?post_id=POST_ID',
+		'governance_mode=direct_read',
+		'execution_surface=wp_abilities_rest',
+		'write_posture',
+		'suggestion_only',
+		'direct_wordpress_write',
+		'final_write_path',
+		'core_proposal_required',
+		'Do not add these Toolbox abilities to Adapter',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $content_discoverability_recipe, $required ), 'Content discoverability recipe contains required text: ' . $required );
 }
 
 $batch_policy = maa_adapter_read( $root . '/docs/openclaw-batch-execution-policy.md' );

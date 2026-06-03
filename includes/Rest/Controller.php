@@ -1884,6 +1884,49 @@ final class Controller {
 				),
 				'docs'         => 'docs/openclaw-article-draft-plan-recipe.md',
 			),
+			'content_discoverability_suggestions' => array(
+				'title'       => 'Content discoverability suggestions',
+				'description' => 'Validate Toolbox SEO/AEO/GEO context, build one suggestion-only brief, and return proposal-ready suggestions without writing WordPress data.',
+				'entrypoint_ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief',
+				'steps'       => array(
+					array(
+						'order'      => 1,
+						'route'      => 'GET /content-discoverability-validation or POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/validate-content-discoverability-context',
+						'purpose'    => 'Confirm the Toolbox content context is ready before using it.',
+					),
+					array(
+						'order'      => 2,
+						'route'      => 'GET /content-discoverability-context or POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/get-content-discoverability-context',
+						'purpose'    => 'Read operator-maintained SEO, AEO, GEO, brand voice, and forbidden-claims guidance.',
+					),
+					array(
+						'order'      => 3,
+						'route'      => 'GET /content-discoverability-brief?post_id={post_id} or POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief',
+						'purpose'    => 'Build one suggestion-only brief for a post or supplied topic/title/content.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'POST /proposals or POST /proposals/from-plan when a reviewed final write is needed',
+						'purpose' => 'Use Core governance for any final WordPress write-like outcome.',
+					),
+				),
+				'guardrails'   => array(
+					'artifact_type'           => 'content_discoverability_brief',
+					'write_posture'           => 'suggestion_only',
+					'direct_wordpress_write'  => false,
+					'core_preflight_required_for_writes' => true,
+					'mutate_seo_meta'         => false,
+					'mutate_slug'             => false,
+					'mutate_excerpt'          => false,
+					'mutate_schema'           => false,
+					'mutate_media'            => false,
+					'generic_write_executor'  => false,
+				),
+				'docs'         => 'docs/openclaw-content-discoverability-recipe.md',
+			),
 		);
 	}
 
@@ -2164,10 +2207,11 @@ final class Controller {
 	public function create_proposal( WP_REST_Request $request ) {
 		$started    = microtime( true );
 		$ability_id  = (string) $request->get_param( 'ability_id' );
+		$event_context = $this->observability_request_context( $request, array( 'ability_id' => $ability_id ) );
 		$input       = $this->object_param( $request, 'input' );
 		$valid_input = $this->validate_proposal_create_input( $ability_id, $input );
 		if ( is_wp_error( $valid_input ) ) {
-			$this->emit_operation_event( 'adapter.proposal.create', $started, $valid_input, array( 'ability_id' => $ability_id ) );
+			$this->emit_operation_event( 'adapter.proposal.create', $started, $valid_input, $event_context );
 			return $valid_input;
 		}
 
@@ -2181,7 +2225,7 @@ final class Controller {
 		);
 
 		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals', $params );
-		$this->emit_operation_event( 'adapter.proposal.create', $started, is_wp_error( $response ) ? $response : null, array( 'ability_id' => $ability_id ) );
+		$this->emit_operation_event( 'adapter.proposal.create', $started, is_wp_error( $response ) ? $response : null, $event_context );
 
 		return $response;
 	}
@@ -2215,6 +2259,7 @@ final class Controller {
 	public function create_proposals_from_plan( WP_REST_Request $request ) {
 		$started = microtime( true );
 		$plan_ability_id = sanitize_text_field( (string) $request->get_param( 'plan_ability_id' ) );
+		$event_context = $this->observability_request_context( $request, array( 'ability_id' => $plan_ability_id ) );
 		if ( ! isset( self::$allowed_plan_ability_ids[ $plan_ability_id ] ) ) {
 			$error = new WP_Error(
 				'magick_ai_adapter_plan_ability_not_allowed',
@@ -2225,7 +2270,7 @@ final class Controller {
 				)
 			);
 			$error = $this->error_with_operator_feedback( $error, $this->plan_handoff_operator_feedback( $error, $plan_ability_id ) );
-			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $error, array( 'ability_id' => $plan_ability_id ) );
+			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $error, $event_context );
 			return $error;
 		}
 
@@ -2233,7 +2278,7 @@ final class Controller {
 		$valid_plan_input = $this->validate_plan_write_action_inputs( $plan );
 		if ( is_wp_error( $valid_plan_input ) ) {
 			$valid_plan_input = $this->error_with_operator_feedback( $valid_plan_input, $this->plan_handoff_operator_feedback( $valid_plan_input, $plan_ability_id ) );
-			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $valid_plan_input, array( 'ability_id' => $plan_ability_id ) );
+			$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, $valid_plan_input, $event_context );
 			return $valid_plan_input;
 		}
 
@@ -2248,7 +2293,7 @@ final class Controller {
 		if ( is_wp_error( $response ) ) {
 			$response = $this->error_with_operator_feedback( $response, $this->plan_handoff_operator_feedback( $response, $plan_ability_id ) );
 		}
-		$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, is_wp_error( $response ) ? $response : null, array( 'ability_id' => $plan_ability_id ) );
+		$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, is_wp_error( $response ) ? $response : null, $event_context );
 
 		return $response;
 	}
@@ -2350,7 +2395,12 @@ final class Controller {
 		$started = microtime( true );
 		$proposal_id = (string) $request->get_param( 'proposal_id' );
 		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
-		$this->emit_operation_event( 'adapter.commit.preflight', $started, is_wp_error( $response ) ? $response : null, array( 'proposal_id' => $proposal_id ) );
+		$this->emit_operation_event(
+			'adapter.commit.preflight',
+			$started,
+			is_wp_error( $response ) ? $response : null,
+			$this->observability_request_context( $request, array( 'proposal_id' => $proposal_id ) )
+		);
 
 		return $response;
 	}
@@ -2364,25 +2414,26 @@ final class Controller {
 	public function execute_approved_proposal_route( WP_REST_Request $request ) {
 		$started = microtime( true );
 		$proposal_id = sanitize_text_field( (string) $request->get_param( 'proposal_id' ) );
+		$event_context = $this->observability_request_context( $request, array( 'proposal_id' => $proposal_id ) );
 		if ( '' === $proposal_id ) {
 			$error = new WP_Error(
 				'magick_ai_adapter_proposal_id_required',
 				__( 'proposal_id is required.', 'magick-ai-adapter' ),
 				array( 'status' => 400 )
 			);
-			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error );
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
 			return $error;
 		}
 
 		$proposal = $this->get_core_proposal_data( $proposal_id );
 		if ( is_wp_error( $proposal ) ) {
-			$this->emit_operation_event( 'adapter.proposal.execute', $started, $proposal, array( 'proposal_id' => $proposal_id ) );
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $proposal, $event_context );
 			return $proposal;
 		}
 
 		$execution = $this->execute_core_approved_proposal( $request, $proposal_id, $proposal );
 		if ( is_wp_error( $execution ) ) {
-			$this->emit_operation_event( 'adapter.proposal.execute', $started, $execution, array( 'proposal_id' => $proposal_id ) );
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $execution, $event_context );
 			return $execution;
 		}
 
@@ -2390,15 +2441,18 @@ final class Controller {
 			'adapter.proposal.execute',
 			$started,
 			null,
-			array(
-				'proposal_id'        => $proposal_id,
-				'ability_id'         => (string) ( $execution['ability_id'] ?? '' ),
-				'correlation_id'     => (string) ( $execution['correlation_id'] ?? '' ),
-				'adapter_request_id' => (string) ( $execution['adapter_request_id'] ?? '' ),
-				'executed_count'     => (int) ( $execution['executed_count'] ?? 0 ),
-				'failed_count'       => (int) ( $execution['failed_count'] ?? 0 ),
-			)
-		);
+				array_merge(
+					$event_context,
+					array(
+						'proposal_id'        => $proposal_id,
+						'ability_id'         => (string) ( $execution['ability_id'] ?? '' ),
+						'correlation_id'     => (string) ( $execution['correlation_id'] ?? '' ),
+						'adapter_request_id' => (string) ( $execution['adapter_request_id'] ?? '' ),
+						'executed_count'     => (int) ( $execution['executed_count'] ?? 0 ),
+						'failed_count'       => (int) ( $execution['failed_count'] ?? 0 ),
+					)
+				)
+			);
 
 		return new WP_REST_Response(
 			array(
@@ -2430,23 +2484,30 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function approve_and_execute_proposal_route( WP_REST_Request $request ) {
+		$started = microtime( true );
 		$proposal_id = sanitize_text_field( (string) $request->get_param( 'proposal_id' ) );
+		$event_context = $this->observability_request_context( $request, array( 'proposal_id' => $proposal_id ) );
 		if ( '' === $proposal_id ) {
-			return new WP_Error(
+			$error = new WP_Error(
 				'magick_ai_adapter_proposal_id_required',
 				__( 'proposal_id is required.', 'magick-ai-adapter' ),
 				array( 'status' => 400 )
 			);
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
+			return $error;
 		}
 
 		$proposal = $this->get_core_proposal_data( $proposal_id );
 		if ( is_wp_error( $proposal ) ) {
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $proposal, $event_context );
 			return $proposal;
 		}
 
 		$ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
+		$event_context['ability_id'] = $ability_id;
 		$execution_actions = $this->normalize_execution_actions( $proposal_id, $proposal );
 		if ( is_wp_error( $execution_actions ) ) {
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $execution_actions, $event_context );
 			return $execution_actions;
 		}
 
@@ -2468,12 +2529,13 @@ final class Controller {
 				false
 			);
 			if ( is_wp_error( $approved_response ) ) {
+				$this->emit_operation_event( 'adapter.proposal.execute', $started, $approved_response, $event_context );
 				return $approved_response;
 			}
 
 			$approved = $approved_response->get_data();
 			if ( ! is_array( $approved ) || 'approved' !== (string) ( $approved['status'] ?? '' ) ) {
-				return new WP_Error(
+				$error = new WP_Error(
 					'magick_ai_adapter_core_approve_failed',
 					__( 'Core did not return an approved proposal state.', 'magick-ai-adapter' ),
 					array(
@@ -2482,12 +2544,14 @@ final class Controller {
 						'core_result' => $approved,
 					)
 				);
+				$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
+				return $error;
 			}
 
 			$approved_by_adapter = true;
 		} elseif ( 'approved' !== $status_before ) {
 			$code = 'rejected' === $status_before ? 'magick_ai_adapter_proposal_rejected' : 'magick_ai_adapter_proposal_not_executable';
-			return new WP_Error(
+			$error = new WP_Error(
 				$code,
 				__( 'This proposal cannot be approved and executed from its current status.', 'magick-ai-adapter' ),
 				array(
@@ -2498,12 +2562,30 @@ final class Controller {
 					'operator_feedback' => $this->proposal_status_operator_feedback( $proposal, $status_before ),
 				)
 			);
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
+			return $error;
 		}
 
 		$execution = $this->execute_core_approved_proposal( $request, $proposal_id, $proposal );
 		if ( is_wp_error( $execution ) ) {
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $execution, $event_context );
 			return $execution;
 		}
+
+		$this->emit_operation_event(
+			'adapter.proposal.execute',
+			$started,
+			null,
+			array_merge(
+				$event_context,
+				array(
+					'correlation_id'     => (string) ( $execution['correlation_id'] ?? '' ),
+					'adapter_request_id' => (string) ( $execution['adapter_request_id'] ?? '' ),
+					'executed_count'     => (int) ( $execution['executed_count'] ?? 0 ),
+					'failed_count'       => (int) ( $execution['failed_count'] ?? 0 ),
+				)
+			)
+		);
 
 		return new WP_REST_Response(
 			array(
@@ -4331,8 +4413,9 @@ final class Controller {
 				$started,
 				new WP_Error( $code, $message, array( 'status' => $status ) ),
 				array(
-					'method' => strtoupper( $method ),
-					'route'  => $route,
+					'method'      => strtoupper( $method ),
+					'route'       => $route,
+					'status_code' => $status,
 				)
 			);
 
@@ -4518,6 +4601,9 @@ final class Controller {
 			'content-inventory-health' => array( 'ability_id' => 'magick-ai/get-content-inventory-health' ),
 			'content-inventory-fix-plan' => array( 'ability_id' => 'magick-ai/build-content-inventory-fix-plan' ),
 			'test-content-cleanup-plan' => array( 'ability_id' => 'magick-ai/build-test-content-cleanup-plan' ),
+			'content-discoverability-context' => array( 'ability_id' => 'magick-ai-toolbox/get-content-discoverability-context' ),
+			'content-discoverability-validation' => array( 'ability_id' => 'magick-ai-toolbox/validate-content-discoverability-context' ),
+			'content-discoverability-brief' => array( 'ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief' ),
 			'site-operations-dashboard' => array( 'ability_id' => 'magick-ai/get-site-operations-dashboard' ),
 			'publishing-calendar-context' => array( 'ability_id' => 'magick-ai/get-publishing-calendar-context' ),
 			'media-inventory-health' => array( 'ability_id' => 'magick-ai/get-media-inventory-health' ),
@@ -4759,6 +4845,40 @@ final class Controller {
 	}
 
 	/**
+	 * Returns metadata-only context for observability events.
+	 *
+	 * @param WP_REST_Request     $request Request.
+	 * @param array<string,mixed> $context Existing safe context.
+	 * @return array<string,mixed>
+	 */
+	private function observability_request_context( WP_REST_Request $request, array $context = array() ): array {
+		$context['method'] = $request->get_method();
+		$context['route']  = $request->get_route();
+
+		foreach ( array( 'proposal_id', 'correlation_id', 'adapter_request_id' ) as $key ) {
+			$value = $request->get_param( $key );
+			if ( is_scalar( $value ) && '' !== (string) $value ) {
+				$context[ $key ] = $value;
+			}
+		}
+
+		foreach ( array( 'log_context', 'caller' ) as $param ) {
+			$value = $this->object_param( $request, $param );
+			foreach ( array( 'proposal_id', 'correlation_id', 'adapter_request_id' ) as $key ) {
+				if ( isset( $context[ $key ] ) && '' !== (string) $context[ $key ] ) {
+					continue;
+				}
+
+				if ( isset( $value[ $key ] ) && is_scalar( $value[ $key ] ) && '' !== (string) $value[ $key ] ) {
+					$context[ $key ] = $value[ $key ];
+				}
+			}
+		}
+
+		return $context;
+	}
+
+	/**
 	 * Returns input for a GET shortcut.
 	 *
 	 * @param WP_REST_Request   $request Request.
@@ -4958,16 +5078,109 @@ final class Controller {
 	 * @return void
 	 */
 	private function emit_operation_event( string $event_kind, float $started, $error, array $context = array() ): void {
+		if ( is_wp_error( $error ) ) {
+			if ( ! isset( $context['status_code'] ) ) {
+				$error_data = $this->error_data_array( $error );
+				if ( isset( $error_data['status'] ) ) {
+					$context['status_code'] = absint( $error_data['status'] );
+				}
+			}
+
+			if ( ! isset( $context['status_detail'] ) ) {
+				$context['status_detail'] = $error->get_error_code();
+			}
+		}
+
+		$status     = is_wp_error( $error ) ? 'error' : 'ok';
+		$error_code = is_wp_error( $error ) ? (string) $error->get_error_code() : '';
+
 		Observability::emit(
 			$event_kind,
 			array_merge(
 				array(
-					'status'     => is_wp_error( $error ) ? 'error' : 'ok',
-					'error_code' => is_wp_error( $error ) ? (string) $error->get_error_code() : '',
+					'status'     => $status,
+					'event_id'   => $this->operation_event_id( $event_kind, $status, $error_code, $context ),
+					'error_code' => $error_code,
 					'latency_ms' => max( 0, (int) round( ( microtime( true ) - $started ) * 1000 ) ),
 				),
-				$context
+				$this->safe_observability_context( $context )
 			)
 		);
 	}
-}
+
+	/**
+	 * Keeps operation observability payloads metadata-only and bounded.
+	 *
+	 * @param array<string,mixed> $context Candidate context.
+	 * @return array<string,mixed>
+	 */
+	private function safe_observability_context( array $context ): array {
+		$safe = array();
+
+		foreach ( array( 'method', 'route', 'ability_id', 'proposal_id', 'correlation_id', 'adapter_request_id', 'status_detail', 'read_policy', 'sensitivity' ) as $key ) {
+			if ( ! isset( $context[ $key ] ) || ! is_scalar( $context[ $key ] ) ) {
+				continue;
+			}
+
+			$value = sanitize_text_field( (string) $context[ $key ] );
+			if ( '' === $value ) {
+				continue;
+			}
+
+			if ( 'method' === $key ) {
+				$value = strtoupper( sanitize_key( $value ) );
+			} elseif ( 'status_detail' === $key ) {
+				$value = sanitize_key( $value );
+			}
+
+			$safe[ $key ] = substr( $value, 0, 200 );
+		}
+
+		foreach ( array( 'status_code', 'proposal_count', 'blocked_count', 'executed_count', 'failed_count' ) as $key ) {
+			if ( isset( $context[ $key ] ) && is_scalar( $context[ $key ] ) ) {
+				$safe[ $key ] = max( 0, absint( $context[ $key ] ) );
+			}
+		}
+
+		foreach ( array( 'redaction_applied' ) as $key ) {
+			if ( isset( $context[ $key ] ) ) {
+				$safe[ $key ] = (bool) $context[ $key ];
+			}
+		}
+
+			return $safe;
+		}
+
+		/**
+		 * Builds a stable metadata-only event id for operation dedupe.
+		 *
+		 * @param string              $event_kind Event kind.
+		 * @param string              $status Event status.
+		 * @param string              $error_code Error code, when present.
+		 * @param array<string,mixed> $context Metadata-only event context.
+		 * @return string
+		 */
+		private function operation_event_id( string $event_kind, string $status, string $error_code, array $context ): string {
+			$identity = array(
+				'event_kind'         => $event_kind,
+				'status'             => $status,
+				'error_code'         => $error_code,
+				'method'             => (string) ( $context['method'] ?? '' ),
+				'route'              => (string) ( $context['route'] ?? '' ),
+				'status_code'        => (int) ( $context['status_code'] ?? 0 ),
+				'ability_id'         => (string) ( $context['ability_id'] ?? '' ),
+				'proposal_id'        => (string) ( $context['proposal_id'] ?? '' ),
+				'correlation_id'     => (string) ( $context['correlation_id'] ?? '' ),
+				'adapter_request_id' => (string) ( $context['adapter_request_id'] ?? '' ),
+				'proposal_count'     => (int) ( $context['proposal_count'] ?? 0 ),
+				'blocked_count'      => (int) ( $context['blocked_count'] ?? 0 ),
+				'executed_count'     => (int) ( $context['executed_count'] ?? 0 ),
+				'failed_count'       => (int) ( $context['failed_count'] ?? 0 ),
+			);
+			$json     = function_exists( 'wp_json_encode' ) ? wp_json_encode( $identity ) : json_encode( $identity );
+			$hash     = hash( 'sha256', is_string( $json ) ? $json : '' );
+			$prefix   = sanitize_key( str_replace( '.', '_', $event_kind ) );
+
+			return $prefix . '_' . substr( $hash, 0, 32 );
+		}
+	}

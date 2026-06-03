@@ -113,6 +113,9 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/content-inventory-health`
 - `GET /wp-json/magick-ai-adapter/v1/content-inventory-fix-plan`
 - `GET /wp-json/magick-ai-adapter/v1/test-content-cleanup-plan`
+- `GET /wp-json/magick-ai-adapter/v1/content-discoverability-context`
+- `GET /wp-json/magick-ai-adapter/v1/content-discoverability-validation`
+- `GET /wp-json/magick-ai-adapter/v1/content-discoverability-brief`
 - `GET /wp-json/magick-ai-adapter/v1/site-operations-dashboard`
 - `GET /wp-json/magick-ai-adapter/v1/publishing-calendar-context`
 - `GET /wp-json/magick-ai-adapter/v1/media-inventory-health`
@@ -339,6 +342,9 @@ For local setup steps, see
 For the OpenClaw article draft planning recipe, use
 [`docs/openclaw-article-draft-plan-recipe.md`](docs/openclaw-article-draft-plan-recipe.md).
 
+For the OpenClaw SEO/AEO/GEO suggestion recipe, use
+[`docs/openclaw-content-discoverability-recipe.md`](docs/openclaw-content-discoverability-recipe.md).
+
 For productized OpenClaw acceptance, use
 [`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).
 
@@ -350,6 +356,22 @@ Adapter must not add its own Cloud settings, signing client, or `/cloud/*`
 routes. If an OpenClaw flow needs hosted runtime, Adapter should call the Cloud
 Addon public PHP seam described in
 [`docs/cloud-connector-boundary.md`](docs/cloud-connector-boundary.md).
+
+## Observability
+
+Adapter emits local metadata-only events through
+`magick_ai_observability_event`; the Cloud Addon is the only uploader. Current
+canonical Adapter event kinds are `adapter.core.request`,
+`adapter.proposal.create`, `adapter.proposal.plan_ingest`,
+`adapter.commit.preflight`, `adapter.proposal.execute`,
+`adapter.openclaw.dispatch.completed`, and
+`adapter.openclaw.dispatch.failed`.
+
+Events may include method, route, status code, latency, stable error code, and
+safe ids such as `proposal_id`, `correlation_id`, `ability_id`, or
+`adapter_request_id`. They must not include raw OpenClaw requests, raw
+responses, proposal input, write input, prompts, generated content, auth
+headers, tokens, or secrets.
 
 ## OpenClaw Integration
 
