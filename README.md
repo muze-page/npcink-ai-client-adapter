@@ -242,7 +242,10 @@ auth or the short-lived local `preview_sig` emitted in the URL. Then call
 `POST /media-derivative-proposal-payload` with the ability response, Cloud
 result, and derivative artifact. That payload is Core-ready but not submitted,
 approved, or executed by Adapter. See
-[OpenClaw Media Derivative Cloud Recipe](docs/openclaw-media-derivative-cloud-recipe.md).
+[OpenClaw Media Derivative Cloud Recipe](docs/openclaw-media-derivative-cloud-recipe.md)
+and [AI Media Derivative Calling Guide](docs/ai-media-derivative-calling-guide.md).
+Third-party AI callers should use the Adapter recipe routes above instead of
+calling Cloud directly.
 
 Adapter does not create a media registry, artifact registry, Cloud settings
 surface, approval truth, attachment metadata update, or file replacement. To
