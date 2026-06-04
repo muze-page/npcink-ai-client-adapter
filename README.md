@@ -561,11 +561,14 @@ Proposal-required write flow:
    returned by Core.
 7. If `status=approved` and execution is intended, OpenClaw calls
    `POST /proposals/{proposal_id}/execute` or `POST /execute-approved-proposal`.
-   Do not call Core commit-preflight directly; Core handoffs are one-time.
+   Adapter execute routes are final write paths and normalize ability input to
+   `dry_run=false` and `commit=true`. Do not call Core commit-preflight
+   directly; Core handoffs are one-time.
 8. `POST /proposals/{proposal_id}/commit-preflight` is an advanced diagnostic
    Adapter route. When it succeeds through Adapter, Adapter caches the one-time
    Core handoff for the next Adapter execute call and still preserves
-   `commit_execution=false`.
+   `commit_execution=false`. For dry-run-only verification, stop here and do
+   not call execute.
 9. For the current approved proposal execution path, Adapter may execute only
    `magick-ai/trash-post`, `magick-ai/create-draft`,
    `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
@@ -585,7 +588,8 @@ Proposal-required write flow:
     handoff when one was issued through Adapter, otherwise calls Core
     commit-preflight, requires `approval_commit_authorized=true`, requires
     `commit_execution=false`, passes Core `approval_context` to WordPress
-    Abilities API, stores a bounded execution record, and returns `proposal_id`,
+    Abilities API, normalizes ability input to `dry_run=false` and
+    `commit=true`, stores a bounded execution record, and returns `proposal_id`,
     `correlation_id`, `ability_id`, and `execution_record` with the ability
     result. Repeating the same proposal execution returns
     `magick_ai_adapter_execution_already_completed` and does not run the
@@ -682,11 +686,13 @@ Write or destructive abilities:
 3. OpenClaw polls Adapter `/proposals/{proposal_id}` for Core status.
 4. If pending and the user chooses the unified action, OpenClaw calls
    Adapter `/proposals/{proposal_id}/approve-and-execute`; Adapter calls Core
-   approve, Core commit-preflight, then executes one allowlisted proposal.
+   approve, Core commit-preflight, then executes one allowlisted final write.
 5. If rejected, OpenClaw stops and shows the status. If approved, OpenClaw calls
    Adapter `/proposals/{proposal_id}/commit-preflight` after
    approval.
-6. Adapter relays Core `commit_execution=false`.
+6. Adapter relays Core `commit_execution=false`. Dry-run-only verification
+   stops at Adapter commit-preflight; do not call execute unless the operator
+   intends a final write.
 7. For approved proposal execution, only `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/patch-post-content`, `magick-ai/patch-setting-value`,
@@ -702,8 +708,9 @@ Write or destructive abilities:
    this adapter. The execution input may be a single allowlisted proposal input or a bounded
    `input.write_actions[]` batch where every action targets the allowlist.
    OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter performs Core
-   preflight again, passes `approval_context`, and executes through WordPress
-   Abilities API. New execution abilities must be added as explicit Adapter
+   preflight again, passes `approval_context`, normalizes ability input to
+   `dry_run=false` and `commit=true`, and executes through WordPress Abilities
+   API. New execution abilities must be added as explicit Adapter
    execution profile entries with dedicated smoke coverage; this is not a
    generic proxy-execute surface.
 
