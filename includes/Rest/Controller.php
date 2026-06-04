@@ -2354,6 +2354,18 @@ final class Controller {
 				'title'       => 'Content discoverability suggestions',
 				'description' => 'Validate Toolbox SEO/AEO/GEO context, build one suggestion-only brief, and return proposal-ready suggestions without writing WordPress data.',
 				'entrypoint_ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief',
+				'default_input' => array(
+					'include_external_search' => true,
+					'external_search_intent'  => 'writing_context',
+					'search_policy'           => array(
+						'mode'                       => 'auto',
+						'requires_external_evidence' => true,
+						'intent'                     => 'writing_context',
+						'max_results'                => 3,
+						'recency_days'               => 30,
+						'enhance_with_reader'        => false,
+					),
+				),
 				'steps'       => array(
 					array(
 						'order'      => 1,
@@ -2381,6 +2393,8 @@ final class Controller {
 				),
 				'guardrails'   => array(
 					'artifact_type'           => 'content_discoverability_brief',
+					'cloud_search_owner'      => 'magick-ai-cloud',
+					'cloud_search_default'    => 'auto_when_external_evidence_required',
 					'write_posture'           => 'suggestion_only',
 					'direct_wordpress_write'  => false,
 					'core_preflight_required_for_writes' => true,
@@ -2397,6 +2411,18 @@ final class Controller {
 				'title'       => 'AI article draft with discoverability',
 				'description' => 'For natural-language article requests, build one Toolbox AI article writing pack with SEO/AEO/GEO context and drafting guardrails before OpenClaw writes the candidate article.',
 				'entrypoint_ability_id' => 'magick-ai-toolbox/build-ai-article-writing-pack',
+				'default_input' => array(
+					'include_external_search' => true,
+					'external_search_intent'  => 'writing_context',
+					'search_policy'           => array(
+						'mode'                       => 'auto',
+						'requires_external_evidence' => true,
+						'intent'                     => 'writing_context',
+						'max_results'                => 3,
+						'recency_days'               => 30,
+						'enhance_with_reader'        => false,
+					),
+				),
 				'steps'       => array(
 					array(
 						'order'      => 1,
@@ -2423,6 +2449,8 @@ final class Controller {
 				),
 				'guardrails'   => array(
 					'artifact_type'           => 'ai_article_writing_pack',
+					'cloud_search_owner'      => 'magick-ai-cloud',
+					'cloud_search_default'    => 'auto_when_external_evidence_required',
 					'write_posture'           => 'suggestion_only',
 					'direct_wordpress_write'  => false,
 					'provider_execution'      => 'none',

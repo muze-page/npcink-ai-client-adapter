@@ -75,10 +75,25 @@ For richer input, use `POST /run-read-ability`:
     "title": "Suggested title",
     "language": "zh-CN",
     "article_type": "practical_guide",
-    "target_word_count": 1200
+    "target_word_count": 1200,
+    "include_external_search": true,
+    "external_search_intent": "writing_context",
+    "search_policy": {
+      "mode": "auto",
+      "requires_external_evidence": true,
+      "intent": "writing_context",
+      "max_results": 3,
+      "recency_days": 30,
+      "enhance_with_reader": false
+    }
   }
 }
 ```
+
+Cloud owns the search providers, usage metering, result count, failure reason,
+and optional Jina Reader enhancement. Adapter only passes the search intent in
+the Toolbox ability input; it must not store provider keys or run a local search
+provider.
 
 4. Draft from the returned pack only. The returned result must include:
 
@@ -88,6 +103,7 @@ write_posture=suggestion_only
 direct_wordpress_write=false
 provider_execution=none
 final_write_path=core_proposal_required
+cloud_evidence.web_search when external evidence is available
 ```
 
 5. After operator review, build a governed write plan:

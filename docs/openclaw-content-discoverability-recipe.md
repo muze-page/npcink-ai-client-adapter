@@ -80,10 +80,25 @@ For supplied context instead of a post, use `POST /run-read-ability`:
   "input": {
     "topic": "Topic",
     "title": "Title",
-    "content_markdown": "Draft body"
+    "content_markdown": "Draft body",
+    "include_external_search": true,
+    "external_search_intent": "writing_context",
+    "search_policy": {
+      "mode": "auto",
+      "requires_external_evidence": true,
+      "intent": "writing_context",
+      "max_results": 3,
+      "recency_days": 30,
+      "enhance_with_reader": false
+    }
   }
 }
 ```
+
+Cloud owns the search providers, result retrieval, reader enhancement, usage
+metering, and failure diagnostics. Adapter only passes the external-evidence
+intent through the Toolbox ability input and must not expose Tavily, Bocha, Jina
+Reader, Apify, or provider-key configuration.
 
 ## Required Output
 
@@ -116,6 +131,8 @@ Only include fields present in `proposal_allowed_fields`.
   guarantees, or unsupported features.
 - Respect `forbidden_claims`, `allowed_claims`, and `brand_voice`.
 - Do not treat the brief as permission to mutate WordPress.
+- Do not call a local search provider; let Toolbox/Cloud attach
+  `cloud_evidence.web_search` when external evidence is required.
 - Do not call `POST /proposals` until a human has reviewed the suggestions and
   selected a real final write ability.
 - Do not add these Toolbox abilities to Adapter's approved final execution

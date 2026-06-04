@@ -122,6 +122,11 @@ Run this order for a local acceptance pass:
    - `openclaw_recipes.content_discoverability_suggestions`
    - `openclaw_recipes.ai_article_draft_with_discoverability`
    - `openclaw_recipes.media_derivative_cloud`
+   Confirm the content discoverability and AI article writing recipes expose a
+   `default_input.search_policy` with
+   `requires_external_evidence=true`, `max_results=3`, `recency_days=30`, and
+   `enhance_with_reader=false`; Adapter must only pass this intent to Toolbox
+   and must not expose Cloud search provider keys.
    - disabled approval and rejection stubs
    - direct-read shortcuts
 6. Call `GET /capabilities` and use only real `ability_id` values returned by
