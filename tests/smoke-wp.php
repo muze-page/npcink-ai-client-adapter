@@ -1737,6 +1737,56 @@ maa_adapter_smoke_assert( 'executed' === (string) ( $cached_preflight_execute['s
 maa_adapter_smoke_assert( 'adapter_cached_handoff' === (string) ( $cached_preflight_execute['preflight_source'] ?? '' ), 'adapter execute consumes cached preflight handoff' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $cached_preflight_post_id ), 'adapter cached preflight handoff execution moves post to trash' );
 
+$failed_execution_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $failed_execution_post_id;
+$failed_execution_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-post',
+		'title'      => 'Adapter failed execution record smoke',
+		'summary'    => 'Adapter records a bounded failed execution summary after Core preflight is consumed.',
+		'input'      => array(
+			'post_id' => $failed_execution_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'           => 'trash_post',
+			'post_id'          => $failed_execution_post_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-failed-execution-record-smoke',
+		),
+	)
+);
+$failed_execution_proposal_id = (string) ( $failed_execution_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $failed_execution_proposal_id;
+maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/approve',
+	array(
+		'note' => 'Approve Adapter failed execution record smoke.',
+	)
+);
+$failed_execution_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/commit-preflight' );
+maa_adapter_smoke_assert( true === (bool) ( $failed_execution_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter failed execution smoke caches preflight handoff' );
+maa_adapter_smoke_assert( false === (bool) ( $failed_execution_preflight['commit_execution'] ?? true ), 'adapter failed execution preflight keeps commit_execution=false' );
+wp_delete_post( $failed_execution_post_id, true );
+maa_adapter_smoke_assert( false === get_post_status( $failed_execution_post_id ), 'adapter failed execution smoke removes target post before execute' );
+$failed_execution = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/execute' );
+maa_adapter_smoke_assert( $failed_execution['status'] >= 400, 'adapter failed execution returns an error response' );
+maa_adapter_smoke_assert( 'failed' === (string) ( $failed_execution['data']['data']['execution_record']['status'] ?? '' ), 'adapter failed execution returns failed execution record' );
+maa_adapter_smoke_assert( $failed_execution_proposal_id === (string) ( $failed_execution['data']['data']['execution_record']['proposal_id'] ?? '' ), 'adapter failed execution record carries proposal id' );
+maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $failed_execution['data']['data']['execution_record']['ability_id'] ?? '' ), 'adapter failed execution record carries ability id' );
+maa_adapter_smoke_assert( '' !== (string) ( $failed_execution['data']['data']['execution_record']['correlation_id'] ?? '' ), 'adapter failed execution record carries correlation id' );
+maa_adapter_smoke_assert( 0 === (int) ( $failed_execution['data']['data']['execution_record']['executed_count'] ?? -1 ), 'adapter failed execution record carries executed count' );
+maa_adapter_smoke_assert( 1 === (int) ( $failed_execution['data']['data']['execution_record']['failed_count'] ?? 0 ), 'adapter failed execution record carries failed count' );
+maa_adapter_smoke_assert( 'magick_ai_abilities_post_not_found' === (string) ( $failed_execution['data']['data']['execution_record']['error_code'] ?? '' ), 'adapter failed execution record carries ability error code' );
+maa_adapter_smoke_assert( false === (bool) ( $failed_execution['data']['data']['execution_record']['commit_execution'] ?? true ), 'adapter failed execution record keeps commit_execution=false' );
+
 $approve_execute_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approve_execute_post_id;
 $approve_execute_proposal = maa_adapter_smoke_rest(

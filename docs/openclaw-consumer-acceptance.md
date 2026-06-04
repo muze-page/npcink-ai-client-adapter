@@ -1,14 +1,12 @@
 # OpenClaw Consumer Acceptance
 
 Status: active acceptance checklist
-Date: 2026-06-02
+Date: 2026-06-04
 
 ## Latest Acceptance Result
 
-Post-governance acceptance completed against:
-
-- Core commit `6acb159 Add read governance metadata to capabilities`
-- Adapter commit `b81dc2a Add read governance envelopes and redaction`
+Post-governance acceptance has been refreshed after the governed media
+optimization, dry-run preflight, and failed execution summary changes.
 
 Verified commands:
 
@@ -24,9 +22,11 @@ WordPress Application Password. That pass connected to Adapter for the
 OpenClaw-facing flow and verified `/health`, `/help`, `/capabilities`, public,
 internal, and sensitive read envelopes, diagnostics redaction,
 proposal-required read refusal, proposal create/list/detail,
-`approve-and-execute`, duplicate execution replay protection, returned
-`proposal_id`, `correlation_id`, `ability_id`, `execution_record`, and
-`core_commit_execution=false`, plus Core Audit and AI Request Logs correlation.
+`approve-and-execute`, Adapter commit-preflight handoff caching, dry-run-only
+preflight without WordPress mutation, duplicate execution replay protection,
+bounded failed execution records, returned `proposal_id`, `correlation_id`,
+`ability_id`, `execution_record`, and `core_commit_execution=false`, plus Core
+Audit and AI Request Logs correlation.
 
 The next change to OpenClaw routes, the Adapter execution allowlist, or log
 correlation fields must rerun this acceptance checklist.
@@ -251,6 +251,10 @@ Run this order for a local acceptance pass:
     Repeating the same execute or approve-and-execute request must return
     `magick_ai_adapter_execution_already_completed` with the original
     `execution_record` and must not run the WordPress ability again.
+    If execution fails after Core preflight has been consumed, Adapter must
+    return a bounded public-safe `execution_record` with `status=failed`,
+    `error_code`, failed action metadata, executed and failed counts, Core
+    correlation fields, and `commit_execution=false`. Adapter does not store the full proposal or create a retry queue; OpenClaw should show the failure and require a new operator-reviewed proposal when retry is needed.
     For batch plan-shaped proposals, confirm `input.write_actions[]` executes
     only when every item targets the Adapter execution allowlist and passes
     ability-specific input checks. Confirm the response includes

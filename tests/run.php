@@ -1254,6 +1254,9 @@ foreach (
 		'execution_mode=batch_write_actions',
 		'For dry-run-only validation, stop at this step and do not call',
 		'normalized ability input to `dry_run=false` and',
+		'status=failed',
+		'failed action metadata',
+		'does not store the full proposal or create a retry queue',
 		'magick_ai_adapter_write_action_invalid',
 		'approved proposal execution',
 		'approve-and-execute',
@@ -1661,6 +1664,9 @@ foreach (
 		'magick_ai_adapter_preflight_handoffs',
 		'md5( $cleanup_proposal_id )',
 		'adapter cached preflight handoff execute succeeds',
+		'adapter failed execution returns failed execution record',
+		'adapter failed execution record carries ability error code',
+		'adapter failed execution record keeps commit_execution=false',
 		'adapter status smoke cleaned created proposal records',
 	) as $required
 ) {
