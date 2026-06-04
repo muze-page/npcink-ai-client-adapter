@@ -19,6 +19,8 @@ through Magick AI Adapter. The adapter remains a thin channel layer:
 For the acceptance checklist that productized OpenClaw clients should run
 before relying on the connection, see
 [`openclaw-consumer-acceptance.md`](openclaw-consumer-acceptance.md).
+For the connection-model decision notes and guardrails for future agents, see
+[`openclaw-connection-model-notes.md`](openclaw-connection-model-notes.md).
 
 ## Local WordPress Access
 
@@ -70,17 +72,17 @@ WordPress admin connection page:
 Magick AI -> Adapter
 ```
 
-The page defaults to the signed key-pair flow. It shows an npm CLI connect
-command, status command, OpenClaw request instructions, and authorized public
-key management. The CLI generates the private key locally; Adapter stores only
-the approved public key.
+The page defaults to the simple Application Password flow for clients that have
+a dedicated password, credential, or secret field. It can create a normal
+WordPress Application Password for the current administrator and show the raw
+password once in the browser. Copied OpenClaw env, manifest, and handoff text
+contain only placeholders or non-secret identifiers. The adapter does not store
+the raw password.
 
-The page also keeps an `Application Password fallback` disclosure for clients
-that have a dedicated credential or secret field. That fallback can create a
-normal WordPress Application Password for the current administrator and show the
-raw password once in the browser. Copied OpenClaw env, manifest, and handoff
-text contain only placeholders or non-secret identifiers. The adapter does not
-store the raw password.
+The page also shows a higher-security signed key-pair flow. That flow provides
+an npm CLI connect command, status command, OpenClaw request instructions, and
+authorized public key management. The CLI generates the private key locally;
+Adapter stores only the approved public key.
 
 The same page includes a `Proposal status` lookup. Paste the `Proposal ID`
 returned by Adapter after `POST /proposals` or `POST /proposals/from-plan` to
@@ -176,7 +178,7 @@ npx --yes --package /Users/muze/gitee/magick-ai-adapter/packages/adapter-cli mag
 ```
 
 Administrators manage authorized public keys from `Magick AI -> Adapter` in the
-recommended local signed key-pair section. Revoke a key there to stop the
+higher-security signed key-pair section. Revoke a key there to stop the
 corresponding local profile from authenticating.
 
 ## Connection Check

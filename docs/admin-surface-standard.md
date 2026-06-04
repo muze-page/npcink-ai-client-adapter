@@ -16,19 +16,21 @@ The default page should answer:
 - can Adapter reach Core capabilities;
 - can Adapter reach WordPress Abilities API;
 - what endpoint should OpenClaw use;
-- how to connect through the local signed key-pair CLI;
-- where the Application Password fallback lives for clients with a dedicated
-  credential field.
+- how to create a simple Application Password connection;
+- where the higher-security signed key-pair CLI lives.
 
 Primary action:
 
-- `Signed CLI connection`, with the connect command as the only primary action.
-- `Application Password fallback`, collapsed by default.
+- `Simple connection`, with the Application Password creation button as the
+  primary action.
+- `Higher security: signed key-pair`, visible as the security recommendation.
 
 Default copyable values:
 
-- local CLI connect command;
-- local CLI status command.
+- Adapter base URL;
+- WordPress username;
+- connection manifest URL;
+- client env placeholders without secrets.
 
 Default workflow bridge:
 

@@ -453,9 +453,9 @@ foreach (
 		'Magick AI Adapter',
 		'Adapter',
 		'OpenClaw Handoff Created',
-		'Signed CLI connection',
-		'Application Password fallback',
-		'Create Application Password fallback',
+		'Simple connection',
+		'Higher security: signed key-pair',
+		'Create Application Password connection',
 		'add_submenu_page',
 		'PARENT_MENU_SLUG',
 		'WP_Application_Passwords::create_new_application_password',
@@ -478,7 +478,7 @@ foreach (
 		'proposal_next_step_text',
 		'Adapter Base URL',
 		'WordPress user',
-		'Copy fallback env',
+		'Copy env placeholder',
 		'Connection manifest',
 		'content_discoverability_suggestions',
 		'ai_article_draft_with_discoverability',
@@ -537,7 +537,6 @@ foreach (
 		'Copy connect command',
 		'Copy OpenClaw CLI instructions',
 		'Copy status command',
-		'Copy fallback env',
 		'Authorized clients',
 		'local_cli_setup_text',
 		'render_key_pair_clients_table',
@@ -545,7 +544,7 @@ foreach (
 		'local_cli_status_command',
 		'cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter',
 		'Do not read, cat, print, summarize, or copy the local keypair profile file',
-		'Manage authorized public keys from the Recommended local signed key-pair section',
+		'Manage authorized public keys from the Higher security signed key-pair section',
 		'key_pairs_url',
 		'REVOKE_KEY_ACTION',
 		'Connection approved.',
@@ -580,8 +579,8 @@ $admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standar
 foreach (
 	array(
 		'OpenClaw connection surface',
-		'Signed CLI connection',
-		'Application Password fallback',
+		'Simple connection',
+		'Higher security: signed key-pair',
 		'Proposal ID status lookup',
 		'duplicate Core review queue',
 		'read shortcut route catalog',
@@ -641,6 +640,7 @@ foreach (
 		'execute final write mutations',
 		'Magick AI -> Adapter',
 		'docs/openclaw-quickstart.md',
+		'docs/openclaw-connection-model-notes.md',
 		'docs/openclaw-consumer-acceptance.md',
 		'docs/openclaw-batch-execution-policy.md',
 		'input.write_actions[]',
@@ -925,7 +925,7 @@ foreach (
 		'WordPress administrator username: `1`',
 		'WordPress administrator password: `1`',
 		'Application Password',
-		'Application Password fallback',
+		'higher-security signed key-pair',
 		'GET /health',
 		'GET /help',
 		'GET /capabilities',
@@ -989,6 +989,23 @@ foreach (
 		) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $quickstart, $required ), 'Quickstart contains required text: ' . $required );
+}
+
+$connection_model_notes = maa_adapter_read( $root . '/docs/openclaw-connection-model-notes.md' );
+foreach (
+	array(
+		'OpenClaw Connection Model Notes',
+		'Default: simple Application Password connection',
+		'Higher security: local signed key-pair',
+		'@npcink/magick-ai-adapter-cli@0.1.0',
+		'sh: magick-adapter: command not found',
+		'Secret Handling Rules',
+		'Plugin-generated private keys',
+		'Adapter-owned MCP broker',
+		'Core remains the proposal, approval, preflight, and audit truth',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $connection_model_notes, $required ), 'Connection model notes contain required text: ' . $required );
 }
 
 $contract = maa_adapter_read( $root . '/docs/openclaw-adapter-contract.md' );

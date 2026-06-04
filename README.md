@@ -291,12 +291,12 @@ Magick AI -> Adapter
 
 The page default view shows:
 
-- a recommended local signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter`;
+- a simple Application Password connection for clients with a dedicated
+  password, credential, or secret field;
 - Adapter base URL and non-secret connection manifest URL;
 - Core and WordPress Abilities API connection status;
+- a higher-security signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter`;
 - authorized public key management with revoke actions;
-- an `Application Password fallback` disclosure for clients that have a
-  dedicated credential or secret field;
 - a `Proposal status` lookup where operators paste the `Proposal ID` returned
   to OpenClaw, see Core status through Adapter's read-only proposal proxy, open
   the matching Core approval detail, and copy Adapter status/execution URLs.
@@ -389,6 +389,9 @@ it does not change WordPress or Adapter server-side TLS behavior.
 
 For local setup steps, see
 [`docs/openclaw-quickstart.md`](docs/openclaw-quickstart.md).
+
+For the connection-model decision history and guardrails, see
+[`docs/openclaw-connection-model-notes.md`](docs/openclaw-connection-model-notes.md).
 
 For the OpenClaw article draft planning recipe, use
 [`docs/openclaw-article-draft-plan-recipe.md`](docs/openclaw-article-draft-plan-recipe.md).
