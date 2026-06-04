@@ -41,6 +41,7 @@ when every action targets the current execution allowlist
 `magick-ai/optimize-media-asset`,
 `magick-ai/replace-media-file`,
 `magick-ai/adopt-cloud-media-derivative`,
+`magick-ai/rename-media-file`,
 `magick-ai/delete-media-permanently`,
 `magick-ai/reply-comment`, `magick-ai/trash-comment`,
 `magick-ai/approve-comment`). See
@@ -254,7 +255,10 @@ intent is full image optimization. Adapter returns a legacy single derivative
 `POST /proposals/from-plan` so Core creates one batch proposal containing
 `magick-ai/update-media-details` and
 `magick-ai/adopt-cloud-media-derivative`. The payload is Core-ready but not
-submitted, approved, or executed by Adapter. See
+submitted, approved, or executed by Adapter. If Core reports the media
+optimization plan ability is unavailable, surface that version/capability guard
+and update the local Abilities/Core stack; do not split the same optimize-image
+intent into separate metadata and derivative proposals. See
 [OpenClaw Media Derivative Cloud Recipe](docs/openclaw-media-derivative-cloud-recipe.md)
 and [AI Media Derivative Calling Guide](docs/ai-media-derivative-calling-guide.md).
 Third-party AI callers should use the Adapter recipe routes above instead of
@@ -497,6 +501,7 @@ Plan-to-proposal flow:
 	   `magick-ai/build-media-inventory-fix-plan`,
 	   `magick-ai/build-media-reference-repair-plan`, or
 	   `magick-ai/build-media-settings-reference-repair-plan`, or
+	   `magick-ai/build-media-rename-plan`, or
 	   `magick-ai-toolbox/build-article-write-plan`, or
 	   `magick-ai-toolbox/build-article-batch-write-plan`, or
 	   `magick-ai-toolbox/build-article-media-batch-write-plan`.
@@ -571,6 +576,7 @@ Proposal-required write flow:
 	   `magick-ai/optimize-media-asset`,
 	   `magick-ai/replace-media-file`,
 	   `magick-ai/adopt-cloud-media-derivative`,
+	   `magick-ai/rename-media-file`,
 	   `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
    `magick-ai/trash-comment`, or `magick-ai/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
@@ -689,6 +695,7 @@ Write or destructive abilities:
 	   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
 	   `magick-ai/replace-media-file`,
 	   `magick-ai/adopt-cloud-media-derivative`,
+	   `magick-ai/rename-media-file`,
 	   `magick-ai/delete-media-permanently`,
    `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment` are supported in

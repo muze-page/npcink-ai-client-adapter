@@ -54,6 +54,7 @@ final class Controller {
 		'magick-ai/build-media-reference-repair-plan'          => true,
 		'magick-ai/build-media-settings-reference-repair-plan' => true,
 		'magick-ai/build-media-optimization-plan'              => true,
+		'magick-ai/build-media-rename-plan'                    => true,
 		'magick-ai-toolbox/build-article-write-plan'           => true,
 		'magick-ai-toolbox/build-article-batch-write-plan'     => true,
 		'magick-ai-toolbox/build-article-media-batch-write-plan' => true,
@@ -312,6 +313,32 @@ final class Controller {
 				),
 				'post_id_from_result'   => false,
 			),
+			'magick-ai/rename-media-file' => array(
+				'allowed_input_fields'     => array( 'attachment_id', 'target_file_name', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_current_md5', 'expected_current_sha256', 'conflict_mode', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'              => array(
+					'conflict_mode' => array(
+						'allowed' => array( 'fail', 'unique' ),
+						'code'    => 'magick_ai_adapter_media_rename_conflict_mode_invalid',
+						'message' => __( 'rename-media-file conflict_mode must be fail or unique.', 'magick-ai-adapter' ),
+					),
+				),
+				'required_int_fields'      => array(
+					'attachment_id' => array(
+						'code'    => 'magick_ai_adapter_attachment_id_required',
+						'message' => __( 'rename-media-file execution input must include attachment_id.', 'magick-ai-adapter' ),
+					),
+				),
+				'required_text_fields'     => array(
+					'target_file_name' => array(
+						'code'    => 'magick_ai_adapter_target_file_name_required',
+						'message' => __( 'rename-media-file execution input must include target_file_name.', 'magick-ai-adapter' ),
+					),
+				),
+				'validate_attachment_input' => array(
+					'message' => __( 'rename-media-file execution input must target an existing attachment.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'      => false,
+			),
 			'magick-ai/delete-media-permanently' => array(
 				'allowed_input_fields'     => array( 'attachment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'      => array(
@@ -320,7 +347,9 @@ final class Controller {
 						'message' => __( 'delete-media-permanently execution input must include attachment_id.', 'magick-ai-adapter' ),
 					),
 				),
-				'validate_attachment_input' => true,
+				'validate_attachment_input' => array(
+					'message' => __( 'delete-media-permanently execution input must target an existing attachment.', 'magick-ai-adapter' ),
+				),
 				'post_id_from_result'      => false,
 			),
 			'magick-ai/reply-comment'   => array(
@@ -2402,9 +2431,12 @@ final class Controller {
 			),
 			'media_derivative_cloud' => array(
 				'title'       => 'Media derivative Cloud artifact',
-				'description' => 'Build a local single-image or bounded batch media derivative plan, dispatch selected candidates through Cloud Addon, then hand resulting artifacts back to Core governance before any WordPress adoption.',
+				'description' => 'Build a local single-image or bounded batch media derivative plan, dispatch selected candidates through Cloud Addon, then hand reviewed metadata and resulting artifacts back to Core as one media optimization proposal before any WordPress adoption.',
 				'entrypoint_ability_id' => 'magick-ai/build-media-derivative-cloud-request',
 				'batch_plan_ability_id' => 'magick-ai/build-media-derivative-batch-plan',
+				'optimization_plan_ability_id' => 'magick-ai/build-media-optimization-plan',
+				'default_user_intent' => 'optimize_this_media_item',
+				'preferred_core_route' => 'POST /proposals/from-plan',
 				'steps'       => array(
 					array(
 						'order'      => 1,
@@ -2436,23 +2468,28 @@ final class Controller {
 					array(
 						'order'   => 6,
 						'route'   => 'POST /media-derivative-proposal-payload',
-						'purpose' => 'Build a Core-ready proposal payload without creating, approving, or executing the proposal.',
+						'purpose' => 'Combine the reviewed media_details_input with the derivative artifact into a media_optimization_plan and from_plan_request without creating, approving, or executing the proposal.',
 					),
 					array(
 						'order'   => 7,
-						'route'   => 'POST /proposals',
-						'purpose' => 'Use Core proposal intake for any local recording, attachment metadata, or media replacement decision.',
+						'route'   => 'POST /proposals/from-plan',
+						'purpose' => 'Submit the returned from_plan_request so Core creates one batch proposal for update-media-details plus derivative adoption.',
 					),
 				),
 				'guardrails'   => array(
 					'artifact_type'              => 'media_derivative_cloud_artifact',
+					'optimization_artifact_type' => 'media_optimization_plan',
 					'cloud_transport_owner'      => 'magick-ai-cloud-addon',
 					'final_write_owner'          => 'local_wordpress_host',
 					'wordpress_write_included'   => false,
 					'attachment_metadata_write_included' => false,
+					'single_approval_required'   => true,
+					'do_not_split_user_intent'   => true,
+					'derivative_only_payload_legacy' => true,
 					'core_preflight_required_for_writes' => true,
 					'adapter_cloud_control_plane' => false,
 					'adapter_artifact_registry'  => false,
+					'missing_plan_capability_behavior' => 'surface_plan_ability_unavailable_do_not_split_into_two_proposals',
 				),
 				'docs'         => 'docs/openclaw-media-derivative-cloud-recipe.md',
 			),
@@ -2522,7 +2559,7 @@ final class Controller {
 			'GET /media-derivative-runs/{run_id}' => 'Poll a Cloud media derivative run through Cloud Addon without storing Adapter run truth.',
 			'GET /media-derivative-runs/{run_id}/result' => 'Read a Cloud media derivative result projection through Cloud Addon.',
 			'GET /media-derivative-artifacts/{artifact_id}/preview' => 'Proxy one non-expired derivative artifact through Cloud Addon for same-origin local preview; does not store artifact truth.',
-			'POST /media-derivative-proposal-payload' => 'Build a Core-ready proposal payload from a derivative artifact; does not create, approve, or execute a proposal.',
+				'POST /media-derivative-proposal-payload' => 'Build a Core-ready media optimization from-plan request from reviewed media metadata and a derivative artifact; does not create, approve, or execute a proposal.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
@@ -2766,6 +2803,14 @@ final class Controller {
 			'media_optimization_plan' => $optimization_plan,
 			'core_proposal_required' => true,
 			'commit_execution'       => false,
+			'proposal_ready'         => true === (bool) ( $optimization_plan['proposal_ready'] ?? false ),
+			'preferred_core_route'   => 'POST /proposals/from-plan',
+			'legacy_derivative_proposal_payload_available' => true,
+			'ability_guard'          => array(
+				'required_plan_ability_id' => 'magick-ai/build-media-optimization-plan',
+				'adapter_plan_allowlisted' => isset( self::$allowed_plan_ability_ids['magick-ai/build-media-optimization-plan'] ),
+				'missing_capability_behavior' => 'surface_plan_ability_unavailable_do_not_split_into_two_proposals',
+			),
 		);
 		if ( is_array( $optimization_plan['write_actions'] ?? null ) && count( (array) $optimization_plan['write_actions'] ) >= 2 ) {
 			$response_payload['from_plan_request'] = array(
@@ -2774,7 +2819,7 @@ final class Controller {
 			);
 			$response_payload['next_step'] = 'POST /proposals/from-plan with from_plan_request for one Core batch proposal.';
 		} else {
-			$response_payload['next_step'] = 'Provide reviewed media_details_input, then POST /proposals/from-plan with the returned from_plan_request; legacy single derivative proposal_payload remains available.';
+			$response_payload['next_step'] = 'Provide reviewed media_details_input, then POST /media-derivative-proposal-payload again and submit the returned from_plan_request to /proposals/from-plan; do not split the same optimize-media user intent into two proposals.';
 		}
 
 		return new WP_REST_Response(
@@ -3767,9 +3812,10 @@ final class Controller {
 			$attachment_id = absint( $input['attachment_id'] ?? 0 );
 			$defer_attachment_check = $allow_output_refs && $this->is_output_reference( $input['attachment_id'] ?? null );
 			if ( ! $defer_attachment_check && function_exists( 'get_post_type' ) && 'attachment' !== get_post_type( $attachment_id ) ) {
+				$attachment_rule = is_array( $profile['validate_attachment_input'] ) ? $profile['validate_attachment_input'] : array();
 				return new WP_Error(
 					'magick_ai_adapter_attachment_required',
-					__( 'delete-media-permanently execution input must target an existing attachment.', 'magick-ai-adapter' ),
+					(string) ( $attachment_rule['message'] ?? __( 'Execution input must target an existing attachment.', 'magick-ai-adapter' ) ),
 					array_merge(
 						$error_data,
 						array(

@@ -62,6 +62,7 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=magick-ai/optimize-media-asset`
 - `target_ability_id=magick-ai/replace-media-file`
 - `target_ability_id=magick-ai/adopt-cloud-media-derivative`
+- `target_ability_id=magick-ai/rename-media-file`
 - `target_ability_id=magick-ai/delete-media-permanently`
 - `target_ability_id=magick-ai/reply-comment`
 - `target_ability_id=magick-ai/trash-comment`

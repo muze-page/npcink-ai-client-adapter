@@ -78,6 +78,9 @@ replace media files.
    - Core creates one batch proposal with `input.write_actions[]` containing
      `magick-ai/update-media-details` and
      `magick-ai/adopt-cloud-media-derivative`.
+   - If Core reports the media optimization plan ability is unavailable,
+     surface the capability/version guard and update the local Abilities/Core
+     stack; do not split this user intent into two proposals.
    - For lower-level derivative-only review, the legacy single
      `proposal_payload` remains available.
    - Adapter may later execute that approved local write ability, but it does

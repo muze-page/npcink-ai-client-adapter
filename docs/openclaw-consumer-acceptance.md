@@ -222,8 +222,11 @@ Run this order for a local acceptance pass:
     If the user intent is full media optimization, submit the returned
     `from_plan_request` to `POST /proposals/from-plan` so Core creates one
     batch proposal containing `magick-ai/update-media-details` and
-    `magick-ai/adopt-cloud-media-derivative`. Use the legacy single derivative
-    proposal only for lower-level derivative-only review.
+    `magick-ai/adopt-cloud-media-derivative`. If Core reports the plan ability
+    is unavailable, surface the capability/version guard and update the local
+    stack; do not split this same user intent into two proposals. Use the
+    legacy single derivative proposal only for lower-level derivative-only
+    review.
 12. Query status through Adapter:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`
@@ -258,8 +261,10 @@ Run this order for a local acceptance pass:
     `magick-ai/delete-term`, `magick-ai/update-media-details`,
     `magick-ai/patch-post-content`,
     `magick-ai/patch-setting-value`,
-    `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
-    `magick-ai/trash-comment`, or `magick-ai/approve-comment` path and call
+    `magick-ai/replace-media-file`, `magick-ai/adopt-cloud-media-derivative`,
+    `magick-ai/rename-media-file`, `magick-ai/delete-media-permanently`,
+    `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
+    `magick-ai/approve-comment` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
     preflight, passed `approval_context`, returned `proposal_id`,
     `correlation_id`, and `ability_id`, and did not execute pending or

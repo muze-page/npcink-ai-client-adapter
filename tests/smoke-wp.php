@@ -126,6 +126,41 @@ function maa_adapter_smoke_rest_result( string $method, string $route, array $pa
 	);
 }
 
+if ( ! function_exists( 'magick_ai_cloud_addon_build_media_derivative_proposal_payload' ) ) {
+	/**
+	 * Local smoke double for the Cloud Addon proposal payload builder.
+	 *
+	 * @param array<string,mixed> $ability_response Ability response.
+	 * @param array<string,mixed> $cloud_result Cloud result.
+	 * @param array<string,mixed> $artifact Derivative artifact.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	function magick_ai_cloud_addon_build_media_derivative_proposal_payload( array $ability_response, array $cloud_result, array $artifact ) {
+		$attachment_id = absint( $ability_response['data']['attachment_id'] ?? ( $ability_response['attachment_id'] ?? ( $artifact['attachment_id'] ?? 0 ) ) );
+		$artifact_id   = sanitize_text_field( (string) ( $artifact['artifact_id'] ?? '' ) );
+		if ( $attachment_id <= 0 || '' === $artifact_id ) {
+			return new WP_Error( 'maa_adapter_smoke_derivative_payload_invalid', 'Smoke derivative payload requires attachment_id and artifact_id.', array( 'status' => 400 ) );
+		}
+
+		return array(
+			'attachment_id' => $attachment_id,
+			'artifact'      => $artifact,
+			'original'      => array(
+				'mime_type'      => 'image/jpeg',
+				'width'          => 1600,
+				'height'         => 900,
+				'filesize_bytes' => 734003,
+			),
+			'derivative'    => array(
+				'mime_type'      => 'image/webp',
+				'width'          => absint( $cloud_result['width'] ?? 1600 ),
+				'height'         => absint( $cloud_result['height'] ?? 900 ),
+				'filesize_bytes' => absint( $cloud_result['filesize_bytes'] ?? 196608 ),
+			),
+		);
+	}
+}
+
 /**
  * Captured Adapter observability events.
  *
@@ -542,6 +577,8 @@ maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_gui
 maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes proposal status routes' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/from-plan', (array) ( $health['plan_proposal_routes'] ?? array() ), true ), 'adapter health exposes plan-to-proposal route' );
 maa_adapter_smoke_assert( in_array( 'magick-ai-toolbox/build-article-batch-write-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article batch plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/build-media-optimization-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media optimization plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/build-media-rename-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media rename plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approved proposal execution route' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approve-and-execute route' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
@@ -556,6 +593,7 @@ maa_adapter_smoke_assert( in_array( 'magick-ai/update-media-details', (array) ( 
 maa_adapter_smoke_assert( in_array( 'magick-ai/optimize-media-asset', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes optimize-media-asset execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/replace-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes replace-media-file execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/adopt-cloud-media-derivative', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes adopt-cloud-media-derivative execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'magick-ai/rename-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes rename-media-file execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/delete-media-permanently', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-media-permanently execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-comment execute allowlist' );
@@ -581,6 +619,9 @@ maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $help['opencla
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );
 maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-batch-write-plan' === (string) ( $help['openclaw_recipes']['article_batch_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article batch draft plan entrypoint ability' );
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_batch_draft_plan']['guardrails']['batch_approval'] ?? false ), 'adapter help marks OpenClaw article batch draft plan as batch approval' );
+maa_adapter_smoke_assert( 'magick-ai/build-media-optimization-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['optimization_plan_ability_id'] ?? '' ), 'adapter help exposes media optimization plan ability for derivative workflow' );
+maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['preferred_core_route'] ?? '' ), 'adapter help defaults media derivative optimization to Core from-plan' );
+maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['single_approval_required'] ?? false ), 'adapter help marks media optimization as one approval' );
 maa_adapter_smoke_assert( 'magick-ai-toolbox/build-ai-article-writing-pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes AI article writing pack recipe entrypoint ability' );
 maa_adapter_smoke_assert( 'ai_article_writing_pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['artifact_type'] ?? '' ), 'adapter help marks AI article writing recipe artifact type' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['direct_wordpress_write'] ?? true ), 'adapter help marks AI article writing recipe as no direct write' );
@@ -1199,6 +1240,128 @@ maa_adapter_smoke_assert( ! empty( $plan_proposal_detail['preview']['blocked_ite
 maa_adapter_smoke_assert( ! empty( $plan_proposal_detail['preview']['blocked_items']['skipped_destructive_candidates'] ?? array() ), 'adapter e2e plan proposal detail preserves skipped destructive candidates' );
 maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_proposal_detail['caller']['adapter_request_id'] ?? '' ), 'adapter e2e proposal detail preserves adapter request id in caller' );
 maa_adapter_smoke_assert( 'adapter-plan-e2e-correlation' === (string) ( $plan_proposal_detail['caller']['correlation_id'] ?? '' ), 'adapter e2e proposal detail preserves correlation id in caller' );
+
+
+$media_optimization_payload = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/media-derivative-proposal-payload',
+	array(
+		'ability_response'    => array(
+			'success' => true,
+			'data'    => array(
+				'request_contract_version' => 'media_derivative_cloud_request.v1',
+				'attachment_id'            => $media_plan_attachment_id,
+				'readonly'                 => true,
+				'proposal_only'            => true,
+				'cloud_job_payload'        => array(
+					'job_type'             => 'generate_optimized_media_derivative',
+					'source_asset'         => array(
+						'mime_type'      => 'image/jpeg',
+						'width'          => 1600,
+						'height'         => 900,
+						'filesize_bytes' => 734003,
+					),
+					'requested_derivative' => array(
+						'format'           => 'webp',
+						'quality'          => 82,
+						'replace_original' => false,
+					),
+					'warnings'             => array(),
+				),
+				'local_adoption'           => array(
+					'final_write_owner'             => 'local_wordpress_host',
+					'wordpress_write_included'      => false,
+					'attachment_metadata_write_included' => false,
+				),
+			),
+		),
+		'cloud_result'        => array(
+			'status'     => 'succeeded',
+			'run_id'     => 'adapter-smoke-derivative-run',
+			'derivative' => array(
+				'artifact_id'    => 'adapter-smoke-webp-artifact',
+				'mime_type'      => 'image/webp',
+				'format'         => 'webp',
+				'width'          => 1600,
+				'height'         => 900,
+				'filesize_bytes' => 196608,
+			),
+		),
+		'derivative_artifact' => array(
+			'attachment_id'   => $media_plan_attachment_id,
+			'artifact_id'     => 'adapter-smoke-webp-artifact',
+			'run_id'          => 'adapter-smoke-derivative-run',
+			'mime_type'       => 'image/webp',
+			'format'          => 'webp',
+			'width'           => 1600,
+			'height'          => 900,
+			'filesize_bytes'  => 196608,
+			'expires_at'      => gmdate( 'c', time() + 600 ),
+			'download_url'    => 'https://example.test/adapter-smoke-webp-artifact.webp',
+		),
+		'media_details_input' => array(
+			'title'       => 'Adapter media optimization smoke',
+			'alt'         => 'Adapter media optimization smoke image',
+			'caption'     => 'Adapter media optimization smoke image.',
+			'description' => 'Reviewed metadata for the adapter media optimization smoke.',
+			'source_type' => 'ai_generated',
+		),
+	)
+);
+maa_adapter_smoke_assert( true === (bool) ( $media_optimization_payload['proposal_ready'] ?? false ), 'adapter media derivative payload is ready for one optimization proposal' );
+maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $media_optimization_payload['preferred_core_route'] ?? '' ), 'adapter media derivative payload prefers Core from-plan route' );
+maa_adapter_smoke_assert( 'surface_plan_ability_unavailable_do_not_split_into_two_proposals' === (string) ( $media_optimization_payload['ability_guard']['missing_capability_behavior'] ?? '' ), 'adapter media derivative payload exposes missing-capability guard' );
+$media_optimization_from_plan = is_array( $media_optimization_payload['from_plan_request'] ?? null ) ? $media_optimization_payload['from_plan_request'] : array();
+maa_adapter_smoke_assert( 'magick-ai/build-media-optimization-plan' === (string) ( $media_optimization_from_plan['plan_ability_id'] ?? '' ), 'adapter media derivative payload returns media optimization from_plan_request' );
+$media_optimization_plan = is_array( $media_optimization_from_plan['plan'] ?? null ) ? $media_optimization_from_plan['plan'] : array();
+maa_adapter_smoke_assert( 'media_optimization_plan' === (string) ( $media_optimization_plan['artifact_type'] ?? '' ), 'adapter media derivative payload returns media optimization plan artifact' );
+maa_adapter_smoke_assert( true === (bool) ( $media_optimization_plan['batch_approval'] ?? false ), 'adapter media optimization plan requests one batch approval' );
+maa_adapter_smoke_assert( 2 === count( (array) ( $media_optimization_plan['write_actions'] ?? array() ) ), 'adapter media optimization plan includes two write actions' );
+maa_adapter_smoke_assert( 'magick-ai/update-media-details' === (string) ( $media_optimization_plan['write_actions'][0]['target_ability_id'] ?? '' ), 'adapter media optimization plan starts with metadata update' );
+maa_adapter_smoke_assert( 'magick-ai/adopt-cloud-media-derivative' === (string) ( $media_optimization_plan['write_actions'][1]['target_ability_id'] ?? '' ), 'adapter media optimization plan includes derivative adoption' );
+
+$media_optimization_bridge_result = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array_merge(
+		$media_optimization_from_plan,
+		array(
+			'plan_input'         => array(
+				'attachment_id' => $media_plan_attachment_id,
+				'source_type'   => 'ai_generated',
+			),
+			'adapter_request_id' => 'adapter-media-optimization-request',
+			'correlation_id'     => 'adapter-media-optimization-correlation',
+			'caller'             => array(
+				'external_thread_id' => 'adapter-media-optimization-smoke',
+			),
+		)
+	)
+);
+$media_optimization_bridge = is_array( $media_optimization_bridge_result['data'] ) ? $media_optimization_bridge_result['data'] : array();
+maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' !== (string) ( $media_optimization_bridge['code'] ?? '' ), 'adapter does not reject media optimization plan at Adapter allowlist' );
+if ( 404 === (int) $media_optimization_bridge_result['status'] && 'magick_ai_core_plan_ability_unavailable' === (string) ( $media_optimization_bridge['code'] ?? '' ) ) {
+	maa_adapter_smoke_assert( '/magick-ai-core/v1/proposals/from-plan' === (string) ( $media_optimization_bridge['data']['upstream_route'] ?? '' ), 'adapter forwards media optimization plan to Core when local Core catalog lacks the planning ability' );
+} else {
+	maa_adapter_smoke_assert( $media_optimization_bridge_result['status'] >= 200 && $media_optimization_bridge_result['status'] < 300, 'POST /magick-ai-adapter/v1/proposals/from-plan accepts media optimization plan' );
+	maa_adapter_smoke_assert( 1 === (int) ( $media_optimization_bridge['proposal_count'] ?? 0 ), 'adapter media optimization plan creates one Core batch proposal' );
+	$media_optimization_proposal = is_array( $media_optimization_bridge['proposals'][0] ?? null ) ? $media_optimization_bridge['proposals'][0] : array();
+	$media_optimization_proposal_id = (string) ( $media_optimization_proposal['proposal_id'] ?? '' );
+	$maa_adapter_smoke_cleanup_proposal_ids[] = $media_optimization_proposal_id;
+	maa_adapter_smoke_assert( 'plan_to_proposal_batch' === (string) ( $media_optimization_proposal['preview']['source']['type'] ?? '' ), 'adapter media optimization Core proposal stores batch source' );
+	maa_adapter_smoke_assert( 2 === count( (array) ( $media_optimization_proposal['input']['write_actions'] ?? array() ) ), 'adapter media optimization Core proposal stores metadata and derivative actions' );
+	$media_optimization_approved = maa_adapter_smoke_rest(
+		'POST',
+		'/magick-ai-core/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/approve',
+		array(
+			'note' => 'Approve adapter media optimization smoke for preflight only.',
+		)
+	);
+	maa_adapter_smoke_assert( 'approved' === (string) ( $media_optimization_approved['status'] ?? '' ), 'Core admin REST approval succeeds for media optimization batch proposal' );
+	$media_optimization_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/commit-preflight' );
+	maa_adapter_smoke_assert( false === (bool) ( $media_optimization_preflight['commit_execution'] ?? true ), 'adapter media optimization preflight keeps Core commit_execution=false' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_optimization_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter media optimization preflight caches execution handoff' );
+}
 
 $site_summary = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/site-summary' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-summary' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-summary read ability' );

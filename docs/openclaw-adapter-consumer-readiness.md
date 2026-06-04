@@ -63,6 +63,7 @@ The readiness pass verified:
   `magick-ai/upload-media-from-url`,
   `magick-ai/set-post-featured-image`, `magick-ai/replace-media-file`,
   `magick-ai/adopt-cloud-media-derivative`,
+  `magick-ai/rename-media-file`,
   `magick-ai/delete-media-permanently`,
   `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
   `magick-ai/approve-comment`;
@@ -97,6 +98,7 @@ Adapter remains a thin OpenClaw channel layer:
   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
   `magick-ai/replace-media-file`,
   `magick-ai/adopt-cloud-media-derivative`,
+  `magick-ai/rename-media-file`,
   `magick-ai/delete-media-permanently`,
   `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
   `magick-ai/approve-comment`.

@@ -131,6 +131,7 @@ direct reads:
 - `magick-ai/build-media-reference-repair-plan`
 - `magick-ai/build-media-settings-reference-repair-plan`
 - `magick-ai/build-media-optimization-plan`
+- `magick-ai/build-media-rename-plan`
 - `magick-ai-toolbox/build-article-write-plan`
 - `magick-ai-toolbox/build-article-batch-write-plan`
 - `magick-ai-toolbox/build-article-media-batch-write-plan`
@@ -313,6 +314,7 @@ For a pending `magick-ai/trash-post`, `magick-ai/create-draft`,
 `magick-ai/optimize-media-asset`,
 `magick-ai/replace-media-file`,
 `magick-ai/adopt-cloud-media-derivative`,
+`magick-ai/rename-media-file`,
 `magick-ai/delete-media-permanently`,
 `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
 `magick-ai/approve-comment` proposal, Adapter
@@ -345,6 +347,10 @@ mode, and records backup/rollback metadata;
 `derivative_artifact` evidence, may accept a reviewed `file_name` for the
 adopted derivative, then delegates any approved local download, backup,
 attachment pointer, and metadata writes to the WordPress ability;
+`rename-media-file` requires an existing attachment `attachment_id` and a
+reviewed `target_file_name`, may accept expected current relative path, MIME
+type, MD5, SHA256, conflict mode, and backup suffix guards, then delegates the
+approved main-file rename and attachment URL update to the WordPress ability;
 `delete-media-permanently` requires an existing attachment `attachment_id`;
 `reply-comment` requires `comment_id`, non-empty `content`, and a valid
 `content_format`; `trash-comment` requires `comment_id`;
@@ -382,6 +388,7 @@ The current allowlist is intentionally narrow:
 - `magick-ai/optimize-media-asset`
 - `magick-ai/replace-media-file`
 - `magick-ai/adopt-cloud-media-derivative`
+- `magick-ai/rename-media-file`
 - `magick-ai/delete-media-permanently`
 - `magick-ai/reply-comment`
 - `magick-ai/trash-comment`
@@ -870,6 +877,7 @@ OpenClaw must treat Core as the only proposal and approval truth:
    `magick-ai/patch-setting-value`,
    `magick-ai/optimize-media-asset`,
    `magick-ai/replace-media-file`, `magick-ai/adopt-cloud-media-derivative`,
+   `magick-ai/rename-media-file`,
    `magick-ai/delete-media-permanently`,
    `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
    `magick-ai/approve-comment`.

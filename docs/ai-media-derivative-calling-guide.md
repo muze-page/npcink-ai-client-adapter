@@ -129,6 +129,9 @@ Cloud runtime calls:
 
    Core will create one batch proposal containing `magick-ai/update-media-details`
    and `magick-ai/adopt-cloud-media-derivative`.
+   If Core reports the plan ability is unavailable, treat that as a local
+   capability/version guard and ask for the local stack to be updated. Do not
+   split the same media optimization user intent into two proposal approvals.
 
 8. Let Core approval, preflight, audit, execution, and rollback govern the
    final WordPress write.
