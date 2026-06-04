@@ -29,9 +29,10 @@ const bodyStdin = args.has('body-stdin');
 const queryJson = args.get('query') || '';
 const queryString = args.get('query-string') || '';
 const insecureLocalTls = args.has('insecure-local-tls');
+const executionIntent = (args.get('intent') || '').toLowerCase();
 
 if (!['GET', 'POST', 'DELETE'].includes(method) || !isSafeAdapterRoute(route)) {
-  console.error('Usage: magick-adapter request --profile=local [--insecure-local-tls] METHOD /adapter-route [--query=\'{"key":"value"}\'|--query-string=key=value] [--body-file=/tmp/body.json|--body-stdin]');
+  console.error('Usage: magick-adapter request --profile=local [--insecure-local-tls] METHOD /adapter-route [--intent=preview|preflight|commit] [--query=\'{"key":"value"}\'|--query-string=key=value] [--body-file=/tmp/body.json|--body-stdin]');
   process.exit(2);
 }
 
@@ -119,6 +120,40 @@ function routeSearchParams() {
   return params;
 }
 
+function isFinalWriteRoute(methodValue, cleanRoute) {
+  if (methodValue !== 'POST') {
+    return false;
+  }
+  return cleanRoute === '/execute-approved-proposal'
+    || /^\/proposals\/[A-Za-z0-9_-]+\/execute$/.test(cleanRoute)
+    || /^\/proposals\/[A-Za-z0-9_-]+\/approve-and-execute$/.test(cleanRoute);
+}
+
+function containsPreviewOnlyMarker(value) {
+  if (Array.isArray(value)) {
+    return value.some((item) => containsPreviewOnlyMarker(item));
+  }
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  if (value.dry_run === true || value.commit === false || value.commit_execution === false) {
+    return true;
+  }
+  return Object.values(value).some((item) => containsPreviewOnlyMarker(item));
+}
+
+function enforceExecutionIntent(methodValue, cleanRoute, bodyPayload) {
+  if (!isFinalWriteRoute(methodValue, cleanRoute)) {
+    return;
+  }
+  if (containsPreviewOnlyMarker(bodyPayload)) {
+    throw new Error('Refusing final Adapter execute route because the request body contains dry-run, commit=false, or commit_execution=false preview markers. Stop at commit-preflight for dry-run/preflight-only verification.');
+  }
+  if (executionIntent !== 'commit') {
+    throw new Error('Refusing final Adapter execute route without --intent=commit. Use --intent=preflight with /proposals/{proposal_id}/commit-preflight for dry-run/preflight-only verification.');
+  }
+}
+
 function signedHeaders(privateKey, keyId, methodValue, restRoute, queryParams, body) {
   const timestamp = new Date().toISOString();
   const nonce = base64url(randomBytes(18));
@@ -204,15 +239,17 @@ function requestJson(methodValue, url, body, headers) {
 }
 
 try {
-  const profileData = readProfile(profilePath);
   const routeUrl = new URL(route, 'https://adapter.invalid');
   const cleanRoute = routeUrl.pathname;
   const params = routeSearchParams();
   const queryStringOut = params.toString();
   const body = bodyFile ? readFileSync(bodyFile, 'utf8') : bodyStdin ? readFileSync(0, 'utf8') : '';
+  let bodyPayload = null;
   if (body) {
-    JSON.parse(body);
+    bodyPayload = JSON.parse(body);
   }
+  enforceExecutionIntent(method, cleanRoute, bodyPayload);
+  const profileData = readProfile(profilePath);
   const adapterUrl = `${profileData.adapterBaseUrl}${cleanRoute}${queryStringOut ? `?${queryStringOut}` : ''}`;
   const restRoute = new URL(adapterUrl).pathname.replace(/^\/wp-json/, '');
   const queryForSignature = queryParamsObject(params);

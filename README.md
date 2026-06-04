@@ -380,11 +380,19 @@ without reading or printing profile secrets:
 cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /health
 cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /capabilities
 cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
 ```
 
 The request command accepts only Adapter-relative routes such as `/health`,
 signs the request locally, and prints only the Adapter JSON response. It also
-accepts `--body-stdin` for non-secret POST bodies.
+accepts `--body-stdin` for non-secret POST bodies. Final Adapter write routes
+such as `/proposals/{proposal_id}/execute`, `/execute-approved-proposal`, and
+`/proposals/{proposal_id}/approve-and-execute` require `--intent=commit`.
+The CLI refuses those routes when the body still contains preview markers such
+as `dry_run=true`, `commit=false`, or `commit_execution=false`; for dry-run or
+preflight-only validation, use `/proposals/{proposal_id}/commit-preflight` with
+`--intent=preflight` and stop there.
 The repository keeps `tools/magick-adapter.mjs`,
 `tools/keypair-device-pairing.mjs`, and `tools/keypair-adapter-request.mjs` as
 development compatibility wrappers. The user-facing local client entrypoint is

@@ -25,6 +25,20 @@ cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter
 cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=example GET /capabilities
 ```
 
+Final Adapter write routes are guarded by client intent. Use
+`--intent=preflight` for `POST /proposals/{proposal_id}/commit-preflight`.
+Use `--intent=commit` only when the operator explicitly confirmed final write
+execution:
+
+```bash
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=example POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=example POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
+```
+
+The CLI refuses final execute routes when `--intent=commit` is missing, or when
+the request body still contains preview markers such as `dry_run=true`,
+`commit=false`, or `commit_execution=false`.
+
 For local WordPress development sites with self-signed `.local` HTTPS, add
 `--insecure-local-tls`.
 

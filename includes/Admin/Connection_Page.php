@@ -1428,13 +1428,16 @@ final class Connection_Page {
 			. "Adapter requests:\n"
 			. "{$request_prefix} GET /health\n"
 			. "{$request_prefix} GET /capabilities\n"
-			. "{$request_prefix} POST /proposals/from-plan --body-file=/tmp/magick-proposal.json\n\n"
+			. "{$request_prefix} POST /proposals/from-plan --body-file=/tmp/magick-proposal.json\n"
+			. "{$request_prefix} POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight\n"
+			. "{$request_prefix} POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit\n\n"
 			. "Rules for OpenClaw:\n"
 			. "1. Do not read, cat, print, summarize, or copy the local keypair profile file.\n"
 			. "2. Do not output private_key_jwk, public_key_jwk, Authorization, X-Magick-Signature, or any signing headers.\n"
 			. "3. POST bodies must contain only non-secret JSON. Use --body-file or --body-stdin.\n"
 			. "4. Use only Adapter-relative routes such as /health, /capabilities, or /proposals.\n"
-			. "5. WordPress writes must still go through Core proposal, approval, and preflight.";
+			. "5. WordPress writes must still go through Core proposal, approval, and preflight.\n"
+			. "6. Dry-run or preflight-only verification must stop at commit-preflight; final execute routes require --intent=commit.";
 	}
 
 	/**
