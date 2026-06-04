@@ -56,6 +56,7 @@ final class Controller {
 		'magick-ai/build-media-optimization-plan'              => true,
 		'magick-ai-toolbox/build-article-write-plan'           => true,
 		'magick-ai-toolbox/build-article-batch-write-plan'     => true,
+		'magick-ai-toolbox/build-article-media-batch-write-plan' => true,
 	);
 
 	/**
@@ -230,6 +231,36 @@ final class Controller {
 					'message' => __( 'update-media-details execution input must include at least one media detail field.', 'magick-ai-adapter' ),
 				),
 				'post_id_from_result'   => false,
+			),
+			'magick-ai/upload-media-from-url' => array(
+				'allowed_input_fields'  => array( 'url', 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'attach_to_post_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'source_type' => array(
+						'allowed' => array( 'owned', 'ai_generated', 'stock', 'external', 'test' ),
+						'code'    => 'magick_ai_adapter_media_source_type_invalid',
+						'message' => __( 'upload-media-from-url source_type must be owned, ai_generated, stock, external, or test.', 'magick-ai-adapter' ),
+					),
+				),
+				'required_text_fields'  => array(
+					'url' => array(
+						'code'    => 'magick_ai_adapter_media_url_required',
+						'message' => __( 'upload-media-from-url execution input must include url.', 'magick-ai-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
+			'magick-ai/set-post-featured-image' => array(
+				'allowed_input_fields'  => array( 'post_id', 'attachment_id', 'media_url', 'media_title', 'dry_run', 'commit', 'idempotency_key' ),
+				'require_post_id'       => array(
+					'code'    => 'magick_ai_adapter_post_id_required',
+					'message' => __( 'set-post-featured-image execution input must include post_id.', 'magick-ai-adapter' ),
+				),
+				'require_any_fields'    => array(
+					'fields'  => array( 'attachment_id', 'media_url' ),
+					'code'    => 'magick_ai_adapter_featured_image_required',
+					'message' => __( 'set-post-featured-image execution input must include attachment_id or media_url.', 'magick-ai-adapter' ),
+				),
+				'post_id_from_result'   => true,
 			),
 			'magick-ai/optimize-media-asset' => array(
 				'allowed_input_fields'  => array( 'attachment_id', 'target_max_width', 'preferred_format', 'quality', 'derivative_suffix', 'dry_run', 'commit', 'idempotency_key' ),

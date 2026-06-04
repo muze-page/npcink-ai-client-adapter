@@ -110,6 +110,18 @@ final_write_path=core_proposal_required
    `POST /wp-json/magick-ai-adapter/v1/proposals/from-plan` and keep using
    Core proposal status, approval, and commit-preflight routes.
 
+7. For a reviewed multi-article draft batch, use
+   `magick-ai-toolbox/build-article-batch-write-plan` and submit only its
+   returned plan to `POST /proposals/from-plan`.
+
+8. For reviewed article drafts that also include selected image-source
+   candidates, use `magick-ai-toolbox/build-article-media-batch-write-plan`.
+   The plan may include `magick-ai/create-draft`,
+   `magick-ai/upload-media-from-url`, `magick-ai/update-media-details`, and
+   `magick-ai/set-post-featured-image` write actions with `$outputs.*`
+   dependencies. OpenClaw must still treat this as a Core proposal handoff,
+   not permission to upload media or set featured images directly.
+
 ## Required Output
 
 OpenClaw should show the operator a draft candidate plus proposal-ready
@@ -151,5 +163,6 @@ Only include fields allowed by the writing pack's `proposal_allowed_fields`.
   WordPress.
 - Do not publish, schedule, upload media, set featured images, write SEO meta,
   or update posts from this recipe.
-- Do not add Toolbox suggestion abilities to Adapter's approved final execution
-  profile registry.
+- Toolbox planning abilities stay read-only. Adapter may allow their plans into
+  `/proposals/from-plan`, but approved final execution must be limited to the
+  WordPress abilities listed in Adapter's execution profiles.
