@@ -172,9 +172,11 @@ Run this order for a local acceptance pass:
    `magick-ai-toolbox/build-content-discoverability-brief` through
    `POST /run-read-ability` or
    `GET /content-discoverability-brief?post_id=POST_ID`; confirm the result has
-   `artifact_type=content_discoverability_brief`,
+   `artifact_type=content_discoverability_brief`, `primary_contract=true`,
    `write_posture=suggestion_only`, `direct_wordpress_write=false`, and
-   `final_write_path=core_proposal_required`.
+   `final_write_path=core_proposal_required`. Confirm it also exposes `seo`,
+   `aeo`, `geo`, `exceptions`, `special_cases`, and
+   `proposal_allowed_fields`; this is the primary SEO/GEO/AEO entrypoint.
    For broad natural-language article requests, run
    `magick-ai-toolbox/build-ai-article-writing-pack` through
    `POST /run-read-ability` or `GET /article-writing-pack?topic=AI_TOPIC`;

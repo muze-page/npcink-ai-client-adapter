@@ -1206,6 +1206,28 @@ maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-sum
 maa_adapter_smoke_assert( 'direct_read_public' === (string) ( $site_summary['read_policy'] ?? '' ), 'adapter site-summary read carries public read policy' );
 maa_adapter_smoke_assert( '' !== (string) ( $site_summary['correlation_id'] ?? '' ), 'adapter read response carries generated correlation id' );
 
+$discoverability_brief_response = maa_adapter_smoke_rest(
+	'GET',
+	'/magick-ai-adapter/v1/content-discoverability-brief',
+	array(
+		'topic' => 'WordPress AI SEO GEO AEO smoke',
+		'title' => 'WordPress AI SEO GEO AEO smoke',
+	)
+);
+$discoverability_brief = is_array( $discoverability_brief_response['result']['data'] ?? null ) ? $discoverability_brief_response['result']['data'] : ( is_array( $discoverability_brief_response['result'] ?? null ) ? $discoverability_brief_response['result'] : array() );
+maa_adapter_smoke_assert( 'magick-ai-toolbox/build-content-discoverability-brief' === (string) ( $discoverability_brief_response['ability_id'] ?? '' ), 'adapter runs content discoverability brief primary ability' );
+maa_adapter_smoke_assert( 'content_discoverability_brief' === (string) ( $discoverability_brief['artifact_type'] ?? '' ), 'content discoverability brief returns the expected artifact type' );
+maa_adapter_smoke_assert( true === (bool) ( $discoverability_brief['primary_contract'] ?? false ), 'content discoverability brief is marked as the primary SEO/GEO/AEO contract' );
+maa_adapter_smoke_assert( 'suggestion_only' === (string) ( $discoverability_brief['write_posture'] ?? '' ), 'content discoverability brief is suggestion-only' );
+maa_adapter_smoke_assert( 'core_proposal_required' === (string) ( $discoverability_brief['final_write_path'] ?? '' ), 'content discoverability brief points final writes to Core proposals' );
+maa_adapter_smoke_assert( false === (bool) ( $discoverability_brief['direct_wordpress_write'] ?? true ), 'content discoverability brief disables direct WordPress writes' );
+maa_adapter_smoke_assert( is_array( $discoverability_brief['seo'] ?? null ), 'content discoverability brief exposes SEO section' );
+maa_adapter_smoke_assert( is_array( $discoverability_brief['aeo'] ?? null ), 'content discoverability brief exposes AEO section' );
+maa_adapter_smoke_assert( is_array( $discoverability_brief['geo'] ?? null ), 'content discoverability brief exposes GEO section' );
+maa_adapter_smoke_assert( is_array( $discoverability_brief['exceptions'] ?? null ), 'content discoverability brief exposes exceptions' );
+maa_adapter_smoke_assert( is_array( $discoverability_brief['special_cases'] ?? null ), 'content discoverability brief exposes special cases' );
+maa_adapter_smoke_assert( is_array( $discoverability_brief['proposal_allowed_fields'] ?? null ), 'content discoverability brief exposes proposal allowed fields' );
+
 $diagnostics = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/wp-diagnostics-summary' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-diagnostics-summary' === (string) ( $diagnostics['ability_id'] ?? '' ), 'adapter runs diagnostics read ability' );
 maa_adapter_smoke_assert( is_array( $diagnostics['result'] ?? null ), 'diagnostics returns a result object' );
