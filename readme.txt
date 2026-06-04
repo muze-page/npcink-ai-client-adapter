@@ -33,7 +33,7 @@ Only through the explicit `approve-and-execute` user action. Magick AI Core rema
 
 = Does Adapter execute arbitrary abilities? =
 
-No. Adapter only executes abilities that are explicitly allowlisted. The current minimal execution allowlist contains `magick-ai/trash-post`, `magick-ai/create-draft`, `magick-ai/update-post`, `magick-ai/set-post-terms`, `magick-ai/reply-comment`, and `magick-ai/approve-comment`.
+No. Adapter only executes abilities that are explicitly allowlisted. The current execution allowlist includes draft, post update, taxonomy, media metadata/upload/featured-image, media derivative, comment, and bounded destructive profiles documented in the OpenClaw batch execution policy.
 
 == Changelog ==
 

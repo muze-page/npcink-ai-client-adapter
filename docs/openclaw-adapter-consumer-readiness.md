@@ -60,7 +60,8 @@ The readiness pass verified:
   `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
-  `magick-ai/replace-media-file`,
+  `magick-ai/upload-media-from-url`,
+  `magick-ai/set-post-featured-image`, `magick-ai/replace-media-file`,
   `magick-ai/adopt-cloud-media-derivative`,
   `magick-ai/delete-media-permanently`,
   `magick-ai/reply-comment`, `magick-ai/trash-comment`, and

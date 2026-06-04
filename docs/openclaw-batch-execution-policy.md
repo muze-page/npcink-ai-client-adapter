@@ -57,6 +57,8 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=magick-ai/set-post-terms`
 - `target_ability_id=magick-ai/delete-term`
 - `target_ability_id=magick-ai/update-media-details`
+- `target_ability_id=magick-ai/upload-media-from-url`
+- `target_ability_id=magick-ai/set-post-featured-image`
 - `target_ability_id=magick-ai/optimize-media-asset`
 - `target_ability_id=magick-ai/replace-media-file`
 - `target_ability_id=magick-ai/adopt-cloud-media-derivative`

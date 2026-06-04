@@ -132,6 +132,7 @@ direct reads:
 - `magick-ai/build-media-settings-reference-repair-plan`
 - `magick-ai-toolbox/build-article-write-plan`
 - `magick-ai-toolbox/build-article-batch-write-plan`
+- `magick-ai-toolbox/build-article-media-batch-write-plan`
 
 OpenClaw may also use direct read execution for media format inspection:
 
@@ -155,6 +156,15 @@ For Toolbox article batch writing,
 batch proposal handoff; each executable action must still target the
 `magick-ai/create-draft` execution profile, keep `status=draft`, and pass Core
 approval plus commit-preflight before Adapter execution.
+
+For Toolbox article media batch writing,
+`magick-ai-toolbox/build-article-media-batch-write-plan` returns a reviewed
+`article_media_batch_write_plan`. Adapter may forward that plan to Core only as
+a batch proposal handoff; each executable action must still target an explicit
+Adapter profile such as `magick-ai/create-draft`,
+`magick-ai/upload-media-from-url`, `magick-ai/update-media-details`, or
+`magick-ai/set-post-featured-image`, and pass Core approval plus
+commit-preflight before Adapter execution.
 
 ## OpenClaw Recipe Discovery
 
