@@ -5824,7 +5824,7 @@ final class Controller {
 	 */
 	private function media_derivative_ability_input( WP_REST_Request $request ): array {
 		$overrides = $this->request_input( $request );
-		foreach ( array( 'attachment_id', 'preferred_format', 'target_format', 'target_max_width', 'max_width', 'quality', 'watermark' ) as $key ) {
+		foreach ( array( 'attachment_id', 'preferred_format', 'target_format', 'target_max_width', 'max_width', 'quality', 'watermark_enabled', 'watermark' ) as $key ) {
 			$value = $request->get_param( $key );
 			if ( null !== $value && ! array_key_exists( $key, $overrides ) ) {
 				$overrides[ $key ] = $this->sanitize_input_value( $value );
@@ -5833,12 +5833,24 @@ final class Controller {
 		if ( isset( $overrides['target_format'] ) && ! isset( $overrides['preferred_format'] ) ) {
 			$overrides['preferred_format'] = $overrides['target_format'];
 		}
+		if ( isset( $overrides['preferred_format'] ) && ! isset( $overrides['target_format'] ) ) {
+			$overrides['target_format'] = $overrides['preferred_format'];
+		}
 		if ( isset( $overrides['max_width'] ) && ! isset( $overrides['target_max_width'] ) ) {
 			$overrides['target_max_width'] = $overrides['max_width'];
 		}
+		if ( isset( $overrides['target_max_width'] ) && ! isset( $overrides['max_width'] ) ) {
+			$overrides['max_width'] = $overrides['target_max_width'];
+		}
 
 		if ( function_exists( 'magick_ai_core_build_media_derivative_ability_input' ) ) {
-			return magick_ai_core_build_media_derivative_ability_input( $overrides );
+			$ability_input = magick_ai_core_build_media_derivative_ability_input( $overrides );
+			if ( empty( $overrides['watermark_enabled'] ) && array_key_exists( 'watermark_enabled', $overrides ) ) {
+				unset( $ability_input['watermark'] );
+			} elseif ( is_array( $overrides['watermark'] ?? null ) && ! empty( $overrides['watermark'] ) ) {
+				$ability_input['watermark'] = $this->sanitize_input_value( $overrides['watermark'] );
+			}
+			return $ability_input;
 		}
 
 		return $overrides;
