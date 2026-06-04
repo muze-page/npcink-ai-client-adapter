@@ -444,6 +444,8 @@ foreach (
 			'surface_plan_ability_unavailable_do_not_split_into_two_proposals',
 			'default_user_intent',
 			'optimize_this_media_item',
+			'required_reviewed_input',
+			'request_reviewed_media_details_input_before_core_proposal',
 			'single_approval_required',
 			'do_not_split_user_intent',
 			'adopt-cloud-media-derivative execution input must include derivative_artifact evidence.',
@@ -1658,6 +1660,12 @@ foreach (
 		'AI Request Logs context contains explicit model even if provider column is blank',
 		'Core Governance Audit filters by the same provider smoke correlation id',
 		'maa_adapter_smoke_fixture_registry',
+		'maa_adapter_smoke_register_attachment_fixture',
+		'_magick_ai_adapter_smoke_fixture_run_id',
+		'maa_adapter_smoke_known_media_fixture_leak_ids',
+		'maa_adapter_smoke_known_media_fixture_file_paths',
+		'codex-commit-',
+		'maa_adapter_smoke_assert_no_media_fixture_leaks',
 		'maa_adapter_smoke_cleanup_registered_fixtures',
 		'register_shutdown_function',
 		'magick_ai_adapter_execution_records',
@@ -1668,6 +1676,7 @@ foreach (
 		'adapter failed execution record carries ability error code',
 		'adapter failed execution record keeps commit_execution=false',
 		'adapter status smoke cleaned created proposal records',
+		'adapter smoke leaves no registered or reserved-prefix media fixtures behind',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $smoke_wp, $required ), 'WordPress smoke contains required text: ' . $required );

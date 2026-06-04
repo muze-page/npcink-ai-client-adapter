@@ -255,7 +255,9 @@ intent is full image optimization. Adapter returns a legacy single derivative
 `POST /proposals/from-plan` so Core creates one batch proposal containing
 `magick-ai/update-media-details` and
 `magick-ai/adopt-cloud-media-derivative`. The payload is Core-ready but not
-submitted, approved, or executed by Adapter. If Core reports the media
+submitted, approved, or executed by Adapter. If `media_details_input` is
+missing, stop and collect reviewed metadata before creating a Core proposal; do
+not create a derivative-only proposal for the same optimize-image intent. If Core reports the media
 optimization plan ability is unavailable, surface that version/capability guard
 and update the local Abilities/Core stack; do not split the same optimize-image
 intent into separate metadata and derivative proposals. See

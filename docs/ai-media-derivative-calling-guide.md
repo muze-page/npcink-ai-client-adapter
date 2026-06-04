@@ -129,6 +129,10 @@ Cloud runtime calls:
 
    Core will create one batch proposal containing `magick-ai/update-media-details`
    and `magick-ai/adopt-cloud-media-derivative`.
+   If `media_details_input` is missing, collect reviewed title/alt/caption/
+   description/source metadata first and retry `POST /media-derivative-proposal-payload`;
+   do not create a derivative-only Core proposal for the same optimization
+   request.
    If Core reports the plan ability is unavailable, treat that as a local
    capability/version guard and ask for the local stack to be updated. Do not
    split the same media optimization user intent into two proposal approvals.

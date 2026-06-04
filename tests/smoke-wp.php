@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit( 1 );
 }
 
+$maa_adapter_smoke_run_id = wp_generate_uuid4();
+
 /**
  * Assertion helper.
  *
@@ -24,6 +26,17 @@ function maa_adapter_smoke_assert( bool $condition, string $message ): void {
 	}
 
 	echo '[ok] ' . $message . "\n";
+}
+
+/**
+ * Returns the current smoke run id for fixture tagging.
+ *
+ * @return string
+ */
+function maa_adapter_smoke_run_id(): string {
+	global $maa_adapter_smoke_run_id;
+
+	return (string) $maa_adapter_smoke_run_id;
 }
 
 /**
@@ -142,24 +155,53 @@ if ( ! function_exists( 'magick_ai_cloud_addon_build_media_derivative_proposal_p
 			return new WP_Error( 'maa_adapter_smoke_derivative_payload_invalid', 'Smoke derivative payload requires attachment_id and artifact_id.', array( 'status' => 400 ) );
 		}
 
+		$contract = is_array( $ability_response['data'] ?? null ) ? $ability_response['data'] : array();
+		$source_asset = is_array( $contract['cloud_job_payload']['source_asset'] ?? null ) ? $contract['cloud_job_payload']['source_asset'] : array();
+		$cloud_data = is_array( $cloud_result['data'] ?? null ) ? $cloud_result['data'] : $cloud_result;
+		$derivative = is_array( $cloud_data['derivative'] ?? null ) ? $cloud_data['derivative'] : array();
+
 		return array(
 			'attachment_id' => $attachment_id,
 			'artifact'      => $artifact,
 			'original'      => array(
-				'mime_type'      => 'image/jpeg',
-				'width'          => 1600,
-				'height'         => 900,
-				'filesize_bytes' => 734003,
+				'mime_type'      => sanitize_text_field( (string) ( $source_asset['mime_type'] ?? 'image/jpeg' ) ),
+				'width'          => absint( $source_asset['width'] ?? 1600 ),
+				'height'         => absint( $source_asset['height'] ?? 900 ),
+				'filesize_bytes' => absint( $source_asset['filesize_bytes'] ?? 734003 ),
 			),
 			'derivative'    => array(
-				'mime_type'      => 'image/webp',
-				'width'          => absint( $cloud_result['width'] ?? 1600 ),
-				'height'         => absint( $cloud_result['height'] ?? 900 ),
-				'filesize_bytes' => absint( $cloud_result['filesize_bytes'] ?? 196608 ),
+				'mime_type'      => sanitize_text_field( (string) ( $derivative['mime_type'] ?? ( $artifact['mime_type'] ?? 'image/webp' ) ) ),
+				'width'          => absint( $derivative['width'] ?? ( $artifact['width'] ?? 1600 ) ),
+				'height'         => absint( $derivative['height'] ?? ( $artifact['height'] ?? 900 ) ),
+				'filesize_bytes' => absint( $derivative['filesize_bytes'] ?? ( $artifact['filesize_bytes'] ?? 196608 ) ),
 			),
 		);
 	}
 }
+
+$GLOBALS['maa_adapter_smoke_cloud_artifact_downloads'] = array();
+
+/**
+ * Provides local Cloud artifact bytes for final-write smoke tests.
+ *
+ * @param mixed               $download Existing filtered download.
+ * @param array<string,mixed> $artifact Artifact descriptor.
+ * @return mixed
+ */
+function maa_adapter_smoke_cloud_artifact_download( $download, array $artifact ) {
+	if ( null !== $download ) {
+		return $download;
+	}
+
+	$artifact_id = sanitize_text_field( (string) ( $artifact['artifact_id'] ?? '' ) );
+	$downloads   = is_array( $GLOBALS['maa_adapter_smoke_cloud_artifact_downloads'] ?? null ) ? $GLOBALS['maa_adapter_smoke_cloud_artifact_downloads'] : array();
+	if ( '' === $artifact_id || ! isset( $downloads[ $artifact_id ] ) || ! is_array( $downloads[ $artifact_id ] ) ) {
+		return null;
+	}
+
+	return $downloads[ $artifact_id ];
+}
+add_filter( 'magick_ai_abilities_cloud_media_derivative_artifact_download', 'maa_adapter_smoke_cloud_artifact_download', 10, 2 );
 
 /**
  * Captured Adapter observability events.
@@ -356,6 +398,134 @@ function &maa_adapter_smoke_fixture_registry(): array {
 }
 
 /**
+ * Registers an attachment fixture for deletion on every exit path.
+ *
+ * @param int $attachment_id Attachment post id.
+ * @return void
+ */
+function maa_adapter_smoke_register_attachment_fixture( int $attachment_id ): void {
+	if ( $attachment_id <= 0 || 'attachment' !== get_post_type( $attachment_id ) ) {
+		return;
+	}
+
+	$registry =& maa_adapter_smoke_fixture_registry();
+	$registry['attachment_ids'][] = $attachment_id;
+	update_post_meta( $attachment_id, '_magick_ai_adapter_smoke_fixture_run_id', maa_adapter_smoke_run_id() );
+}
+
+/**
+ * Finds attachment fixtures that were tagged with the current smoke run id.
+ *
+ * @return int[]
+ */
+function maa_adapter_smoke_current_run_attachment_ids(): array {
+	return array_values(
+		array_unique(
+			array_filter(
+				array_map(
+					'absint',
+					get_posts(
+						array(
+							'fields'         => 'ids',
+							'meta_key'       => '_magick_ai_adapter_smoke_fixture_run_id',
+							'meta_value'     => maa_adapter_smoke_run_id(),
+							'post_status'    => 'inherit',
+							'post_type'      => 'attachment',
+							'posts_per_page' => -1,
+						)
+					)
+				)
+			)
+		)
+	);
+}
+
+/**
+ * Finds smoke media leaks by reserved test prefixes in attachment title, slug,
+ * guid, or attached file metadata.
+ *
+ * @return int[]
+ */
+function maa_adapter_smoke_known_media_fixture_leak_ids(): array {
+	global $wpdb;
+
+	$ids      = array();
+	$prefixes = array(
+		'adapter-rename-smoke-',
+		'adapter-rename-dry-target-',
+		'adapter-rename-commit-target-',
+		'codex-commit-',
+	);
+
+	foreach ( $prefixes as $prefix ) {
+		$like = '%' . $wpdb->esc_like( $prefix ) . '%';
+		$rows = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT p.ID
+				FROM {$wpdb->posts} p
+				LEFT JOIN {$wpdb->postmeta} pm
+					ON p.ID = pm.post_id
+					AND pm.meta_key = '_wp_attached_file'
+				WHERE p.post_type = 'attachment'
+					AND (
+						p.post_title LIKE %s
+						OR p.post_name LIKE %s
+						OR p.guid LIKE %s
+						OR pm.meta_value LIKE %s
+					)",
+				$like,
+				$like,
+				$like,
+				$like
+			)
+		);
+		$ids  = array_merge( $ids, array_map( 'absint', is_array( $rows ) ? $rows : array() ) );
+	}
+
+	return array_values( array_unique( array_filter( $ids ) ) );
+}
+
+/**
+ * Finds smoke media files by reserved test prefixes in uploads and backups.
+ *
+ * @return string[]
+ */
+function maa_adapter_smoke_known_media_fixture_file_paths(): array {
+	$uploads = wp_upload_dir();
+	$basedir = is_array( $uploads ) && ! empty( $uploads['basedir'] ) ? untrailingslashit( (string) $uploads['basedir'] ) : '';
+	if ( '' === $basedir ) {
+		return array();
+	}
+
+	$paths = array();
+	foreach ( array( 'adapter-rename-*', 'codex-commit-*' ) as $pattern ) {
+		$paths = array_merge( $paths, (array) glob( $basedir . '/20[0-9][0-9]/*/' . $pattern ) );
+		$paths = array_merge( $paths, (array) glob( $basedir . '/magick-ai-backups/20[0-9][0-9]/*/' . $pattern ) );
+	}
+
+	return array_values( array_filter( array_unique( $paths ), 'is_file' ) );
+}
+
+/**
+ * Asserts no known smoke media fixture remains in the media library or uploads.
+ *
+ * @return void
+ */
+function maa_adapter_smoke_assert_no_media_fixture_leaks(): void {
+	$leaks = array_values(
+		array_unique(
+			array_merge(
+				maa_adapter_smoke_current_run_attachment_ids(),
+				maa_adapter_smoke_known_media_fixture_leak_ids()
+			)
+		)
+	);
+	$file_paths = maa_adapter_smoke_known_media_fixture_file_paths();
+
+	maa_adapter_smoke_assert( empty( $leaks ) && empty( $file_paths ), 'adapter smoke leaves no registered or reserved-prefix media fixtures behind' );
+}
+
+/**
  * Cleans all registered smoke fixtures. This is intentionally idempotent
  * because it runs both on success and through register_shutdown_function().
  *
@@ -431,8 +601,22 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 		}
 	}
 
-	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['attachment_ids'] ?? array() ) ) ) ) ) as $cleanup_attachment_id ) {
+	$attachment_ids = array_values(
+		array_unique(
+			array_filter(
+				array_merge(
+					array_map( 'absint', (array) ( $registry['attachment_ids'] ?? array() ) ),
+					maa_adapter_smoke_current_run_attachment_ids(),
+					maa_adapter_smoke_known_media_fixture_leak_ids()
+				)
+			)
+		)
+	);
+	foreach ( $attachment_ids as $cleanup_attachment_id ) {
 		wp_delete_attachment( (int) $cleanup_attachment_id, true );
+	}
+	foreach ( maa_adapter_smoke_known_media_fixture_file_paths() as $fixture_file_path ) {
+		@unlink( $fixture_file_path );
 	}
 	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['comment_ids'] ?? array() ) ) ) ) ) as $cleanup_comment_id ) {
 		wp_delete_comment( (int) $cleanup_comment_id, true );
@@ -471,8 +655,7 @@ function maa_adapter_smoke_create_media_plan_attachment(): int {
 	);
 
 	maa_adapter_smoke_assert( ! is_wp_error( $id ) && (int) $id > 0, 'adapter smoke created media fixture attachment' );
-	$registry =& maa_adapter_smoke_fixture_registry();
-	$registry['attachment_ids'][] = (int) $id;
+	maa_adapter_smoke_register_attachment_fixture( (int) $id );
 	update_post_meta( (int) $id, '_wp_attachment_image_alt', '' );
 	return (int) $id;
 }
@@ -515,7 +698,11 @@ function maa_adapter_smoke_create_real_media_attachment(): int {
 		true
 	);
 
+	if ( is_wp_error( $id ) || (int) $id <= 0 ) {
+		@unlink( $file_path );
+	}
 	maa_adapter_smoke_assert( ! is_wp_error( $id ) && (int) $id > 0, 'adapter smoke created real media fixture attachment' );
+	maa_adapter_smoke_register_attachment_fixture( (int) $id );
 	update_post_meta( (int) $id, '_wp_attached_file', $relative_file );
 	wp_update_attachment_metadata(
 		(int) $id,
@@ -527,9 +714,112 @@ function maa_adapter_smoke_create_real_media_attachment(): int {
 		)
 	);
 
-	$registry =& maa_adapter_smoke_fixture_registry();
-	$registry['attachment_ids'][] = (int) $id;
 	return (int) $id;
+}
+
+/**
+ * Builds a local Cloud derivative payload for media optimization smoke tests.
+ *
+ * @param int    $attachment_id Attachment id.
+ * @param string $artifact_id Artifact id.
+ * @param string $artifact_contents Downloaded artifact bytes.
+ * @param bool   $with_media_details Whether to include reviewed metadata input.
+ * @return array<string,mixed>
+ */
+function maa_adapter_smoke_media_optimization_payload_params( int $attachment_id, string $artifact_id, string $artifact_contents, bool $with_media_details = true ): array {
+	$sha256       = hash( 'sha256', $artifact_contents );
+	$expires_at   = gmdate( 'c', time() + 600 );
+	$current_mime = (string) get_post_mime_type( $attachment_id );
+	if ( '' === $current_mime ) {
+		$current_mime = 'image/png';
+	}
+	$uploads       = wp_upload_dir();
+	$relative_file = (string) get_post_meta( $attachment_id, '_wp_attached_file', true );
+	$current_file  = '' !== $relative_file && is_array( $uploads )
+		? trailingslashit( (string) ( $uploads['basedir'] ?? '' ) ) . ltrim( $relative_file, '/' )
+		: '';
+	$current_size  = '' !== $current_file && is_readable( $current_file ) ? filesize( $current_file ) : 0;
+
+	$GLOBALS['maa_adapter_smoke_cloud_artifact_downloads'][ $artifact_id ] = array(
+		'artifact_id'    => $artifact_id,
+		'contents'       => $artifact_contents,
+		'mime_type'      => 'image/webp',
+		'filesize_bytes' => strlen( $artifact_contents ),
+		'sha256'         => $sha256,
+		'expires_at'     => $expires_at,
+	);
+
+	$params = array(
+		'ability_response'    => array(
+			'success' => true,
+			'data'    => array(
+				'request_contract_version' => 'media_derivative_cloud_request.v1',
+				'attachment_id'            => $attachment_id,
+				'readonly'                 => true,
+				'proposal_only'            => true,
+				'cloud_job_payload'        => array(
+					'job_type'             => 'generate_optimized_media_derivative',
+					'source_asset'         => array(
+						'mime_type'      => $current_mime,
+						'width'          => 1,
+						'height'         => 1,
+						'filesize_bytes' => absint( $current_size ),
+					),
+					'requested_derivative' => array(
+						'format'           => 'webp',
+						'quality'          => 82,
+						'replace_original' => false,
+					),
+					'warnings'             => array(),
+				),
+				'local_adoption'           => array(
+					'final_write_owner'             => 'local_wordpress_host',
+					'wordpress_write_included'      => false,
+					'attachment_metadata_write_included' => false,
+				),
+			),
+		),
+		'cloud_result'        => array(
+			'status'     => 'succeeded',
+			'run_id'     => 'adapter-smoke-derivative-run',
+			'derivative' => array(
+				'artifact_id'    => $artifact_id,
+				'mime_type'      => 'image/webp',
+				'format'         => 'webp',
+				'width'          => 1,
+				'height'         => 1,
+				'filesize_bytes' => strlen( $artifact_contents ),
+				'sha256'         => $sha256,
+				'checksum'       => 'sha256:' . $sha256,
+			),
+		),
+		'derivative_artifact' => array(
+			'attachment_id'   => $attachment_id,
+			'artifact_id'     => $artifact_id,
+			'run_id'          => 'adapter-smoke-derivative-run',
+			'mime_type'       => 'image/webp',
+			'format'          => 'webp',
+			'width'           => 1,
+			'height'          => 1,
+			'filesize_bytes'  => strlen( $artifact_contents ),
+			'expires_at'      => $expires_at,
+			'download_url'    => 'https://example.test/' . rawurlencode( $artifact_id ) . '.webp',
+			'sha256'          => $sha256,
+			'checksum'        => 'sha256:' . $sha256,
+		),
+	);
+
+	if ( $with_media_details ) {
+		$params['media_details_input'] = array(
+			'title'       => 'Adapter media optimization smoke',
+			'alt'         => 'Adapter media optimization smoke image',
+			'caption'     => 'Adapter media optimization smoke image.',
+			'description' => 'Reviewed metadata for the adapter media optimization smoke.',
+			'source_type' => 'ai_generated',
+		);
+	}
+
+	return $params;
 }
 
 /**
@@ -677,6 +967,8 @@ maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_b
 maa_adapter_smoke_assert( 'magick-ai/build-media-optimization-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['optimization_plan_ability_id'] ?? '' ), 'adapter help exposes media optimization plan ability for derivative workflow' );
 maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['preferred_core_route'] ?? '' ), 'adapter help defaults media derivative optimization to Core from-plan' );
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['single_approval_required'] ?? false ), 'adapter help marks media optimization as one approval' );
+maa_adapter_smoke_assert( in_array( 'media_details_input', (array) ( $help['openclaw_recipes']['media_derivative_cloud']['required_reviewed_input'] ?? array() ), true ), 'adapter help requires reviewed media details for media optimization' );
+maa_adapter_smoke_assert( 'request_reviewed_media_details_input_before_core_proposal' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['missing_reviewed_input_behavior'] ?? '' ), 'adapter help blocks media optimization proposal before reviewed metadata' );
 maa_adapter_smoke_assert( 'magick-ai-toolbox/build-ai-article-writing-pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes AI article writing pack recipe entrypoint ability' );
 maa_adapter_smoke_assert( 'ai_article_writing_pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['artifact_type'] ?? '' ), 'adapter help marks AI article writing recipe artifact type' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['direct_wordpress_write'] ?? true ), 'adapter help marks AI article writing recipe as no direct write' );
@@ -1296,72 +1588,22 @@ maa_adapter_smoke_assert( ! empty( $plan_proposal_detail['preview']['blocked_ite
 maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_proposal_detail['caller']['adapter_request_id'] ?? '' ), 'adapter e2e proposal detail preserves adapter request id in caller' );
 maa_adapter_smoke_assert( 'adapter-plan-e2e-correlation' === (string) ( $plan_proposal_detail['caller']['correlation_id'] ?? '' ), 'adapter e2e proposal detail preserves correlation id in caller' );
 
-
+$media_optimization_attachment_id = maa_adapter_smoke_create_real_media_attachment();
+$media_optimization_artifact_id = 'adapter-smoke-webp-artifact-' . substr( wp_generate_uuid4(), 0, 8 );
+$media_optimization_artifact_contents = 'adapter-smoke-webp-derivative-bytes';
+$media_optimization_missing_details_payload = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/media-derivative-proposal-payload',
+	maa_adapter_smoke_media_optimization_payload_params( $media_optimization_attachment_id, $media_optimization_artifact_id . '-missing-details', $media_optimization_artifact_contents, false )
+);
+maa_adapter_smoke_assert( false === (bool) ( $media_optimization_missing_details_payload['proposal_ready'] ?? true ), 'adapter media optimization payload is not proposal-ready without metadata input' );
+maa_adapter_smoke_assert( empty( $media_optimization_missing_details_payload['from_plan_request'] ?? array() ), 'adapter media optimization payload omits from_plan_request until metadata is reviewed' );
+maa_adapter_smoke_assert( in_array( 'media_details_input', (array) ( $media_optimization_missing_details_payload['media_optimization_plan']['requires_input'] ?? array() ), true ), 'adapter media optimization payload identifies missing metadata input' );
+maa_adapter_smoke_assert( false !== strpos( (string) ( $media_optimization_missing_details_payload['next_step'] ?? '' ), '/proposals/from-plan' ), 'adapter media optimization missing-input next step still points back to from-plan' );
 $media_optimization_payload = maa_adapter_smoke_rest(
 	'POST',
 	'/magick-ai-adapter/v1/media-derivative-proposal-payload',
-	array(
-		'ability_response'    => array(
-			'success' => true,
-			'data'    => array(
-				'request_contract_version' => 'media_derivative_cloud_request.v1',
-				'attachment_id'            => $media_plan_attachment_id,
-				'readonly'                 => true,
-				'proposal_only'            => true,
-				'cloud_job_payload'        => array(
-					'job_type'             => 'generate_optimized_media_derivative',
-					'source_asset'         => array(
-						'mime_type'      => 'image/jpeg',
-						'width'          => 1600,
-						'height'         => 900,
-						'filesize_bytes' => 734003,
-					),
-					'requested_derivative' => array(
-						'format'           => 'webp',
-						'quality'          => 82,
-						'replace_original' => false,
-					),
-					'warnings'             => array(),
-				),
-				'local_adoption'           => array(
-					'final_write_owner'             => 'local_wordpress_host',
-					'wordpress_write_included'      => false,
-					'attachment_metadata_write_included' => false,
-				),
-			),
-		),
-		'cloud_result'        => array(
-			'status'     => 'succeeded',
-			'run_id'     => 'adapter-smoke-derivative-run',
-			'derivative' => array(
-				'artifact_id'    => 'adapter-smoke-webp-artifact',
-				'mime_type'      => 'image/webp',
-				'format'         => 'webp',
-				'width'          => 1600,
-				'height'         => 900,
-				'filesize_bytes' => 196608,
-			),
-		),
-		'derivative_artifact' => array(
-			'attachment_id'   => $media_plan_attachment_id,
-			'artifact_id'     => 'adapter-smoke-webp-artifact',
-			'run_id'          => 'adapter-smoke-derivative-run',
-			'mime_type'       => 'image/webp',
-			'format'          => 'webp',
-			'width'           => 1600,
-			'height'          => 900,
-			'filesize_bytes'  => 196608,
-			'expires_at'      => gmdate( 'c', time() + 600 ),
-			'download_url'    => 'https://example.test/adapter-smoke-webp-artifact.webp',
-		),
-		'media_details_input' => array(
-			'title'       => 'Adapter media optimization smoke',
-			'alt'         => 'Adapter media optimization smoke image',
-			'caption'     => 'Adapter media optimization smoke image.',
-			'description' => 'Reviewed metadata for the adapter media optimization smoke.',
-			'source_type' => 'ai_generated',
-		),
-	)
+	maa_adapter_smoke_media_optimization_payload_params( $media_optimization_attachment_id, $media_optimization_artifact_id, $media_optimization_artifact_contents, true )
 );
 maa_adapter_smoke_assert( true === (bool) ( $media_optimization_payload['proposal_ready'] ?? false ), 'adapter media derivative payload is ready for one optimization proposal' );
 maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $media_optimization_payload['preferred_core_route'] ?? '' ), 'adapter media derivative payload prefers Core from-plan route' );
@@ -1382,7 +1624,7 @@ $media_optimization_bridge_result = maa_adapter_smoke_rest_result(
 		$media_optimization_from_plan,
 		array(
 			'plan_input'         => array(
-				'attachment_id' => $media_plan_attachment_id,
+				'attachment_id' => $media_optimization_attachment_id,
 				'source_type'   => 'ai_generated',
 			),
 			'adapter_request_id' => 'adapter-media-optimization-request',
@@ -1409,13 +1651,27 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'magick_ai_cor
 		'POST',
 		'/magick-ai-core/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/approve',
 		array(
-			'note' => 'Approve adapter media optimization smoke for preflight only.',
+			'note' => 'Approve adapter media optimization smoke batch execution.',
 		)
 	);
 	maa_adapter_smoke_assert( 'approved' === (string) ( $media_optimization_approved['status'] ?? '' ), 'Core admin REST approval succeeds for media optimization batch proposal' );
 	$media_optimization_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/commit-preflight' );
 	maa_adapter_smoke_assert( false === (bool) ( $media_optimization_preflight['commit_execution'] ?? true ), 'adapter media optimization preflight keeps Core commit_execution=false' );
 	maa_adapter_smoke_assert( true === (bool) ( $media_optimization_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter media optimization preflight caches execution handoff' );
+	$media_optimization_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/execute' );
+	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_execute['status'] ?? '' ), 'adapter media optimization execute succeeds after one Core batch approval' );
+	maa_adapter_smoke_assert( 'batch_write_actions' === (string) ( $media_optimization_execute['execution_mode'] ?? '' ), 'adapter media optimization executes as batch write_actions' );
+	maa_adapter_smoke_assert( 2 === (int) ( $media_optimization_execute['executed_count'] ?? 0 ), 'adapter media optimization executes metadata and derivative actions together' );
+	maa_adapter_smoke_assert( 'Adapter media optimization smoke' === (string) get_the_title( $media_optimization_attachment_id ), 'adapter media optimization batch updates media title' );
+	maa_adapter_smoke_assert( 'Adapter media optimization smoke image' === (string) get_post_meta( $media_optimization_attachment_id, '_wp_attachment_image_alt', true ), 'adapter media optimization batch updates media alt text' );
+	maa_adapter_smoke_assert( 'ai_generated' === (string) get_post_meta( $media_optimization_attachment_id, '_magick_ai_media_source_type', true ), 'adapter media optimization batch updates media source type' );
+	maa_adapter_smoke_assert( 'image/webp' === (string) get_post_mime_type( $media_optimization_attachment_id ), 'adapter media optimization batch adopts WebP mime type' );
+	$media_optimization_after_relative = (string) get_post_meta( $media_optimization_attachment_id, '_wp_attached_file', true );
+	$media_optimization_after_uploads  = wp_upload_dir();
+	$media_optimization_after_path     = is_array( $media_optimization_after_uploads ) ? trailingslashit( (string) ( $media_optimization_after_uploads['basedir'] ?? '' ) ) . ltrim( $media_optimization_after_relative, '/' ) : '';
+	maa_adapter_smoke_assert( false !== strpos( $media_optimization_after_relative, '.webp' ), 'adapter media optimization batch points attachment at WebP file' );
+	maa_adapter_smoke_assert( '' !== $media_optimization_after_path && is_readable( $media_optimization_after_path ), 'adapter media optimization batch writes adopted WebP file' );
+	maa_adapter_smoke_assert( $media_optimization_artifact_contents === (string) file_get_contents( $media_optimization_after_path ), 'adapter media optimization batch writes expected Cloud artifact bytes' );
 }
 
 $site_summary = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/site-summary' );
@@ -3321,5 +3577,6 @@ maa_adapter_smoke_assert( count( (array) ( $core_correlation_audit['items'] ?? a
 $maa_adapter_smoke_cleanup_proposal_ids[] = $proposal_id;
 maa_adapter_smoke_cleanup_registered_fixtures();
 maa_adapter_smoke_assert( true, 'adapter status smoke cleaned created proposal records' );
+maa_adapter_smoke_assert_no_media_fixture_leaks();
 
 echo "magick-ai-adapter WordPress smoke: ok\n";

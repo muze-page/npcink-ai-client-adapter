@@ -2445,6 +2445,7 @@ final class Controller {
 				'optimization_plan_ability_id' => 'magick-ai/build-media-optimization-plan',
 				'default_user_intent' => 'optimize_this_media_item',
 				'preferred_core_route' => 'POST /proposals/from-plan',
+				'required_reviewed_input' => array( 'media_details_input', 'derivative_artifact' ),
 				'steps'       => array(
 					array(
 						'order'      => 1,
@@ -2494,6 +2495,7 @@ final class Controller {
 					'single_approval_required'   => true,
 					'do_not_split_user_intent'   => true,
 					'derivative_only_payload_legacy' => true,
+					'missing_reviewed_input_behavior' => 'request_reviewed_media_details_input_before_core_proposal',
 					'core_preflight_required_for_writes' => true,
 					'adapter_cloud_control_plane' => false,
 					'adapter_artifact_registry'  => false,

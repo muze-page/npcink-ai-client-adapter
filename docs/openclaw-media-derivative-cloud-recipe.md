@@ -70,6 +70,9 @@ replace media files.
    - Returns the legacy Core-ready single derivative `proposal_payload`.
    - When `media_details_input` is present, also returns `from_plan_request`
      for `magick-ai/build-media-optimization-plan`.
+   - When `media_details_input` is missing for an optimize-image request, stop
+     and collect reviewed metadata; do not create a derivative-only Core
+     proposal for the same user intent.
    - Does not create, approve, preflight, or execute a proposal.
 
 6. `POST /proposals/from-plan`
