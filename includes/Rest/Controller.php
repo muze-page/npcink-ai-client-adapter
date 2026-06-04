@@ -4370,6 +4370,11 @@ final class Controller {
 			);
 		}
 
+		$binding_error = $this->validate_preflight_binding( $proposal_id, $proposal, $preflight );
+		if ( is_wp_error( $binding_error ) ) {
+			return $binding_error;
+		}
+
 		$base_request_context = $this->request_log_context( $request, '' !== $proposal_ability_id ? $proposal_ability_id : (string) ( $actions[0]['ability_id'] ?? '' ) );
 		$base_request_context['proposal_id']    = $proposal_id;
 		$base_request_context['correlation_id'] = $correlation_id;
@@ -4818,12 +4823,14 @@ final class Controller {
 		$approval_context = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
 		$approved_hash    = sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? ( $preflight['approved_input_hash'] ?? '' ) ) );
 		$current_hash     = $this->proposal_input_hash( $proposal );
+		$policy_version   = sanitize_key( (string) ( $approval_context['policy_version'] ?? ( $preflight['policy_version'] ?? '' ) ) );
 		if (
 			true !== (bool) ( $approval_context['approval_commit_authorized'] ?? false )
 			|| false !== (bool) ( $preflight['commit_execution'] ?? true )
 			|| $proposal_id !== (string) ( $approval_context['proposal_id'] ?? $proposal_id )
 			|| '' === $approved_hash
 			|| $approved_hash !== $current_hash
+			|| 'core-preflight-v1' !== $policy_version
 		) {
 			return null;
 		}
@@ -4876,6 +4883,7 @@ final class Controller {
 		$preflight        = is_array( $record['preflight'] ?? null ) ? $record['preflight'] : array();
 		$approval_context = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
 		$approved_hash    = sanitize_text_field( (string) ( $record['approved_input_hash'] ?? ( $approval_context['approved_input_hash'] ?? '' ) ) );
+		$policy_version   = sanitize_key( (string) ( $approval_context['policy_version'] ?? ( $preflight['policy_version'] ?? '' ) ) );
 		if (
 			'issued' !== (string) ( $record['status'] ?? '' )
 			|| $proposal_id !== (string) ( $record['proposal_id'] ?? '' )
@@ -4884,6 +4892,7 @@ final class Controller {
 			|| false !== (bool) ( $preflight['commit_execution'] ?? true )
 			|| '' === $approved_hash
 			|| $approved_hash !== $this->proposal_input_hash( $proposal )
+			|| 'core-preflight-v1' !== $policy_version
 		) {
 			return null;
 		}
@@ -4913,6 +4922,56 @@ final class Controller {
 		);
 
 		return array_slice( $records, - self::MAX_PREFLIGHT_HANDOFFS, null, true );
+	}
+
+	/**
+	 * Verifies Core preflight still binds to the approved proposal input and policy.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @param array<string,mixed> $preflight Core preflight payload.
+	 * @return true|WP_Error
+	 */
+	private function validate_preflight_binding( string $proposal_id, array $proposal, array $preflight ) {
+		$approval_context  = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
+		$execution_handoff = is_array( $preflight['execution_handoff'] ?? null ) ? $preflight['execution_handoff'] : array();
+		$current_hash      = $this->proposal_input_hash( $proposal );
+		$approved_hash     = sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? '' ) );
+		$handoff_hash      = sanitize_text_field( (string) ( $execution_handoff['approved_input_hash'] ?? $approved_hash ) );
+
+		if ( '' === $approved_hash || $approved_hash !== $current_hash || ( ! empty( $execution_handoff ) && $handoff_hash !== $approved_hash ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_preflight_input_hash_mismatch',
+				__( 'Core commit preflight approved input hash does not match the current proposal input.', 'magick-ai-adapter' ),
+				array(
+					'status'              => 409,
+					'proposal_id'         => $proposal_id,
+					'approved_input_hash' => $approved_hash,
+					'current_input_hash'  => $current_hash,
+					'handoff_input_hash'  => $handoff_hash,
+					'commit_execution'    => false,
+				)
+			);
+		}
+
+		$policy_version = sanitize_key( (string) ( $approval_context['policy_version'] ?? '' ) );
+		$handoff_policy = sanitize_key( (string) ( $execution_handoff['policy_version'] ?? $policy_version ) );
+		if ( 'core-preflight-v1' !== $policy_version || ( ! empty( $execution_handoff ) && 'core-preflight-v1' !== $handoff_policy ) ) {
+			return new WP_Error(
+				'magick_ai_adapter_preflight_policy_version_invalid',
+				__( 'Core commit preflight policy version is not accepted by Adapter execution.', 'magick-ai-adapter' ),
+				array(
+					'status'                  => 409,
+					'proposal_id'             => $proposal_id,
+					'policy_version'          => $policy_version,
+					'handoff_policy_version'  => $handoff_policy,
+					'accepted_policy_version' => 'core-preflight-v1',
+					'commit_execution'        => false,
+				)
+			);
+		}
+
+		return true;
 	}
 
 	/**

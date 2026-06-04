@@ -214,6 +214,19 @@ function maa_adapter_smoke_assert_observability_safe( array $event, string $labe
 }
 
 /**
+ * Asserts a payload tree does not expose a sensitive string.
+ *
+ * @param mixed  $payload Payload.
+ * @param string $needle Sensitive string.
+ * @param string $label Assertion label.
+ * @return void
+ */
+function maa_adapter_smoke_assert_payload_excludes_string( $payload, string $needle, string $label ): void {
+	$json = wp_json_encode( $payload );
+	maa_adapter_smoke_assert( is_string( $json ) && false === strpos( $json, $needle ), $label . ' does not expose token value' );
+}
+
+/**
  * Returns capability rows keyed by ability id.
  *
  * @param array<string,mixed> $capabilities Capabilities response.
@@ -293,12 +306,14 @@ function maa_adapter_smoke_text_generation_model(): array {
 function &maa_adapter_smoke_fixture_registry(): array {
 	if ( ! isset( $GLOBALS['maa_adapter_smoke_fixture_registry'] ) || ! is_array( $GLOBALS['maa_adapter_smoke_fixture_registry'] ) ) {
 		$GLOBALS['maa_adapter_smoke_fixture_registry'] = array(
-			'proposal_ids'   => array(),
-			'attachment_ids' => array(),
-			'post_ids'       => array(),
-			'comment_ids'    => array(),
-			'terms'          => array(),
-			'cleaned'        => false,
+			'proposal_ids'     => array(),
+			'attachment_ids'   => array(),
+			'post_ids'         => array(),
+			'comment_ids'      => array(),
+			'terms'            => array(),
+			'core_app_ids'     => array(),
+			'core_app_key_ids' => array(),
+			'cleaned'          => false,
 		);
 	}
 
@@ -351,6 +366,33 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 		foreach ( $proposal_ids as $cleanup_proposal_id ) {
 			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
 			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+		}
+	}
+
+	$core_app_ids = array_values( array_unique( array_filter( array_map( 'strval', (array) ( $registry['core_app_ids'] ?? array() ) ) ) ) );
+	$core_app_key_ids = array_values( array_unique( array_filter( array_map( 'strval', (array) ( $registry['core_app_key_ids'] ?? array() ) ) ) ) );
+	if ( ! empty( $core_app_ids ) || ! empty( $core_app_key_ids ) ) {
+		$audit_table = $wpdb->prefix . 'magick_ai_core_audit_log';
+		$app_table   = $wpdb->prefix . 'magick_ai_core_app_keys';
+		$rate_table  = $wpdb->prefix . 'magick_ai_core_app_rate_limits';
+		foreach ( $core_app_ids as $core_app_id ) {
+			$wpdb->delete( $rate_table, array( 'app_id' => sanitize_text_field( $core_app_id ) ), array( '%s' ) );
+			$wpdb->query(
+				$wpdb->prepare(
+					'DELETE FROM ' . $audit_table . ' WHERE metadata_json LIKE %s',
+					'%' . $wpdb->esc_like( '"app_id":"' . $core_app_id . '"' ) . '%'
+				)
+			);
+		}
+		foreach ( $core_app_key_ids as $core_app_key_id ) {
+			$wpdb->delete( $rate_table, array( 'key_id' => sanitize_text_field( $core_app_key_id ) ), array( '%s' ) );
+			$wpdb->delete( $app_table, array( 'key_id' => sanitize_text_field( $core_app_key_id ) ), array( '%s' ) );
+			$wpdb->query(
+				$wpdb->prepare(
+					'DELETE FROM ' . $audit_table . ' WHERE metadata_json LIKE %s',
+					'%' . $wpdb->esc_like( '"key_id":"' . $core_app_key_id . '"' ) . '%'
+				)
+			);
 		}
 	}
 
@@ -2715,6 +2757,124 @@ maa_adapter_smoke_assert( ! empty( $commit_preflight_error_event ), 'adapter emi
 maa_adapter_smoke_assert( 404 === (int) ( $commit_preflight_error_event['status_code'] ?? 0 ), 'adapter commit preflight failure event carries status code' );
 maa_adapter_smoke_assert( '' !== (string) ( $commit_preflight_error_event['error_code'] ?? '' ), 'adapter commit preflight failure event carries stable error code' );
 maa_adapter_smoke_assert_observability_safe( $commit_preflight_error_event, 'adapter commit preflight failure event' );
+
+$adapter_core_app = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/apps',
+	array(
+		'app_label'           => 'Adapter app-token smoke',
+		'caller_type'         => 'openclaw_adapter',
+		'scopes'              => array( 'proposals:create', 'proposals:read', 'commit:preflight' ),
+		'rate_limit'          => 20,
+		'rate_window_seconds' => 3600,
+	)
+);
+$adapter_core_app_token = (string) ( $adapter_core_app['token'] ?? '' );
+$adapter_core_app_id    = (string) ( $adapter_core_app['app_id'] ?? '' );
+$adapter_core_key_id    = (string) ( $adapter_core_app['key_id'] ?? '' );
+$maa_adapter_smoke_fixture_registry['core_app_ids'][] = $adapter_core_app_id;
+$maa_adapter_smoke_fixture_registry['core_app_key_ids'][] = $adapter_core_key_id;
+maa_adapter_smoke_assert( '' !== $adapter_core_app_token && '' !== $adapter_core_app_id && '' !== $adapter_core_key_id, 'adapter smoke created scoped Core app token' );
+maa_adapter_smoke_assert( in_array( 'proposals:create', (array) ( $adapter_core_app['scopes'] ?? array() ), true ), 'adapter Core app token includes proposal creation scope' );
+maa_adapter_smoke_assert( in_array( 'proposals:read', (array) ( $adapter_core_app['scopes'] ?? array() ), true ), 'adapter Core app token includes proposal read scope' );
+maa_adapter_smoke_assert( in_array( 'commit:preflight', (array) ( $adapter_core_app['scopes'] ?? array() ), true ), 'adapter Core app token includes commit preflight scope' );
+maa_adapter_smoke_assert( ! in_array( 'proposals:approve', (array) ( $adapter_core_app['scopes'] ?? array() ), true ), 'adapter Core app token does not include approval scope' );
+maa_adapter_smoke_assert( ! in_array( 'audit:read', (array) ( $adapter_core_app['scopes'] ?? array() ), true ), 'adapter Core app token does not include audit read scope' );
+
+$previous_adapter_core_app_token = get_option( 'magick_ai_adapter_core_app_token', null );
+update_option( 'magick_ai_adapter_core_app_token', $adapter_core_app_token, false );
+
+$app_token_health = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/health' );
+maa_adapter_smoke_assert( true === (bool) ( $app_token_health['core_app_token_configured'] ?? false ), 'adapter health reports Core app token configured' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_health, $adapter_core_app_token, 'adapter health with Core app token' );
+$app_token_help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
+maa_adapter_smoke_assert( true === (bool) ( $app_token_help['core_app_token_configured'] ?? false ), 'adapter help reports Core app token configured' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_help, $adapter_core_app_token, 'adapter help with Core app token' );
+
+$app_token_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/create-draft',
+		'title'      => 'Adapter app token proposal smoke',
+		'summary'    => 'Adapter must route proposal create to Core with app attribution.',
+		'input'      => array(
+			'title'   => 'Adapter app token proposal smoke',
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'mode' => 'adapter_app_token_smoke',
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-app-token-smoke',
+		),
+	)
+);
+$app_token_proposal_id = (string) ( $app_token_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $app_token_proposal_id;
+maa_adapter_smoke_assert( '' !== $app_token_proposal_id, 'adapter creates proposal through Core app token' );
+maa_adapter_smoke_assert( $adapter_core_app_id === (string) ( $app_token_proposal['caller']['auth']['app_id'] ?? '' ), 'adapter app-token proposal stores app attribution' );
+maa_adapter_smoke_assert( 'proposals:create' === (string) ( $app_token_proposal['caller']['auth']['scope'] ?? '' ), 'adapter app-token proposal stores create scope attribution' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_proposal, $adapter_core_app_token, 'adapter app-token proposal create response' );
+
+$app_token_detail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $app_token_proposal_id ) );
+maa_adapter_smoke_assert( $app_token_proposal_id === (string) ( $app_token_detail['proposal_id'] ?? '' ), 'adapter reads app-token proposal status through Core app token' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_detail, $adapter_core_app_token, 'adapter app-token proposal detail response' );
+
+$app_token_approved = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/proposals/' . rawurlencode( $app_token_proposal_id ) . '/approve',
+	array(
+		'note' => 'Admin approval for Adapter app token smoke.',
+	)
+);
+maa_adapter_smoke_assert( 'approved' === (string) ( $app_token_approved['status'] ?? '' ), 'Core admin approval succeeds for Adapter app-token proposal' );
+
+$app_token_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $app_token_proposal_id ) . '/commit-preflight' );
+maa_adapter_smoke_assert( true === (bool) ( $app_token_preflight['approval_context']['approval_commit_authorized'] ?? false ), 'adapter app-token commit preflight returns authorized approval context' );
+maa_adapter_smoke_assert( 'core-preflight-v1' === (string) ( $app_token_preflight['approval_context']['policy_version'] ?? '' ), 'adapter app-token commit preflight returns policy version' );
+maa_adapter_smoke_assert( hash( 'sha256', (string) wp_json_encode( $app_token_detail['input'] ?? array() ) ) === (string) ( $app_token_preflight['approval_context']['approved_input_hash'] ?? '' ), 'adapter app-token commit preflight hash matches proposal input' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_preflight, $adapter_core_app_token, 'adapter app-token commit preflight response' );
+
+$app_token_error = maa_adapter_smoke_rest_result( 'GET', '/magick-ai-adapter/v1/proposals/missing-app-token-smoke' );
+maa_adapter_smoke_assert( 404 === (int) $app_token_error['status'], 'adapter app-token missing proposal returns error status' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_error, $adapter_core_app_token, 'adapter app-token error response' );
+$app_token_create_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'ok' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_create_event, $adapter_core_app_token, 'adapter app-token proposal create log event' );
+$app_token_preflight_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'ok', '/magick-ai-adapter/v1/proposals/' . $app_token_proposal_id . '/commit-preflight' );
+maa_adapter_smoke_assert_payload_excludes_string( $app_token_preflight_event, $adapter_core_app_token, 'adapter app-token preflight log event' );
+
+$app_token_audit = maa_adapter_smoke_rest(
+	'GET',
+	'/magick-ai-core/v1/audit',
+	array(
+		'proposal_id' => $app_token_proposal_id,
+		'limit'       => 20,
+	)
+);
+$found_app_token_create_audit   = false;
+$found_app_token_preflight_audit = false;
+foreach ( (array) ( $app_token_audit['items'] ?? array() ) as $audit_item ) {
+	if ( ! is_array( $audit_item ) ) {
+		continue;
+	}
+	$auth = is_array( $audit_item['metadata']['auth'] ?? null ) ? $audit_item['metadata']['auth'] : array();
+	if ( 'proposal.created' === (string) ( $audit_item['event_name'] ?? '' ) ) {
+		$found_app_token_create_audit = $adapter_core_app_id === (string) ( $auth['app_id'] ?? '' ) && 'proposals:create' === (string) ( $auth['scope'] ?? '' );
+	}
+	if ( 'commit.preflighted' === (string) ( $audit_item['event_name'] ?? '' ) ) {
+		$found_app_token_preflight_audit = $adapter_core_app_id === (string) ( $auth['app_id'] ?? '' ) && 'commit:preflight' === (string) ( $auth['scope'] ?? '' );
+	}
+}
+maa_adapter_smoke_assert( $found_app_token_create_audit, 'Core audit stores Adapter app attribution for proposal creation' );
+maa_adapter_smoke_assert( $found_app_token_preflight_audit, 'Core audit stores Adapter app attribution for commit preflight' );
+
+if ( null === $previous_adapter_core_app_token ) {
+	delete_option( 'magick_ai_adapter_core_app_token' );
+} else {
+	update_option( 'magick_ai_adapter_core_app_token', $previous_adapter_core_app_token, false );
+}
 
 $provider_model = maa_adapter_smoke_text_generation_model();
 $provider_smoke = maa_adapter_smoke_rest(

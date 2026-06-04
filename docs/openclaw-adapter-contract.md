@@ -255,6 +255,13 @@ the next Adapter execute request for the same approved proposal input. OpenClaw
 must not call Core commit-preflight directly and then ask Adapter to execute the
 same proposal.
 
+Before Adapter calls the WordPress Abilities API for a final allowlisted write,
+it must verify Core's `approval_context.approved_input_hash` matches the current
+proposal input hash and that `approval_context.policy_version` is
+`core-preflight-v1`. If Core also returns an `execution_handoff`, its hash and
+policy version must match the same approved input and policy. Mismatches fail
+closed; Adapter must not repair, re-approve, or execute the proposal.
+
 ## Unified Approve And Execute Contract
 
 Adapter exposes one user-facing action for the minimal destructive execution
@@ -501,6 +508,12 @@ Adapter Core app token configuration may come from
 only for internal Core REST calls through the request header supported by Core,
 and the raw value must not appear in health, help, handoff text, error details,
 proposal payloads, or docs examples.
+
+The narrow Adapter governance token for proposal create, proposal status, and
+commit-preflight needs only `proposals:create`, `proposals:read`, and
+`commit:preflight`. It must not include `proposals:approve`, `proposals:reject`,
+or `audit:read`. If a full Adapter discovery smoke also calls Core
+capabilities, add `capabilities:read` for that wider smoke only.
 
 ## Approval Disabled Stub Contract
 
