@@ -533,10 +533,13 @@ Proposal-required write flow:
    governance backend for approval, commit-preflight, and audit.
 6. If `status=rejected`, OpenClaw stops and shows the rejection state or reason
    returned by Core.
-7. If using the lower-level split path and `status=approved`, OpenClaw calls
-   `POST /proposals/{proposal_id}/commit-preflight` only after
-   approval.
-8. The adapter relays Core preflight and preserves `commit_execution=false`.
+7. If `status=approved` and execution is intended, OpenClaw calls
+   `POST /proposals/{proposal_id}/execute` or `POST /execute-approved-proposal`.
+   Do not call Core commit-preflight directly; Core handoffs are one-time.
+8. `POST /proposals/{proposal_id}/commit-preflight` is an advanced diagnostic
+   Adapter route. When it succeeds through Adapter, Adapter caches the one-time
+   Core handoff for the next Adapter execute call and still preserves
+   `commit_execution=false`.
 9. For the current approved proposal execution path, Adapter may execute only
    `magick-ai/trash-post`, `magick-ai/create-draft`,
    `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
@@ -551,12 +554,13 @@ Proposal-required write flow:
    `magick-ai/trash-comment`, or `magick-ai/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
    `POST /execute-approved-proposal`.
-10. Adapter fetches the Core proposal, calls Core commit-preflight, requires
-    `approval_commit_authorized=true`, requires `commit_execution=false`, passes
-    Core `approval_context` to WordPress Abilities API, stores a bounded
-    execution record, and returns `proposal_id`, `correlation_id`,
-    `ability_id`, and `execution_record` with the ability result. Repeating the
-    same proposal execution returns
+10. Adapter fetches the Core proposal, consumes a cached Adapter preflight
+    handoff when one was issued through Adapter, otherwise calls Core
+    commit-preflight, requires `approval_commit_authorized=true`, requires
+    `commit_execution=false`, passes Core `approval_context` to WordPress
+    Abilities API, stores a bounded execution record, and returns `proposal_id`,
+    `correlation_id`, `ability_id`, and `execution_record` with the ability
+    result. Repeating the same proposal execution returns
     `magick_ai_adapter_execution_already_completed` and does not run the
     ability again.
 11. Adapter does not create its own proposal or approval state and does not

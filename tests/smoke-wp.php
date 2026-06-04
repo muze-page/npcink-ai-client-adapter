@@ -335,6 +335,19 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 			update_option( 'magick_ai_adapter_execution_records', $execution_records, false );
 		}
 
+		$preflight_handoffs = get_option( 'magick_ai_adapter_preflight_handoffs', array() );
+		if ( is_array( $preflight_handoffs ) ) {
+			foreach ( $proposal_ids as $cleanup_proposal_id ) {
+				unset( $preflight_handoffs[ md5( $cleanup_proposal_id ) ] );
+				foreach ( $preflight_handoffs as $record_key => $record ) {
+					if ( is_array( $record ) && $cleanup_proposal_id === (string) ( $record['proposal_id'] ?? '' ) ) {
+						unset( $preflight_handoffs[ $record_key ] );
+					}
+				}
+			}
+			update_option( 'magick_ai_adapter_preflight_handoffs', $preflight_handoffs, false );
+		}
+
 		foreach ( $proposal_ids as $cleanup_proposal_id ) {
 			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
 			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
@@ -1399,6 +1412,48 @@ maa_adapter_smoke_assert( 409 === (int) $duplicate_execute['status'], 'adapter r
 maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_execute['data']['code'] ?? '' ), 'adapter duplicate execute uses completed execution error code' );
 maa_adapter_smoke_assert( $trash_proposal_id === (string) ( $duplicate_execute['data']['data']['execution_record']['proposal_id'] ?? '' ), 'adapter duplicate execute returns stored execution record' );
 maa_adapter_smoke_assert( (string) ( $executed_trash['execution_record']['adapter_request_id'] ?? '' ) === (string) ( $duplicate_execute['data']['data']['execution_record']['adapter_request_id'] ?? '' ), 'adapter duplicate execute preserves original adapter request id' );
+
+$cached_preflight_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $cached_preflight_post_id;
+$cached_preflight_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/trash-post',
+		'title'      => 'Adapter cached preflight handoff smoke',
+		'summary'    => 'Adapter executes one approved trash-post proposal after Adapter commit-preflight caches the Core handoff.',
+		'input'      => array(
+			'post_id' => $cached_preflight_post_id,
+			'dry_run' => true,
+			'commit'  => false,
+		),
+		'preview'    => array(
+			'action'           => 'trash_post',
+			'post_id'          => $cached_preflight_post_id,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-cached-preflight-handoff-smoke',
+		),
+	)
+);
+$cached_preflight_proposal_id = (string) ( $cached_preflight_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $cached_preflight_proposal_id;
+maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/approve',
+	array(
+		'note' => 'Approve Adapter cached preflight handoff smoke.',
+	)
+);
+$cached_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/commit-preflight' );
+maa_adapter_smoke_assert( true === (bool) ( $cached_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter commit-preflight caches execution handoff' );
+maa_adapter_smoke_assert( false === (bool) ( $cached_preflight['commit_execution'] ?? true ), 'adapter cached preflight keeps commit_execution=false' );
+$cached_preflight_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/execute' );
+maa_adapter_smoke_assert( 'executed' === (string) ( $cached_preflight_execute['status'] ?? '' ), 'adapter cached preflight handoff execute succeeds' );
+maa_adapter_smoke_assert( 'adapter_cached_handoff' === (string) ( $cached_preflight_execute['preflight_source'] ?? '' ), 'adapter execute consumes cached preflight handoff' );
+maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $cached_preflight_post_id ), 'adapter cached preflight handoff execution moves post to trash' );
 
 $approve_execute_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approve_execute_post_id;

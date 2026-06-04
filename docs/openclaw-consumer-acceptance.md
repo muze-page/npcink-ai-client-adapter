@@ -209,18 +209,24 @@ Run this order for a local acceptance pass:
     Adapter's `media-derivative-runs` projection routes, then call
     `POST /media-derivative-proposal-payload` and confirm it returns a
     Core-ready payload without creating, approving, or executing a proposal.
-    If the preview should replace the attachment main file, create a separate
-    Core proposal for `magick-ai/adopt-cloud-media-derivative` using the
-    non-expired `derivative_artifact`; Adapter can execute that proposal only
-    after Core approval and commit-preflight.
+    If the user intent is full media optimization, submit the returned
+    `from_plan_request` to `POST /proposals/from-plan` so Core creates one
+    batch proposal containing `magick-ai/update-media-details` and
+    `magick-ai/adopt-cloud-media-derivative`. Use the legacy single derivative
+    proposal only for lower-level derivative-only review.
 12. Query status through Adapter:
    - `GET /proposals?limit=10`
    - `GET /proposals/{proposal_id}`
 13. For split-path coverage, approve or reject one pending proposal in
     `Magick AI -> Core`.
 14. If rejected, OpenClaw stops and shows the Core status.
-15. If approved, call `POST /proposals/{proposal_id}/commit-preflight`.
-16. Confirm Core still returns `commit_execution=false`.
+15. If approved and execution is intended, call
+    `POST /proposals/{proposal_id}/execute`.
+16. Use `POST /proposals/{proposal_id}/commit-preflight` only for advanced
+    diagnostic coverage; if used, confirm Adapter reports
+    `adapter_preflight_handoff_cached=true`, Core still returns
+    `commit_execution=false`, and the next Adapter execute call consumes that
+    handoff.
 17. For the unified user action, call
     `POST /proposals/{proposal_id}/approve-and-execute` from Adapter/OpenClaw.
     Confirm Adapter approved through Core when status was pending, ran Core

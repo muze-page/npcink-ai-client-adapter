@@ -215,6 +215,13 @@ evidence as `status`, `severity`, `message`, `reasons[]`,
 `core_evidence` so the operator can revise the source plan or draft and create
 a new proposal.
 
+`POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/commit-preflight`
+is an advanced diagnostic Adapter route. Core handoffs are one-time; when this
+route succeeds through Adapter, Adapter stores only a bounded handoff cache for
+the next Adapter execute request for the same approved proposal input. OpenClaw
+must not call Core commit-preflight directly and then ask Adapter to execute the
+same proposal.
+
 ## Unified Approve And Execute Contract
 
 Adapter exposes one user-facing action for the minimal destructive execution
@@ -240,7 +247,7 @@ fetches the proposal from Core,
 calls Core approve, calls Core commit-preflight, verifies Core's approval
 context and executable preflight result, then executes one WordPress Abilities
 API call. For an already approved proposal, Adapter skips only the Core approve
-step and still runs commit-preflight before execution.
+step and still obtains commit-preflight authorization before execution.
 
 The execution input may be either top-level `proposal.input` for an allowlisted
 ability or a bounded `proposal.input.write_actions[]` batch. `trash-post`
@@ -333,7 +340,8 @@ input. For example, `magick-ai/update-post` does not accept `status`, and
 
 For each execution request, Adapter must first reject any proposal with a
 completed Adapter execution record. If there is no completed record, Adapter
-must fetch the Core proposal, call Core commit-preflight, require
+must fetch the Core proposal, consume a cached Adapter preflight handoff when
+one was issued through Adapter, otherwise call Core commit-preflight, require
 `approval_commit_authorized=true`, require `commit_execution=false`, pass Core
 `approval_context` to WordPress Abilities API, and return `proposal_id`,
 `correlation_id`, `ability_id`, and `execution_record` with the ability result.
@@ -750,8 +758,9 @@ Connection check order:
 8. unified user action with `POST /proposals/{proposal_id}/approve-and-execute`
    for allowlisted execution, or split approval in Core admin.
 9. rejected proposal stops the flow.
-10. approved proposal split path uses
-    `POST /proposals/{proposal_id}/commit-preflight`.
+10. approved proposal split path uses `POST /proposals/{proposal_id}/execute`;
+    Adapter commit-preflight is diagnostic and must be followed immediately by
+    Adapter execute.
 
 ## Proposal-Required Write Flow
 
@@ -768,8 +777,10 @@ OpenClaw must treat Core as the only proposal and approval truth:
 5. If `status=rejected`, stop and show the rejection state or reason returned
    by Core.
 6. If using the lower-level split path and `status=approved`, call
-   `POST /proposals/{proposal_id}/commit-preflight`.
-7. Stop at the returned Core preflight decision unless the ability is
+   `POST /proposals/{proposal_id}/execute`. Use Adapter commit-preflight only
+   as an advanced diagnostic step and follow it immediately with Adapter
+   execute.
+7. Adapter stops unless the ability is
    allowlisted for Adapter execution, currently `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,

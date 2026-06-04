@@ -25,10 +25,12 @@ final class Controller {
 	const MAX_EXECUTION_ACTIONS    = 200;
 	const DEVICE_PAIRING_OPTION    = 'magick_ai_adapter_device_pairings';
 	const CLIENT_KEYS_OPTION       = 'magick_ai_adapter_client_keys';
-	const EXECUTION_RECORDS_OPTION = 'magick_ai_adapter_execution_records';
+	const EXECUTION_RECORDS_OPTION  = 'magick_ai_adapter_execution_records';
+	const PREFLIGHT_HANDOFFS_OPTION = 'magick_ai_adapter_preflight_handoffs';
 	const DEVICE_PAIRING_TTL       = 600;
 	const SIGNATURE_NONCE_TTL      = 300;
 	const MAX_EXECUTION_RECORDS    = 500;
+	const MAX_PREFLIGHT_HANDOFFS   = 500;
 
 	/**
 	 * Current request log context while an ability is running.
@@ -2389,9 +2391,9 @@ final class Controller {
 			'POST /proposals/from-plan' => 'Forward a read-only plan output to Core plan-to-proposal intake.',
 			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
-			'POST /proposals/{proposal_id}/commit-preflight' => 'Run Core commit preflight without executing final writes.',
-			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight; supports allowlisted single inputs or write_actions.',
-			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight; supports allowlisted single inputs or write_actions.',
+			'POST /proposals/{proposal_id}/commit-preflight' => 'Advanced diagnostic route: run Core commit preflight without final writes and cache the one-time handoff for the next Adapter execute call.',
+			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight or a cached Adapter preflight handoff; supports allowlisted single inputs or write_actions.',
+			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight or a cached Adapter preflight handoff; supports allowlisted single inputs or write_actions.',
 			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one allowlisted single input or write_actions.',
 			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
 			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
@@ -3187,6 +3189,23 @@ final class Controller {
 		$started = microtime( true );
 		$proposal_id = (string) $request->get_param( 'proposal_id' );
 		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+		if ( ! is_wp_error( $response ) && $response instanceof WP_REST_Response ) {
+			$data = $response->get_data();
+			if ( is_array( $data ) ) {
+				$proposal = is_array( $data['proposal'] ?? null ) ? $data['proposal'] : array();
+				if ( empty( $proposal ) ) {
+					$proposal_detail = $this->get_core_proposal_data( $proposal_id );
+					if ( ! is_wp_error( $proposal_detail ) ) {
+						$proposal = $proposal_detail;
+					}
+				}
+
+				$handoff = $this->store_preflight_handoff( $proposal_id, $proposal, $data );
+				$data['adapter_preflight_handoff_cached'] = is_array( $handoff );
+				$data['adapter_execution_route']          = '/wp-json/' . self::NAMESPACE . '/proposals/' . rawurlencode( $proposal_id ) . '/execute';
+				$response->set_data( $data );
+			}
+		}
 		$this->emit_operation_event(
 			'adapter.commit.preflight',
 			$started,
@@ -3257,6 +3276,7 @@ final class Controller {
 				'execution_mode'     => $execution['execution_mode'],
 				'adapter_request_id' => $execution['adapter_request_id'],
 				'approval_context'   => $execution['approval_context'],
+				'preflight_source'   => $execution['preflight_source'],
 				'commit_execution'   => false,
 				'execution_surface'  => 'wp_abilities_rest',
 				'executed_count'     => $execution['executed_count'],
@@ -3393,6 +3413,7 @@ final class Controller {
 				'adapter_request_id'    => $execution['adapter_request_id'],
 				'core_commit_execution' => false,
 				'approval_context'      => $execution['approval_context'],
+				'preflight_source'      => $execution['preflight_source'],
 				'executed_count'        => $execution['executed_count'],
 				'failed_count'          => $execution['failed_count'],
 				'execution_record'      => $execution['execution_record'],
@@ -4193,19 +4214,24 @@ final class Controller {
 			return $actions;
 		}
 
-		$preflight_response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
-		if ( is_wp_error( $preflight_response ) ) {
-			return $this->error_with_operator_feedback( $preflight_response, $this->preflight_operator_feedback( $preflight_response, $proposal ) );
-		}
-
-		$preflight = $preflight_response->get_data();
+		$preflight        = $this->consume_cached_preflight_handoff( $proposal_id, $proposal );
+		$preflight_source = is_array( $preflight ) ? 'adapter_cached_handoff' : 'core_commit_preflight';
 		if ( ! is_array( $preflight ) ) {
-			return new WP_Error(
-				'magick_ai_adapter_invalid_core_preflight',
-				__( 'Core commit preflight response is invalid.', 'magick-ai-adapter' ),
-				array( 'status' => 502 )
-			);
+			$preflight_response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+			if ( is_wp_error( $preflight_response ) ) {
+				return $this->error_with_operator_feedback( $preflight_response, $this->preflight_operator_feedback( $preflight_response, $proposal ) );
+			}
+
+			$preflight = $preflight_response->get_data();
+			if ( ! is_array( $preflight ) ) {
+				return new WP_Error(
+					'magick_ai_adapter_invalid_core_preflight',
+					__( 'Core commit preflight response is invalid.', 'magick-ai-adapter' ),
+					array( 'status' => 502 )
+				);
+			}
 		}
+		$preflight['adapter_preflight_source'] = $preflight_source;
 
 		$approval_context = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
 		if ( true !== (bool) ( $approval_context['approval_commit_authorized'] ?? false ) ) {
@@ -4371,6 +4397,7 @@ final class Controller {
 			'correlation_id'      => $correlation_id,
 			'adapter_request_id'  => (string) ( $base_request_context['adapter_request_id'] ?? '' ),
 			'approval_context'    => $approval_context,
+			'preflight_source'    => $preflight_source,
 			'preflight'           => $preflight,
 			'execution_mode'      => $execution_mode,
 			'executed_count'      => count( $results ),
@@ -4525,23 +4552,37 @@ final class Controller {
 			$reasons[] = null !== $error ? $error->get_error_message() : __( 'Core commit preflight did not authorize execution.', 'magick-ai-adapter' );
 		}
 
+		$core_error_code = null !== $error ? $error->get_error_code() : '';
+		if ( 'magick_ai_core_commit_preflight_already_issued' === $core_error_code ) {
+			$reasons[] = __( 'Core has already issued the one-time execution handoff. If commit-preflight was called directly against Core, Adapter cannot recover that handoff.', 'magick-ai-adapter' );
+		}
+
+		$next_steps = array(
+			__( 'Show Core preflight blockers to the operator.', 'magick-ai-adapter' ),
+			__( 'Revise the proposal input or source plan, then create a new proposal.', 'magick-ai-adapter' ),
+			__( 'Do not retry approve-and-execute until Core preflight can pass.', 'magick-ai-adapter' ),
+		);
+		if ( 'magick_ai_core_commit_preflight_already_issued' === $core_error_code ) {
+			$next_steps = array(
+				__( 'Create a new proposal for the same intended write.', 'magick-ai-adapter' ),
+				__( 'After approval, call Adapter execute or approve-and-execute; do not call Core commit-preflight directly.', 'magick-ai-adapter' ),
+				__( 'Use Adapter commit-preflight only as an advanced diagnostic step and follow it immediately with Adapter execute.', 'magick-ai-adapter' ),
+			);
+		}
+
 		return array(
 			'status'                   => 'preflight_blocked',
 			'severity'                 => 'error',
 			'message'                  => __( 'Core commit preflight blocked execution. Adapter did not run the write ability.', 'magick-ai-adapter' ),
 			'reasons'                  => array_values( array_unique( $reasons ) ),
 			'revision_fields'          => array_values( array_unique( $needs_input ) ),
-			'next_steps'               => array(
-				__( 'Show Core preflight blockers to the operator.', 'magick-ai-adapter' ),
-				__( 'Revise the proposal input or source plan, then create a new proposal.', 'magick-ai-adapter' ),
-				__( 'Do not retry approve-and-execute until Core preflight can pass.', 'magick-ai-adapter' ),
-			),
+			'next_steps'               => $next_steps,
 			'can_retry_after_revision' => true,
 			'core_evidence'            => array(
 				'proposal_id'             => sanitize_text_field( (string) ( $proposal['proposal_id'] ?? '' ) ),
 				'ability_id'              => sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) ),
 				'status'                  => sanitize_key( (string) ( $proposal['status'] ?? '' ) ),
-				'core_error_code'         => null !== $error ? $error->get_error_code() : '',
+				'core_error_code'         => $core_error_code,
 				'proposal_item_preflight' => $item_preflight,
 				'commit_execution'        => false,
 			),
@@ -4664,6 +4705,140 @@ final class Controller {
 		}
 
 		return is_array( $detail ) ? $detail : array();
+	}
+
+	/**
+	 * Returns stored preflight handoffs issued through Adapter.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function preflight_handoffs(): array {
+		$records = get_option( self::PREFLIGHT_HANDOFFS_OPTION, array() );
+		return is_array( $records ) ? $records : array();
+	}
+
+	/**
+	 * Stores a Core preflight handoff for the next Adapter execute call.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @param array<string,mixed> $preflight Core preflight payload.
+	 * @return array<string,mixed>|null
+	 */
+	private function store_preflight_handoff( string $proposal_id, array $proposal, array $preflight ): ?array {
+		if ( '' === $proposal_id || empty( $proposal ) ) {
+			return null;
+		}
+
+		$approval_context = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
+		$approved_hash    = sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? ( $preflight['approved_input_hash'] ?? '' ) ) );
+		$current_hash     = $this->proposal_input_hash( $proposal );
+		if (
+			true !== (bool) ( $approval_context['approval_commit_authorized'] ?? false )
+			|| false !== (bool) ( $preflight['commit_execution'] ?? true )
+			|| $proposal_id !== (string) ( $approval_context['proposal_id'] ?? $proposal_id )
+			|| '' === $approved_hash
+			|| $approved_hash !== $current_hash
+		) {
+			return null;
+		}
+
+		$handoff = array(
+			'status'              => 'issued',
+			'proposal_id'         => $proposal_id,
+			'ability_id'          => sanitize_text_field( (string) ( $proposal['ability_id'] ?? ( $approval_context['ability_id'] ?? '' ) ) ),
+			'approved_input_hash' => $approved_hash,
+			'correlation_id'      => sanitize_text_field( (string) ( $preflight['correlation_id'] ?? ( $approval_context['correlation_id'] ?? '' ) ) ),
+			'commit_execution'    => false,
+			'issued_at'           => gmdate( 'c' ),
+			'preflight'           => array(
+				'proposal_id'             => $proposal_id,
+				'correlation_id'          => sanitize_text_field( (string) ( $preflight['correlation_id'] ?? ( $approval_context['correlation_id'] ?? '' ) ) ),
+				'approval_context'        => $approval_context,
+				'proposal_item_preflight' => is_array( $preflight['proposal_item_preflight'] ?? null ) ? $preflight['proposal_item_preflight'] : array(),
+				'execution_handoff'       => is_array( $preflight['execution_handoff'] ?? null ) ? $preflight['execution_handoff'] : array(),
+				'idempotency_required'    => (bool) ( $preflight['idempotency_required'] ?? true ),
+				'commit_execution'        => false,
+			),
+		);
+
+		$records = $this->preflight_handoffs();
+		$records[ $this->execution_record_key( $proposal_id ) ] = $handoff;
+		$records = $this->prune_preflight_handoffs( $records );
+		update_option( self::PREFLIGHT_HANDOFFS_OPTION, $records, false );
+
+		return $handoff;
+	}
+
+	/**
+	 * Consumes a cached preflight handoff when it still matches the proposal.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<string,mixed>|null
+	 */
+	private function consume_cached_preflight_handoff( string $proposal_id, array $proposal ): ?array {
+		$records = $this->preflight_handoffs();
+		$key     = $this->execution_record_key( $proposal_id );
+		$record  = is_array( $records[ $key ] ?? null ) ? $records[ $key ] : array();
+		if ( empty( $record ) ) {
+			return null;
+		}
+
+		unset( $records[ $key ] );
+		update_option( self::PREFLIGHT_HANDOFFS_OPTION, $records, false );
+
+		$preflight        = is_array( $record['preflight'] ?? null ) ? $record['preflight'] : array();
+		$approval_context = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
+		$approved_hash    = sanitize_text_field( (string) ( $record['approved_input_hash'] ?? ( $approval_context['approved_input_hash'] ?? '' ) ) );
+		if (
+			'issued' !== (string) ( $record['status'] ?? '' )
+			|| $proposal_id !== (string) ( $record['proposal_id'] ?? '' )
+			|| $proposal_id !== (string) ( $approval_context['proposal_id'] ?? $proposal_id )
+			|| true !== (bool) ( $approval_context['approval_commit_authorized'] ?? false )
+			|| false !== (bool) ( $preflight['commit_execution'] ?? true )
+			|| '' === $approved_hash
+			|| $approved_hash !== $this->proposal_input_hash( $proposal )
+		) {
+			return null;
+		}
+
+		return $preflight;
+	}
+
+	/**
+	 * Removes old preflight handoffs after the bounded retention limit.
+	 *
+	 * @param array<string,array<string,mixed>> $records Records.
+	 * @return array<string,array<string,mixed>>
+	 */
+	private function prune_preflight_handoffs( array $records ): array {
+		if ( count( $records ) <= self::MAX_PREFLIGHT_HANDOFFS ) {
+			return $records;
+		}
+
+		uasort(
+			$records,
+			static function ( $left, $right ): int {
+				$left_time  = is_array( $left ) ? (string) ( $left['issued_at'] ?? '' ) : '';
+				$right_time = is_array( $right ) ? (string) ( $right['issued_at'] ?? '' ) : '';
+
+				return strcmp( $left_time, $right_time );
+			}
+		);
+
+		return array_slice( $records, - self::MAX_PREFLIGHT_HANDOFFS, null, true );
+	}
+
+	/**
+	 * Builds the same input hash Core commit-preflight uses for approved inputs.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return string
+	 */
+	private function proposal_input_hash( array $proposal ): string {
+		$json = wp_json_encode( $proposal['input'] ?? array() );
+		return hash( 'sha256', is_string( $json ) ? $json : '' );
 	}
 
 	/**

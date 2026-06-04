@@ -406,18 +406,18 @@ returns it.
    Do not call Core directly from OpenClaw.
 6. If `status=rejected`, stop and show the rejection state or reason returned
    by Core.
-7. If using the lower-level split path and `status=approved`, call commit
-   preflight:
+7. If `status=approved` and execution is intended, call Adapter execute:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
   -X POST \
-  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/commit-preflight"
+  "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/execute"
 ```
 
-8. Stop at Core's preflight response unless the ability is in Adapter's current
-   approved proposal execution allowlist. Core still returns
-   `commit_execution=false`.
+8. Use Adapter commit-preflight only as an advanced diagnostic route. When it
+   succeeds through Adapter, Adapter caches the one-time Core handoff for the
+   next Adapter execute call. Do not call Core commit-preflight directly from
+   OpenClaw.
 9. For approved proposal execution, only `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
@@ -456,10 +456,11 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
   "https://magick-ai.local/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID/execute"
 ```
 
-Adapter fetches the Core proposal, runs Core commit-preflight again, requires
-`approval_commit_authorized=true`, requires `commit_execution=false`, passes
-Core `approval_context`, and executes one proposal through WordPress Abilities
-API. The adapter does not create its own governance state.
+Adapter fetches the Core proposal, consumes a cached Adapter preflight handoff
+when one was issued through Adapter, otherwise runs Core commit-preflight,
+requires `approval_commit_authorized=true`, requires `commit_execution=false`,
+passes Core `approval_context`, and executes one proposal through WordPress
+Abilities API. The adapter does not create its own governance state.
 For abilities outside that execution allowlist, Adapter does not execute final
 WordPress writes.
 Future execution abilities must be added one by one to the Adapter allowlist
