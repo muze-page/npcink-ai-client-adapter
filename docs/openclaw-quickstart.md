@@ -70,11 +70,17 @@ WordPress admin connection page:
 Magick AI -> Adapter
 ```
 
-The page includes a `Create OpenClaw handoff` button. It creates a normal
-WordPress Application Password for the current administrator and shows the raw
-password once in the browser. Copied OpenClaw env, manifest, and handoff text
-contain only placeholders or non-secret identifiers. The adapter does not store
-the raw password.
+The page defaults to the signed key-pair flow. It shows an npm CLI connect
+command, status command, OpenClaw request instructions, and authorized public
+key management. The CLI generates the private key locally; Adapter stores only
+the approved public key.
+
+The page also keeps an `Application Password fallback` disclosure for clients
+that have a dedicated credential or secret field. That fallback can create a
+normal WordPress Application Password for the current administrator and show the
+raw password once in the browser. Copied OpenClaw env, manifest, and handoff
+text contain only placeholders or non-secret identifiers. The adapter does not
+store the raw password.
 
 The same page includes a `Proposal status` lookup. Paste the `Proposal ID`
 returned by Adapter after `POST /proposals` or `POST /proposals/from-plan` to
@@ -119,11 +125,12 @@ and starts pairing with the public key. WordPress shows an admin approval page;
 after approval, Adapter stores only the public key and later verifies signed
 Adapter requests.
 
-For local validation, this repository includes a unified local CLI:
+For local validation, run the npm CLI on the same machine or execution
+environment as OpenClaw:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs connect --site=https://magick-ai.local --profile=local --insecure-local-tls
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs status --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
@@ -142,28 +149,35 @@ After pairing, OpenClaw-style local clients should call Adapter through the
 local request wrapper instead of reading the profile file:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /health
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /capabilities
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /health
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /capabilities
 ```
 
 For POST requests, write the non-secret request JSON to a temporary file and
 pass it with `--body-file`, or pass non-secret JSON through stdin:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
-printf '%s' '{"plan":{}}' | node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+printf '%s' '{"plan":{}}' | (cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin)
 ```
 
 The wrapper rejects absolute URLs, signs the Adapter-relative route locally, and
 prints only the Adapter JSON response. Do not ask OpenClaw to read or summarize
 `~/.magick-ai-adapter/keypair-profiles/*.json`.
-The lower-level development scripts remain available as
-`tools/keypair-device-pairing.mjs` and `tools/keypair-adapter-request.mjs`, but
-the preferred local client entrypoint is `tools/magick-adapter.mjs`.
+The repository keeps `tools/magick-adapter.mjs`,
+`tools/keypair-device-pairing.mjs`, and `tools/keypair-adapter-request.mjs` as
+development compatibility wrappers. The user-facing local client entrypoint is
+the published npm CLI.
+
+For repo-local package testing, use:
+
+```bash
+npx --yes --package /Users/muze/gitee/magick-ai-adapter/packages/adapter-cli magick-adapter status --profile=local --insecure-local-tls
+```
 
 Administrators manage authorized public keys from `Magick AI -> Adapter` in the
-`Local OpenClaw CLI` section. Revoke a key there to stop the corresponding local
-profile from authenticating.
+recommended local signed key-pair section. Revoke a key there to stop the
+corresponding local profile from authenticating.
 
 ## Connection Check
 

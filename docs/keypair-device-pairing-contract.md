@@ -177,13 +177,13 @@ Adapter verifies:
 
 ## Local Request Wrapper
 
-Development clients can use `tools/magick-adapter.mjs` after pairing:
+OpenClaw-style clients can use the npm CLI after pairing:
 
 ```bash
-node tools/magick-adapter.mjs connect --site=https://example.test --profile=local
-node tools/magick-adapter.mjs status --profile=local
-node tools/magick-adapter.mjs request --profile=local GET /health
-node tools/magick-adapter.mjs request --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter connect --site=https://example.test --profile=local
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter status --profile=local
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local GET /health
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
 ```
 
 The wrapper:

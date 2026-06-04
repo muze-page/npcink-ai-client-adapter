@@ -16,23 +16,24 @@ The default page should answer:
 - can Adapter reach Core capabilities;
 - can Adapter reach WordPress Abilities API;
 - what endpoint should OpenClaw use;
-- how to create/export a one-time OpenClaw handoff.
+- how to connect through the local signed key-pair CLI;
+- where the Application Password fallback lives for clients with a dedicated
+  credential field.
 
 Primary action:
 
-- `Create OpenClaw handoff`.
+- `Signed CLI connection`, with the connect command as the only primary action.
+- `Application Password fallback`, collapsed by default.
 
 Default copyable values:
 
-- site URL;
-- Adapter base URL;
-- health URL;
-- capabilities URL;
-- help URL when useful.
+- local CLI connect command;
+- local CLI status command.
 
 Default workflow bridge:
 
-- Proposal ID status lookup through Adapter's read-only proposal proxy;
+- Proposal ID status lookup through Adapter's read-only proposal proxy,
+  collapsed by default unless a lookup is active;
 - link to the matching Core approval detail;
 - copyable Adapter status and approved-execution endpoints;
 - status-specific next-step copy for `pending`, `approved`, `rejected`,
@@ -42,6 +43,9 @@ Default workflow bridge:
 
 Keep these behind explicit advanced sections:
 
+- Adapter base URL, user, and connection manifest URL;
+- authorized key-pair client management;
+- fallback env placeholders without secrets;
 - read shortcut route catalog;
 - proposal route examples;
 - diagnostics shortcuts;

@@ -286,6 +286,78 @@ function maa_adapter_smoke_text_generation_model(): array {
 }
 
 /**
+ * Returns the registered smoke fixtures that must be deleted on any exit path.
+ *
+ * @return array<string,mixed>
+ */
+function &maa_adapter_smoke_fixture_registry(): array {
+	if ( ! isset( $GLOBALS['maa_adapter_smoke_fixture_registry'] ) || ! is_array( $GLOBALS['maa_adapter_smoke_fixture_registry'] ) ) {
+		$GLOBALS['maa_adapter_smoke_fixture_registry'] = array(
+			'proposal_ids'   => array(),
+			'attachment_ids' => array(),
+			'post_ids'       => array(),
+			'comment_ids'    => array(),
+			'terms'          => array(),
+			'cleaned'        => false,
+		);
+	}
+
+	return $GLOBALS['maa_adapter_smoke_fixture_registry'];
+}
+
+/**
+ * Cleans all registered smoke fixtures. This is intentionally idempotent
+ * because it runs both on success and through register_shutdown_function().
+ *
+ * @return void
+ */
+function maa_adapter_smoke_cleanup_registered_fixtures(): void {
+	$registry =& maa_adapter_smoke_fixture_registry();
+	if ( true === (bool) ( $registry['cleaned'] ?? false ) ) {
+		return;
+	}
+
+	$registry['cleaned'] = true;
+	global $wpdb;
+
+	$proposal_ids = array_values( array_unique( array_filter( array_map( 'strval', (array) ( $registry['proposal_ids'] ?? array() ) ) ) ) );
+	if ( ! empty( $proposal_ids ) ) {
+		$execution_records = get_option( 'magick_ai_adapter_execution_records', array() );
+		if ( is_array( $execution_records ) ) {
+			foreach ( $proposal_ids as $cleanup_proposal_id ) {
+				unset( $execution_records[ md5( $cleanup_proposal_id ) ] );
+				foreach ( $execution_records as $record_key => $record ) {
+					if ( is_array( $record ) && $cleanup_proposal_id === (string) ( $record['proposal_id'] ?? '' ) ) {
+						unset( $execution_records[ $record_key ] );
+					}
+				}
+			}
+			update_option( 'magick_ai_adapter_execution_records', $execution_records, false );
+		}
+
+		foreach ( $proposal_ids as $cleanup_proposal_id ) {
+			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+		}
+	}
+
+	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['attachment_ids'] ?? array() ) ) ) ) ) as $cleanup_attachment_id ) {
+		wp_delete_attachment( (int) $cleanup_attachment_id, true );
+	}
+	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['comment_ids'] ?? array() ) ) ) ) ) as $cleanup_comment_id ) {
+		wp_delete_comment( (int) $cleanup_comment_id, true );
+	}
+	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['post_ids'] ?? array() ) ) ) ) ) as $cleanup_post_id ) {
+		wp_delete_post( (int) $cleanup_post_id, true );
+	}
+	foreach ( (array) ( $registry['terms'] ?? array() ) as $cleanup_term ) {
+		if ( is_array( $cleanup_term ) ) {
+			wp_delete_term( (int) ( $cleanup_term['term_id'] ?? 0 ), (string) ( $cleanup_term['taxonomy'] ?? '' ) );
+		}
+	}
+}
+
+/**
  * Creates an unattached image attachment with missing metadata for media plan smoke.
  *
  * @return int
@@ -309,6 +381,8 @@ function maa_adapter_smoke_create_media_plan_attachment(): int {
 	);
 
 	maa_adapter_smoke_assert( ! is_wp_error( $id ) && (int) $id > 0, 'adapter smoke created media fixture attachment' );
+	$registry =& maa_adapter_smoke_fixture_registry();
+	$registry['attachment_ids'][] = (int) $id;
 	update_post_meta( (int) $id, '_wp_attachment_image_alt', '' );
 	return (int) $id;
 }
@@ -330,6 +404,8 @@ function maa_adapter_smoke_create_trash_post_fixture(): int {
 	);
 
 	maa_adapter_smoke_assert( ! is_wp_error( $post_id ) && (int) $post_id > 0, 'adapter smoke created trash-post fixture' );
+	$registry =& maa_adapter_smoke_fixture_registry();
+	$registry['post_ids'][] = (int) $post_id;
 	return (int) $post_id;
 }
 
@@ -357,14 +433,18 @@ function maa_adapter_smoke_create_comment_fixture(
 	);
 
 	maa_adapter_smoke_assert( (int) $comment_id > 0, 'adapter smoke created comment fixture' );
+	$registry =& maa_adapter_smoke_fixture_registry();
+	$registry['comment_ids'][] = (int) $comment_id;
 	return (int) $comment_id;
 }
 
-$maa_adapter_smoke_cleanup_proposal_ids = array();
-$maa_adapter_smoke_cleanup_attachment_ids = array();
-$maa_adapter_smoke_cleanup_post_ids = array();
-$maa_adapter_smoke_cleanup_comment_ids = array();
-$maa_adapter_smoke_cleanup_terms = array();
+$maa_adapter_smoke_fixture_registry =& maa_adapter_smoke_fixture_registry();
+$maa_adapter_smoke_cleanup_proposal_ids =& $maa_adapter_smoke_fixture_registry['proposal_ids'];
+$maa_adapter_smoke_cleanup_attachment_ids =& $maa_adapter_smoke_fixture_registry['attachment_ids'];
+$maa_adapter_smoke_cleanup_post_ids =& $maa_adapter_smoke_fixture_registry['post_ids'];
+$maa_adapter_smoke_cleanup_comment_ids =& $maa_adapter_smoke_fixture_registry['comment_ids'];
+$maa_adapter_smoke_cleanup_terms =& $maa_adapter_smoke_fixture_registry['terms'];
+register_shutdown_function( 'maa_adapter_smoke_cleanup_registered_fixtures' );
 
 $health = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/health' );
 $health_dispatch_event = maa_adapter_smoke_observability_event( 'adapter.openclaw.dispatch.completed', 'ok', '/magick-ai-adapter/v1/health' );
@@ -2531,26 +2611,8 @@ $core_correlation_audit = maa_adapter_smoke_rest(
 );
 maa_adapter_smoke_assert( count( (array) ( $core_correlation_audit['items'] ?? array() ) ) >= 1, 'Core Governance Audit filters by the same provider smoke correlation id' );
 
-global $wpdb;
 $maa_adapter_smoke_cleanup_proposal_ids[] = $proposal_id;
-foreach ( array_values( array_unique( array_filter( $maa_adapter_smoke_cleanup_proposal_ids ) ) ) as $cleanup_proposal_id ) {
-	$wpdb->delete( $wpdb->prefix . 'magick_ai_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
-	$wpdb->delete( $wpdb->prefix . 'magick_ai_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
-}
-foreach ( array_values( array_unique( array_filter( $maa_adapter_smoke_cleanup_attachment_ids ) ) ) as $cleanup_attachment_id ) {
-	wp_delete_attachment( (int) $cleanup_attachment_id, true );
-}
-foreach ( array_values( array_unique( array_filter( $maa_adapter_smoke_cleanup_comment_ids ) ) ) as $cleanup_comment_id ) {
-	wp_delete_comment( (int) $cleanup_comment_id, true );
-}
-foreach ( array_values( array_unique( array_filter( $maa_adapter_smoke_cleanup_post_ids ) ) ) as $cleanup_post_id ) {
-	wp_delete_post( (int) $cleanup_post_id, true );
-}
-foreach ( $maa_adapter_smoke_cleanup_terms as $cleanup_term ) {
-	if ( is_array( $cleanup_term ) ) {
-		wp_delete_term( (int) ( $cleanup_term['term_id'] ?? 0 ), (string) ( $cleanup_term['taxonomy'] ?? '' ) );
-	}
-}
+maa_adapter_smoke_cleanup_registered_fixtures();
 maa_adapter_smoke_assert( true, 'adapter status smoke cleaned created proposal records' );
 
 echo "magick-ai-adapter WordPress smoke: ok\n";

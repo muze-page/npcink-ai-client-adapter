@@ -64,6 +64,22 @@ REST Basic Auth. Adapter must not store the raw Application Password, and
 OpenClaw setup must use the non-secret connection manifest plus a dedicated
 secret field or credential vault for the password.
 
+## Local Fixture Cleanup
+
+Local smoke and HTTP acceptance fixtures must be registered for automatic
+cleanup before any assertion that can fail. Use `register_shutdown_function`,
+`try/finally`, or an equivalent fixture registry so posts, attachments,
+comments, terms, Core proposal rows, Core audit rows, and Adapter execution
+records created by the current test are deleted on success, assertion failure,
+or unexpected exit.
+
+Negative-loop checks must register their target content separately from the
+write execution path. Rejected and preflight-blocked proposals are expected not
+to run `magick-ai/trash-post`, so cleanup cannot depend on Adapter or Core
+executing the final write. This applies to local fixtures with labels such as
+`Negative Loop Reject Fixture`, `Negative Loop Preflight Fixture`,
+`OpenClaw HTTP acceptance draft`, and `Operator Loop Article Draft`.
+
 ## Acceptance Flow
 
 Run this order for a local acceptance pass:

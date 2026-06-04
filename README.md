@@ -284,13 +284,12 @@ Magick AI -> Adapter
 
 The page default view shows:
 
-- Adapter base URL, health URL, help URL, and capabilities URL;
+- a recommended local signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter`;
+- Adapter base URL and non-secret connection manifest URL;
 - Core and WordPress Abilities API connection status;
-- a `Create OpenClaw handoff` action that creates a WordPress Application
-  Password for the current administrator, shows it once in the browser, and
-  emits a non-secret connection manifest;
-- a `Local OpenClaw CLI` section that copies the unified CLI commands and lets
-  administrators revoke authorized key-pair public keys;
+- authorized public key management with revoke actions;
+- an `Application Password fallback` disclosure for clients that have a
+  dedicated credential or secret field;
 - a `Proposal status` lookup where operators paste the `Proposal ID` returned
   to OpenClaw, see Core status through Adapter's read-only proposal proxy, open
   the matching Core approval detail, and copy Adapter status/execution URLs.
@@ -332,11 +331,12 @@ POST /wp-json/magick-ai-adapter/v1/connect/device/poll
 GET  /wp-json/magick-ai-adapter/v1/connection/key-pairs
 ```
 
-For local validation, use the unified local CLI in this repo:
+For local validation, use the npm CLI on the same machine or execution
+environment as OpenClaw:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs connect --site=https://magick-ai.local --profile=local --insecure-local-tls
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs status --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
@@ -355,17 +355,22 @@ After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:
 
 ```bash
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /health
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls GET /capabilities
-node /Users/muze/gitee/magick-ai-adapter/tools/magick-adapter.mjs request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /health
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /capabilities
+cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
 ```
 
 The request command accepts only Adapter-relative routes such as `/health`,
 signs the request locally, and prints only the Adapter JSON response. It also
 accepts `--body-stdin` for non-secret POST bodies.
-The lower-level development scripts remain available as
-`tools/keypair-device-pairing.mjs` and `tools/keypair-adapter-request.mjs`, but
-the preferred local client entrypoint is `tools/magick-adapter.mjs`.
+The repository keeps `tools/magick-adapter.mjs`,
+`tools/keypair-device-pairing.mjs`, and `tools/keypair-adapter-request.mjs` as
+development compatibility wrappers. The user-facing local client entrypoint is
+the published npm CLI. For repo-local package testing, use:
+
+```bash
+npx --yes --package /path/to/magick-ai-adapter/packages/adapter-cli magick-adapter status --profile=local --insecure-local-tls
+```
 
 See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
 for the public-key pairing and request-signing contract.
@@ -706,3 +711,8 @@ Run the LocalWP smoke test:
 ```bash
 composer smoke:wp
 ```
+
+Local smoke and HTTP acceptance tests must register every created fixture for
+automatic cleanup before assertions can fail. Rejected and preflight-blocked
+negative-loop cases must not rely on final write execution to remove target
+posts, because the correct behavior is to leave those writes unexecuted.

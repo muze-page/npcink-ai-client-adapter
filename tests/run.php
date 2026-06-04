@@ -452,7 +452,9 @@ foreach (
 		'Magick AI Adapter',
 		'Adapter',
 		'OpenClaw Handoff Created',
-		'Create OpenClaw handoff',
+		'Signed CLI connection',
+		'Application Password fallback',
+		'Create Application Password fallback',
 		'add_submenu_page',
 		'PARENT_MENU_SLUG',
 		'WP_Application_Passwords::create_new_application_password',
@@ -463,8 +465,9 @@ foreach (
 		'maa_tab',
 		'window.history.replaceState',
 		'url.searchParams.set',
-		'OpenClaw endpoint',
-		'Proposal status',
+		'Connection values',
+		'Copy manifest URL',
+		'Proposal lookup',
 		'adapter_proposal_id',
 		'proposal_lookup',
 		'render_proposal_lookup_result',
@@ -474,7 +477,7 @@ foreach (
 		'proposal_next_step_text',
 		'Adapter Base URL',
 		'WordPress user',
-		'Copy env',
+		'Copy fallback env',
 		'Connection manifest',
 		'content_discoverability_suggestions',
 		'ai_article_draft_with_discoverability',
@@ -530,18 +533,18 @@ foreach (
 		'<openclaw-secret-field-value>',
 		'Key pair clients',
 		'Device-paired clients',
-		'Local OpenClaw CLI',
+		'Copy connect command',
 		'Copy OpenClaw CLI instructions',
 		'Copy status command',
-		'Copy reconnect command',
-		'Authorized public keys',
+		'Copy fallback env',
+		'Authorized clients',
 		'local_cli_setup_text',
 		'render_key_pair_clients_table',
 		'local_cli_connect_command',
 		'local_cli_status_command',
-		'tools/magick-adapter.mjs',
+		'cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter',
 		'Do not read, cat, print, summarize, or copy the local keypair profile file',
-		'Manage authorized public keys from the Local OpenClaw CLI section',
+		'Manage authorized public keys from the Recommended local signed key-pair section',
 		'key_pairs_url',
 		'REVOKE_KEY_ACTION',
 		'Connection approved.',
@@ -576,7 +579,8 @@ $admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standar
 foreach (
 	array(
 		'OpenClaw connection surface',
-		'Create OpenClaw handoff',
+		'Signed CLI connection',
+		'Application Password fallback',
 		'Proposal ID status lookup',
 		'duplicate Core review queue',
 		'read shortcut route catalog',
@@ -642,7 +646,6 @@ foreach (
 		'execution profile registry',
 		'Capability discovery may show more proposal-required abilities',
 		'$outputs.create-draft.post_id',
-		'Create OpenClaw handoff',
 		'only its hash',
 			'Application Password secret-field',
 			'non-secret connection manifest',
@@ -652,6 +655,8 @@ foreach (
 			'tools/keypair-device-pairing.mjs',
 			'tools/keypair-adapter-request.mjs',
 			'tools/magick-adapter.mjs',
+			'@npcink/magick-ai-adapter-cli',
+			'packages/adapter-cli',
 			'Public Key Device Pairing',
 			'OpenClaw only connects to Adapter',
 			'productized OpenClaw user action',
@@ -755,6 +760,9 @@ foreach (
 		'commit_execution=false',
 		'composer plugin-check:release',
 		'composer package:release',
+		'Local smoke and HTTP acceptance tests must register every created fixture',
+		'automatic cleanup before assertions can fail',
+		'negative-loop cases must not rely on final write execution',
 		'.distignore',
 		'Do not delete',
 	) as $required
@@ -762,7 +770,32 @@ foreach (
 	maa_adapter_assert( false !== strpos( $readme, $required ), 'README contains required text: ' . $required );
 }
 
-$keypair_tool = maa_adapter_read( $root . '/tools/keypair-device-pairing.mjs' );
+$adapter_cli_package = maa_adapter_read( $root . '/packages/adapter-cli/package.json' );
+foreach (
+	array(
+		'"name": "@npcink/magick-ai-adapter-cli"',
+		'"bin"',
+		'"magick-adapter": "bin/magick-adapter.mjs"',
+		'"node": ">=20"',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $adapter_cli_package, $required ), 'Adapter CLI package contains required text: ' . $required );
+}
+
+$legacy_magick_adapter_tool = maa_adapter_read( $root . '/tools/magick-adapter.mjs' );
+foreach (
+	array(
+		'packages',
+		'adapter-cli',
+		'bin',
+		'magick-adapter.mjs',
+		'spawn(process.execPath',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $legacy_magick_adapter_tool, $required ), 'Legacy unified CLI wrapper delegates to package CLI: ' . $required );
+}
+
+$keypair_tool = maa_adapter_read( $root . '/packages/adapter-cli/bin/keypair-device-pairing.mjs' );
 foreach (
 	array(
 		'generateKeyPairSync',
@@ -785,11 +818,11 @@ foreach (
 		'keypair-profiles',
 	) as $required
 ) {
-	maa_adapter_assert( false !== strpos( $keypair_tool, $required ), 'Keypair pairing tool contains expected behavior: ' . $required );
+	maa_adapter_assert( false !== strpos( $keypair_tool, $required ), 'Packaged keypair pairing tool contains expected behavior: ' . $required );
 }
 maa_adapter_assert( false === strpos( $keypair_tool, 'console.log(private' ), 'Keypair tool does not print private key material.' );
 
-$keypair_request_tool = maa_adapter_read( $root . '/tools/keypair-adapter-request.mjs' );
+$keypair_request_tool = maa_adapter_read( $root . '/packages/adapter-cli/bin/keypair-adapter-request.mjs' );
 foreach (
 	array(
 		'createPrivateKey',
@@ -808,12 +841,12 @@ foreach (
 		'wrapper_failed',
 	) as $required
 ) {
-	maa_adapter_assert( false !== strpos( $keypair_request_tool, $required ), 'Keypair request wrapper contains expected behavior: ' . $required );
+	maa_adapter_assert( false !== strpos( $keypair_request_tool, $required ), 'Packaged keypair request wrapper contains expected behavior: ' . $required );
 }
 maa_adapter_assert( false === strpos( $keypair_request_tool, 'console.log(profile' ), 'Keypair request wrapper does not print profile data.' );
 maa_adapter_assert( false === strpos( $keypair_request_tool, 'console.log(headers' ), 'Keypair request wrapper does not print signature headers.' );
 
-$magick_adapter_tool = maa_adapter_read( $root . '/tools/magick-adapter.mjs' );
+$magick_adapter_tool = maa_adapter_read( $root . '/packages/adapter-cli/bin/magick-adapter.mjs' );
 foreach (
 	array(
 		'connect',
@@ -829,7 +862,7 @@ foreach (
 		'commit_execution',
 	) as $required
 ) {
-	maa_adapter_assert( false !== strpos( $magick_adapter_tool, $required ), 'Unified local CLI contains expected behavior: ' . $required );
+	maa_adapter_assert( false !== strpos( $magick_adapter_tool, $required ), 'Packaged unified local CLI contains expected behavior: ' . $required );
 }
 maa_adapter_assert( false === strpos( $magick_adapter_tool, 'private_key_jwk' ), 'Unified local CLI does not print or inspect private key material by name.' );
 
@@ -873,6 +906,7 @@ foreach (
 		'composer.json',
 		'tests',
 		'tools',
+		'packages',
 		'vendor',
 		'node_modules',
 	) as $required
@@ -889,12 +923,14 @@ foreach (
 		'WordPress administrator username: `1`',
 		'WordPress administrator password: `1`',
 		'Application Password',
-		'Create OpenClaw handoff',
+		'Application Password fallback',
 		'GET /health',
 		'GET /help',
 		'GET /capabilities',
 		'Public Key Device Pairing',
+		'cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter',
 		'tools/keypair-device-pairing.mjs',
+		'packages/adapter-cli',
 		'connect/device/start',
 		'POST /proposals/from-plan',
 		'/proposals?limit=10',
@@ -1158,6 +1194,18 @@ foreach (
 		'no new runtime ownership',
 		'composer plugin-check:release',
 		'composer package:release',
+		'Local Fixture Cleanup',
+		'Local smoke and HTTP acceptance fixtures must be registered',
+		'cleanup before any assertion that can fail',
+		'register_shutdown_function',
+		'try/finally',
+		'Core proposal rows',
+		'Core audit rows',
+		'Adapter execution',
+		'Negative Loop Reject Fixture',
+		'Negative Loop Preflight Fixture',
+		'OpenClaw HTTP acceptance draft',
+		'Operator Loop Article Draft',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $acceptance, $required ), 'OpenClaw acceptance doc contains required text: ' . $required );
@@ -1439,6 +1487,11 @@ foreach (
 		'AI Request Logs context contains explicit provider even if provider column is blank',
 		'AI Request Logs context contains explicit model even if provider column is blank',
 		'Core Governance Audit filters by the same provider smoke correlation id',
+		'maa_adapter_smoke_fixture_registry',
+		'maa_adapter_smoke_cleanup_registered_fixtures',
+		'register_shutdown_function',
+		'magick_ai_adapter_execution_records',
+		'md5( $cleanup_proposal_id )',
 		'adapter status smoke cleaned created proposal records',
 	) as $required
 ) {

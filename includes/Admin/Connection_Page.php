@@ -259,7 +259,7 @@ final class Connection_Page {
 				}
 				.magick-ai-adapter-connection .maa-summary {
 					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+					grid-template-columns: repeat(4, minmax(0, 1fr));
 					gap: 1px;
 					margin: 18px 0;
 					border: 1px solid #dcdcde;
@@ -315,6 +315,10 @@ final class Connection_Page {
 					margin: 0 0 10px;
 					font-size: 16px;
 				}
+				.magick-ai-adapter-connection .maa-section-intro {
+					margin: 0 0 14px;
+					color: #50575e;
+				}
 				.magick-ai-adapter-connection details.maa-section > summary {
 					display: flex;
 					flex-wrap: wrap;
@@ -339,6 +343,31 @@ final class Connection_Page {
 					font-weight: 600;
 				}
 				.magick-ai-adapter-connection details.maa-section[open] > summary::after {
+					content: "-";
+				}
+				.magick-ai-adapter-connection .maa-inline-disclosure {
+					margin-top: 18px;
+					border-top: 1px solid #dcdcde;
+				}
+				.magick-ai-adapter-connection .maa-inline-disclosure > summary {
+					display: flex;
+					flex-wrap: wrap;
+					align-items: center;
+					justify-content: space-between;
+					gap: 8px;
+					padding: 12px 0;
+					cursor: pointer;
+				}
+				.magick-ai-adapter-connection .maa-inline-disclosure > summary strong {
+					font-size: 14px;
+				}
+				.magick-ai-adapter-connection .maa-inline-disclosure > summary::after {
+					content: "+";
+					color: #2271b1;
+					font-size: 18px;
+					font-weight: 600;
+				}
+				.magick-ai-adapter-connection .maa-inline-disclosure[open] > summary::after {
 					content: "-";
 				}
 				.magick-ai-adapter-connection code,
@@ -376,6 +405,13 @@ final class Connection_Page {
 				}
 				.magick-ai-adapter-connection .maa-copy-row > div {
 					min-width: 0;
+				}
+				.magick-ai-adapter-connection .maa-command-row {
+					grid-template-columns: 1fr;
+					margin: 16px 0;
+				}
+				.magick-ai-adapter-connection .maa-command-row .button {
+					justify-self: start;
 				}
 				.magick-ai-adapter-connection .maa-copy-value {
 					display: block;
@@ -423,7 +459,15 @@ final class Connection_Page {
 						grid-template-columns: 1fr;
 					}
 				}
+				@media (max-width: 782px) {
+					.magick-ai-adapter-connection .maa-summary {
+						grid-template-columns: repeat(2, minmax(0, 1fr));
+					}
+				}
 				@media (max-width: 480px) {
+					.magick-ai-adapter-connection .maa-summary {
+						grid-template-columns: 1fr;
+					}
 					.magick-ai-adapter-connection .maa-copy-row {
 						grid-template-columns: 1fr;
 					}
@@ -460,35 +504,40 @@ final class Connection_Page {
 			<div id="maa-panel-connection" class="maa-tab-panel is-active" role="tabpanel" aria-labelledby="maa-tab-connection">
 				<div class="maa-workspace">
 					<div class="maa-section maa-section-highlight">
-						<h2><?php echo esc_html__( 'Create OpenClaw handoff', 'magick-ai-adapter' ); ?></h2>
-						<p><?php echo esc_html__( 'Create a one-time Application Password and non-secret OpenClaw connection manifest for the current administrator.', 'magick-ai-adapter' ); ?></p>
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-							<input type="hidden" name="action" value="<?php echo esc_attr( self::CREATE_ACTION ); ?>" />
-							<?php wp_nonce_field( self::CREATE_ACTION ); ?>
-							<p>
-								<label for="magick-ai-adapter-password-name-compact"><span class="maa-label"><?php echo esc_html__( 'Application name', 'magick-ai-adapter' ); ?></span></label>
-								<input id="magick-ai-adapter-password-name-compact" class="regular-text" type="text" name="application_name" value="OpenClaw via Magick AI Adapter" />
-							</p>
-							<div class="maa-option">
-								<label>
-									<input type="checkbox" name="include_local_tls" value="1" <?php checked( $this->is_local_url( home_url() ) ); ?> />
-									<span><?php echo esc_html__( 'Include LocalWP TLS setting', 'magick-ai-adapter' ); ?></span>
-								</label>
-								<p class="description"><?php echo esc_html__( 'Use only for localhost or .local testing. This only changes copied client configuration.', 'magick-ai-adapter' ); ?></p>
+						<h2><?php echo esc_html__( 'Signed CLI connection', 'magick-ai-adapter' ); ?></h2>
+						<p class="maa-section-intro"><?php echo esc_html__( 'Run this in the same environment as OpenClaw. The private key stays local.', 'magick-ai-adapter' ); ?></p>
+						<div class="maa-copy-row maa-command-row">
+							<div>
+								<span class="maa-label"><?php echo esc_html__( 'Connect command', 'magick-ai-adapter' ); ?></span>
+								<code class="maa-copy-value" id="maa-local-cli-connect-command"><?php echo esc_html( $local_cli_connect_command ); ?></code>
 							</div>
-							<p class="maa-form-actions">
-								<button type="submit" class="button button-primary" <?php disabled( ! $can_create_password ); ?>>
-									<?php echo esc_html__( 'Create OpenClaw handoff', 'magick-ai-adapter' ); ?>
-								</button>
+							<button type="button" class="button button-primary maa-copy-button" data-maa-copy-target="maa-local-cli-connect-command"><?php echo esc_html__( 'Copy connect command', 'magick-ai-adapter' ); ?></button>
+						</div>
+						<div class="maa-copy-row maa-command-row">
+							<div>
+								<span class="maa-label"><?php echo esc_html__( 'Status command', 'magick-ai-adapter' ); ?></span>
+								<code class="maa-copy-value" id="maa-local-cli-status-command"><?php echo esc_html( $local_cli_status_command ); ?></code>
+							</div>
+							<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-status-command"><?php echo esc_html__( 'Copy status command', 'magick-ai-adapter' ); ?></button>
+						</div>
+						<details class="maa-inline-disclosure">
+							<summary>
+								<strong><?php echo esc_html__( 'Full OpenClaw instructions', 'magick-ai-adapter' ); ?></strong>
+								<span class="description"><?php echo esc_html__( 'Copy only when the client needs the longer setup text.', 'magick-ai-adapter' ); ?></span>
+							</summary>
+							<p class="description"><?php echo esc_html__( 'Do not ask OpenClaw to read the local keypair profile file. Writes still require Core proposal, approval, and preflight.', 'magick-ai-adapter' ); ?></p>
+							<textarea id="maa-local-cli-setup" rows="14" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
+							<p class="maa-action-row">
+								<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy OpenClaw CLI instructions', 'magick-ai-adapter' ); ?></button>
 							</p>
-							<?php if ( ! $can_create_password ) : ?>
-								<p class="description"><?php echo esc_html__( 'Application Passwords are not available for this user or site.', 'magick-ai-adapter' ); ?></p>
-							<?php endif; ?>
-						</form>
+						</details>
 					</div>
 
-					<div class="maa-section">
-						<h2><?php echo esc_html__( 'OpenClaw endpoint', 'magick-ai-adapter' ); ?></h2>
+					<details class="maa-section">
+						<summary>
+							<strong><?php echo esc_html__( 'Connection values', 'magick-ai-adapter' ); ?></strong>
+							<span class="description"><?php echo esc_html__( 'Adapter URL, user, and manifest URL.', 'magick-ai-adapter' ); ?></span>
+						</summary>
 						<div class="maa-copy-row">
 							<div>
 								<span class="maa-label"><?php echo esc_html__( 'Adapter Base URL', 'magick-ai-adapter' ); ?></span>
@@ -505,46 +554,68 @@ final class Connection_Page {
 						</div>
 						<div class="maa-copy-row">
 							<div>
-								<span class="maa-label"><?php echo esc_html__( 'Client config', 'magick-ai-adapter' ); ?></span>
-								<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder. Paste the real password only into OpenClaw dedicated secret field.', 'magick-ai-adapter' ); ?></p>
-								<textarea id="maa-client-config" hidden readonly><?php echo esc_textarea( $client_config ); ?></textarea>
+								<span class="maa-label"><?php echo esc_html__( 'Connection manifest', 'magick-ai-adapter' ); ?></span>
+								<code class="maa-copy-value" id="maa-manifest-url"><?php echo esc_html( $manifest_url ); ?></code>
 							</div>
-							<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-client-config"><?php echo esc_html__( 'Copy env', 'magick-ai-adapter' ); ?></button>
+							<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-manifest-url"><?php echo esc_html__( 'Copy manifest URL', 'magick-ai-adapter' ); ?></button>
 						</div>
 						<p class="description"><?php echo esc_html__( 'Writes require Core proposal approval before Adapter execution.', 'magick-ai-adapter' ); ?></p>
-					</div>
+					</details>
 				</div>
 
-				<div class="maa-section">
-					<h2><?php echo esc_html__( 'Local OpenClaw CLI', 'magick-ai-adapter' ); ?></h2>
-					<p><?php echo esc_html__( 'Manage the local key-pair connection used by OpenClaw. Adapter stores only public keys; local private keys stay in the user profile file.', 'magick-ai-adapter' ); ?></p>
-					<div class="maa-copy-row">
-						<div>
-							<span class="maa-label"><?php echo esc_html__( 'Status command', 'magick-ai-adapter' ); ?></span>
-							<code class="maa-copy-value" id="maa-local-cli-status-command"><?php echo esc_html( $local_cli_status_command ); ?></code>
-						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-status-command"><?php echo esc_html__( 'Copy status command', 'magick-ai-adapter' ); ?></button>
-					</div>
-					<div class="maa-copy-row">
-						<div>
-							<span class="maa-label"><?php echo esc_html__( 'Reconnect command', 'magick-ai-adapter' ); ?></span>
-							<code class="maa-copy-value" id="maa-local-cli-connect-command"><?php echo esc_html( $local_cli_connect_command ); ?></code>
-						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-connect-command"><?php echo esc_html__( 'Copy reconnect command', 'magick-ai-adapter' ); ?></button>
-					</div>
-					<p>
-						<label for="maa-local-cli-setup"><span class="maa-label"><?php echo esc_html__( 'OpenClaw instructions', 'magick-ai-adapter' ); ?></span></label>
-						<textarea id="maa-local-cli-setup" rows="14" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
-					</p>
-					<p class="maa-action-row">
-						<button type="button" class="button button-primary maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy OpenClaw CLI instructions', 'magick-ai-adapter' ); ?></button>
-					</p>
-					<h3><?php echo esc_html__( 'Authorized public keys', 'magick-ai-adapter' ); ?></h3>
+				<details class="maa-section">
+					<summary>
+						<strong><?php echo esc_html__( 'Authorized clients', 'magick-ai-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'View or revoke signed key-pair clients.', 'magick-ai-adapter' ); ?></span>
+					</summary>
+					<p><?php echo esc_html__( 'Revoke a public key to stop the matching local profile from authenticating. Adapter never stores the private key.', 'magick-ai-adapter' ); ?></p>
 					<?php $this->render_key_pair_clients_table( $key_records ); ?>
-				</div>
+				</details>
 
-				<div class="maa-section">
-					<h2><?php echo esc_html__( 'Proposal status', 'magick-ai-adapter' ); ?></h2>
+				<details class="maa-section">
+					<summary>
+						<strong><?php echo esc_html__( 'Application Password fallback', 'magick-ai-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Use only when a client has a dedicated credential or secret field.', 'magick-ai-adapter' ); ?></span>
+					</summary>
+					<p><?php echo esc_html__( 'This fallback creates a one-time WordPress Application Password for clients that cannot use signed key-pair requests. Paste the real password only into the client dedicated secret field, never into chat, tool commands, logs, proposal payloads, files, or copied setup text.', 'magick-ai-adapter' ); ?></p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="<?php echo esc_attr( self::CREATE_ACTION ); ?>" />
+						<?php wp_nonce_field( self::CREATE_ACTION ); ?>
+						<p>
+							<label for="magick-ai-adapter-password-name-compact"><span class="maa-label"><?php echo esc_html__( 'Application name', 'magick-ai-adapter' ); ?></span></label>
+							<input id="magick-ai-adapter-password-name-compact" class="regular-text" type="text" name="application_name" value="OpenClaw via Magick AI Adapter" />
+						</p>
+						<div class="maa-option">
+							<label>
+								<input type="checkbox" name="include_local_tls" value="1" <?php checked( $this->is_local_url( home_url() ) ); ?> />
+								<span><?php echo esc_html__( 'Include LocalWP TLS setting', 'magick-ai-adapter' ); ?></span>
+							</label>
+							<p class="description"><?php echo esc_html__( 'Use only for localhost or .local testing. This only changes copied client configuration.', 'magick-ai-adapter' ); ?></p>
+						</div>
+						<p class="maa-form-actions">
+							<button type="submit" class="button" <?php disabled( ! $can_create_password ); ?>>
+								<?php echo esc_html__( 'Create Application Password fallback', 'magick-ai-adapter' ); ?>
+							</button>
+						</p>
+						<?php if ( ! $can_create_password ) : ?>
+							<p class="description"><?php echo esc_html__( 'Application Passwords are not available for this user or site.', 'magick-ai-adapter' ); ?></p>
+						<?php endif; ?>
+					</form>
+					<div class="maa-copy-row">
+						<div>
+							<span class="maa-label"><?php echo esc_html__( 'Fallback env placeholder', 'magick-ai-adapter' ); ?></span>
+							<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder only.', 'magick-ai-adapter' ); ?></p>
+							<textarea id="maa-client-config" hidden readonly><?php echo esc_textarea( $client_config ); ?></textarea>
+						</div>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-client-config"><?php echo esc_html__( 'Copy fallback env', 'magick-ai-adapter' ); ?></button>
+					</div>
+				</details>
+
+				<details class="maa-section"<?php echo '' !== $lookup_id ? ' open' : ''; ?>>
+					<summary>
+						<strong><?php echo esc_html__( 'Proposal lookup', 'magick-ai-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Check a proposal after OpenClaw creates one.', 'magick-ai-adapter' ); ?></span>
+					</summary>
 					<p><?php echo esc_html__( 'Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval.', 'magick-ai-adapter' ); ?></p>
 					<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 						<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>" />
@@ -558,7 +629,7 @@ final class Connection_Page {
 						</p>
 					</form>
 					<?php $this->render_proposal_lookup_result( $lookup_id, $lookup_result ); ?>
-				</div>
+				</details>
 			</div>
 
 			<div id="maa-panel-advanced" class="maa-tab-panel" role="tabpanel" aria-labelledby="maa-tab-advanced" hidden>
@@ -572,7 +643,7 @@ final class Connection_Page {
 					<p><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $capabilities_url ); ?></code></p>
 				</details>
 
-				<details class="maa-section" open>
+				<details class="maa-section">
 					<summary>
 						<strong><?php echo esc_html__( 'Key pair clients', 'magick-ai-adapter' ); ?></strong>
 						<span class="description"><?php echo esc_html__( 'Device-paired clients that sign Adapter requests.', 'magick-ai-adapter' ); ?></span>
@@ -580,7 +651,7 @@ final class Connection_Page {
 					<p><?php echo esc_html__( 'Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval.', 'magick-ai-adapter' ); ?></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Manifest', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $manifest_url ); ?></code></p>
 					<p><span class="maa-label"><?php echo esc_html__( 'Key pairs', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $key_pairs_url ); ?></code></p>
-					<p class="description"><?php echo esc_html__( 'Manage authorized public keys from the Local OpenClaw CLI section on the Connection tab.', 'magick-ai-adapter' ); ?></p>
+					<p class="description"><?php echo esc_html__( 'Manage authorized public keys from the Recommended local signed key-pair section on the Connection tab.', 'magick-ai-adapter' ); ?></p>
 				</details>
 
 				<details class="maa-section">
@@ -1517,7 +1588,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function local_cli_prefix(): string {
-		return 'node ' . wp_normalize_path( dirname( dirname( __DIR__ ) ) . '/tools/magick-adapter.mjs' );
+		return 'cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter';
 	}
 
 	/**
