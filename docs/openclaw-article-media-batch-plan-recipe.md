@@ -39,6 +39,7 @@ review evidence, or execute arbitrary writes for this recipe.
       {
         "title": "Draft title",
         "content_markdown": "Reviewed draft body.",
+        "file_name": "local-ai-plugins-hero-20260604153000-a1b2c3d4.jpg",
         "image_candidate": {
           "provider": "unsplash",
           "regular_url": "https://images.example.test/photo.jpg",
@@ -109,6 +110,9 @@ POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
   `magick-ai/update-media-details`, and
   `magick-ai/set-post-featured-image`
 - image source attribution is preserved
+- optional `file_name` values are treated as reviewed customer media names and
+  are forwarded only through the governed `magick-ai/upload-media-from-url`
+  action
 - `core_proxy_execute=false`
 - `commit_execution=false`
 - `publish_allowed=false`

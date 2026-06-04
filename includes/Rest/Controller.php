@@ -233,7 +233,7 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'magick-ai/upload-media-from-url' => array(
-				'allowed_input_fields'  => array( 'url', 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'attach_to_post_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'allowed_input_fields'  => array( 'url', 'title', 'file_name', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'attach_to_post_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'source_type' => array(
 						'allowed' => array( 'owned', 'ai_generated', 'stock', 'external', 'test' ),
@@ -297,7 +297,7 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'magick-ai/adopt-cloud-media-derivative' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'magick_ai_adapter_attachment_id_required',

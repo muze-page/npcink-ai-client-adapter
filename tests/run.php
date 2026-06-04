@@ -418,6 +418,8 @@ foreach (
 		'patch-setting-value target_type must be option or theme_mod.',
 			'magick_ai_adapter_derivative_artifact_required',
 			'derivative_artifact',
+			"'url', 'title', 'file_name'",
+			"'expected_derivative_mime_type', 'file_name', 'backup_suffix'",
 			'media_details_input',
 			'from_plan_request',
 			'media_optimization_plan',

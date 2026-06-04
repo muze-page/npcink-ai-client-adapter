@@ -288,7 +288,8 @@ requires `post_id`; `create-draft` requires `title`; `update-post` requires
 requires a valid `taxonomy` and `term_id`; `update-media-details` requires
 `attachment_id` plus at least one media detail field; media `source_type`, when
 provided, must be one of `owned`, `ai_generated`, `stock`, `external`, or
-`test`; `patch-post-content` requires `post_id` and bounded exact replacement
+`test`; `upload-media-from-url` may accept a reviewed `file_name` for the new
+media object; `patch-post-content` requires `post_id` and bounded exact replacement
 `operations`; `patch-setting-value` requires `target_type`, `target_name`, and
 bounded exact replacement `operations`; `optimize-media-asset` requires `attachment_id`, may accept bounded
 format, width, quality, and suffix inputs, and must preserve the original file;
@@ -296,8 +297,9 @@ format, width, quality, and suffix inputs, and must preserve the original file;
 `derivative_relative_file` for replace mode or a `replacement_id` for rollback
 mode, and records backup/rollback metadata;
 `adopt-cloud-media-derivative` requires `attachment_id` and
-`derivative_artifact` evidence, then delegates any approved local download,
-backup, attachment pointer, and metadata writes to the WordPress ability;
+`derivative_artifact` evidence, may accept a reviewed `file_name` for the
+adopted derivative, then delegates any approved local download, backup,
+attachment pointer, and metadata writes to the WordPress ability;
 `delete-media-permanently` requires an existing attachment `attachment_id`;
 `reply-comment` requires `comment_id`, non-empty `content`, and a valid
 `content_format`; `trash-comment` requires `comment_id`;
