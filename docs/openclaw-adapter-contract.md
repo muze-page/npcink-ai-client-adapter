@@ -289,6 +289,13 @@ the next Adapter execute request for the same approved proposal input. OpenClaw
 must not call Core commit-preflight directly and then ask Adapter to execute the
 same proposal.
 
+Dry-run-only proposal verification stops at Adapter commit-preflight. Adapter
+`execute`, `execute-approved-proposal`, and `approve-and-execute` routes are
+final write paths; immediately before dispatching a WordPress ability, Adapter
+normalizes the ability input to `dry_run=false` and `commit=true`. OpenClaw
+must not call an execute route when the operator only asked to verify a
+dry-run proposal or preflight.
+
 Before Adapter calls the WordPress Abilities API for a final allowlisted write,
 it must verify Core's `approval_context.approved_input_hash` matches the current
 proposal input hash and that `approval_context.policy_version` is
@@ -861,13 +868,14 @@ OpenClaw must treat Core as the only proposal and approval truth:
 3. Poll `GET /proposals/{proposal_id}` through the adapter for Core status.
 4. If `status=pending` and the user chooses the unified OpenClaw action, call
    `POST /proposals/{proposal_id}/approve-and-execute`. Adapter calls Core
-   approve, then Core commit-preflight, then one allowlisted execution.
+   approve, then Core commit-preflight, then one allowlisted final write.
 5. If `status=rejected`, stop and show the rejection state or reason returned
    by Core.
 6. If using the lower-level split path and `status=approved`, call
    `POST /proposals/{proposal_id}/execute`. Use Adapter commit-preflight only
-   as an advanced diagnostic step and follow it immediately with Adapter
-   execute.
+   as an advanced diagnostic step. For dry-run-only verification, stop at
+   commit-preflight and do not call execute. If execution is intended, Adapter
+   execute normalizes ability input to `dry_run=false` and `commit=true`.
 7. Adapter stops unless the ability is
    allowlisted for Adapter execution, currently `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,

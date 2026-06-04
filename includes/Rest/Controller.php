@@ -1895,6 +1895,8 @@ final class Controller {
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
+					'execute_commit_policy' => 'Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true.',
+					'dry_run_verification_policy' => 'Dry-run proposal verification stops at Adapter commit-preflight; do not call execute for a dry-run-only check.',
 				),
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
@@ -1944,6 +1946,8 @@ final class Controller {
 							'batch'  => 'proposal.input.write_actions[]',
 							'max_actions' => self::MAX_EXECUTION_ACTIONS,
 							'partial_success' => false,
+							'execute_commit_policy' => 'final_write_normalizes_dry_run_false_commit_true',
+							'dry_run_verification_route' => 'POST /proposals/{proposal_id}/commit-preflight',
 						),
 					),
 					'unified_approve_and_execute' => array(
@@ -1957,6 +1961,8 @@ final class Controller {
 							'batch'  => 'proposal.input.write_actions[]',
 							'max_actions' => self::MAX_EXECUTION_ACTIONS,
 							'partial_success' => false,
+							'execute_commit_policy' => 'final_write_normalizes_dry_run_false_commit_true',
+							'dry_run_verification_route' => 'POST /proposals/{proposal_id}/commit-preflight',
 						),
 					),
 					'plan_to_proposal' => array(
@@ -2070,6 +2076,8 @@ final class Controller {
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
 					'max_actions' => self::MAX_EXECUTION_ACTIONS,
 					'partial_success' => false,
+					'execute_commit_policy' => 'Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true.',
+					'dry_run_verification_policy' => 'Dry-run proposal verification stops at Adapter commit-preflight; do not call execute for a dry-run-only check.',
 				),
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
@@ -2567,10 +2575,10 @@ final class Controller {
 			'POST /proposals/from-plan' => 'Forward a read-only plan output to Core plan-to-proposal intake.',
 			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
 			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
-			'POST /proposals/{proposal_id}/commit-preflight' => 'Advanced diagnostic route: run Core commit preflight without final writes and cache the one-time handoff for the next Adapter execute call.',
-			'POST /execute-approved-proposal' => 'Execute one approved proposal after Core commit preflight or a cached Adapter preflight handoff; supports allowlisted single inputs or write_actions.',
-			'POST /proposals/{proposal_id}/execute' => 'Execute one approved proposal by id after Core commit preflight or a cached Adapter preflight handoff; supports allowlisted single inputs or write_actions.',
-			'POST /proposals/{proposal_id}/approve-and-execute' => 'Approve a pending proposal through Core, then preflight and execute one allowlisted single input or write_actions.',
+			'POST /proposals/{proposal_id}/commit-preflight' => 'Advanced diagnostic route: run Core commit preflight without final writes and cache the one-time handoff for the next Adapter execute call; dry-run verification stops here.',
+			'POST /execute-approved-proposal' => 'Final write route: execute one approved proposal after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
+			'POST /proposals/{proposal_id}/execute' => 'Final write route: execute one approved proposal by id after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
+			'POST /proposals/{proposal_id}/approve-and-execute' => 'Final write route: approve a pending proposal through Core, then preflight and execute one allowlisted single input or write_actions with dry_run=false and commit=true.',
 			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
 			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
 		);

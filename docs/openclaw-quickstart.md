@@ -416,8 +416,9 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
 
 8. Use Adapter commit-preflight only as an advanced diagnostic route. When it
    succeeds through Adapter, Adapter caches the one-time Core handoff for the
-   next Adapter execute call. Do not call Core commit-preflight directly from
-   OpenClaw.
+   next Adapter execute call. Dry-run-only verification stops here; do not call
+   execute when the operator only asked for proposal/preflight validation. Do
+   not call Core commit-preflight directly from OpenClaw.
 9. For approved proposal execution, only `magick-ai/trash-post`,
    `magick-ai/create-draft`, `magick-ai/update-post`,
    `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
@@ -439,9 +440,10 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
 
 Adapter calls Core approve when the proposal is pending, calls Core
 commit-preflight, verifies `approval_commit_authorized=true` and
-`commit_execution=false`, then executes one WordPress Abilities API call. Core
-remains the governance backend for proposal state, approval, preflight, and
-audit.
+`commit_execution=false`, then executes one WordPress Abilities API call.
+Adapter execute routes are final write paths and normalize ability input to
+`dry_run=false` and `commit=true`. Core remains the governance backend for
+proposal state, approval, preflight, and audit.
 
 For a batch plan-shaped proposal, the same route accepts
 `input.write_actions[]` only when every action targets the Adapter execution
@@ -460,8 +462,9 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
 Adapter fetches the Core proposal, consumes a cached Adapter preflight handoff
 when one was issued through Adapter, otherwise runs Core commit-preflight,
 requires `approval_commit_authorized=true`, requires `commit_execution=false`,
-passes Core `approval_context`, and executes one proposal through WordPress
-Abilities API. The adapter does not create its own governance state.
+passes Core `approval_context`, normalizes ability input to `dry_run=false` and
+`commit=true`, and executes one proposal through WordPress Abilities API. The
+adapter does not create its own governance state.
 For abilities outside that execution allowlist, Adapter does not execute final
 WordPress writes.
 Future execution abilities must be added one by one to the Adapter allowlist

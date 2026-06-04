@@ -239,13 +239,15 @@ Run this order for a local acceptance pass:
     diagnostic coverage; if used, confirm Adapter reports
     `adapter_preflight_handoff_cached=true`, Core still returns
     `commit_execution=false`, and the next Adapter execute call consumes that
-    handoff.
+    handoff. For dry-run-only validation, stop at this step and do not call
+    execute.
 17. For the unified user action, call
     `POST /proposals/{proposal_id}/approve-and-execute` from Adapter/OpenClaw.
     Confirm Adapter approved through Core when status was pending, ran Core
     commit-preflight, returned `proposal_id`, `post_id`, `ability_id`, and
-    `correlation_id`, returned an `execution_record`, and moved the test post
-    to `trash`.
+    `correlation_id`, normalized ability input to `dry_run=false` and
+    `commit=true`, returned an `execution_record`, and moved the test post to
+    `trash`.
     Repeating the same execute or approve-and-execute request must return
     `magick_ai_adapter_execution_already_completed` with the original
     `execution_record` and must not run the WordPress ability again.
@@ -266,9 +268,10 @@ Run this order for a local acceptance pass:
     `magick-ai/reply-comment`, `magick-ai/trash-comment`, or
     `magick-ai/approve-comment` path and call
     `POST /proposals/{proposal_id}/execute`. Confirm Adapter performed Core
-    preflight, passed `approval_context`, returned `proposal_id`,
-    `correlation_id`, and `ability_id`, and did not execute pending or
-    preflight-failed proposals.
+    preflight, passed `approval_context`, normalized ability input to
+    `dry_run=false` and `commit=true`, returned `proposal_id`,
+    `correlation_id`, and `ability_id`, and did not execute pending,
+    dry-run-only, or preflight-failed proposals.
 19. Confirm rejected proposals, non-allowlisted proposals, and preflight-blocked
     proposals do not execute through approve-and-execute.
 20. Pass `proposal_id` and `correlation_id` into later reads as query fields or
