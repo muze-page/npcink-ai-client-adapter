@@ -57,6 +57,7 @@ final class Controller {
 		'magick-ai-toolbox/build-article-write-plan'           => true,
 		'magick-ai-toolbox/build-article-batch-write-plan'     => true,
 		'magick-ai-toolbox/build-article-media-batch-write-plan' => true,
+		'magick-ai-toolbox/build-image-candidate-adoption-plan' => true,
 	);
 
 	/**
@@ -2258,6 +2259,59 @@ final class Controller {
 					'generic_write_executor'   => false,
 				),
 				'docs'         => 'docs/openclaw-article-media-batch-plan-recipe.md',
+			),
+			'image_candidate_adoption_plan' => array(
+				'title'                   => 'Image candidate adoption plan',
+				'description'             => 'Build a reviewed Toolbox image_candidate_adoption_plan, forward it to Core as one proposal, then execute only Core-approved media import, metadata, and optional featured-image actions.',
+				'entrypoint_ability_id'   => 'magick-ai-toolbox/build-image-candidate-adoption-plan',
+				'plan_ability_id'         => 'magick-ai-toolbox/build-image-candidate-adoption-plan',
+				'final_write_ability_ids' => array(
+					'magick-ai/upload-media-from-url',
+					'magick-ai/update-media-details',
+					'magick-ai/set-post-featured-image',
+				),
+				'steps'                   => array(
+					array(
+						'order'      => 1,
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/search-image-source',
+						'purpose'    => 'Collect stock, generated, external, or owned image_candidate.v1 candidates for operator review.',
+					),
+					array(
+						'order'      => 2,
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/build-image-candidate-adoption-plan',
+						'purpose'    => 'Build a reviewed image_candidate_adoption_plan without importing media or writing WordPress content.',
+					),
+					array(
+						'order'   => 3,
+						'route'   => 'POST /proposals/from-plan',
+						'purpose' => 'Forward the adoption plan to Core plan intake with plan_ability_id and caller metadata.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'GET /proposals/{proposal_id}',
+						'purpose' => 'Poll the Core-owned proposal status through Adapter.',
+					),
+					array(
+						'order'   => 5,
+						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute only allowlisted media write_actions.',
+					),
+				),
+				'guardrails'              => array(
+					'artifact_type'                      => 'image_candidate_adoption_plan',
+					'candidate_contract'                 => 'image_candidate.v1',
+					'proposal_mode'                      => 'batch',
+					'batch_approval'                     => true,
+					'core_preflight_required'            => true,
+					'image_source_attribution_required' => true,
+					'core_proxy_execute'                 => false,
+					'commit_execution'                   => false,
+					'cloud_control_plane'                => false,
+					'generic_write_executor'             => false,
+				),
+				'docs'                    => 'docs/openclaw-image-candidate-adoption-plan-recipe.md',
 			),
 			'content_discoverability_suggestions' => array(
 				'title'       => 'Content discoverability suggestions',

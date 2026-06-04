@@ -405,6 +405,9 @@ For the OpenClaw article draft planning recipe, use
 For the OpenClaw article batch draft planning recipe, use
 [`docs/openclaw-article-batch-draft-plan-recipe.md`](docs/openclaw-article-batch-draft-plan-recipe.md).
 
+For the OpenClaw image candidate adoption recipe, use
+[`docs/openclaw-image-candidate-adoption-plan-recipe.md`](docs/openclaw-image-candidate-adoption-plan-recipe.md).
+
 For the OpenClaw SEO/AEO/GEO suggestion recipe, use
 [`docs/openclaw-content-discoverability-recipe.md`](docs/openclaw-content-discoverability-recipe.md).
 The primary SEO/GEO/AEO entrypoint is
@@ -526,6 +529,14 @@ Plan-to-proposal flow:
 	   playbook is exposed as `openclaw_recipes.article_media_batch_plan` from
 	   `GET /help`. See
 	   [OpenClaw Article Media Batch Plan Recipe](docs/openclaw-article-media-batch-plan-recipe.md).
+	   For adopting one reviewed `image_candidate.v1` into the media library,
+	   call `magick-ai-toolbox/build-image-candidate-adoption-plan`; Core
+	   creates one batch proposal and Adapter later executes only approved
+	   `magick-ai/upload-media-from-url`, `magick-ai/update-media-details`, and
+	   optional `magick-ai/set-post-featured-image` actions. The
+	   machine-readable playbook is exposed as
+	   `openclaw_recipes.image_candidate_adoption_plan` from `GET /help`. See
+	   [OpenClaw Image Candidate Adoption Plan Recipe](docs/openclaw-image-candidate-adoption-plan-recipe.md).
 
 Proposal-required write flow:
 

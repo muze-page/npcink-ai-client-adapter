@@ -406,8 +406,11 @@ foreach (
 			'magick-ai-toolbox/build-article-write-plan',
 			'magick-ai-toolbox/build-article-batch-write-plan',
 			'magick-ai-toolbox/build-article-media-batch-write-plan',
+			'magick-ai-toolbox/build-image-candidate-adoption-plan',
 			'article_batch_draft_plan',
+			'image_candidate_adoption_plan',
 			'docs/openclaw-article-batch-draft-plan-recipe.md',
+			'docs/openclaw-image-candidate-adoption-plan-recipe.md',
 			'magick-ai-toolbox/build-content-discoverability-brief',
 		'magick-ai/upload-media-from-url',
 		'magick-ai/set-post-featured-image',
@@ -787,16 +790,19 @@ foreach (
 			'magick-ai-toolbox/build-article-write-plan',
 			'magick-ai-toolbox/build-article-batch-write-plan',
 			'magick-ai-toolbox/build-article-media-batch-write-plan',
+			'magick-ai-toolbox/build-image-candidate-adoption-plan',
 			'magick-ai-toolbox/build-ai-article-writing-pack',
 			'openclaw_recipes.article_draft_plan',
 			'openclaw_recipes.article_batch_draft_plan',
 			'openclaw_recipes.article_media_batch_plan',
+			'openclaw_recipes.image_candidate_adoption_plan',
 			'docs/openclaw-ai-article-writing-pack-recipe.md',
 			'The primary SEO/GEO/AEO entrypoint is',
 			'Use `article-writing-pack` only for broad natural-language requests',
 			'docs/openclaw-article-draft-plan-recipe.md',
 			'docs/openclaw-article-batch-draft-plan-recipe.md',
 			'docs/openclaw-article-media-batch-plan-recipe.md',
+			'docs/openclaw-image-candidate-adoption-plan-recipe.md',
 		'skipped_destructive_candidates',
 		'write_actions',
 		'Plan-to-proposal flow',
@@ -1711,6 +1717,28 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $article_media_batch_recipe, $required ), 'Article media batch recipe contains required text: ' . $required );
+}
+
+$image_candidate_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-image-candidate-adoption-plan-recipe.md' );
+foreach (
+	array(
+		'OpenClaw Image Candidate Adoption Plan Recipe',
+		'magick-ai-toolbox/build-image-candidate-adoption-plan',
+		'image_candidate_adoption_plan',
+		'image_candidate.v1',
+		'magick-ai-toolbox/search-image-source',
+		'magick-ai/upload-media-from-url',
+		'magick-ai/update-media-details',
+		'magick-ai/set-post-featured-image',
+		'POST /wp-json/magick-ai-adapter/v1/proposals/from-plan',
+		'POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute',
+		'core_proxy_execute=false',
+		'commit_execution=false',
+		'cloud_control_plane=false',
+		'Adapter does not search providers, generate images, import media',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $image_candidate_adoption_recipe, $required ), 'Image candidate adoption recipe contains required text: ' . $required );
 }
 
 $batch_policy = maa_adapter_read( $root . '/docs/openclaw-batch-execution-policy.md' );

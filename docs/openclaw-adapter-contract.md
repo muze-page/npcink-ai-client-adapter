@@ -130,9 +130,11 @@ direct reads:
 - `magick-ai/build-media-inventory-fix-plan`
 - `magick-ai/build-media-reference-repair-plan`
 - `magick-ai/build-media-settings-reference-repair-plan`
+- `magick-ai/build-media-optimization-plan`
 - `magick-ai-toolbox/build-article-write-plan`
 - `magick-ai-toolbox/build-article-batch-write-plan`
 - `magick-ai-toolbox/build-article-media-batch-write-plan`
+- `magick-ai-toolbox/build-image-candidate-adoption-plan`
 
 OpenClaw may also use direct read execution for media format inspection:
 
@@ -163,6 +165,16 @@ For Toolbox article media batch writing,
 a batch proposal handoff; each executable action must still target an explicit
 Adapter profile such as `magick-ai/create-draft`,
 `magick-ai/upload-media-from-url`, `magick-ai/update-media-details`, or
+`magick-ai/set-post-featured-image`, and pass Core approval plus
+commit-preflight before Adapter execution.
+
+For Toolbox image candidate adoption,
+`magick-ai-toolbox/build-image-candidate-adoption-plan` returns a reviewed
+`image_candidate_adoption_plan` from one normalized `image_candidate.v1`
+candidate. Adapter may forward that plan to Core only as a batch proposal
+handoff; each executable action must still target an explicit Adapter profile
+such as `magick-ai/upload-media-from-url`,
+`magick-ai/update-media-details`, or
 `magick-ai/set-post-featured-image`, and pass Core approval plus
 commit-preflight before Adapter execution.
 
@@ -218,6 +230,27 @@ reviewed article drafts with selected image-source candidates:
 The article media batch recipe must preserve image-source attribution and keep
 `batch_approval=true`, `partial_success=false`, `core_proxy_execute=false`,
 `commit_execution=false`, `draft_only=true`, and `publish_allowed=false`.
+
+`GET /help` also includes `openclaw_recipes.image_candidate_adoption_plan` for
+reviewed adoption of one image candidate into the media library:
+
+- entrypoint ability:
+  `magick-ai-toolbox/build-image-candidate-adoption-plan`
+- candidate contract: `image_candidate.v1`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write abilities: `magick-ai/upload-media-from-url`,
+  `magick-ai/update-media-details`, and optional
+  `magick-ai/set-post-featured-image`
+- artifact type: `image_candidate_adoption_plan`
+- proposal mode: `batch`
+
+The image candidate adoption recipe must preserve source attribution and keep
+`batch_approval=true`, `core_proxy_execute=false`,
+`commit_execution=false`, and `cloud_control_plane=false`. Adapter does not
+search stock providers, generate images, upload media, set featured images, or
+create a media registry by itself.
 
 `commit_execution=false` means no write happened, `dry_run=true` means preview
 only, and `requires_approval=true` means the plan must be handed to Core or the
