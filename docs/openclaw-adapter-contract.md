@@ -181,6 +181,11 @@ The recipe must keep `core_proxy_execute=false`,
 `commit_execution=false`, `draft_only=true`, and `publish_allowed=false`.
 Adapter does not become an article workflow runtime or a Cloud control plane.
 
+Toolbox may expose click-driven buttons for the same fixed flows that Adapter
+publishes to OpenClaw. Those buttons must mirror the same ability ids, artifact
+types, and Core proposal handoff routes; they do not make Toolbox a second
+OpenClaw recipe owner, proposal truth, approval surface, or write executor.
+
 `GET /help` also includes `openclaw_recipes.article_batch_draft_plan` for
 reviewed 2-5 article draft batches:
 
