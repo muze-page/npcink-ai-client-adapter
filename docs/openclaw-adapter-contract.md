@@ -196,6 +196,24 @@ The batch recipe must keep `batch_approval=true`, `partial_success=false`,
 `core_proxy_execute=false`, `commit_execution=false`, `draft_only=true`, and
 `publish_allowed=false`.
 
+`GET /help` also includes `openclaw_recipes.article_media_batch_plan` for
+reviewed article drafts with selected image-source candidates:
+
+- entrypoint ability:
+  `magick-ai-toolbox/build-article-media-batch-write-plan`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write abilities: `magick-ai/create-draft`,
+  `magick-ai/upload-media-from-url`, `magick-ai/update-media-details`, and
+  `magick-ai/set-post-featured-image`
+- artifact type: `article_media_batch_write_plan`
+- proposal mode: `batch`
+
+The article media batch recipe must preserve image-source attribution and keep
+`batch_approval=true`, `partial_success=false`, `core_proxy_execute=false`,
+`commit_execution=false`, `draft_only=true`, and `publish_allowed=false`.
+
 `commit_execution=false` means no write happened, `dry_run=true` means preview
 only, and `requires_approval=true` means the plan must be handed to Core or the
 host governance layer. Adapter must not execute, approve, or promote

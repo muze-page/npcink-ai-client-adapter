@@ -495,7 +495,8 @@ Plan-to-proposal flow:
 	   `magick-ai/build-media-reference-repair-plan`, or
 	   `magick-ai/build-media-settings-reference-repair-plan`, or
 	   `magick-ai-toolbox/build-article-write-plan`, or
-	   `magick-ai-toolbox/build-article-batch-write-plan`.
+	   `magick-ai-toolbox/build-article-batch-write-plan`, or
+	   `magick-ai-toolbox/build-article-media-batch-write-plan`.
 2. The adapter preserves plan fields including `batch_id`, `issue_types`,
    `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
    `requires_approval`, `commit_execution`, `dry_run`, `manual_review`,
@@ -516,6 +517,15 @@ Plan-to-proposal flow:
 	   `magick-ai/create-draft` write actions. The machine-readable playbook is
 	   exposed as `openclaw_recipes.article_batch_draft_plan` from `GET /help`.
 	   See [OpenClaw Article Batch Draft Plan Recipe](docs/openclaw-article-batch-draft-plan-recipe.md).
+	   For reviewed article batches with selected image-source candidates, use
+	   `magick-ai-toolbox/build-article-media-batch-write-plan`; Core creates one
+	   batch proposal and Adapter later executes only approved
+	   `magick-ai/create-draft`, `magick-ai/upload-media-from-url`,
+	   `magick-ai/update-media-details`, and
+	   `magick-ai/set-post-featured-image` actions. The machine-readable
+	   playbook is exposed as `openclaw_recipes.article_media_batch_plan` from
+	   `GET /help`. See
+	   [OpenClaw Article Media Batch Plan Recipe](docs/openclaw-article-media-batch-plan-recipe.md).
 
 Proposal-required write flow:
 

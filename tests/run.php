@@ -261,6 +261,7 @@ foreach (
 		'/workflow-recipe',
 		'openclaw_recipes',
 		'article_draft_plan',
+		'article_media_batch_plan',
 		'content_discoverability_suggestions',
 		'ai_article_draft_with_discoverability',
 		'media_derivative_cloud',
@@ -773,14 +774,17 @@ foreach (
 			'magick-ai/build-media-optimization-plan',
 			'magick-ai-toolbox/build-article-write-plan',
 			'magick-ai-toolbox/build-article-batch-write-plan',
+			'magick-ai-toolbox/build-article-media-batch-write-plan',
 			'magick-ai-toolbox/build-ai-article-writing-pack',
 			'openclaw_recipes.article_draft_plan',
 			'openclaw_recipes.article_batch_draft_plan',
+			'openclaw_recipes.article_media_batch_plan',
 			'docs/openclaw-ai-article-writing-pack-recipe.md',
 			'The primary SEO/GEO/AEO entrypoint is',
 			'Use `article-writing-pack` only for broad natural-language requests',
 			'docs/openclaw-article-draft-plan-recipe.md',
 			'docs/openclaw-article-batch-draft-plan-recipe.md',
+			'docs/openclaw-article-media-batch-plan-recipe.md',
 		'skipped_destructive_candidates',
 		'write_actions',
 		'Plan-to-proposal flow',
@@ -1132,8 +1136,11 @@ foreach (
 		'magick-ai/build-media-settings-reference-repair-plan',
 		'magick-ai-toolbox/build-article-write-plan',
 		'magick-ai-toolbox/build-article-batch-write-plan',
+		'magick-ai-toolbox/build-article-media-batch-write-plan',
 		'openclaw_recipes.article_batch_draft_plan',
+		'openclaw_recipes.article_media_batch_plan',
 		'article_batch_write_plan',
+		'article_media_batch_write_plan',
 		'skipped_destructive_candidates',
 		'magick-ai/delete-media-permanently',
 		'Approved Proposal Execution Contract',
@@ -1236,7 +1243,9 @@ foreach (
 		'magick-ai/build-media-settings-reference-repair-plan',
 		'magick-ai-toolbox/build-article-write-plan',
 		'magick-ai-toolbox/build-article-batch-write-plan',
+		'magick-ai-toolbox/build-article-media-batch-write-plan',
 		'openclaw_recipes.article_batch_draft_plan',
+		'openclaw_recipes.article_media_batch_plan',
 		'magick-ai-toolbox/build-content-discoverability-brief',
 		'plan-to-proposal forwarding',
 		'skipped_destructive_candidates',
@@ -1640,15 +1649,41 @@ foreach (
 		'provider_execution=none',
 		'final_write_path=core_proposal_required',
 		'magick-ai-toolbox/build-article-write-plan',
+		'magick-ai-toolbox/build-article-batch-write-plan',
+		'magick-ai-toolbox/build-article-media-batch-write-plan',
 		'POST /wp-json/magick-ai-adapter/v1/proposals/from-plan',
 		'Do not publish, schedule, upload media, set featured images, write SEO meta',
 		'not an article generator product',
 		'local review candidate',
 		'batch article writing',
+		'article drafts that also include selected image-source',
 		'Do not present OpenClaw as the article generator',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $article_writing_pack_recipe, $required ), 'AI article writing pack recipe contains required text: ' . $required );
+}
+
+$article_media_batch_recipe = maa_adapter_read( $root . '/docs/openclaw-article-media-batch-plan-recipe.md' );
+foreach (
+	array(
+		'OpenClaw Article Media Batch Plan Recipe',
+		'magick-ai-toolbox/build-article-media-batch-write-plan',
+		'article_media_batch_write_plan',
+		'magick-ai-toolbox/search-image-source',
+		'magick-ai/create-draft',
+		'magick-ai/upload-media-from-url',
+		'magick-ai/update-media-details',
+		'magick-ai/set-post-featured-image',
+		'POST /wp-json/magick-ai-adapter/v1/proposals/from-plan',
+		'POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute',
+		'image source attribution is preserved',
+		'core_proxy_execute=false',
+		'commit_execution=false',
+		'publish_allowed=false',
+		'partial_success=false',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $article_media_batch_recipe, $required ), 'Article media batch recipe contains required text: ' . $required );
 }
 
 $batch_policy = maa_adapter_read( $root . '/docs/openclaw-batch-execution-policy.md' );
@@ -1665,6 +1700,8 @@ foreach (
 		'target_ability_id=magick-ai/set-post-terms',
 		'target_ability_id=magick-ai/delete-term',
 		'target_ability_id=magick-ai/update-media-details',
+		'target_ability_id=magick-ai/upload-media-from-url',
+		'target_ability_id=magick-ai/set-post-featured-image',
 		'target_ability_id=magick-ai/delete-media-permanently',
 		'target_ability_id=magick-ai/reply-comment',
 		'target_ability_id=magick-ai/trash-comment',
