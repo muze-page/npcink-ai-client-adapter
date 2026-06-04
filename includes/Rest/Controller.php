@@ -46,12 +46,14 @@ final class Controller {
 	 * @var array<string,bool>
 	 */
 	private static $allowed_plan_ability_ids = array(
-		'magick-ai/build-content-inventory-fix-plan' => true,
-		'magick-ai/build-test-content-cleanup-plan'  => true,
-		'magick-ai/build-media-inventory-fix-plan'   => true,
-		'magick-ai/build-media-reference-repair-plan' => true,
+		'magick-ai/build-content-inventory-fix-plan'           => true,
+		'magick-ai/build-test-content-cleanup-plan'            => true,
+		'magick-ai/build-media-inventory-fix-plan'             => true,
+		'magick-ai/build-media-reference-repair-plan'          => true,
 		'magick-ai/build-media-settings-reference-repair-plan' => true,
-		'magick-ai-toolbox/build-article-write-plan' => true,
+		'magick-ai/build-media-optimization-plan'              => true,
+		'magick-ai-toolbox/build-article-write-plan'           => true,
+		'magick-ai-toolbox/build-article-batch-write-plan'     => true,
 	);
 
 	/**
@@ -665,6 +667,10 @@ final class Controller {
 							'type'    => 'object',
 							'default' => array(),
 						),
+						'media_details_input' => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
 					),
 				),
 			)
@@ -684,7 +690,7 @@ final class Controller {
 						},
 						'permission_callback' => array( $this, 'can_use_adapter' ),
 					),
-				)
+				),
 			);
 		}
 
@@ -2123,6 +2129,49 @@ final class Controller {
 				),
 				'docs'         => 'docs/openclaw-article-draft-plan-recipe.md',
 			),
+			'article_batch_draft_plan' => array(
+				'title'       => 'Article batch draft plan',
+				'description' => 'Build a reviewed Toolbox article_batch_write_plan, forward it to Core as one batch proposal, then execute only Core-approved draft creation actions.',
+				'entrypoint_ability_id' => 'magick-ai-toolbox/build-article-batch-write-plan',
+				'plan_ability_id' => 'magick-ai-toolbox/build-article-batch-write-plan',
+				'final_write_ability_id' => 'magick-ai/create-draft',
+				'steps'       => array(
+					array(
+						'order'      => 1,
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'magick-ai-toolbox/build-article-batch-write-plan',
+						'purpose'    => 'Build a reviewed 2-5 draft article_batch_write_plan without writing WordPress content.',
+					),
+					array(
+						'order'   => 2,
+						'route'   => 'POST /proposals/from-plan',
+						'purpose' => 'Forward the batch plan to Core plan intake with plan_ability_id and caller metadata.',
+					),
+					array(
+						'order'   => 3,
+						'route'   => 'GET /proposals/{proposal_id}',
+						'purpose' => 'Poll the Core-owned batch proposal status through Adapter.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted draft write_actions.',
+					),
+				),
+				'guardrails'   => array(
+					'artifact_type'            => 'article_batch_write_plan',
+					'proposal_mode'            => 'batch',
+					'batch_approval'           => true,
+					'core_preflight_required'  => true,
+					'draft_only'               => true,
+					'publish_allowed'          => false,
+					'core_proxy_execute'       => false,
+					'commit_execution'         => false,
+					'cloud_control_plane'      => false,
+					'generic_write_executor'   => false,
+				),
+				'docs'         => 'docs/openclaw-article-batch-draft-plan-recipe.md',
+			),
 			'content_discoverability_suggestions' => array(
 				'title'       => 'Content discoverability suggestions',
 				'description' => 'Validate Toolbox SEO/AEO/GEO context, build one suggestion-only brief, and return proposal-ready suggestions without writing WordPress data.',
@@ -2553,9 +2602,10 @@ final class Controller {
 			return $this->cloud_addon_unavailable_error();
 		}
 
-		$ability_response = $this->object_param( $request, 'ability_response' );
-		$cloud_result     = $this->object_param( $request, 'cloud_result' );
-		$artifact         = $this->object_param( $request, 'derivative_artifact' );
+		$ability_response    = $this->object_param( $request, 'ability_response' );
+		$cloud_result        = $this->object_param( $request, 'cloud_result' );
+		$artifact            = $this->object_param( $request, 'derivative_artifact' );
+		$media_details_input = $this->object_param( $request, 'media_details_input' );
 		if ( empty( $artifact ) ) {
 			$artifact = $this->media_derivative_artifact_from_cloud_result( $cloud_result );
 		}
@@ -2568,15 +2618,179 @@ final class Controller {
 		if ( is_wp_error( $payload ) ) {
 			return $payload;
 		}
+		$optimization_plan = $this->media_optimization_plan_from_derivative_payload( $payload, $media_details_input );
+		$response_payload  = array(
+			'contract_version'       => 'media_derivative_adapter_proposal_payload.v1',
+			'proposal_payload'       => $payload,
+			'media_optimization_plan' => $optimization_plan,
+			'core_proposal_required' => true,
+			'commit_execution'       => false,
+		);
+		if ( is_array( $optimization_plan['write_actions'] ?? null ) && count( (array) $optimization_plan['write_actions'] ) >= 2 ) {
+			$response_payload['from_plan_request'] = array(
+				'plan_ability_id' => 'magick-ai/build-media-optimization-plan',
+				'plan'            => $optimization_plan,
+			);
+			$response_payload['next_step'] = 'POST /proposals/from-plan with from_plan_request for one Core batch proposal.';
+		} else {
+			$response_payload['next_step'] = 'Provide reviewed media_details_input, then POST /proposals/from-plan with the returned from_plan_request; legacy single derivative proposal_payload remains available.';
+		}
 
 		return new WP_REST_Response(
-			array(
-				'contract_version' => 'media_derivative_adapter_proposal_payload.v1',
-				'proposal_payload' => $payload,
-				'core_proposal_required' => true,
-				'commit_execution' => false,
-			),
+			$response_payload,
 			200
+		);
+	}
+
+	/**
+	 * Builds the Core from-plan media optimization payload shape.
+	 *
+	 * @param array<string,mixed> $proposal_payload Legacy derivative proposal payload.
+	 * @param array<string,mixed> $media_details_input Reviewed metadata action input.
+	 * @return array<string,mixed>
+	 */
+	private function media_optimization_plan_from_derivative_payload( array $proposal_payload, array $media_details_input ): array {
+		$attachment_id  = absint( $proposal_payload['attachment_id'] ?? 0 );
+		$artifact       = is_array( $proposal_payload['artifact'] ?? null ) ? $proposal_payload['artifact'] : array();
+		$original       = is_array( $proposal_payload['original'] ?? null ) ? $proposal_payload['original'] : array();
+		$derivative     = is_array( $proposal_payload['derivative'] ?? null ) ? $proposal_payload['derivative'] : array();
+		$metadata_input = $this->sanitize_media_details_plan_input( $attachment_id, $media_details_input );
+
+		$metadata_preview = array(
+			'before' => array(),
+			'after'  => array_diff_key( $metadata_input, array( 'attachment_id' => true ) ),
+		);
+		$derivative_preview = array(
+			'before' => array(
+				'mime_type'      => sanitize_text_field( (string) ( $original['mime_type'] ?? '' ) ),
+				'width'          => absint( $original['width'] ?? 0 ),
+				'height'         => absint( $original['height'] ?? 0 ),
+				'filesize_bytes' => absint( $original['filesize_bytes'] ?? 0 ),
+			),
+			'after'  => array(
+				'artifact_id'    => sanitize_text_field( (string) ( $artifact['artifact_id'] ?? '' ) ),
+				'mime_type'      => sanitize_text_field( (string) ( $derivative['mime_type'] ?? ( $artifact['mime_type'] ?? '' ) ) ),
+				'width'          => absint( $derivative['width'] ?? ( $artifact['width'] ?? 0 ) ),
+				'height'         => absint( $derivative['height'] ?? ( $artifact['height'] ?? 0 ) ),
+				'filesize_bytes' => absint( $derivative['filesize_bytes'] ?? ( $artifact['filesize_bytes'] ?? 0 ) ),
+			),
+		);
+
+		$plan = array(
+			'artifact_type'      => 'media_optimization_plan',
+			'version'            => 1,
+			'batch_id'           => 'media_optimization_' . $attachment_id . '_' . gmdate( 'Ymd_His' ),
+			'attachment_id'      => $attachment_id,
+			'optimization_goal'  => 'image_seo_and_derivative_adoption',
+			'requires_approval'  => true,
+			'dry_run'            => true,
+			'commit_execution'   => false,
+			'proposal_mode'      => 'batch',
+			'batch_approval'     => true,
+			'action_count'       => 0,
+			'metadata_preview'   => $metadata_preview,
+			'derivative_preview' => $derivative_preview,
+			'preview'            => array(),
+			'write_actions'      => array(),
+			'requires_input'     => array(),
+			'proposal_ready'     => false,
+			'risk'               => array(
+				'level'  => 'medium',
+				'reason' => 'One attachment metadata update and one reviewed Cloud derivative adoption share one Core approval.',
+			),
+		);
+
+		if ( $attachment_id <= 0 || empty( $artifact['artifact_id'] ) ) {
+			$plan['requires_input'][] = 'valid_derivative_proposal_payload';
+			return $plan;
+		}
+
+		if ( count( $metadata_input ) <= 1 ) {
+			$plan['requires_input'][] = 'media_details_input';
+			return $plan;
+		}
+
+		$derivative_input = array(
+			'attachment_id'       => $attachment_id,
+			'derivative_artifact' => $artifact,
+		);
+		$current_mime     = sanitize_text_field( (string) ( $original['mime_type'] ?? '' ) );
+		$derivative_mime  = sanitize_text_field( (string) ( $derivative['mime_type'] ?? ( $artifact['mime_type'] ?? '' ) ) );
+		if ( '' !== $current_mime ) {
+			$derivative_input['expected_current_mime_type'] = $current_mime;
+		}
+		if ( '' !== $derivative_mime ) {
+			$derivative_input['expected_derivative_mime_type'] = $derivative_mime;
+		}
+
+		$plan['write_actions']  = array(
+			$this->adapter_plan_action( 'update_media_details_' . $attachment_id, 'magick-ai/update-media-details', $metadata_input, 'medium', 'Apply reviewed media SEO and source metadata as part of one media optimization approval.' ),
+			$this->adapter_plan_action( 'adopt_cloud_media_derivative_' . $attachment_id, 'magick-ai/adopt-cloud-media-derivative', $derivative_input, 'medium', 'Adopt the reviewed Cloud derivative artifact as the attachment main file after Core approval.' ),
+		);
+		$plan['action_count']   = count( $plan['write_actions'] );
+		$plan['proposal_ready'] = true;
+		$plan['preview'][]      = array(
+			'attachment_id'    => $attachment_id,
+			'before'           => array(
+				'metadata'   => array(),
+				'derivative' => $derivative_preview['before'],
+			),
+			'after_suggestion' => array(
+				'metadata'   => $metadata_preview['after'],
+				'derivative' => $derivative_preview['after'],
+			),
+		);
+
+		return $plan;
+	}
+
+	/**
+	 * Sanitizes update-media-details input for a generated plan.
+	 *
+	 * @param int                 $attachment_id Attachment id.
+	 * @param array<string,mixed> $input Raw metadata input.
+	 * @return array<string,mixed>
+	 */
+	private function sanitize_media_details_plan_input( int $attachment_id, array $input ): array {
+		$output = array( 'attachment_id' => $attachment_id );
+		foreach ( array( 'title', 'alt', 'caption', 'description', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice' ) as $field ) {
+			if ( array_key_exists( $field, $input ) && '' !== (string) $input[ $field ] ) {
+				$output[ $field ] = 'source_page_url' === $field ? esc_url_raw( (string) $input[ $field ] ) : sanitize_textarea_field( (string) $input[ $field ] );
+			}
+		}
+		if ( array_key_exists( 'source_type', $input ) ) {
+			$source_type = sanitize_key( (string) $input['source_type'] );
+			if ( in_array( $source_type, array( 'owned', 'ai_generated', 'stock', 'external', 'test' ), true ) ) {
+				$output['source_type'] = $source_type;
+			}
+		}
+		return $output;
+	}
+
+	/**
+	 * Builds one Adapter-authored plan action.
+	 *
+	 * @param string              $action_id Action id.
+	 * @param string              $ability_id Target ability id.
+	 * @param array<string,mixed> $input Target ability input.
+	 * @param string              $risk Risk.
+	 * @param string              $reason Reason.
+	 * @return array<string,mixed>
+	 */
+	private function adapter_plan_action( string $action_id, string $ability_id, array $input, string $risk, string $reason ): array {
+		$input['dry_run'] = true;
+		$input['commit']  = false;
+		return array(
+			'action_id'         => sanitize_key( $action_id ),
+			'target_ability_id' => sanitize_text_field( $ability_id ),
+			'input'             => $input,
+			'requires_approval' => true,
+			'commit_execution'  => false,
+			'required_scopes'   => array( 'media.write' ),
+			'risk'              => sanitize_key( $risk ),
+			'reason'            => sanitize_text_field( $reason ),
+			'requires_input'    => array(),
+			'proposal_ready'    => true,
 		);
 	}
 
@@ -3028,7 +3242,7 @@ final class Controller {
 						'adapter_request_id' => (string) ( $execution['adapter_request_id'] ?? '' ),
 						'executed_count'     => (int) ( $execution['executed_count'] ?? 0 ),
 						'failed_count'       => (int) ( $execution['failed_count'] ?? 0 ),
-					)
+					),
 				)
 			);
 
@@ -3120,7 +3334,7 @@ final class Controller {
 						'status'      => 409,
 						'proposal_id' => $proposal_id,
 						'core_result' => $approved,
-					)
+					),
 				);
 				$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
 				return $error;
@@ -3350,7 +3564,7 @@ final class Controller {
 						'field'          => (string) $field,
 						'value'          => $value,
 						'allowed_values' => $allowed,
-					)
+					),
 				)
 			);
 		}

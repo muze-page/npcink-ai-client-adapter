@@ -131,6 +131,7 @@ direct reads:
 - `magick-ai/build-media-reference-repair-plan`
 - `magick-ai/build-media-settings-reference-repair-plan`
 - `magick-ai-toolbox/build-article-write-plan`
+- `magick-ai-toolbox/build-article-batch-write-plan`
 
 OpenClaw may also use direct read execution for media format inspection:
 
@@ -148,6 +149,13 @@ but Core validates readiness, risk, blocked claims, and draft-only
 `magick-ai/create-draft` intent before any proposal can be approved or
 executed.
 
+For Toolbox article batch writing,
+`magick-ai-toolbox/build-article-batch-write-plan` returns a reviewed
+`article_batch_write_plan`. Adapter may forward that plan to Core only as a
+batch proposal handoff; each executable action must still target the
+`magick-ai/create-draft` execution profile, keep `status=draft`, and pass Core
+approval plus commit-preflight before Adapter execution.
+
 ## OpenClaw Recipe Discovery
 
 `GET /help` includes `openclaw_recipes.article_draft_plan` for clients that need
@@ -162,6 +170,21 @@ a machine-readable fixed flow. The recipe is channel guidance only:
 The recipe must keep `core_proxy_execute=false`,
 `commit_execution=false`, `draft_only=true`, and `publish_allowed=false`.
 Adapter does not become an article workflow runtime or a Cloud control plane.
+
+`GET /help` also includes `openclaw_recipes.article_batch_draft_plan` for
+reviewed 2-5 article draft batches:
+
+- entrypoint ability: `magick-ai-toolbox/build-article-batch-write-plan`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write ability: `magick-ai/create-draft`
+- artifact type: `article_batch_write_plan`
+- proposal mode: `batch`
+
+The batch recipe must keep `batch_approval=true`, `partial_success=false`,
+`core_proxy_execute=false`, `commit_execution=false`, `draft_only=true`, and
+`publish_allowed=false`.
 
 `commit_execution=false` means no write happened, `dry_run=true` means preview
 only, and `requires_approval=true` means the plan must be handed to Core or the

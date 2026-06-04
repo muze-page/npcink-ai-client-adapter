@@ -65,15 +65,21 @@ replace media files.
      WordPress media.
 
 5. `POST /media-derivative-proposal-payload`
-   - Input: `ability_response`, `cloud_result`, and `derivative_artifact`.
-   - Returns a Core-ready proposal payload only.
+   - Input: `ability_response`, `cloud_result`, `derivative_artifact`, and
+     optional reviewed `media_details_input`.
+   - Returns the legacy Core-ready single derivative `proposal_payload`.
+   - When `media_details_input` is present, also returns `from_plan_request`
+     for `magick-ai/build-media-optimization-plan`.
    - Does not create, approve, preflight, or execute a proposal.
 
-6. `POST /proposals`
-   - For preview review only, use the returned proposal payload as evidence.
-   - To replace the attachment main file, create a Core proposal for
-     `magick-ai/adopt-cloud-media-derivative` with `attachment_id` and the
-     non-expired `derivative_artifact` descriptor.
+6. `POST /proposals/from-plan`
+   - For the user intent "optimize this media item", submit the returned
+     `from_plan_request`.
+   - Core creates one batch proposal with `input.write_actions[]` containing
+     `magick-ai/update-media-details` and
+     `magick-ai/adopt-cloud-media-derivative`.
+   - For lower-level derivative-only review, the legacy single
+     `proposal_payload` remains available.
    - Adapter may later execute that approved local write ability, but it does
      not download artifacts or write WordPress media itself.
 

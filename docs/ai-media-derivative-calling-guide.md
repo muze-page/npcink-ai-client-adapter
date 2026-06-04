@@ -117,13 +117,18 @@ Cloud runtime calls:
    POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload
    ```
 
-   Include `ability_response`, `cloud_result`, and `derivative_artifact`.
+   Include `ability_response`, `cloud_result`, `derivative_artifact`, and
+   reviewed `media_details_input` when the requested user intent is full media
+   optimization.
 
-7. If the operator wants to adopt the derivative, create a Core proposal for:
+7. For full media optimization, submit the returned `from_plan_request` to:
 
    ```text
-   magick-ai/adopt-cloud-media-derivative
+   POST /wp-json/magick-ai-adapter/v1/proposals/from-plan
    ```
+
+   Core will create one batch proposal containing `magick-ai/update-media-details`
+   and `magick-ai/adopt-cloud-media-derivative`.
 
 8. Let Core approval, preflight, audit, execution, and rollback govern the
    final WordPress write.

@@ -240,6 +240,13 @@ For reviewed article draft planning, use the recipe exposed by `GET /help` at
 `magick-ai/create-draft` after Core approval and commit preflight. See
 [`openclaw-article-draft-plan-recipe.md`](openclaw-article-draft-plan-recipe.md).
 
+For reviewed 2-5 article draft batches, use `GET /help` at
+`openclaw_recipes.article_batch_draft_plan`. The entrypoint ability is
+`magick-ai-toolbox/build-article-batch-write-plan`; Core creates one batch
+proposal, and the final governed writes remain draft-only
+`magick-ai/create-draft` actions after Core approval and commit preflight. See
+[`openclaw-article-batch-draft-plan-recipe.md`](openclaw-article-batch-draft-plan-recipe.md).
+
 Troubleshooting diagnostics:
 
 ```bash

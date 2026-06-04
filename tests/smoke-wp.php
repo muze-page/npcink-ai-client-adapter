@@ -486,6 +486,7 @@ maa_adapter_smoke_assert( 'wordpress_rest_application_password' === (string) ( $
 maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_guidance']['proposal_status']['core_required_scope'] ?? '' ), 'adapter health documents proposal status read scope' );
 maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes proposal status routes' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/from-plan', (array) ( $health['plan_proposal_routes'] ?? array() ), true ), 'adapter health exposes plan-to-proposal route' );
+maa_adapter_smoke_assert( in_array( 'magick-ai-toolbox/build-article-batch-write-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article batch plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approved proposal execution route' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approve-and-execute route' );
 maa_adapter_smoke_assert( in_array( 'magick-ai/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
@@ -519,9 +520,12 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/med
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/article-writing-pack' ), 'adapter help exposes AI article writing pack shortcut' );
+maa_adapter_smoke_assert( in_array( 'magick-ai-toolbox/build-article-batch-write-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article batch plan allowlist' );
 maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
 maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );
+maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-batch-write-plan' === (string) ( $help['openclaw_recipes']['article_batch_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article batch draft plan entrypoint ability' );
+maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_batch_draft_plan']['guardrails']['batch_approval'] ?? false ), 'adapter help marks OpenClaw article batch draft plan as batch approval' );
 maa_adapter_smoke_assert( 'magick-ai-toolbox/build-ai-article-writing-pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes AI article writing pack recipe entrypoint ability' );
 maa_adapter_smoke_assert( 'ai_article_writing_pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['artifact_type'] ?? '' ), 'adapter help marks AI article writing recipe artifact type' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['direct_wordpress_write'] ?? true ), 'adapter help marks AI article writing recipe as no direct write' );
@@ -968,6 +972,96 @@ $article_plan_post_id = (int) ( $article_plan_execute['post_id'] ?? 0 );
 $maa_adapter_smoke_cleanup_post_ids[] = $article_plan_post_id;
 maa_adapter_smoke_assert( $article_plan_post_id > 0, 'adapter article plan execution returns created draft post id' );
 maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $article_plan_post_id ), 'adapter article plan creates only a WordPress draft' );
+
+$article_batch_plan = $article_plan;
+$article_batch_plan['artifact_type'] = 'article_batch_write_plan';
+$article_batch_plan['batch_id'] = 'adapter_article_batch_plan_smoke';
+$article_batch_plan['proposal_mode'] = 'batch';
+$article_batch_plan['batch_approval'] = true;
+$article_batch_plan['article_batch_risk_report'] = array(
+	'ready_for_proposal' => true,
+	'risk_level'         => 'medium',
+	'blocked_claims'     => array(),
+	'notes'              => array( 'Fixture batch is local and draft-only.' ),
+);
+$article_batch_plan['write_actions'] = array();
+$article_batch_plan['articles']      = array();
+for ( $article_batch_index = 1; $article_batch_index <= 3; $article_batch_index++ ) {
+	$article_batch_title   = 'Adapter Article Batch Draft Plan Smoke ' . $article_batch_index;
+	$article_batch_content = "Adapter article batch draft plan smoke {$article_batch_index}.\n\nThis draft candidate stays pending until Core approval.";
+	$article_batch_excerpt = 'Adapter article batch plan smoke draft.';
+	$article_batch_plan['articles'][] = array(
+		'article_goal_brief'      => array(
+			'topic' => 'Adapter article batch draft plan smoke',
+			'title' => $article_batch_title,
+		),
+		'research_evidence_pack'  => array(
+			'sources' => array(),
+		),
+		'article_outline'         => array(
+			'title'    => $article_batch_title,
+			'sections' => array(),
+		),
+		'article_draft_candidate' => array(
+			'content_markdown' => $article_batch_content,
+		),
+		'discoverability_pack'    => array(
+			'excerpt' => $article_batch_excerpt,
+		),
+		'article_risk_report'     => array(
+			'ready_for_proposal' => true,
+			'risk_level'         => 'medium',
+			'blocked_claims'     => array(),
+		),
+	);
+	$article_batch_plan['write_actions'][] = array(
+		'action_id'         => 'create-article-draft-' . $article_batch_index,
+		'target_ability_id' => 'magick-ai/create-draft',
+		'input'             => array(
+			'status'         => 'draft',
+			'title'          => $article_batch_title,
+			'content'        => $article_batch_content,
+			'content_format' => 'plain',
+			'excerpt'        => $article_batch_excerpt,
+			'dry_run'        => true,
+			'commit'         => false,
+		),
+		'requires_approval' => true,
+		'commit_execution'  => false,
+		'proposal_ready'    => true,
+	);
+}
+$article_batch_plan['action_count'] = count( $article_batch_plan['write_actions'] );
+$article_batch_bridge_result = maa_adapter_smoke_rest_result(
+	'POST',
+	'/magick-ai-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'magick-ai-toolbox/build-article-batch-write-plan',
+		'plan'               => $article_batch_plan,
+		'plan_input'         => array(
+			'topic'         => 'Adapter article batch draft plan smoke',
+			'article_count' => 3,
+		),
+		'adapter_request_id' => 'adapter-article-batch-plan-request',
+		'correlation_id'     => 'adapter-article-batch-plan-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-article-batch-plan-smoke',
+		),
+	)
+);
+$article_batch_bridge_data = is_array( $article_batch_bridge_result['data'] ) ? $article_batch_bridge_result['data'] : array();
+maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' !== (string) ( $article_batch_bridge_data['code'] ?? '' ), 'adapter does not reject article batch plan at Adapter allowlist' );
+if ( 404 === (int) $article_batch_bridge_result['status'] && 'magick_ai_core_plan_ability_unavailable' === (string) ( $article_batch_bridge_data['code'] ?? '' ) ) {
+	maa_adapter_smoke_assert( '/magick-ai-core/v1/proposals/from-plan' === (string) ( $article_batch_bridge_data['data']['upstream_route'] ?? '' ), 'adapter forwards article batch plan to Core when local Core catalog lacks the planning ability' );
+} else {
+	maa_adapter_smoke_assert( $article_batch_bridge_result['status'] >= 200 && $article_batch_bridge_result['status'] < 300, 'POST /magick-ai-adapter/v1/proposals/from-plan accepts article batch plan' );
+	maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-batch-write-plan' === (string) ( $article_batch_bridge_data['plan_ability_id'] ?? '' ), 'adapter forwards Toolbox article batch plan to Core' );
+	maa_adapter_smoke_assert( 1 === (int) ( $article_batch_bridge_data['proposal_count'] ?? 0 ), 'adapter article batch plan creates one Core batch proposal' );
+	$article_batch_proposal    = is_array( $article_batch_bridge_data['proposals'][0] ?? null ) ? $article_batch_bridge_data['proposals'][0] : array();
+	$article_batch_proposal_id = (string) ( $article_batch_proposal['proposal_id'] ?? '' );
+	$maa_adapter_smoke_cleanup_proposal_ids[] = $article_batch_proposal_id;
+	maa_adapter_smoke_assert( 3 === count( (array) ( $article_batch_proposal['input']['write_actions'] ?? array() ) ), 'adapter article batch plan proposal preserves three write actions' );
+}
 
 $blocked_article_plan = $article_plan;
 $blocked_article_plan['article_risk_report']['risk_level'] = 'high';

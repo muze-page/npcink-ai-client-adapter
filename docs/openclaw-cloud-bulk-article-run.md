@@ -24,6 +24,7 @@ Article drafting is a local Ability recipe. The safe path is:
 OpenClaw follows Adapter recipe guidance
   -> local Abilities produce/operator review artifacts
   -> magick-ai-toolbox/build-article-write-plan
+     or magick-ai-toolbox/build-article-batch-write-plan
   -> Adapter POST /proposals/from-plan
   -> Core proposal, approval, commit preflight, audit
   -> Adapter executes magick-ai/create-draft through WordPress Abilities API
@@ -35,8 +36,8 @@ OpenClaw should:
 
 - read Adapter `/help` and route guidance first;
 - treat `article_draft_v1` as an Ability recipe over local Abilities;
-- submit only local `article_write_plan` output to Adapter
-  `/proposals/from-plan`;
+- submit only local `article_write_plan` or `article_batch_write_plan` output
+  to Adapter `/proposals/from-plan`;
 - stop when Adapter/Core returns revision feedback, rejection, or preflight
   blockers;
 - execute only the approved draft write profile exposed by Adapter.

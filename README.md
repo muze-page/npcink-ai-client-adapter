@@ -247,8 +247,14 @@ a same-origin `preview_url`; browser clients can load it through
 `GET /media-derivative-artifacts/{artifact_id}/preview` with WordPress REST
 auth or the short-lived local `preview_sig` emitted in the URL. Then call
 `POST /media-derivative-proposal-payload` with the ability response, Cloud
-result, and derivative artifact. That payload is Core-ready but not submitted,
-approved, or executed by Adapter. See
+result, derivative artifact, and reviewed `media_details_input` when the user
+intent is full image optimization. Adapter returns a legacy single derivative
+`proposal_payload` plus a `from_plan_request` for
+`magick-ai/build-media-optimization-plan`; submit that request to
+`POST /proposals/from-plan` so Core creates one batch proposal containing
+`magick-ai/update-media-details` and
+`magick-ai/adopt-cloud-media-derivative`. The payload is Core-ready but not
+submitted, approved, or executed by Adapter. See
 [OpenClaw Media Derivative Cloud Recipe](docs/openclaw-media-derivative-cloud-recipe.md)
 and [AI Media Derivative Calling Guide](docs/ai-media-derivative-calling-guide.md).
 Third-party AI callers should use the Adapter recipe routes above instead of
@@ -396,6 +402,9 @@ For the connection-model decision history and guardrails, see
 For the OpenClaw article draft planning recipe, use
 [`docs/openclaw-article-draft-plan-recipe.md`](docs/openclaw-article-draft-plan-recipe.md).
 
+For the OpenClaw article batch draft planning recipe, use
+[`docs/openclaw-article-batch-draft-plan-recipe.md`](docs/openclaw-article-batch-draft-plan-recipe.md).
+
 For the OpenClaw SEO/AEO/GEO suggestion recipe, use
 [`docs/openclaw-content-discoverability-recipe.md`](docs/openclaw-content-discoverability-recipe.md).
 The primary SEO/GEO/AEO entrypoint is
@@ -482,10 +491,11 @@ Plan-to-proposal flow:
 1. OpenClaw runs one of the direct-read planning abilities:
    `magick-ai/build-content-inventory-fix-plan`,
    `magick-ai/build-test-content-cleanup-plan`,
-   `magick-ai/build-media-inventory-fix-plan`,
-   `magick-ai/build-media-reference-repair-plan`, or
-   `magick-ai/build-media-settings-reference-repair-plan`, or
-   `magick-ai-toolbox/build-article-write-plan`.
+	   `magick-ai/build-media-inventory-fix-plan`,
+	   `magick-ai/build-media-reference-repair-plan`, or
+	   `magick-ai/build-media-settings-reference-repair-plan`, or
+	   `magick-ai-toolbox/build-article-write-plan`, or
+	   `magick-ai-toolbox/build-article-batch-write-plan`.
 2. The adapter preserves plan fields including `batch_id`, `issue_types`,
    `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
    `requires_approval`, `commit_execution`, `dry_run`, `manual_review`,
@@ -495,11 +505,17 @@ Plan-to-proposal flow:
 4. The adapter forwards that payload to Core
    `POST /magick-ai-core/v1/proposals/from-plan` and preserves Core status.
    Adapter does not promote destructive candidates into executable actions.
-   For the Toolbox article write plan, Adapter still only forwards the
-   reviewed `article_write_plan`; Core validates the plan and Adapter later
-   executes `magick-ai/create-draft` only after Core approval and
-   commit-preflight. The machine-readable OpenClaw playbook is exposed as
-   `openclaw_recipes.article_draft_plan` from `GET /help`.
+	   For the Toolbox article write plan, Adapter still only forwards the
+	   reviewed `article_write_plan`; Core validates the plan and Adapter later
+	   executes `magick-ai/create-draft` only after Core approval and
+	   commit-preflight. The machine-readable OpenClaw playbook is exposed as
+	   `openclaw_recipes.article_draft_plan` from `GET /help`.
+	   For reviewed 2-5 article draft batches, use
+	   `magick-ai-toolbox/build-article-batch-write-plan`; Core creates one
+	   batch proposal and Adapter later executes only the approved
+	   `magick-ai/create-draft` write actions. The machine-readable playbook is
+	   exposed as `openclaw_recipes.article_batch_draft_plan` from `GET /help`.
+	   See [OpenClaw Article Batch Draft Plan Recipe](docs/openclaw-article-batch-draft-plan-recipe.md).
 
 Proposal-required write flow:
 

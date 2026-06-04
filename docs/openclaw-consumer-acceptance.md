@@ -117,6 +117,7 @@ Run this order for a local acceptance pass:
      infers `taxonomy` when possible
    - `route_groups` for human-readable grouped route labels
    - `openclaw_recipes.article_draft_plan`
+   - `openclaw_recipes.article_batch_draft_plan`
    - `openclaw_recipes.content_discoverability_suggestions`
    - `openclaw_recipes.ai_article_draft_with_discoverability`
    - `openclaw_recipes.media_derivative_cloud`
@@ -157,7 +158,8 @@ Run this order for a local acceptance pass:
    `magick-ai/build-media-inventory-fix-plan`,
    `magick-ai/build-media-reference-repair-plan`, or
    `magick-ai/build-media-settings-reference-repair-plan`, or
-   `magick-ai-toolbox/build-article-write-plan`. Confirm Adapter preserves
+   `magick-ai-toolbox/build-article-write-plan`, or
+   `magick-ai-toolbox/build-article-batch-write-plan`. Confirm Adapter preserves
    `write_actions`, `preview`, `risk`, `requires_approval`,
    `commit_execution=false`, and `dry_run=true`, and does not treat
    `write_actions` or destructive candidates as executed work. Confirm the
@@ -192,6 +194,10 @@ Run this order for a local acceptance pass:
     `artifact_type=article_write_plan`, Core creates a proposal for
     `magick-ai/create-draft`, and `approve-and-execute` creates only a
     WordPress `draft`.
+    For the article batch draft recipe, confirm the plan has
+    `artifact_type=article_batch_write_plan`, `proposal_mode=batch`,
+    `batch_approval=true`, Core creates one batch proposal, and every
+    `write_actions[]` item targets `magick-ai/create-draft`.
     For the media derivative recipe, call `POST /media-derivative-runs` with a
     test image attachment and confirm the response returns
     `contract_version=media_derivative_adapter_run.v1`,
