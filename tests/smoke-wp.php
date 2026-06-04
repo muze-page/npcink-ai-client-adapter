@@ -478,6 +478,61 @@ function maa_adapter_smoke_create_media_plan_attachment(): int {
 }
 
 /**
+ * Creates a real uploaded PNG attachment for media file rename smoke.
+ *
+ * @return int
+ */
+function maa_adapter_smoke_create_real_media_attachment(): int {
+	$uploads = wp_upload_dir();
+	$basedir = is_array( $uploads ) ? (string) ( $uploads['basedir'] ?? '' ) : '';
+	$baseurl = is_array( $uploads ) ? (string) ( $uploads['baseurl'] ?? '' ) : '';
+	$subdir  = is_array( $uploads ) ? (string) ( $uploads['subdir'] ?? '' ) : '';
+	maa_adapter_smoke_assert( '' !== $basedir && '' !== $baseurl, 'adapter smoke found uploads directory for real media fixture' );
+
+	$target_dir = untrailingslashit( $basedir ) . $subdir;
+	maa_adapter_smoke_assert( wp_mkdir_p( $target_dir ), 'adapter smoke created uploads directory for real media fixture' );
+
+	$file_name = wp_unique_filename( $target_dir, 'adapter-rename-smoke-' . substr( wp_generate_uuid4(), 0, 8 ) . '.png' );
+	$file_path = trailingslashit( $target_dir ) . $file_name;
+	$bytes     = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', true );
+	maa_adapter_smoke_assert( is_string( $bytes ) && '' !== $bytes, 'adapter smoke decoded real media fixture bytes' );
+	maa_adapter_smoke_assert( false !== file_put_contents( $file_path, $bytes ), 'adapter smoke wrote real media fixture file' );
+
+	$relative_file = ltrim( trailingslashit( trim( $subdir, '/' ) ) . $file_name, '/' );
+	$url           = trailingslashit( untrailingslashit( $baseurl ) . $subdir ) . $file_name;
+	$id            = wp_insert_attachment(
+		array(
+			'post_title'     => 'Adapter Rename Media Smoke',
+			'post_status'    => 'inherit',
+			'post_mime_type' => 'image/png',
+			'post_parent'    => 0,
+			'post_excerpt'   => '',
+			'post_content'   => '',
+			'guid'           => $url,
+		),
+		$file_path,
+		0,
+		true
+	);
+
+	maa_adapter_smoke_assert( ! is_wp_error( $id ) && (int) $id > 0, 'adapter smoke created real media fixture attachment' );
+	update_post_meta( (int) $id, '_wp_attached_file', $relative_file );
+	wp_update_attachment_metadata(
+		(int) $id,
+		array(
+			'width'  => 1,
+			'height' => 1,
+			'file'   => $relative_file,
+			'sizes'  => array(),
+		)
+	);
+
+	$registry =& maa_adapter_smoke_fixture_registry();
+	$registry['attachment_ids'][] = (int) $id;
+	return (int) $id;
+}
+
+/**
  * Creates a post fixture for approved proposal execution smoke.
  *
  * @return int
@@ -2566,6 +2621,114 @@ $empty_media_details_proposal = maa_adapter_smoke_rest_result(
 	)
 );
 maa_adapter_smoke_assert( 400 === (int) $empty_media_details_proposal['status'], 'adapter proposal create rejects update-media-details without detail fields' );
+
+$rename_dry_attachment_id = maa_adapter_smoke_create_real_media_attachment();
+$rename_dry_before_relative = (string) get_post_meta( $rename_dry_attachment_id, '_wp_attached_file', true );
+$rename_dry_before_path = (string) get_attached_file( $rename_dry_attachment_id );
+$rename_dry_before_url = (string) wp_get_attachment_url( $rename_dry_attachment_id );
+$rename_dry_target_name = 'adapter-rename-dry-target-' . substr( wp_generate_uuid4(), 0, 8 ) . '.png';
+$rename_dry_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/rename-media-file',
+		'title'      => 'Adapter rename-media-file dry-run preflight smoke',
+		'summary'    => 'Adapter approves and preflights rename-media-file without executing the final write.',
+		'input'      => array(
+			'attachment_id'                  => $rename_dry_attachment_id,
+			'target_file_name'               => $rename_dry_target_name,
+			'expected_current_relative_file' => $rename_dry_before_relative,
+			'expected_current_mime_type'     => 'image/png',
+			'expected_current_md5'           => md5_file( $rename_dry_before_path ),
+			'conflict_mode'                  => 'fail',
+			'dry_run'                        => true,
+			'commit'                         => false,
+		),
+		'preview'    => array(
+			'action'           => 'rename_media_file',
+			'attachment_id'    => $rename_dry_attachment_id,
+			'target_file_name' => $rename_dry_target_name,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-rename-media-file-dry-run-preflight-smoke',
+		),
+	)
+);
+$rename_dry_proposal_id = (string) ( $rename_dry_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $rename_dry_proposal_id;
+maa_adapter_smoke_assert( '' !== $rename_dry_proposal_id, 'adapter creates rename-media-file proposal for dry-run preflight smoke' );
+$rename_dry_approved = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-core/v1/proposals/' . rawurlencode( $rename_dry_proposal_id ) . '/approve',
+	array( 'note' => 'Adapter rename dry-run preflight smoke approval.' )
+);
+maa_adapter_smoke_assert( 'approved' === (string) ( $rename_dry_approved['status'] ?? '' ), 'Core admin REST approval succeeds for rename-media-file dry-run preflight smoke' );
+$rename_dry_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $rename_dry_proposal_id ) . '/commit-preflight' );
+maa_adapter_smoke_assert( false === (bool) ( $rename_dry_preflight['commit_execution'] ?? true ), 'adapter rename-media-file dry-run preflight preserves Core commit_execution=false' );
+maa_adapter_smoke_assert( true === (bool) ( $rename_dry_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter rename-media-file dry-run preflight caches handoff without executing' );
+maa_adapter_smoke_assert( $rename_dry_before_relative === (string) get_post_meta( $rename_dry_attachment_id, '_wp_attached_file', true ), 'adapter rename-media-file dry-run preflight leaves attached file pointer unchanged' );
+maa_adapter_smoke_assert( $rename_dry_before_url === (string) wp_get_attachment_url( $rename_dry_attachment_id ), 'adapter rename-media-file dry-run preflight leaves media URL unchanged' );
+maa_adapter_smoke_assert( is_readable( $rename_dry_before_path ), 'adapter rename-media-file dry-run preflight leaves original media file in place' );
+
+$rename_commit_attachment_id = maa_adapter_smoke_create_real_media_attachment();
+$rename_commit_before_relative = (string) get_post_meta( $rename_commit_attachment_id, '_wp_attached_file', true );
+$rename_commit_before_path = (string) get_attached_file( $rename_commit_attachment_id );
+$rename_commit_before_url = (string) wp_get_attachment_url( $rename_commit_attachment_id );
+$rename_commit_target_name = 'adapter-rename-commit-target-' . substr( wp_generate_uuid4(), 0, 8 ) . '.png';
+$rename_commit_target_relative = trailingslashit( trim( dirname( $rename_commit_before_relative ), './' ) ) . $rename_commit_target_name;
+$rename_commit_target_relative = ltrim( $rename_commit_target_relative, '/' );
+$rename_commit_uploads = wp_upload_dir();
+$rename_commit_target_path = trailingslashit( (string) ( $rename_commit_uploads['basedir'] ?? '' ) ) . $rename_commit_target_relative;
+maa_adapter_smoke_assert( ! file_exists( $rename_commit_target_path ), 'adapter rename-media-file commit target file starts absent' );
+$rename_commit_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/magick-ai-adapter/v1/proposals',
+	array(
+		'ability_id' => 'magick-ai/rename-media-file',
+		'title'      => 'Adapter rename-media-file approve execute smoke',
+		'summary'    => 'Adapter approves through Core and executes one rename-media-file proposal.',
+		'input'      => array(
+			'attachment_id'                  => $rename_commit_attachment_id,
+			'target_file_name'               => $rename_commit_target_name,
+			'expected_current_relative_file' => $rename_commit_before_relative,
+			'expected_current_mime_type'     => 'image/png',
+			'expected_current_md5'           => md5_file( $rename_commit_before_path ),
+			'conflict_mode'                  => 'fail',
+			'dry_run'                        => true,
+			'commit'                         => false,
+		),
+		'preview'    => array(
+			'action'           => 'rename_media_file',
+			'attachment_id'    => $rename_commit_attachment_id,
+			'target_file_name' => $rename_commit_target_name,
+			'dry_run'          => true,
+			'commit_execution' => false,
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-rename-media-file-approve-execute-smoke',
+		),
+	)
+);
+$rename_commit_proposal_id = (string) ( $rename_commit_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $rename_commit_proposal_id;
+maa_adapter_smoke_assert( '' !== $rename_commit_proposal_id, 'adapter creates rename-media-file proposal for approve-and-execute smoke' );
+$rename_commit_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $rename_commit_proposal_id ) . '/approve-and-execute' );
+$rename_commit_result = is_array( $rename_commit_execute['execution']['result'] ?? null ) ? $rename_commit_execute['execution']['result'] : array();
+maa_adapter_smoke_assert( true === (bool) ( $rename_commit_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending rename-media-file proposal' );
+maa_adapter_smoke_assert( 'magick-ai/rename-media-file' === (string) ( $rename_commit_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries rename-media-file ability id' );
+maa_adapter_smoke_assert( false === (bool) ( $rename_commit_result['dry_run'] ?? true ), 'adapter rename-media-file execution returns non-dry-run ability result' );
+maa_adapter_smoke_assert( true === (bool) ( $rename_commit_result['renamed'] ?? false ), 'adapter rename-media-file execution reports rename' );
+maa_adapter_smoke_assert( $rename_commit_target_relative === (string) get_post_meta( $rename_commit_attachment_id, '_wp_attached_file', true ), 'adapter rename-media-file commit updates attached file pointer' );
+maa_adapter_smoke_assert( false === is_readable( $rename_commit_before_path ), 'adapter rename-media-file commit moves old media file' );
+maa_adapter_smoke_assert( is_readable( $rename_commit_target_path ), 'adapter rename-media-file commit writes target media file' );
+maa_adapter_smoke_assert( $rename_commit_before_url !== (string) wp_get_attachment_url( $rename_commit_attachment_id ), 'adapter rename-media-file commit changes media URL' );
+maa_adapter_smoke_assert( false !== strpos( (string) wp_get_attachment_url( $rename_commit_attachment_id ), $rename_commit_target_name ), 'adapter rename-media-file commit URL contains target file name' );
+$rename_commit_backup_relative = (string) ( $rename_commit_result['backup']['relative_file'] ?? '' );
+if ( '' !== $rename_commit_backup_relative ) {
+	@unlink( trailingslashit( (string) ( $rename_commit_uploads['basedir'] ?? '' ) ) . ltrim( $rename_commit_backup_relative, '/' ) );
+}
 
 $delete_media_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
 $maa_adapter_smoke_cleanup_attachment_ids[] = $delete_media_attachment_id;

@@ -2567,7 +2567,7 @@ final class Controller {
 			'GET /media-derivative-runs/{run_id}' => 'Poll a Cloud media derivative run through Cloud Addon without storing Adapter run truth.',
 			'GET /media-derivative-runs/{run_id}/result' => 'Read a Cloud media derivative result projection through Cloud Addon.',
 			'GET /media-derivative-artifacts/{artifact_id}/preview' => 'Proxy one non-expired derivative artifact through Cloud Addon for same-origin local preview; does not store artifact truth.',
-				'POST /media-derivative-proposal-payload' => 'Build a Core-ready media optimization from-plan request from reviewed media metadata and a derivative artifact; does not create, approve, or execute a proposal.',
+			'POST /media-derivative-proposal-payload' => 'Build a Core-ready media optimization from-plan request from reviewed media metadata and a derivative artifact; does not create, approve, or execute a proposal.',
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
@@ -4502,6 +4502,17 @@ final class Controller {
 				$action_index
 			);
 			if ( is_wp_error( $resolved_input ) ) {
+				$execution_record = $this->store_failed_execution_record(
+					$proposal_id,
+					$proposal,
+					$actions,
+					$results,
+					$preflight,
+					$correlation_id,
+					sanitize_text_field( (string) ( $base_request_context['adapter_request_id'] ?? '' ) ),
+					$resolved_input,
+					$action
+				);
 				$resolved_input->add_data(
 					array_merge(
 						(array) $resolved_input->get_error_data(),
@@ -4509,6 +4520,7 @@ final class Controller {
 							'correlation_id'   => $correlation_id,
 							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
 							'executed_results' => $results,
+							'execution_record' => $execution_record,
 						)
 					)
 				);
@@ -4525,6 +4537,17 @@ final class Controller {
 				$action_index
 			);
 			if ( is_wp_error( $valid_input ) ) {
+				$execution_record = $this->store_failed_execution_record(
+					$proposal_id,
+					$proposal,
+					$actions,
+					$results,
+					$preflight,
+					$correlation_id,
+					sanitize_text_field( (string) ( $base_request_context['adapter_request_id'] ?? '' ) ),
+					$valid_input,
+					$action
+				);
 				$valid_input->add_data(
 					array_merge(
 						(array) $valid_input->get_error_data(),
@@ -4532,6 +4555,7 @@ final class Controller {
 							'correlation_id'   => $correlation_id,
 							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
 							'executed_results' => $results,
+							'execution_record' => $execution_record,
 						)
 					)
 				);
@@ -4547,6 +4571,17 @@ final class Controller {
 					$status = 409;
 				}
 
+				$execution_record = $this->store_failed_execution_record(
+					$proposal_id,
+					$proposal,
+					$actions,
+					$results,
+					$preflight,
+					$correlation_id,
+					sanitize_text_field( (string) ( $base_request_context['adapter_request_id'] ?? '' ) ),
+					$result,
+					$action
+				);
 				$result->add_data(
 					array_merge(
 						$error_data,
@@ -4557,6 +4592,7 @@ final class Controller {
 							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
 							'action_index'     => absint( $action['action_index'] ?? 0 ),
 							'executed_results' => $results,
+							'execution_record' => $execution_record,
 						)
 					)
 				);
@@ -5183,6 +5219,56 @@ final class Controller {
 	}
 
 	/**
+	 * Stores one failed execution summary after Core preflight was consumed.
+	 *
+	 * @param string                    $proposal_id Proposal id.
+	 * @param array<string,mixed>       $proposal Core proposal.
+	 * @param array<int,array<string,mixed>> $actions Normalized actions.
+	 * @param array<int,array<string,mixed>> $results Executed action results.
+	 * @param array<string,mixed>       $preflight Core preflight payload.
+	 * @param string                    $correlation_id Correlation id.
+	 * @param string                    $adapter_request_id Adapter request id.
+	 * @param WP_Error                  $error Execution error.
+	 * @param array<string,mixed>|null  $failed_action Failed action.
+	 * @return array<string,mixed>
+	 */
+	private function store_failed_execution_record( string $proposal_id, array $proposal, array $actions, array $results, array $preflight, string $correlation_id, string $adapter_request_id, WP_Error $error, ?array $failed_action = null ): array {
+		$approval_context  = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
+		$first_action      = is_array( $actions[0] ?? null ) ? $actions[0] : array();
+		$failed_action     = is_array( $failed_action ) ? $failed_action : $first_action;
+		$execution_mode    = count( $actions ) > 1 || 'batch_write_actions' === (string) ( $first_action['execution_mode'] ?? '' ) ? 'batch_write_actions' : 'single_post';
+		$target_ability_id = sanitize_text_field( (string) ( $failed_action['ability_id'] ?? ( $first_action['ability_id'] ?? ( $proposal['ability_id'] ?? '' ) ) ) );
+		$record            = array(
+			'status'              => 'failed',
+			'proposal_id'         => $proposal_id,
+			'ability_id'          => $target_ability_id,
+			'proposal_ability_id' => sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) ),
+			'approved_input_hash' => sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? ( $preflight['approved_input_hash'] ?? '' ) ) ),
+			'correlation_id'      => sanitize_text_field( $correlation_id ),
+			'adapter_request_id'  => sanitize_text_field( $adapter_request_id ),
+			'execution_mode'      => sanitize_key( $execution_mode ),
+			'execution_surface'   => 'wp_abilities_rest',
+			'commit_execution'    => false,
+			'post_id'             => absint( $failed_action['post_id'] ?? 0 ),
+			'post_ids'            => array_values( array_map( 'absint', array_column( $results, 'post_id' ) ) ),
+			'executed_count'      => count( $results ),
+			'failed_count'        => 1,
+			'error_code'          => sanitize_key( $error->get_error_code() ),
+			'failed_action_id'    => sanitize_key( (string) ( $failed_action['action_id'] ?? '' ) ),
+			'failed_action_index' => absint( $failed_action['action_index'] ?? 0 ),
+			'failed_at'           => gmdate( 'c' ),
+			'executed_at'         => gmdate( 'c' ),
+		);
+
+		$records = $this->execution_records();
+		$records[ $this->execution_record_key( $proposal_id ) ] = $record;
+		$records = $this->prune_execution_records( $records );
+		update_option( self::EXECUTION_RECORDS_OPTION, $records, false );
+
+		return $this->public_execution_record( $record );
+	}
+
+	/**
 	 * Removes old execution records after the bounded retention limit.
 	 *
 	 * @param array<string,array<string,mixed>> $records Records.
@@ -5228,6 +5314,10 @@ final class Controller {
 			'post_ids'            => array_values( array_map( 'absint', is_array( $record['post_ids'] ?? null ) ? $record['post_ids'] : array() ) ),
 			'executed_count'      => absint( $record['executed_count'] ?? 0 ),
 			'failed_count'        => absint( $record['failed_count'] ?? 0 ),
+			'error_code'          => (string) ( $record['error_code'] ?? '' ),
+			'failed_action_id'    => (string) ( $record['failed_action_id'] ?? '' ),
+			'failed_action_index' => absint( $record['failed_action_index'] ?? 0 ),
+			'failed_at'           => (string) ( $record['failed_at'] ?? '' ),
 			'executed_at'         => (string) ( $record['executed_at'] ?? '' ),
 		);
 	}

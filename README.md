@@ -591,7 +591,10 @@ Proposal-required write flow:
     Abilities API, normalizes ability input to `dry_run=false` and
     `commit=true`, stores a bounded execution record, and returns `proposal_id`,
     `correlation_id`, `ability_id`, and `execution_record` with the ability
-    result. Repeating the same proposal execution returns
+    result. If execution fails after Core preflight has been consumed, Adapter
+    stores and returns only a bounded failed execution summary; it does not
+    store the full proposal or create a retry queue. Repeating the same
+    successful proposal execution returns
     `magick_ai_adapter_execution_already_completed` and does not run the
     ability again.
 11. Adapter does not create its own proposal or approval state and does not

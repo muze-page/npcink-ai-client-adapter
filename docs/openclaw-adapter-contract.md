@@ -289,12 +289,7 @@ the next Adapter execute request for the same approved proposal input. OpenClaw
 must not call Core commit-preflight directly and then ask Adapter to execute the
 same proposal.
 
-Dry-run-only proposal verification stops at Adapter commit-preflight. Adapter
-`execute`, `execute-approved-proposal`, and `approve-and-execute` routes are
-final write paths; immediately before dispatching a WordPress ability, Adapter
-normalizes the ability input to `dry_run=false` and `commit=true`. OpenClaw
-must not call an execute route when the operator only asked to verify a
-dry-run proposal or preflight.
+Dry-run-only proposal verification stops at Adapter commit-preflight. Adapter `execute`, `execute-approved-proposal`, and `approve-and-execute` routes are final write paths; immediately before dispatching a WordPress ability, Adapter normalizes the ability input to `dry_run=false` and `commit=true`. OpenClaw must not call an execute route when the operator only asked to verify a dry-run proposal or preflight.
 
 Before Adapter calls the WordPress Abilities API for a final allowlisted write,
 it must verify Core's `approval_context.approved_input_hash` matches the current
@@ -435,8 +430,12 @@ one was issued through Adapter, otherwise call Core commit-preflight, require
 `approval_context` to WordPress Abilities API, and return `proposal_id`,
 `correlation_id`, `ability_id`, and `execution_record` with the ability result.
 After a successful execution, Adapter stores only a bounded public-safe
-execution record keyed by proposal id for replay protection; Core remains the
-proposal, approval, preflight, and audit truth source.
+execution record keyed by proposal id for replay protection. When execution
+fails after Core preflight has been consumed, Adapter stores the same bounded
+public-safe record shape with `status=failed`, `error_code`, failed action
+metadata, executed counts, and Core correlation only; it does not store the full
+proposal or create a retry queue. Core remains the proposal, approval,
+preflight, and audit truth source.
 
 Within one approved `write_actions[]` batch, Adapter may resolve exact output
 references in action input values:
