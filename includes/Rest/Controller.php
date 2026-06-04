@@ -5187,6 +5187,7 @@ final class Controller {
 			'publishing-calendar-context' => array( 'ability_id' => 'magick-ai/get-publishing-calendar-context' ),
 			'media-inventory-health' => array( 'ability_id' => 'magick-ai/get-media-inventory-health' ),
 			'media-inventory-fix-plan' => array( 'ability_id' => 'magick-ai/build-media-inventory-fix-plan' ),
+			'media-attachment-by-url' => array( 'ability_id' => 'magick-ai/resolve-media-attachment-by-url' ),
 			'media-asset-inspection' => array( 'ability_id' => 'magick-ai/inspect-media-asset' ),
 			'taxonomy-inventory-health' => array( 'ability_id' => 'magick-ai/get-taxonomy-inventory-health' ),
 		);

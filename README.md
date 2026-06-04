@@ -102,6 +102,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/magick-ai-adapter/v1/posts`
 - `GET /wp-json/magick-ai-adapter/v1/post-context`
 - `GET /wp-json/magick-ai-adapter/v1/media`
+- `GET /wp-json/magick-ai-adapter/v1/media-attachment-by-url?url={uploads_url}`
 - `GET /wp-json/magick-ai-adapter/v1/terms`
 - `GET /wp-json/magick-ai-adapter/v1/taxonomy-terms`
 - `GET /wp-json/magick-ai-adapter/v1/categories`
@@ -227,6 +228,12 @@ For media format attention, `run-read-ability` may call
 `media-asset-inspection` maps to the same read-only ability. The response
 contains file size, dimensions, target format, compression, resize, and
 derivative recommendations only.
+
+For a hard-coded local uploads URL, `GET /media-attachment-by-url?url={url}`
+maps to `magick-ai/resolve-media-attachment-by-url`. It returns bounded
+read-only attachment candidates and match evidence so the caller can continue
+through preview, Core proposal, approval, preflight, and execution without using
+database, WP-CLI, or filesystem lookup.
 
 For Cloud-generated media derivatives, use `POST /media-derivative-runs`.
 Adapter builds the local read-only
