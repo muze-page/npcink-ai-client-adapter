@@ -6190,6 +6190,9 @@ final class Controller {
 		if ( empty( $watermark ) || ! empty( $watermark['artifact_id'] ) ) {
 			return array();
 		}
+		if ( 'text' === sanitize_key( (string) ( $watermark['type'] ?? 'image' ) ) ) {
+			return array();
+		}
 
 		$attachment_id = absint( $ability_input['watermark_attachment_id'] ?? 0 );
 		if ( $attachment_id <= 0 && function_exists( 'magick_ai_core_get_media_derivative_settings' ) ) {

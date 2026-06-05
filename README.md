@@ -241,8 +241,11 @@ Adapter builds the local read-only
 `magick-ai/build-media-derivative-cloud-request` contract, uses Core media
 policy defaults when available, supplies the local source attachment file or a
 caller-provided short-TTL artifact reference, and dispatches only through
-`magick-ai-cloud-addon`. The route returns a Cloud run projection plus the
-ability response. Poll `GET /media-derivative-runs/{run_id}` and
+`magick-ai-cloud-addon`. Image watermark plans may supply a watermark artifact
+or use the local Core watermark attachment; text watermark plans are dispatched
+as structured text options without a watermark artifact. The route returns a
+Cloud run projection plus the ability response. Poll
+`GET /media-derivative-runs/{run_id}` and
 `GET /media-derivative-runs/{run_id}/result`. The result projection may include
 a same-origin `preview_url`; browser clients can load it through
 `GET /media-derivative-artifacts/{artifact_id}/preview` with WordPress REST

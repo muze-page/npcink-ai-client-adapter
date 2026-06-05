@@ -104,6 +104,7 @@ foreach (
 		'X-Content-Type-Options: nosniff',
 		'media_derivative_source_artifact',
 		'media_derivative_watermark_artifact',
+		"'text' === sanitize_key( (string) ( \$watermark['type'] ?? 'image' ) )",
 		'attachment_upload_descriptor',
 		'final_write_owner',
 		'local_wordpress_host',

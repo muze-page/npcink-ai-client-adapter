@@ -91,9 +91,11 @@ POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload
 uses Core media derivative defaults when available, and dispatches only through
 the Cloud Addon public media derivative helper. Source media can be sent as the
 local attachment file or as a caller-provided short-TTL source artifact
-descriptor. Watermark media can be sent as a caller-provided short-TTL artifact
-or as the locally configured Core watermark attachment when a watermark plan is
-present.
+descriptor. Image watermark media can be sent as a caller-provided short-TTL
+artifact or as the locally configured Core watermark attachment when an image
+watermark plan is present. Text watermark plans do not require watermark media;
+Adapter passes their text, font, color, background, margin, opacity, and
+position through the Cloud Addon dispatch seam.
 
 The route returns a Cloud run projection and the local ability response. It
 does not store run truth, artifact truth, Cloud credentials, approval truth, or
