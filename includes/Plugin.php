@@ -2,10 +2,10 @@
 /**
  * Plugin bootstrap.
  *
- * @package MagickAIAdapter
+ * @package NpcinkOpenClawAdapter
  */
 
-namespace MagickAI\Adapter;
+namespace Npcink\OpenClawAdapter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -32,9 +32,9 @@ final class Plugin {
 		add_filter( 'rest_request_before_callbacks', array( $this, 'capture_adapter_dispatch_start' ), 10, 3 );
 		add_filter( 'rest_request_after_callbacks', array( $this, 'emit_adapter_dispatch_event' ), 10, 3 );
 		add_action( 'admin_menu', array( $this, 'register_admin_page' ), 20 );
-		add_action( 'admin_post_magick_ai_adapter_create_openclaw_password', array( $this, 'handle_create_openclaw_password' ) );
-		add_action( 'admin_post_magick_ai_adapter_pairing_decision', array( $this, 'handle_pairing_decision' ) );
-		add_action( 'admin_post_magick_ai_adapter_revoke_client_key', array( $this, 'handle_revoke_client_key' ) );
+		add_action( 'admin_post_npcink_openclaw_adapter_create_openclaw_password', array( $this, 'handle_create_openclaw_password' ) );
+		add_action( 'admin_post_npcink_openclaw_adapter_pairing_decision', array( $this, 'handle_pairing_decision' ) );
+		add_action( 'admin_post_npcink_openclaw_adapter_revoke_client_key', array( $this, 'handle_revoke_client_key' ) );
 	}
 
 	/**

@@ -1,14 +1,14 @@
-# AGENTS.md — Magick AI Adapter
+# AGENTS.md — Npcink OpenClaw Adapter
 
 ## Product Boundary
 
-Magick AI Adapter is the thin OpenClaw channel layer.
+Npcink OpenClaw Adapter is the thin OpenClaw channel layer.
 
 It owns:
 
 - OpenClaw-facing REST routes;
 - routing read ability execution to WordPress Abilities API;
-- routing proposal and commit-preflight requests to Magick AI Core;
+- routing proposal and commit-preflight requests to Npcink Governance Core;
 - explicit post-Core execution profile policy for allowlisted approved writes;
 - small health and diagnostics responses for adapter readiness.
 
@@ -24,8 +24,8 @@ It does not own:
 ## Development Rules
 
 - Keep this plugin thin. If a feature needs ability definitions, change
-  `magick-ai-abilities`.
-- If a feature needs approval state, change `magick-ai-core`.
+  `npcink-abilities-toolkit`.
+- If a feature needs approval state, change `npcink-governance-core`.
 - If a feature needs a new final write, add it only as an explicit execution
   profile after Core approval and commit-preflight; do not add a generic final
   write executor.
@@ -36,7 +36,7 @@ It does not own:
   manual diagnostics route, not model routing, prompt management, product UX, or
   production workload execution.
 - If a feature needs Cloud runtime or Cloud monitoring, call the standalone
-  `magick-ai-cloud-addon` public PHP seam. Do not add Adapter-owned Cloud
+  `npcink-cloud-addon` public PHP seam. Do not add Adapter-owned Cloud
   settings, signing clients, `/cloud/*` routes, or Cloud execution truth.
   Do not add Adapter-owned Cloud connector routes.
 - Use WordPress REST authentication and capability checks.
@@ -53,13 +53,13 @@ It does not own:
 Read operations:
 
 ```text
-OpenClaw -> magick-ai-adapter -> WordPress Abilities API
+OpenClaw -> npcink-openclaw-adapter -> WordPress Abilities API
 ```
 
 Governed write operations:
 
 ```text
-OpenClaw -> magick-ai-adapter -> magick-ai-core proposal/preflight
+OpenClaw -> npcink-openclaw-adapter -> npcink-governance-core proposal/preflight
 ```
 
 The adapter must preserve Core's current boundary:

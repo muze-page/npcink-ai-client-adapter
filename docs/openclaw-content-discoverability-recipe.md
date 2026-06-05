@@ -8,13 +8,13 @@ turning Adapter into a prompt owner, proposal store, approval surface, or final
 write executor.
 
 The primary SEO/GEO/AEO entrypoint is `content-discoverability-brief`, backed by
-`magick-ai-toolbox/build-content-discoverability-brief`.
+`npcink-toolbox/build-content-discoverability-brief`.
 Use `article-writing-pack` only for broad natural-language requests such as
 "help me write an article".
 
 For those broad article requests, use
 `openclaw_recipes.ai_article_draft_with_discoverability` and
-`GET /wp-json/magick-ai-adapter/v1/article-writing-pack?topic=TOPIC`.
+`GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack?topic=TOPIC`.
 
 ## Boundary
 
@@ -36,9 +36,9 @@ Core proposal governance.
 1. Discover Adapter state and route guidance:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/health
-GET /wp-json/magick-ai-adapter/v1/help
-GET /wp-json/magick-ai-adapter/v1/capabilities
+GET /wp-json/npcink-openclaw-adapter/v1/health
+GET /wp-json/npcink-openclaw-adapter/v1/help
+GET /wp-json/npcink-openclaw-adapter/v1/capabilities
 ```
 
 2. Confirm these ability ids are present in Core capabilities with
@@ -46,15 +46,15 @@ GET /wp-json/magick-ai-adapter/v1/capabilities
    `execution_surface=wp_abilities_rest`:
 
 ```text
-magick-ai-toolbox/validate-content-discoverability-context
-magick-ai-toolbox/get-content-discoverability-context
-magick-ai-toolbox/build-content-discoverability-brief
+npcink-toolbox/validate-content-discoverability-context
+npcink-toolbox/get-content-discoverability-context
+npcink-toolbox/build-content-discoverability-brief
 ```
 
 3. Validate the operator-filled Toolbox context:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/content-discoverability-validation
+GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation
 ```
 
 If the result status is `needs_attention`, stop and ask the operator to update
@@ -63,20 +63,20 @@ Toolbox Content Context.
 4. Read the context:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/content-discoverability-context
+GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context
 ```
 
 5. Build one brief:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/content-discoverability-brief?post_id=POST_ID
+GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief?post_id=POST_ID
 ```
 
 For supplied context instead of a post, use `POST /run-read-ability`:
 
 ```json
 {
-  "ability_id": "magick-ai-toolbox/build-content-discoverability-brief",
+  "ability_id": "npcink-toolbox/build-content-discoverability-brief",
   "input": {
     "topic": "Topic",
     "title": "Title",

@@ -26,13 +26,13 @@ const insecureLocalTls = args.has('insecure-local-tls');
 const noOpen = args.has('no-open');
 
 if (!site) {
-  console.error('Usage: magick-adapter connect --site=https://example.test --profile=example [--insecure-local-tls] [--no-open]');
+  console.error('Usage: npcink-openclaw-adapter connect --site=https://example.test --profile=example [--insecure-local-tls] [--no-open]');
   process.exit(1);
 }
 
 const siteUrl = new URL(site);
-const adapterBaseUrl = new URL('/wp-json/magick-ai-adapter/v1', siteUrl).toString().replace(/\/$/, '');
-const profilePath = join(homedir(), '.magick-ai-adapter', 'keypair-profiles', `${profile}.json`);
+const adapterBaseUrl = new URL('/wp-json/npcink-openclaw-adapter/v1', siteUrl).toString().replace(/\/$/, '');
+const profilePath = join(homedir(), '.npcink-openclaw-adapter', 'keypair-profiles', `${profile}.json`);
 
 function base64url(buffer) {
   return Buffer.from(buffer).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
@@ -148,13 +148,13 @@ function signedHeaders(privateKey, keyId, method, route, queryParams = {}, body 
   const signature = sign(null, Buffer.from(canonical), privateKey);
   const signatureText = base64url(signature);
   return {
-    Authorization: `Magick-Signature key_id="${keyId}", timestamp="${timestamp}", nonce="${nonce}", content_sha256="${contentSha256}", alg="Ed25519", signature="${signatureText}"`,
-    'X-Magick-Key-Id': keyId,
-    'X-Magick-Timestamp': timestamp,
-    'X-Magick-Nonce': nonce,
-    'X-Magick-Content-SHA256': contentSha256,
-    'X-Magick-Signature-Alg': 'Ed25519',
-    'X-Magick-Signature': signatureText,
+    Authorization: `Npcink-Signature key_id="${keyId}", timestamp="${timestamp}", nonce="${nonce}", content_sha256="${contentSha256}", alg="Ed25519", signature="${signatureText}"`,
+    'X-Npcink-Key-Id': keyId,
+    'X-Npcink-Timestamp': timestamp,
+    'X-Npcink-Nonce': nonce,
+    'X-Npcink-Content-SHA256': contentSha256,
+    'X-Npcink-Signature-Alg': 'Ed25519',
+    'X-Npcink-Signature': signatureText,
   };
 }
 
@@ -163,11 +163,11 @@ const publicJwk = publicKey.export({ format: 'jwk' });
 const privateJwk = privateKey.export({ format: 'jwk' });
 
 const start = await requestJson('POST', `${adapterBaseUrl}/connect/device/start`, {
-  schema_version: 'magick_ai_device_pairing.v1',
+  schema_version: 'npcink_openclaw_adapter_device_pairing.v1',
   client: {
     name: clientName,
     device_name: deviceName,
-    broker: 'magick-ai-adapter local keypair verifier',
+    broker: 'npcink-openclaw-adapter local keypair verifier',
     broker_version: '0.1.0',
   },
   key: {
@@ -236,7 +236,7 @@ if (transientPollFailures > 0) {
   console.log(`Recovered from transient polling errors: ${transientPollFailures}`);
 }
 try {
-  const health = await requestJson('GET', healthUrl, null, signedHeaders(privateKey, paired.key_id, 'GET', '/magick-ai-adapter/v1/health'));
+  const health = await requestJson('GET', healthUrl, null, signedHeaders(privateKey, paired.key_id, 'GET', '/npcink-openclaw-adapter/v1/health'));
   console.log(`Health: core_capabilities=${Boolean(health.core_capabilities)} abilities_catalog=${Boolean(health.abilities_catalog)}`);
 } catch (error) {
   console.log(`Health check failed after pairing: ${error.statusCode || error.code || error.message}`);

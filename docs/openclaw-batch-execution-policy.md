@@ -31,7 +31,7 @@ or:
   "write_actions": [
     {
       "action_id": "trash-post-123",
-      "target_ability_id": "magick-ai/trash-post",
+      "target_ability_id": "npcink-abilities-toolkit/trash-post",
       "input": {
         "post_id": 123,
         "dry_run": true,
@@ -47,26 +47,26 @@ or:
 
 V1 supports only the Adapter execution allowlist, currently:
 
-- `target_ability_id=magick-ai/trash-post`
-- `target_ability_id=magick-ai/create-draft`
-- `target_ability_id=magick-ai/update-post`
-- `target_ability_id=magick-ai/patch-post-content`
-- `target_ability_id=magick-ai/patch-setting-value`
-- `target_ability_id=magick-ai/set-post-seo-meta`
-- `target_ability_id=magick-ai/set-post-slug`
-- `target_ability_id=magick-ai/set-post-terms`
-- `target_ability_id=magick-ai/delete-term`
-- `target_ability_id=magick-ai/update-media-details`
-- `target_ability_id=magick-ai/upload-media-from-url`
-- `target_ability_id=magick-ai/set-post-featured-image`
-- `target_ability_id=magick-ai/optimize-media-asset`
-- `target_ability_id=magick-ai/replace-media-file`
-- `target_ability_id=magick-ai/adopt-cloud-media-derivative`
-- `target_ability_id=magick-ai/rename-media-file`
-- `target_ability_id=magick-ai/delete-media-permanently`
-- `target_ability_id=magick-ai/reply-comment`
-- `target_ability_id=magick-ai/trash-comment`
-- `target_ability_id=magick-ai/approve-comment`
+- `target_ability_id=npcink-abilities-toolkit/trash-post`
+- `target_ability_id=npcink-abilities-toolkit/create-draft`
+- `target_ability_id=npcink-abilities-toolkit/update-post`
+- `target_ability_id=npcink-abilities-toolkit/patch-post-content`
+- `target_ability_id=npcink-abilities-toolkit/patch-setting-value`
+- `target_ability_id=npcink-abilities-toolkit/set-post-seo-meta`
+- `target_ability_id=npcink-abilities-toolkit/set-post-slug`
+- `target_ability_id=npcink-abilities-toolkit/set-post-terms`
+- `target_ability_id=npcink-abilities-toolkit/delete-term`
+- `target_ability_id=npcink-abilities-toolkit/update-media-details`
+- `target_ability_id=npcink-abilities-toolkit/upload-media-from-url`
+- `target_ability_id=npcink-abilities-toolkit/set-post-featured-image`
+- `target_ability_id=npcink-abilities-toolkit/optimize-media-asset`
+- `target_ability_id=npcink-abilities-toolkit/replace-media-file`
+- `target_ability_id=npcink-abilities-toolkit/adopt-cloud-media-derivative`
+- `target_ability_id=npcink-abilities-toolkit/rename-media-file`
+- `target_ability_id=npcink-abilities-toolkit/delete-media-permanently`
+- `target_ability_id=npcink-abilities-toolkit/reply-comment`
+- `target_ability_id=npcink-abilities-toolkit/trash-comment`
+- `target_ability_id=npcink-abilities-toolkit/approve-comment`
 
 Adapter calls Core approval when needed, then calls Core commit-preflight once
 for the proposal. Adapter requires Core approval commit authorization,
@@ -100,7 +100,7 @@ input schema and invalid enum values, then reuses the same profile checks again
 for profiled `plan.write_actions[]` during `POST /proposals/from-plan` before
 forwarding the plan to Core, and again at execution time for older or
 externally-created proposals. Plan action schema failures return
-`magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` carrying
+`npcink_openclaw_adapter_plan_action_input_invalid` with `blocked_items[]` carrying
 the action index, action id, target ability id, field, and reused
 single-proposal block code. Plan action input may contain exact
 `$outputs.<prior_action_id>.<field>` references for fields such as `post_id` or
@@ -118,7 +118,7 @@ Plan action ids must be unique before Adapter forwards the plan to Core.
   closed before executing any action.
 - If Core preflight blocks the proposal, Adapter executes no actions.
 - If Adapter has already completed execution for the proposal, Adapter returns
-  `magick_ai_adapter_execution_already_completed` with the stored
+  `npcink_openclaw_adapter_execution_already_completed` with the stored
   `execution_record` and executes no actions.
 - If an execution error occurs after prior actions have executed, Adapter stops
   and returns the upstream error with `executed_results` for inspection.

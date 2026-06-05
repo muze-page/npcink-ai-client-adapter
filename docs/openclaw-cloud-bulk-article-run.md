@@ -23,11 +23,11 @@ Article drafting is a local Ability recipe. The safe path is:
 ```text
 OpenClaw follows Adapter recipe guidance
   -> local Abilities produce/operator review artifacts
-  -> magick-ai-toolbox/build-article-write-plan
-     or magick-ai-toolbox/build-article-batch-write-plan
+  -> npcink-toolbox/build-article-write-plan
+     or npcink-toolbox/build-article-batch-write-plan
   -> Adapter POST /proposals/from-plan
   -> Core proposal, approval, commit preflight, audit
-  -> Adapter executes magick-ai/create-draft through WordPress Abilities API
+  -> Adapter executes npcink-abilities-toolkit/create-draft through WordPress Abilities API
 ```
 
 ## OpenClaw Responsibilities

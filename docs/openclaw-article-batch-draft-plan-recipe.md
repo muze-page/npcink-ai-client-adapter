@@ -16,12 +16,12 @@ Layer ownership stays fixed:
 - Adapter exposes the OpenClaw channel recipe and forwards the reviewed plan.
 - Core validates the batch plan, owns proposal status, approval, preflight, and
   audit.
-- Abilities executes each final `magick-ai/create-draft` callback only after
+- Abilities executes each final `npcink-abilities-toolkit/create-draft` callback only after
   Core approval and commit preflight.
 
 Adapter must not publish, schedule, approve standalone, or execute arbitrary
 writes for this recipe. Every batch action must remain draft-only and must use
-the Adapter execution profile for `magick-ai/create-draft`.
+the Adapter execution profile for `npcink-abilities-toolkit/create-draft`.
 
 ## Recipe
 
@@ -31,7 +31,7 @@ the Adapter execution profile for `magick-ai/create-draft`.
 
 ```json
 {
-  "ability_id": "magick-ai-toolbox/build-article-batch-write-plan",
+  "ability_id": "npcink-toolbox/build-article-batch-write-plan",
   "input": {
     "topic": "Local AI plugins",
     "article_count": 3
@@ -42,14 +42,14 @@ the Adapter execution profile for `magick-ai/create-draft`.
 Send that payload to:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/run-read-ability
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
 ```
 
 3. Forward the returned plan to Core through Adapter:
 
 ```json
 {
-  "plan_ability_id": "magick-ai-toolbox/build-article-batch-write-plan",
+  "plan_ability_id": "npcink-toolbox/build-article-batch-write-plan",
   "plan": {
     "artifact_type": "article_batch_write_plan",
     "version": 1,
@@ -111,7 +111,7 @@ POST /wp-json/magick-ai-adapter/v1/run-read-ability
     "write_actions": [
       {
         "action_id": "create-article-draft-1",
-        "target_ability_id": "magick-ai/create-draft",
+        "target_ability_id": "npcink-abilities-toolkit/create-draft",
         "input": {
           "status": "draft",
           "title": "Draft title one",
@@ -126,7 +126,7 @@ POST /wp-json/magick-ai-adapter/v1/run-read-ability
       },
       {
         "action_id": "create-article-draft-2",
-        "target_ability_id": "magick-ai/create-draft",
+        "target_ability_id": "npcink-abilities-toolkit/create-draft",
         "input": {
           "status": "draft",
           "title": "Draft title two",
@@ -155,19 +155,19 @@ POST /wp-json/magick-ai-adapter/v1/run-read-ability
 Send that payload to:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/proposals/from-plan
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan
 ```
 
 4. Poll proposal status through Adapter:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}
+GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}
 ```
 
 5. Execute only after Core approval and commit preflight:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
 ## Guardrails
@@ -175,7 +175,7 @@ POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
 - `artifact_type=article_batch_write_plan`
 - `proposal_mode=batch`
 - `batch_approval=true`
-- `target_ability_id=magick-ai/create-draft`
+- `target_ability_id=npcink-abilities-toolkit/create-draft`
 - `status=draft`
 - `core_proxy_execute=false`
 - `commit_execution=false`

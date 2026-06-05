@@ -5,9 +5,9 @@ Date: 2026-06-02
 
 ## Dependency Snapshot
 
-- `magick-ai-core` `master`: `6acb159 Add read governance metadata to capabilities`
-- `magick-ai-adapter` `master`: `b81dc2a Add read governance envelopes and redaction`
-- `magick-ai-abilities` local checkout: `2ee47a7 Fix catalog observability event throttling`
+- `npcink-governance-core` `master`: `6acb159 Add read governance metadata to capabilities`
+- `npcink-openclaw-adapter` `master`: `b81dc2a Add read governance envelopes and redaction`
+- `npcink-abilities-toolkit` local checkout: `2ee47a7 Fix catalog observability event throttling`
 
 The snapshot records the local checkout state used for the post-governance
 OpenClaw consumer acceptance pass.
@@ -17,8 +17,8 @@ OpenClaw consumer acceptance pass.
 Productized OpenClaw only connects to Adapter:
 
 ```text
-OpenClaw -> magick-ai-adapter -> magick-ai-core governance
-OpenClaw -> magick-ai-adapter -> WordPress Abilities API reads/execution
+OpenClaw -> npcink-openclaw-adapter -> npcink-governance-core governance
+OpenClaw -> npcink-openclaw-adapter -> WordPress Abilities API reads/execution
 ```
 
 Core is the governance authority behind Adapter. Core owns proposal state,
@@ -55,18 +55,18 @@ The readiness pass verified:
 - proposal create, list, and detail;
 - Core approval through Adapter `approve-and-execute`;
 - Core commit-preflight before execution;
-- allowlisted final execution for `magick-ai/trash-post`,
-  `magick-ai/create-draft`, `magick-ai/update-post`,
-  `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
-  `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-  `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
-  `magick-ai/upload-media-from-url`,
-  `magick-ai/set-post-featured-image`, `magick-ai/replace-media-file`,
-  `magick-ai/adopt-cloud-media-derivative`,
-  `magick-ai/rename-media-file`,
-  `magick-ai/delete-media-permanently`,
-  `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
-  `magick-ai/approve-comment`;
+- allowlisted final execution for `npcink-abilities-toolkit/trash-post`,
+  `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
+  `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
+  `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
+  `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/optimize-media-asset`,
+  `npcink-abilities-toolkit/upload-media-from-url`,
+  `npcink-abilities-toolkit/set-post-featured-image`, `npcink-abilities-toolkit/replace-media-file`,
+  `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
+  `npcink-abilities-toolkit/rename-media-file`,
+  `npcink-abilities-toolkit/delete-media-permanently`,
+  `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`, and
+  `npcink-abilities-toolkit/approve-comment`;
 - rejected proposals do not execute;
 - preflight-blocked proposals do not execute;
 - non-allowlisted proposals do not execute;
@@ -91,17 +91,17 @@ Adapter remains a thin OpenClaw channel layer:
 - Adapter does not generically execute arbitrary write abilities.
 - Adapter does own the OpenClaw read envelope and bounded read-result redaction
   layer for direct-read rows where Core reports sensitive policy guidance.
-- Adapter execution allowlist currently includes `magick-ai/trash-post`,
-  `magick-ai/create-draft`, `magick-ai/update-post`,
-  `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
-  `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-  `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
-  `magick-ai/replace-media-file`,
-  `magick-ai/adopt-cloud-media-derivative`,
-  `magick-ai/rename-media-file`,
-  `magick-ai/delete-media-permanently`,
-  `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
-  `magick-ai/approve-comment`.
+- Adapter execution allowlist currently includes `npcink-abilities-toolkit/trash-post`,
+  `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
+  `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
+  `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
+  `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/optimize-media-asset`,
+  `npcink-abilities-toolkit/replace-media-file`,
+  `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
+  `npcink-abilities-toolkit/rename-media-file`,
+  `npcink-abilities-toolkit/delete-media-permanently`,
+  `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`, and
+  `npcink-abilities-toolkit/approve-comment`.
 
 The disabled approve/reject stubs must remain disabled unless a future decision
 explicitly changes the product boundary. The current productized user action is
@@ -122,7 +122,7 @@ document before implementation. That document must define:
 - ability id;
 - input fields;
 - idempotency behavior, including Adapter's completed execution record and
-  `magick_ai_adapter_execution_already_completed` replay rejection;
+  `npcink_openclaw_adapter_execution_already_completed` replay rejection;
 - failure handling;
 - rollback or compensation behavior;
 - log fields;

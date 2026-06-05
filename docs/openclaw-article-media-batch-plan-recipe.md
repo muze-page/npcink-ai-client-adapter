@@ -25,14 +25,14 @@ review evidence, or execute arbitrary writes for this recipe.
 
 ## Recipe
 
-1. Search image-source candidates with `magick-ai-toolbox/search-image-source`.
+1. Search image-source candidates with `npcink-toolbox/search-image-source`.
 2. Preserve the selected candidate's source URL, attribution, provider, and
    Unsplash `download_location` when present.
 3. Build the media batch planning artifact:
 
 ```json
 {
-  "ability_id": "magick-ai-toolbox/build-article-media-batch-write-plan",
+  "ability_id": "npcink-toolbox/build-article-media-batch-write-plan",
   "input": {
     "topic": "Local AI plugins",
     "articles": [
@@ -57,14 +57,14 @@ review evidence, or execute arbitrary writes for this recipe.
 Send that payload to:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/run-read-ability
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
 ```
 
 4. Forward the returned plan to Core through Adapter:
 
 ```json
 {
-  "plan_ability_id": "magick-ai-toolbox/build-article-media-batch-write-plan",
+  "plan_ability_id": "npcink-toolbox/build-article-media-batch-write-plan",
   "plan": {
     "artifact_type": "article_media_batch_write_plan",
     "proposal_mode": "batch",
@@ -85,19 +85,19 @@ POST /wp-json/magick-ai-adapter/v1/run-read-ability
 Send that payload to:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/proposals/from-plan
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan
 ```
 
 5. Poll proposal status through Adapter:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}
+GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}
 ```
 
 6. Execute only after Core approval and commit preflight:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
 ## Guardrails
@@ -106,12 +106,12 @@ POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
 - `proposal_mode=batch`
 - `batch_approval=true`
 - target abilities are limited to explicit Adapter execution profiles:
-  `magick-ai/create-draft`, `magick-ai/upload-media-from-url`,
-  `magick-ai/update-media-details`, and
-  `magick-ai/set-post-featured-image`
+  `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/upload-media-from-url`,
+  `npcink-abilities-toolkit/update-media-details`, and
+  `npcink-abilities-toolkit/set-post-featured-image`
 - image source attribution is preserved
 - optional `file_name` values are treated as reviewed customer media names and
-  are forwarded only through the governed `magick-ai/upload-media-from-url`
+  are forwarded only through the governed `npcink-abilities-toolkit/upload-media-from-url`
   action
 - `core_proxy_execute=false`
 - `commit_execution=false`

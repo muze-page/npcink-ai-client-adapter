@@ -1,6 +1,6 @@
 {
-  "name": "magick-ai/magick-ai-adapter",
-  "description": "Thin OpenClaw adapter for Magick AI Core and WordPress Abilities API.",
+  "name": "npcink/npcink-openclaw-adapter",
+  "description": "Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities API.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "require": {
@@ -11,8 +11,8 @@
     "test": "php tests/run.php",
     "smoke:wp": "bash tests/smoke-wp.sh",
     "check:wporg": "@php scripts/check-wordpress-org-review-rules.php",
-    "package:release": "rm -rf build/magick-ai-adapter build/magick-ai-adapter.zip && mkdir -p build && rsync -a --delete --exclude-from=.distignore ./ build/magick-ai-adapter/ && cd build && zip -qr magick-ai-adapter.zip magick-ai-adapter",
-    "plugin-check:release": "WP_PATH=\"${WP_PATH:-/Users/muze/Local Sites/magick-ai/app/public}\"; WP_CLI_BIN=\"${WP_CLI_BIN:-/tmp/wp-cli.phar}\"; WP_CLI_PHP=\"${WP_CLI_PHP:-$HOME/Library/Application Support/Local/lightning-services/php-8.5.3+1/bin/darwin-arm64/bin/php}\"; SOCKET=\"${WP_DB_SOCKET:-$HOME/Library/Application Support/Local/run/NPb24Zg9g/mysql/mysqld.sock}\"; \"$WP_CLI_PHP\" -d display_errors=0 -d error_reporting=8191 -d mysqli.default_socket=\"$SOCKET\" \"$WP_CLI_BIN\" --path=\"$WP_PATH\" --no-color plugin check magick-ai-adapter --format=table --exclude-directories=tests,.git,vendor,node_modules,build,sj --exclude-files=.gitignore,.distignore,AGENTS.md,composer.json,composer.lock,phpcs.xml,phpcs.xml.dist,phpstan.neon,phpstan.neon.dist",
+    "package:release": "rm -rf build/npcink-openclaw-adapter build/npcink-openclaw-adapter.zip && mkdir -p build && rsync -a --delete --exclude-from=.distignore ./ build/npcink-openclaw-adapter/ && cd build && zip -qr npcink-openclaw-adapter.zip npcink-openclaw-adapter",
+    "plugin-check:release": "WP_PATH=\"${WP_PATH:-/Users/muze/Local Sites/magick-ai/app/public}\"; WP_CLI_BIN=\"${WP_CLI_BIN:-/tmp/wp-cli.phar}\"; WP_CLI_PHP=\"${WP_CLI_PHP:-$HOME/Library/Application Support/Local/lightning-services/php-8.5.3+1/bin/darwin-arm64/bin/php}\"; SOCKET=\"${WP_DB_SOCKET:-$HOME/Library/Application Support/Local/run/NPb24Zg9g/mysql/mysqld.sock}\"; \"$WP_CLI_PHP\" -d display_errors=0 -d error_reporting=8191 -d mysqli.default_socket=\"$SOCKET\" \"$WP_CLI_BIN\" --path=\"$WP_PATH\" --no-color plugin check npcink-openclaw-adapter --format=table --exclude-directories=tests,.git,vendor,node_modules,build,sj --exclude-files=.gitignore,.distignore,AGENTS.md,composer.json,composer.lock,phpcs.xml,phpcs.xml.dist,phpstan.neon,phpstan.neon.dist",
     "release:verify": [
       "@test:all",
       "@check:wporg",

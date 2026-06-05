@@ -23,7 +23,7 @@ for (const arg of process.argv.slice(2)) {
 const method = (positionals[0] || '').toUpperCase();
 const route = positionals[1] || '';
 const profile = args.get('profile') || 'default';
-const profilePath = args.get('profile-file') || join(homedir(), '.magick-ai-adapter', 'keypair-profiles', `${profile}.json`);
+const profilePath = args.get('profile-file') || join(homedir(), '.npcink-openclaw-adapter', 'keypair-profiles', `${profile}.json`);
 const bodyFile = args.get('body-file') || '';
 const bodyStdin = args.has('body-stdin');
 const queryJson = args.get('query') || '';
@@ -32,7 +32,7 @@ const insecureLocalTls = args.has('insecure-local-tls');
 const executionIntent = (args.get('intent') || '').toLowerCase();
 
 if (!['GET', 'POST', 'DELETE'].includes(method) || !isSafeAdapterRoute(route)) {
-  console.error('Usage: magick-adapter request --profile=local [--insecure-local-tls] METHOD /adapter-route [--intent=preview|preflight|commit] [--query=\'{"key":"value"}\'|--query-string=key=value] [--body-file=/tmp/body.json|--body-stdin]');
+  console.error('Usage: npcink-openclaw-adapter request --profile=local [--insecure-local-tls] METHOD /adapter-route [--intent=preview|preflight|commit] [--query=\'{"key":"value"}\'|--query-string=key=value] [--body-file=/tmp/body.json|--body-stdin]');
   process.exit(2);
 }
 
@@ -169,13 +169,13 @@ function signedHeaders(privateKey, keyId, methodValue, restRoute, queryParams, b
   ].join('\n');
   const signatureText = base64url(sign(null, Buffer.from(canonical), privateKey));
   return {
-    Authorization: `Magick-Signature key_id="${keyId}", timestamp="${timestamp}", nonce="${nonce}", content_sha256="${contentSha256}", alg="Ed25519", signature="${signatureText}"`,
-    'X-Magick-Key-Id': keyId,
-    'X-Magick-Timestamp': timestamp,
-    'X-Magick-Nonce': nonce,
-    'X-Magick-Content-SHA256': contentSha256,
-    'X-Magick-Signature-Alg': 'Ed25519',
-    'X-Magick-Signature': signatureText,
+    Authorization: `Npcink-Signature key_id="${keyId}", timestamp="${timestamp}", nonce="${nonce}", content_sha256="${contentSha256}", alg="Ed25519", signature="${signatureText}"`,
+    'X-Npcink-Key-Id': keyId,
+    'X-Npcink-Timestamp': timestamp,
+    'X-Npcink-Nonce': nonce,
+    'X-Npcink-Content-SHA256': contentSha256,
+    'X-Npcink-Signature-Alg': 'Ed25519',
+    'X-Npcink-Signature': signatureText,
   };
 }
 

@@ -2,12 +2,12 @@
 /**
  * Adapter REST controller.
  *
- * @package MagickAIAdapter
+ * @package NpcinkOpenClawAdapter
  */
 
-namespace MagickAI\Adapter\Rest;
+namespace Npcink\OpenClawAdapter\Rest;
 
-use MagickAI\Adapter\Observability;
+use Npcink\OpenClawAdapter\Observability;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -21,12 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Exposes a thin OpenClaw adapter surface.
  */
 final class Controller {
-	const NAMESPACE                = 'magick-ai-adapter/v1';
+	const NAMESPACE                = 'npcink-openclaw-adapter/v1';
 	const MAX_EXECUTION_ACTIONS    = 200;
-	const DEVICE_PAIRING_OPTION    = 'magick_ai_adapter_device_pairings';
-	const CLIENT_KEYS_OPTION       = 'magick_ai_adapter_client_keys';
-	const EXECUTION_RECORDS_OPTION  = 'magick_ai_adapter_execution_records';
-	const PREFLIGHT_HANDOFFS_OPTION = 'magick_ai_adapter_preflight_handoffs';
+	const DEVICE_PAIRING_OPTION    = 'npcink_openclaw_adapter_device_pairings';
+	const CLIENT_KEYS_OPTION       = 'npcink_openclaw_adapter_client_keys';
+	const EXECUTION_RECORDS_OPTION  = 'npcink_openclaw_adapter_execution_records';
+	const PREFLIGHT_HANDOFFS_OPTION = 'npcink_openclaw_adapter_preflight_handoffs';
 	const DEVICE_PAIRING_TTL       = 600;
 	const SIGNATURE_NONCE_TTL      = 300;
 	const MAX_EXECUTION_RECORDS    = 500;
@@ -48,17 +48,17 @@ final class Controller {
 	 * @var array<string,bool>
 	 */
 	private static $allowed_plan_ability_ids = array(
-		'magick-ai/build-content-inventory-fix-plan'           => true,
-		'magick-ai/build-test-content-cleanup-plan'            => true,
-		'magick-ai/build-media-inventory-fix-plan'             => true,
-		'magick-ai/build-media-reference-repair-plan'          => true,
-		'magick-ai/build-media-settings-reference-repair-plan' => true,
-		'magick-ai/build-media-optimization-plan'              => true,
-		'magick-ai/build-media-rename-plan'                    => true,
-		'magick-ai-toolbox/build-article-write-plan'           => true,
-		'magick-ai-toolbox/build-article-batch-write-plan'     => true,
-		'magick-ai-toolbox/build-article-media-batch-write-plan' => true,
-		'magick-ai-toolbox/build-image-candidate-adoption-plan' => true,
+		'npcink-abilities-toolkit/build-content-inventory-fix-plan'           => true,
+		'npcink-abilities-toolkit/build-test-content-cleanup-plan'            => true,
+		'npcink-abilities-toolkit/build-media-inventory-fix-plan'             => true,
+		'npcink-abilities-toolkit/build-media-reference-repair-plan'          => true,
+		'npcink-abilities-toolkit/build-media-settings-reference-repair-plan' => true,
+		'npcink-abilities-toolkit/build-media-optimization-plan'              => true,
+		'npcink-abilities-toolkit/build-media-rename-plan'                    => true,
+		'npcink-toolbox/build-article-write-plan'           => true,
+		'npcink-toolbox/build-article-batch-write-plan'     => true,
+		'npcink-toolbox/build-article-media-batch-write-plan' => true,
+		'npcink-toolbox/build-image-candidate-adoption-plan' => true,
 	);
 
 	/**
@@ -72,323 +72,323 @@ final class Controller {
 	 */
 	private static function execution_profiles(): array {
 		return array(
-			'magick-ai/trash-post'      => array(
+			'npcink-abilities-toolkit/trash-post'      => array(
 				'allowed_input_fields'  => array( 'post_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
-					'code'    => 'magick_ai_adapter_post_id_required',
-					'message' => __( 'trash-post execution input must include post_id.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'trash-post execution input must include post_id.', 'npcink-openclaw-adapter' ),
 				),
 				'force_post_input'      => true,
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/create-draft'    => array(
+			'npcink-abilities-toolkit/create-draft'    => array(
 				'allowed_input_fields'  => array( 'post_type', 'status', 'title', 'content', 'content_format', 'excerpt', 'soft_block_reason', 'soft_block_summary', 'meta', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'status'         => array(
 						'allowed' => array( 'draft' ),
-						'code'    => 'magick_ai_adapter_input_enum_invalid',
-						'message' => __( 'create-draft status must be draft.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_input_enum_invalid',
+						'message' => __( 'create-draft status must be draft.', 'npcink-openclaw-adapter' ),
 					),
 					'content_format' => array(
 						'allowed' => array( 'html', 'markdown', 'plain' ),
-						'code'    => 'magick_ai_adapter_content_format_invalid',
-						'message' => __( 'create-draft content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_content_format_invalid',
+						'message' => __( 'create-draft content_format must be html, markdown, or plain.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_text_fields'  => array(
 					'title' => array(
-						'code'    => 'magick_ai_adapter_title_required',
-						'message' => __( 'create-draft execution input must include title.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_title_required',
+						'message' => __( 'create-draft execution input must include title.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => true,
 			),
-			'magick-ai/update-post'     => array(
+			'npcink-abilities-toolkit/update-post'     => array(
 				'allowed_input_fields'  => array( 'post_id', 'title', 'content', 'content_format', 'excerpt', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'content_format' => array(
 						'allowed' => array( 'html', 'markdown', 'plain' ),
-						'code'    => 'magick_ai_adapter_content_format_invalid',
-						'message' => __( 'update-post content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_content_format_invalid',
+						'message' => __( 'update-post content_format must be html, markdown, or plain.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'require_post_id'       => array(
-					'code'    => 'magick_ai_adapter_post_id_required',
-					'message' => __( 'update-post execution input must include post_id.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'update-post execution input must include post_id.', 'npcink-openclaw-adapter' ),
 				),
 				'require_any_fields'    => array(
 					'fields'  => array( 'title', 'content', 'excerpt' ),
-					'code'    => 'magick_ai_adapter_update_fields_required',
-					'message' => __( 'update-post execution input must include title, content, or excerpt.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_update_fields_required',
+					'message' => __( 'update-post execution input must include title, content, or excerpt.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/patch-post-content' => array(
+			'npcink-abilities-toolkit/patch-post-content' => array(
 				'allowed_input_fields'  => array( 'post_id', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
-					'code'    => 'magick_ai_adapter_post_id_required',
-					'message' => __( 'patch-post-content execution input must include post_id.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'patch-post-content execution input must include post_id.', 'npcink-openclaw-adapter' ),
 				),
 				'require_any_fields'    => array(
 					'fields'  => array( 'operations' ),
-					'code'    => 'magick_ai_adapter_patch_operations_required',
-					'message' => __( 'patch-post-content execution input must include operations.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_patch_operations_required',
+					'message' => __( 'patch-post-content execution input must include operations.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/patch-setting-value' => array(
+			'npcink-abilities-toolkit/patch-setting-value' => array(
 				'allowed_input_fields'  => array( 'target_type', 'target_name', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'target_type' => array(
 						'allowed' => array( 'option', 'theme_mod' ),
-						'code'    => 'magick_ai_adapter_setting_target_type_invalid',
-						'message' => __( 'patch-setting-value target_type must be option or theme_mod.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_setting_target_type_invalid',
+						'message' => __( 'patch-setting-value target_type must be option or theme_mod.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'require_any_fields'    => array(
 					'fields'  => array( 'operations' ),
-					'code'    => 'magick_ai_adapter_patch_operations_required',
-					'message' => __( 'patch-setting-value execution input must include operations.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_patch_operations_required',
+					'message' => __( 'patch-setting-value execution input must include operations.', 'npcink-openclaw-adapter' ),
 				),
 				'required_text_fields'  => array(
 					'target_name' => array(
-						'code'    => 'magick_ai_adapter_setting_target_required',
-						'message' => __( 'patch-setting-value execution input must include target_name.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_setting_target_required',
+						'message' => __( 'patch-setting-value execution input must include target_name.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/set-post-seo-meta' => array(
+			'npcink-abilities-toolkit/set-post-seo-meta' => array(
 				'allowed_input_fields'  => array( 'post_id', 'seo_title', 'seo_description', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
-					'code'    => 'magick_ai_adapter_post_id_required',
-					'message' => __( 'set-post-seo-meta execution input must include post_id.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'set-post-seo-meta execution input must include post_id.', 'npcink-openclaw-adapter' ),
 				),
 				'require_any_fields'    => array(
 					'fields'  => array( 'seo_title', 'seo_description' ),
-					'code'    => 'magick_ai_adapter_seo_fields_required',
-					'message' => __( 'set-post-seo-meta execution input must include seo_title or seo_description.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_seo_fields_required',
+					'message' => __( 'set-post-seo-meta execution input must include seo_title or seo_description.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/set-post-slug'   => array(
+			'npcink-abilities-toolkit/set-post-slug'   => array(
 				'allowed_input_fields'  => array( 'post_id', 'slug', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
-					'code'    => 'magick_ai_adapter_post_id_required',
-					'message' => __( 'set-post-slug execution input must include post_id.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'set-post-slug execution input must include post_id.', 'npcink-openclaw-adapter' ),
 				),
 				'required_slug_fields'  => array(
 					'slug' => array(
-						'code'    => 'magick_ai_adapter_slug_required',
-						'message' => __( 'set-post-slug execution input must include a valid slug.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_slug_required',
+						'message' => __( 'set-post-slug execution input must include a valid slug.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/set-post-terms'  => array(
+			'npcink-abilities-toolkit/set-post-terms'  => array(
 				'allowed_input_fields'  => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'terms', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'mode' => array(
 						'allowed' => array( 'replace', 'append', 'remove' ),
-						'code'    => 'magick_ai_adapter_term_mode_invalid',
-						'message' => __( 'set-post-terms execution mode must be replace, append, or remove.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_term_mode_invalid',
+						'message' => __( 'set-post-terms execution mode must be replace, append, or remove.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'require_post_id'       => array(
-					'code'    => 'magick_ai_adapter_post_id_required',
-					'message' => __( 'set-post-terms execution input must include post_id.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'set-post-terms execution input must include post_id.', 'npcink-openclaw-adapter' ),
 				),
 				'validate_terms_input'  => true,
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/delete-term'     => array(
+			'npcink-abilities-toolkit/delete-term'     => array(
 				'allowed_input_fields'      => array( 'taxonomy', 'term_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'       => array(
 					'term_id' => array(
-						'code'    => 'magick_ai_adapter_term_id_required',
-						'message' => __( 'delete-term execution input must include term_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_term_id_required',
+						'message' => __( 'delete-term execution input must include term_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'validate_delete_term_input' => true,
 				'post_id_from_result'       => false,
 			),
-			'magick-ai/update-media-details' => array(
+			'npcink-abilities-toolkit/update-media-details' => array(
 				'allowed_input_fields'  => array( 'attachment_id', 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'source_type' => array(
 						'allowed' => array( 'owned', 'ai_generated', 'stock', 'external', 'test' ),
-						'code'    => 'magick_ai_adapter_media_source_type_invalid',
-						'message' => __( 'update-media-details source_type must be owned, ai_generated, stock, external, or test.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_media_source_type_invalid',
+						'message' => __( 'update-media-details source_type must be owned, ai_generated, stock, external, or test.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
-						'code'    => 'magick_ai_adapter_attachment_id_required',
-						'message' => __( 'update-media-details execution input must include attachment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
+						'message' => __( 'update-media-details execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'require_any_fields'    => array(
 					'fields'  => array( 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice' ),
-					'code'    => 'magick_ai_adapter_media_fields_required',
-					'message' => __( 'update-media-details execution input must include at least one media detail field.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_media_fields_required',
+					'message' => __( 'update-media-details execution input must include at least one media detail field.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/upload-media-from-url' => array(
+			'npcink-abilities-toolkit/upload-media-from-url' => array(
 				'allowed_input_fields'  => array( 'url', 'title', 'file_name', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'attach_to_post_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'source_type' => array(
 						'allowed' => array( 'owned', 'ai_generated', 'stock', 'external', 'test' ),
-						'code'    => 'magick_ai_adapter_media_source_type_invalid',
-						'message' => __( 'upload-media-from-url source_type must be owned, ai_generated, stock, external, or test.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_media_source_type_invalid',
+						'message' => __( 'upload-media-from-url source_type must be owned, ai_generated, stock, external, or test.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_text_fields'  => array(
 					'url' => array(
-						'code'    => 'magick_ai_adapter_media_url_required',
-						'message' => __( 'upload-media-from-url execution input must include url.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_media_url_required',
+						'message' => __( 'upload-media-from-url execution input must include url.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/set-post-featured-image' => array(
+			'npcink-abilities-toolkit/set-post-featured-image' => array(
 				'allowed_input_fields'  => array( 'post_id', 'attachment_id', 'media_url', 'media_title', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
-					'code'    => 'magick_ai_adapter_post_id_required',
-					'message' => __( 'set-post-featured-image execution input must include post_id.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'set-post-featured-image execution input must include post_id.', 'npcink-openclaw-adapter' ),
 				),
 				'require_any_fields'    => array(
 					'fields'  => array( 'attachment_id', 'media_url' ),
-					'code'    => 'magick_ai_adapter_featured_image_required',
-					'message' => __( 'set-post-featured-image execution input must include attachment_id or media_url.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_featured_image_required',
+					'message' => __( 'set-post-featured-image execution input must include attachment_id or media_url.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'   => true,
 			),
-			'magick-ai/optimize-media-asset' => array(
+			'npcink-abilities-toolkit/optimize-media-asset' => array(
 				'allowed_input_fields'  => array( 'attachment_id', 'target_max_width', 'preferred_format', 'quality', 'derivative_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'preferred_format' => array(
 						'allowed' => array( 'webp', 'jpeg', 'png' ),
-						'code'    => 'magick_ai_adapter_media_preferred_format_invalid',
-						'message' => __( 'optimize-media-asset preferred_format must be webp, jpeg, or png.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_media_preferred_format_invalid',
+						'message' => __( 'optimize-media-asset preferred_format must be webp, jpeg, or png.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
-						'code'    => 'magick_ai_adapter_attachment_id_required',
-						'message' => __( 'optimize-media-asset execution input must include attachment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
+						'message' => __( 'optimize-media-asset execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/replace-media-file' => array(
+			'npcink-abilities-toolkit/replace-media-file' => array(
 				'allowed_input_fields'  => array( 'attachment_id', 'mode', 'derivative_relative_file', 'replacement_id', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'mode' => array(
 						'allowed' => array( 'replace', 'rollback' ),
-						'code'    => 'magick_ai_adapter_media_replace_mode_invalid',
-						'message' => __( 'replace-media-file mode must be replace or rollback.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_media_replace_mode_invalid',
+						'message' => __( 'replace-media-file mode must be replace or rollback.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
-						'code'    => 'magick_ai_adapter_attachment_id_required',
-						'message' => __( 'replace-media-file execution input must include attachment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
+						'message' => __( 'replace-media-file execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/adopt-cloud-media-derivative' => array(
+			'npcink-abilities-toolkit/adopt-cloud-media-derivative' => array(
 				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
-						'code'    => 'magick_ai_adapter_attachment_id_required',
-						'message' => __( 'adopt-cloud-media-derivative execution input must include attachment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
+						'message' => __( 'adopt-cloud-media-derivative execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'require_any_fields'    => array(
 					'fields'  => array( 'derivative_artifact' ),
-					'code'    => 'magick_ai_adapter_derivative_artifact_required',
-					'message' => __( 'adopt-cloud-media-derivative execution input must include derivative_artifact evidence.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_derivative_artifact_required',
+					'message' => __( 'adopt-cloud-media-derivative execution input must include derivative_artifact evidence.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'   => false,
 			),
-			'magick-ai/rename-media-file' => array(
+			'npcink-abilities-toolkit/rename-media-file' => array(
 				'allowed_input_fields'     => array( 'attachment_id', 'target_file_name', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_current_md5', 'expected_current_sha256', 'conflict_mode', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'              => array(
 					'conflict_mode' => array(
 						'allowed' => array( 'fail', 'unique' ),
-						'code'    => 'magick_ai_adapter_media_rename_conflict_mode_invalid',
-						'message' => __( 'rename-media-file conflict_mode must be fail or unique.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_media_rename_conflict_mode_invalid',
+						'message' => __( 'rename-media-file conflict_mode must be fail or unique.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_int_fields'      => array(
 					'attachment_id' => array(
-						'code'    => 'magick_ai_adapter_attachment_id_required',
-						'message' => __( 'rename-media-file execution input must include attachment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
+						'message' => __( 'rename-media-file execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_text_fields'     => array(
 					'target_file_name' => array(
-						'code'    => 'magick_ai_adapter_target_file_name_required',
-						'message' => __( 'rename-media-file execution input must include target_file_name.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_target_file_name_required',
+						'message' => __( 'rename-media-file execution input must include target_file_name.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'validate_attachment_input' => array(
-					'message' => __( 'rename-media-file execution input must target an existing attachment.', 'magick-ai-adapter' ),
+					'message' => __( 'rename-media-file execution input must target an existing attachment.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'      => false,
 			),
-			'magick-ai/delete-media-permanently' => array(
+			'npcink-abilities-toolkit/delete-media-permanently' => array(
 				'allowed_input_fields'     => array( 'attachment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'      => array(
 					'attachment_id' => array(
-						'code'    => 'magick_ai_adapter_attachment_id_required',
-						'message' => __( 'delete-media-permanently execution input must include attachment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
+						'message' => __( 'delete-media-permanently execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'validate_attachment_input' => array(
-					'message' => __( 'delete-media-permanently execution input must target an existing attachment.', 'magick-ai-adapter' ),
+					'message' => __( 'delete-media-permanently execution input must target an existing attachment.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'      => false,
 			),
-			'magick-ai/reply-comment'   => array(
+			'npcink-abilities-toolkit/reply-comment'   => array(
 				'allowed_input_fields'  => array( 'comment_id', 'content', 'content_format', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'content_format' => array(
 						'allowed' => array( 'html', 'markdown', 'plain' ),
-						'code'    => 'magick_ai_adapter_content_format_invalid',
-						'message' => __( 'reply-comment content_format must be html, markdown, or plain.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_content_format_invalid',
+						'message' => __( 'reply-comment content_format must be html, markdown, or plain.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_int_fields'   => array(
 					'comment_id' => array(
-						'code'    => 'magick_ai_adapter_comment_id_required',
-						'message' => __( 'reply-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_comment_id_required',
+						'message' => __( 'reply-comment execution input must include comment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'require_comment_body'  => array(
-					'code'    => 'magick_ai_adapter_comment_content_required',
-					'message' => __( 'reply-comment execution input must include content.', 'magick-ai-adapter' ),
+					'code'    => 'npcink_openclaw_adapter_comment_content_required',
+					'message' => __( 'reply-comment execution input must include content.', 'npcink-openclaw-adapter' ),
 				),
 				'post_id_from_result'   => true,
 			),
-			'magick-ai/trash-comment'   => array(
+			'npcink-abilities-toolkit/trash-comment'   => array(
 				'allowed_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'comment_id' => array(
-						'code'    => 'magick_ai_adapter_comment_id_required',
-						'message' => __( 'trash-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_comment_id_required',
+						'message' => __( 'trash-comment execution input must include comment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => true,
 			),
-			'magick-ai/approve-comment' => array(
+			'npcink-abilities-toolkit/approve-comment' => array(
 				'allowed_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'comment_id' => array(
-						'code'    => 'magick_ai_adapter_comment_id_required',
-						'message' => __( 'approve-comment execution input must include comment_id.', 'magick-ai-adapter' ),
+						'code'    => 'npcink_openclaw_adapter_comment_id_required',
+						'message' => __( 'approve-comment execution input must include comment_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => true,
@@ -555,7 +555,7 @@ final class Controller {
 						),
 						'ability_id'     => array(
 							'type'              => 'string',
-							'default'           => 'magick-ai-adapter/provider-log-correlation-smoke',
+							'default'           => 'npcink-openclaw-adapter/provider-log-correlation-smoke',
 							'sanitize_callback' => 'sanitize_text_field',
 						),
 						'ai_provider'    => array(
@@ -1109,8 +1109,8 @@ final class Controller {
 
 		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_sodium_unavailable',
-				__( 'Ed25519 device pairing requires the PHP sodium extension.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_sodium_unavailable',
+				__( 'Ed25519 device pairing requires the PHP sodium extension.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 501 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $error );
@@ -1125,8 +1125,8 @@ final class Controller {
 
 		if ( '' === $name || 'Ed25519' !== (string) ( $key['alg'] ?? '' ) || 32 !== strlen( $this->base64url_decode( $public_key ) ) ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_device_pairing_invalid',
-				__( 'Device pairing requires client metadata and a base64url Ed25519 public key.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_device_pairing_invalid',
+				__( 'Device pairing requires client metadata and a base64url Ed25519 public key.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 400 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $error );
@@ -1159,7 +1159,7 @@ final class Controller {
 		);
 		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
 
-		$verification_uri = admin_url( 'admin.php?page=magick-ai-adapter-pair' );
+		$verification_uri = admin_url( 'admin.php?page=npcink-openclaw-adapter-pair' );
 
 		$this->emit_operation_event( 'adapter.device_pairing.start', $started, null, array( 'status_detail' => 'pending' ) );
 
@@ -1195,8 +1195,8 @@ final class Controller {
 
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_device_pairing_expired',
-				__( 'Device pairing is expired or invalid.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_device_pairing_expired',
+				__( 'Device pairing is expired or invalid.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 401 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $error );
@@ -1205,8 +1205,8 @@ final class Controller {
 
 		if ( 'rejected' === (string) ( $pairing['status'] ?? '' ) ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_device_pairing_rejected',
-				__( 'Device pairing was rejected.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_device_pairing_rejected',
+				__( 'Device pairing was rejected.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 403 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $error, array( 'status_detail' => 'rejected' ) );
@@ -1219,7 +1219,7 @@ final class Controller {
 				array(
 					'ok'      => false,
 					'status'  => 'pending',
-					'message' => __( 'Device pairing is still pending approval.', 'magick-ai-adapter' ),
+					'message' => __( 'Device pairing is still pending approval.', 'npcink-openclaw-adapter' ),
 				),
 				202
 			);
@@ -1288,8 +1288,8 @@ final class Controller {
 		$record = is_array( $keys[ $key_id ] ?? null ) ? $keys[ $key_id ] : array();
 		if ( empty( $record ) || $user_id !== (int) ( $record['user_id'] ?? 0 ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_client_key_not_found',
-				__( 'Client key was not found for the current user.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_client_key_not_found',
+				__( 'Client key was not found for the current user.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -1330,7 +1330,7 @@ final class Controller {
 		$pairings  = $this->device_pairings();
 		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
-			$error = new WP_Error( 'magick_ai_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'magick-ai-adapter' ) );
+			$error = new WP_Error( 'npcink_openclaw_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'npcink-openclaw-adapter' ) );
 			$this->emit_operation_event( 'adapter.device_pairing.approve', $started, $error );
 			return $error;
 		}
@@ -1390,7 +1390,7 @@ final class Controller {
 			$this->emit_operation_event(
 				'adapter.device_pairing.reject',
 				$started,
-				new WP_Error( 'magick_ai_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'magick-ai-adapter' ) )
+				new WP_Error( 'npcink_openclaw_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'npcink-openclaw-adapter' ) )
 			);
 			return false;
 		}
@@ -1434,8 +1434,8 @@ final class Controller {
 		}
 
 		return new WP_Error(
-			'magick_ai_adapter_json_body_required',
-			__( 'A JSON request body is required.', 'magick-ai-adapter' ),
+			'npcink_openclaw_adapter_json_body_required',
+			__( 'A JSON request body is required.', 'npcink-openclaw-adapter' ),
 			array( 'status' => 400 )
 		);
 	}
@@ -1450,7 +1450,7 @@ final class Controller {
 		$user     = $user_id > 0 ? get_userdata( $user_id ) : wp_get_current_user();
 		$username = $user && $user->exists() ? (string) $user->user_login : '';
 		$base     = array(
-			'schema_version' => 'magick_ai_adapter_connection.v1',
+			'schema_version' => 'npcink_openclaw_adapter_connection.v1',
 			'kind'           => 'magick.ai/wordpress-adapter-connection',
 			'manifest_id'    => 'mag_manifest_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $username ), 0, 24 ),
 			'connection_id'  => 'local-wordpress',
@@ -1460,8 +1460,8 @@ final class Controller {
 				'adapter_base_url' => rest_url( self::NAMESPACE ),
 				'admin_origin'     => $this->url_origin( admin_url() ),
 				'plugin'           => array(
-					'slug'    => 'magick-ai-adapter',
-					'version' => MAGICK_AI_ADAPTER_VERSION,
+					'slug'    => 'npcink-openclaw-adapter',
+					'version' => NPCINK_OPENCLAW_ADAPTER_VERSION,
 				),
 			),
 			'user'           => array(
@@ -1472,7 +1472,7 @@ final class Controller {
 				'supported_methods' => array(
 					array(
 						'type'            => 'key_pair_device_pairing',
-						'protocol'        => 'magick-key-pair-auth.v1',
+						'protocol'        => 'npcink-key-pair-auth.v1',
 						'key_type'        => 'ed25519',
 						'secret_delivery' => 'none',
 						'requires_admin_approval' => true,
@@ -1500,7 +1500,7 @@ final class Controller {
 				'write' => array(
 					'mode'                         => 'proposal_only',
 					'direct_wordpress_write_allowed' => false,
-					'requires_magick_ai_core'      => true,
+					'requires_npcink_governance_core'      => true,
 				),
 			),
 		);
@@ -1712,7 +1712,7 @@ final class Controller {
 			return false;
 		}
 
-		$nonce_key = 'maa_sig_nonce_' . md5( $key_id . '|' . $nonce );
+		$nonce_key = 'npcink_openclaw_adapter_sig_nonce_' . md5( $key_id . '|' . $nonce );
 		if ( get_transient( $nonce_key ) ) {
 			return false;
 		}
@@ -1734,19 +1734,19 @@ final class Controller {
 	}
 
 	/**
-	 * Returns request signature credentials from X-Magick headers or Authorization.
+	 * Returns request signature credentials from X-Npcink headers or Authorization.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return array<string,string>
 	 */
 	private function signed_request_credentials( WP_REST_Request $request ): array {
 		$credentials = array(
-			'key_id'         => sanitize_text_field( (string) $request->get_header( 'x_magick_key_id' ) ),
-			'timestamp'      => sanitize_text_field( (string) $request->get_header( 'x_magick_timestamp' ) ),
-			'nonce'          => sanitize_text_field( (string) $request->get_header( 'x_magick_nonce' ) ),
-			'content_sha256' => sanitize_text_field( (string) $request->get_header( 'x_magick_content_sha256' ) ),
-			'signature_alg'  => sanitize_text_field( (string) $request->get_header( 'x_magick_signature_alg' ) ),
-			'signature'      => sanitize_text_field( (string) $request->get_header( 'x_magick_signature' ) ),
+			'key_id'         => sanitize_text_field( (string) $request->get_header( 'x_npcink_key_id' ) ),
+			'timestamp'      => sanitize_text_field( (string) $request->get_header( 'x_npcink_timestamp' ) ),
+			'nonce'          => sanitize_text_field( (string) $request->get_header( 'x_npcink_nonce' ) ),
+			'content_sha256' => sanitize_text_field( (string) $request->get_header( 'x_npcink_content_sha256' ) ),
+			'signature_alg'  => sanitize_text_field( (string) $request->get_header( 'x_npcink_signature_alg' ) ),
+			'signature'      => sanitize_text_field( (string) $request->get_header( 'x_npcink_signature' ) ),
 		);
 
 		if ( '' !== $credentials['key_id'] && '' !== $credentials['signature'] ) {
@@ -1754,7 +1754,7 @@ final class Controller {
 		}
 
 		$authorization = (string) $request->get_header( 'authorization' );
-		if ( ! preg_match( '/^Magick-Signature\s+(.+)$/i', $authorization, $matches ) ) {
+		if ( ! preg_match( '/^Npcink-Signature\s+(.+)$/i', $authorization, $matches ) ) {
 			return $credentials;
 		}
 
@@ -1855,14 +1855,14 @@ final class Controller {
 
 		return new WP_REST_Response(
 			array(
-				'adapter'                => 'magick-ai-adapter',
-				'version'                => MAGICK_AI_ADAPTER_VERSION,
-				'core_capabilities'      => isset( $routes['/magick-ai-core/v1/capabilities'] ),
+				'adapter'                => 'npcink-openclaw-adapter',
+				'version'                => NPCINK_OPENCLAW_ADAPTER_VERSION,
+				'core_capabilities'      => isset( $routes['/npcink-governance-core/v1/capabilities'] ),
 				'abilities_catalog'      => isset( $routes['/wp-abilities/v1/abilities'] ),
 				'core_proxy_execute'     => false,
 				'commit_execution'       => false,
 				'approval_proxy_enabled' => false,
-				'approval_surface'       => 'magick_ai_core_admin',
+				'approval_surface'       => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
 				'ai_request_log_context_fields' => array(
 					'proposal_id',
@@ -1875,8 +1875,8 @@ final class Controller {
 					'ai_provider',
 					'ai_model',
 					'governance_source',
-					'magick_ai_core.proposal_id',
-					'magick_ai_core.correlation_id',
+					'npcink_governance_core.proposal_id',
+					'npcink_governance_core.correlation_id',
 				),
 				'core_app_token_required_scopes' => array(
 					'capabilities:read',
@@ -1922,10 +1922,10 @@ final class Controller {
 					),
 					'proposal_status' => array(
 						'governance_mode'     => 'core_proposal_read_proxy',
-						'execution_surface'   => 'magick_ai_core_rest',
+						'execution_surface'   => 'npcink_governance_core_rest',
 						'core_required_scope' => 'proposals:read',
 						'approval_proxy_enabled' => false,
-						'approval_surface'    => 'magick_ai_core_admin',
+						'approval_surface'    => 'npcink_governance_core_admin',
 						'proposal_status_routes' => array(
 							'GET /proposals',
 							'GET /proposals/{proposal_id}',
@@ -1953,7 +1953,7 @@ final class Controller {
 					'unified_approve_and_execute' => array(
 						'governance_mode'      => 'core_approval_then_adapter_execution',
 						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
-						'approval_surface'     => 'magick_ai_adapter_unified_action',
+						'approval_surface'     => 'npcink_openclaw_adapter_unified_action',
 						'core_commit_execution' => false,
 						'allowed_ability_ids'  => self::allowed_execute_ability_ids(),
 						'execution_input_contract' => array(
@@ -1967,9 +1967,9 @@ final class Controller {
 					),
 					'plan_to_proposal' => array(
 						'governance_mode'   => 'direct_read_plan_to_core_proposals',
-						'execution_surface' => 'magick_ai_core_rest',
+						'execution_surface' => 'npcink_governance_core_rest',
 						'core_required_scope' => 'proposals:create',
-						'core_route'        => 'POST /magick-ai-core/v1/proposals/from-plan',
+						'core_route'        => 'POST /npcink-governance-core/v1/proposals/from-plan',
 						'plan_fields_preserved' => array(
 							'batch_id',
 							'issue_types',
@@ -2019,7 +2019,7 @@ final class Controller {
 
 		return new WP_REST_Response(
 			array(
-				'adapter'       => 'magick-ai-adapter',
+				'adapter'       => 'npcink-openclaw-adapter',
 				'namespace'     => self::NAMESPACE,
 				'base_url'      => rest_url( self::NAMESPACE ),
 				'auth'          => array(
@@ -2037,7 +2037,7 @@ final class Controller {
 					'commit_preflight' => 'commit:preflight',
 				),
 				'approval_proxy_enabled' => false,
-				'approval_surface' => 'magick_ai_core_admin',
+				'approval_surface' => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
 				'ai_request_log_context' => array(
 					'accepted_param' => 'log_context',
@@ -2162,14 +2162,14 @@ final class Controller {
 			'article_draft_plan' => array(
 				'title'       => 'Article draft plan',
 				'description' => 'Build a reviewed Toolbox article_write_plan, forward it to Core, then execute only the Core-approved draft creation.',
-				'entrypoint_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
-				'plan_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
-				'final_write_ability_id' => 'magick-ai/create-draft',
+				'entrypoint_ability_id' => 'npcink-toolbox/build-article-write-plan',
+				'plan_ability_id' => 'npcink-toolbox/build-article-write-plan',
+				'final_write_ability_id' => 'npcink-abilities-toolkit/create-draft',
 				'steps'       => array(
 					array(
 						'order'      => 1,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+						'ability_id' => 'npcink-toolbox/build-article-write-plan',
 						'purpose'    => 'Build the reviewed article_write_plan without writing WordPress content.',
 					),
 					array(
@@ -2203,14 +2203,14 @@ final class Controller {
 			'article_batch_draft_plan' => array(
 				'title'       => 'Article batch draft plan',
 				'description' => 'Build a reviewed Toolbox article_batch_write_plan, forward it to Core as one batch proposal, then execute only Core-approved draft creation actions.',
-				'entrypoint_ability_id' => 'magick-ai-toolbox/build-article-batch-write-plan',
-				'plan_ability_id' => 'magick-ai-toolbox/build-article-batch-write-plan',
-				'final_write_ability_id' => 'magick-ai/create-draft',
+				'entrypoint_ability_id' => 'npcink-toolbox/build-article-batch-write-plan',
+				'plan_ability_id' => 'npcink-toolbox/build-article-batch-write-plan',
+				'final_write_ability_id' => 'npcink-abilities-toolkit/create-draft',
 				'steps'       => array(
 					array(
 						'order'      => 1,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/build-article-batch-write-plan',
+						'ability_id' => 'npcink-toolbox/build-article-batch-write-plan',
 						'purpose'    => 'Build a reviewed 2-5 draft article_batch_write_plan without writing WordPress content.',
 					),
 					array(
@@ -2246,25 +2246,25 @@ final class Controller {
 			'article_media_batch_plan' => array(
 				'title'       => 'Article media batch plan',
 				'description' => 'Build a reviewed Toolbox article_media_batch_write_plan with image-source candidates, forward it to Core as one batch proposal, then execute only Core-approved draft and media write actions.',
-				'entrypoint_ability_id' => 'magick-ai-toolbox/build-article-media-batch-write-plan',
-				'plan_ability_id' => 'magick-ai-toolbox/build-article-media-batch-write-plan',
+				'entrypoint_ability_id' => 'npcink-toolbox/build-article-media-batch-write-plan',
+				'plan_ability_id' => 'npcink-toolbox/build-article-media-batch-write-plan',
 				'final_write_ability_ids' => array(
-					'magick-ai/create-draft',
-					'magick-ai/upload-media-from-url',
-					'magick-ai/update-media-details',
-					'magick-ai/set-post-featured-image',
+					'npcink-abilities-toolkit/create-draft',
+					'npcink-abilities-toolkit/upload-media-from-url',
+					'npcink-abilities-toolkit/update-media-details',
+					'npcink-abilities-toolkit/set-post-featured-image',
 				),
 				'steps'       => array(
 					array(
 						'order'      => 1,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/search-image-source',
+						'ability_id' => 'npcink-toolbox/search-image-source',
 						'purpose'    => 'Collect image-source candidates and preserve attribution for operator review.',
 					),
 					array(
 						'order'      => 2,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/build-article-media-batch-write-plan',
+						'ability_id' => 'npcink-toolbox/build-article-media-batch-write-plan',
 						'purpose'    => 'Build a reviewed article_media_batch_write_plan without writing WordPress content or importing media.',
 					),
 					array(
@@ -2300,24 +2300,24 @@ final class Controller {
 			'image_candidate_adoption_plan' => array(
 				'title'                   => 'Image candidate adoption plan',
 				'description'             => 'Build a reviewed Toolbox image_candidate_adoption_plan, forward it to Core as one proposal, then execute only Core-approved media import, metadata, and optional featured-image actions.',
-				'entrypoint_ability_id'   => 'magick-ai-toolbox/build-image-candidate-adoption-plan',
-				'plan_ability_id'         => 'magick-ai-toolbox/build-image-candidate-adoption-plan',
+				'entrypoint_ability_id'   => 'npcink-toolbox/build-image-candidate-adoption-plan',
+				'plan_ability_id'         => 'npcink-toolbox/build-image-candidate-adoption-plan',
 				'final_write_ability_ids' => array(
-					'magick-ai/upload-media-from-url',
-					'magick-ai/update-media-details',
-					'magick-ai/set-post-featured-image',
+					'npcink-abilities-toolkit/upload-media-from-url',
+					'npcink-abilities-toolkit/update-media-details',
+					'npcink-abilities-toolkit/set-post-featured-image',
 				),
 				'steps'                   => array(
 					array(
 						'order'      => 1,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/search-image-source',
+						'ability_id' => 'npcink-toolbox/search-image-source',
 						'purpose'    => 'Collect stock, generated, external, or owned image_candidate.v1 candidates for operator review.',
 					),
 					array(
 						'order'      => 2,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/build-image-candidate-adoption-plan',
+						'ability_id' => 'npcink-toolbox/build-image-candidate-adoption-plan',
 						'purpose'    => 'Build a reviewed image_candidate_adoption_plan without importing media or writing WordPress content.',
 					),
 					array(
@@ -2353,7 +2353,7 @@ final class Controller {
 			'content_discoverability_suggestions' => array(
 				'title'       => 'Content discoverability suggestions',
 				'description' => 'Validate Toolbox SEO/AEO/GEO context, build one suggestion-only brief, and return proposal-ready suggestions without writing WordPress data.',
-				'entrypoint_ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief',
+				'entrypoint_ability_id' => 'npcink-toolbox/build-content-discoverability-brief',
 				'default_input' => array(
 					'include_external_search' => true,
 					'external_search_intent'  => 'writing_context',
@@ -2370,19 +2370,19 @@ final class Controller {
 					array(
 						'order'      => 1,
 						'route'      => 'GET /content-discoverability-validation or POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/validate-content-discoverability-context',
+						'ability_id' => 'npcink-toolbox/validate-content-discoverability-context',
 						'purpose'    => 'Confirm the Toolbox content context is ready before using it.',
 					),
 					array(
 						'order'      => 2,
 						'route'      => 'GET /content-discoverability-context or POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/get-content-discoverability-context',
+						'ability_id' => 'npcink-toolbox/get-content-discoverability-context',
 						'purpose'    => 'Read operator-maintained SEO, AEO, GEO, brand voice, and forbidden-claims guidance.',
 					),
 					array(
 						'order'      => 3,
 						'route'      => 'GET /content-discoverability-brief?post_id={post_id} or POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief',
+						'ability_id' => 'npcink-toolbox/build-content-discoverability-brief',
 						'purpose'    => 'Build one suggestion-only brief for a post or supplied topic/title/content.',
 					),
 					array(
@@ -2393,7 +2393,7 @@ final class Controller {
 				),
 				'guardrails'   => array(
 					'artifact_type'           => 'content_discoverability_brief',
-					'cloud_search_owner'      => 'magick-ai-cloud',
+					'cloud_search_owner'      => 'npcink-cloud',
 					'cloud_search_default'    => 'auto_when_external_evidence_required',
 					'write_posture'           => 'suggestion_only',
 					'direct_wordpress_write'  => false,
@@ -2410,7 +2410,7 @@ final class Controller {
 			'ai_article_draft_with_discoverability' => array(
 				'title'       => 'AI article draft with discoverability',
 				'description' => 'For natural-language article requests, build one Toolbox AI article writing pack with SEO/AEO/GEO context and drafting guardrails before OpenClaw writes the candidate article.',
-				'entrypoint_ability_id' => 'magick-ai-toolbox/build-ai-article-writing-pack',
+				'entrypoint_ability_id' => 'npcink-toolbox/build-ai-article-writing-pack',
 				'default_input' => array(
 					'include_external_search' => true,
 					'external_search_intent'  => 'writing_context',
@@ -2427,7 +2427,7 @@ final class Controller {
 					array(
 						'order'      => 1,
 						'route'      => 'GET /article-writing-pack?topic={topic} or POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/build-ai-article-writing-pack',
+						'ability_id' => 'npcink-toolbox/build-ai-article-writing-pack',
 						'purpose'    => 'Build one suggestion-only writing pack from Toolbox content context, validation, discoverability brief, style rules, and forbidden claims.',
 					),
 					array(
@@ -2438,7 +2438,7 @@ final class Controller {
 					array(
 						'order'      => 3,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+						'ability_id' => 'npcink-toolbox/build-article-write-plan',
 						'purpose'    => 'After operator review, convert the reviewed draft into a Core-ready article_write_plan.',
 					),
 					array(
@@ -2449,7 +2449,7 @@ final class Controller {
 				),
 				'guardrails'   => array(
 					'artifact_type'           => 'ai_article_writing_pack',
-					'cloud_search_owner'      => 'magick-ai-cloud',
+					'cloud_search_owner'      => 'npcink-cloud',
 					'cloud_search_default'    => 'auto_when_external_evidence_required',
 					'write_posture'           => 'suggestion_only',
 					'direct_wordpress_write'  => false,
@@ -2468,9 +2468,9 @@ final class Controller {
 			'media_derivative_cloud' => array(
 				'title'       => 'Media derivative Cloud artifact',
 				'description' => 'Build a local single-image or bounded batch media derivative plan, dispatch selected candidates through Cloud Addon, then hand reviewed metadata and resulting artifacts back to Core as one media optimization proposal before any WordPress adoption.',
-				'entrypoint_ability_id' => 'magick-ai/build-media-derivative-cloud-request',
-				'batch_plan_ability_id' => 'magick-ai/build-media-derivative-batch-plan',
-				'optimization_plan_ability_id' => 'magick-ai/build-media-optimization-plan',
+				'entrypoint_ability_id' => 'npcink-abilities-toolkit/build-media-derivative-cloud-request',
+				'batch_plan_ability_id' => 'npcink-abilities-toolkit/build-media-derivative-batch-plan',
+				'optimization_plan_ability_id' => 'npcink-abilities-toolkit/build-media-optimization-plan',
 				'default_user_intent' => 'optimize_this_media_item',
 				'preferred_core_route' => 'POST /proposals/from-plan',
 				'required_reviewed_input' => array( 'media_details_input', 'derivative_artifact' ),
@@ -2478,13 +2478,13 @@ final class Controller {
 					array(
 						'order'      => 1,
 						'route'      => 'POST /run-read-ability',
-						'ability_id' => 'magick-ai/build-media-derivative-batch-plan',
+						'ability_id' => 'npcink-abilities-toolkit/build-media-derivative-batch-plan',
 						'purpose'    => 'For natural-language bulk requests, build a bounded read-only candidate plan first; review skipped reasons and never treat it as a write decision.',
 					),
 					array(
 						'order'      => 2,
 						'route'      => 'POST /media-derivative-runs',
-						'ability_id' => 'magick-ai/build-media-derivative-cloud-request',
+						'ability_id' => 'npcink-abilities-toolkit/build-media-derivative-cloud-request',
 						'purpose'    => 'For each reviewed candidate, build the read-only local request contract and dispatch source or watermark artifacts through Cloud Addon.',
 					),
 					array(
@@ -2516,7 +2516,7 @@ final class Controller {
 				'guardrails'   => array(
 					'artifact_type'              => 'media_derivative_cloud_artifact',
 					'optimization_artifact_type' => 'media_optimization_plan',
-					'cloud_transport_owner'      => 'magick-ai-cloud-addon',
+					'cloud_transport_owner'      => 'npcink-cloud-addon',
 					'final_write_owner'          => 'local_wordpress_host',
 					'wordpress_write_included'   => false,
 					'attachment_metadata_write_included' => false,
@@ -2603,8 +2603,8 @@ final class Controller {
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
 			'POST /proposals' => 'Create a Core proposal for governed work.',
 			'POST /proposals/from-plan' => 'Forward a read-only plan output to Core plan-to-proposal intake.',
-			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Magick AI Core admin.',
-			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Magick AI Core admin.',
+			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Npcink Governance Core admin.',
+			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Npcink Governance Core admin.',
 			'POST /proposals/{proposal_id}/commit-preflight' => 'Advanced diagnostic route: run Core commit preflight without final writes and cache the one-time handoff for the next Adapter execute call; dry-run verification stops here.',
 			'POST /execute-approved-proposal' => 'Final write route: execute one approved proposal after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
 			'POST /proposals/{proposal_id}/execute' => 'Final write route: execute one approved proposal by id after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
@@ -2630,7 +2630,7 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function capabilities() {
-		return $this->dispatch_upstream( 'GET', '/magick-ai-core/v1/capabilities' );
+		return $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/capabilities' );
 	}
 
 	/**
@@ -2654,7 +2654,7 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function media_metadata_optimization_route( WP_REST_Request $request ) {
-		$ability_id = 'magick-ai/optimize-media-metadata';
+		$ability_id = 'npcink-abilities-toolkit/optimize-media-metadata';
 
 		return $this->run_read_ability(
 			$ability_id,
@@ -2670,11 +2670,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_media_derivative_run( WP_REST_Request $request ) {
-		if ( ! function_exists( 'magick_ai_cloud_addon_dispatch_media_derivative_cloud_request' ) ) {
+		if ( ! function_exists( 'npcink_cloud_addon_dispatch_media_derivative_cloud_request' ) ) {
 			return $this->cloud_addon_unavailable_error();
 		}
 
-		$ability_id     = 'magick-ai/build-media-derivative-cloud-request';
+		$ability_id     = 'npcink-abilities-toolkit/build-media-derivative-cloud-request';
 		$ability_input  = $this->media_derivative_ability_input( $request );
 		$log_context    = $this->request_log_context( $request, $ability_id );
 		$ability_result = $this->run_read_ability( $ability_id, $ability_input, $log_context );
@@ -2686,8 +2686,8 @@ final class Controller {
 		$ability_response = is_array( $ability_envelope['result'] ?? null ) ? $ability_envelope['result'] : array();
 		if ( empty( $ability_response ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_media_derivative_ability_response_invalid',
-				__( 'Media derivative ability response is invalid.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_media_derivative_ability_response_invalid',
+				__( 'Media derivative ability response is invalid.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 502 )
 			);
 		}
@@ -2704,7 +2704,7 @@ final class Controller {
 
 		$trace_id        = sanitize_text_field( (string) ( $request->get_param( 'trace_id' ) ?: ( $log_context['correlation_id'] ?? '' ) ) );
 		$idempotency_key = sanitize_text_field( (string) $request->get_param( 'idempotency_key' ) );
-		$dispatch        = magick_ai_cloud_addon_dispatch_media_derivative_cloud_request(
+		$dispatch        = npcink_cloud_addon_dispatch_media_derivative_cloud_request(
 			$ability_response,
 			$source_artifact,
 			$trace_id,
@@ -2814,7 +2814,7 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function build_media_derivative_proposal_payload( WP_REST_Request $request ) {
-		if ( ! function_exists( 'magick_ai_cloud_addon_build_media_derivative_proposal_payload' ) ) {
+		if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payload' ) ) {
 			return $this->cloud_addon_unavailable_error();
 		}
 
@@ -2826,7 +2826,7 @@ final class Controller {
 			$artifact = $this->media_derivative_artifact_from_cloud_result( $cloud_result );
 		}
 
-		$payload = magick_ai_cloud_addon_build_media_derivative_proposal_payload(
+		$payload = npcink_cloud_addon_build_media_derivative_proposal_payload(
 			$ability_response,
 			$cloud_result,
 			$artifact
@@ -2845,14 +2845,14 @@ final class Controller {
 			'preferred_core_route'   => 'POST /proposals/from-plan',
 			'legacy_derivative_proposal_payload_available' => true,
 			'ability_guard'          => array(
-				'required_plan_ability_id' => 'magick-ai/build-media-optimization-plan',
-				'adapter_plan_allowlisted' => isset( self::$allowed_plan_ability_ids['magick-ai/build-media-optimization-plan'] ),
+				'required_plan_ability_id' => 'npcink-abilities-toolkit/build-media-optimization-plan',
+				'adapter_plan_allowlisted' => isset( self::$allowed_plan_ability_ids['npcink-abilities-toolkit/build-media-optimization-plan'] ),
 				'missing_capability_behavior' => 'surface_plan_ability_unavailable_do_not_split_into_two_proposals',
 			),
 		);
 		if ( is_array( $optimization_plan['write_actions'] ?? null ) && count( (array) $optimization_plan['write_actions'] ) >= 2 ) {
 			$response_payload['from_plan_request'] = array(
-				'plan_ability_id' => 'magick-ai/build-media-optimization-plan',
+				'plan_ability_id' => 'npcink-abilities-toolkit/build-media-optimization-plan',
 				'plan'            => $optimization_plan,
 			);
 			$response_payload['next_step'] = 'POST /proposals/from-plan with from_plan_request for one Core batch proposal.';
@@ -2948,8 +2948,8 @@ final class Controller {
 		}
 
 		$plan['write_actions']  = array(
-			$this->adapter_plan_action( 'update_media_details_' . $attachment_id, 'magick-ai/update-media-details', $metadata_input, 'medium', 'Apply reviewed media SEO and source metadata as part of one media optimization approval.' ),
-			$this->adapter_plan_action( 'adopt_cloud_media_derivative_' . $attachment_id, 'magick-ai/adopt-cloud-media-derivative', $derivative_input, 'medium', 'Adopt the reviewed Cloud derivative artifact as the attachment main file after Core approval.' ),
+			$this->adapter_plan_action( 'update_media_details_' . $attachment_id, 'npcink-abilities-toolkit/update-media-details', $metadata_input, 'medium', 'Apply reviewed media SEO and source metadata as part of one media optimization approval.' ),
+			$this->adapter_plan_action( 'adopt_cloud_media_derivative_' . $attachment_id, 'npcink-abilities-toolkit/adopt-cloud-media-derivative', $derivative_input, 'medium', 'Adopt the reviewed Cloud derivative artifact as the attachment main file after Core approval.' ),
 		);
 		$plan['action_count']   = count( $plan['write_actions'] );
 		$plan['proposal_ready'] = true;
@@ -3025,7 +3025,7 @@ final class Controller {
 	 * @return WP_Error|null
 	 */
 	public function download_media_derivative_artifact_preview( WP_REST_Request $request ) {
-		if ( ! function_exists( 'magick_ai_cloud_addon_download_media_derivative_artifact' ) ) {
+		if ( ! function_exists( 'npcink_cloud_addon_download_media_derivative_artifact' ) ) {
 			return $this->cloud_addon_unavailable_error();
 		}
 
@@ -3040,7 +3040,7 @@ final class Controller {
 			)
 		);
 
-		$download = magick_ai_cloud_addon_download_media_derivative_artifact(
+		$download = npcink_cloud_addon_download_media_derivative_artifact(
 			$artifact,
 			sanitize_text_field( (string) $request->get_param( 'trace_id' ) )
 		);
@@ -3065,7 +3065,7 @@ final class Controller {
 		header( 'Content-Disposition: inline; filename="' . $filename . '"' );
 		header( 'Cache-Control: private, no-store, max-age=0' );
 		header( 'X-Content-Type-Options: nosniff' );
-		header( 'X-Magick-AI-Artifact-ID: ' . $artifact_id );
+		header( 'X-Npcink-AI-Artifact-ID: ' . $artifact_id );
 		echo $contents; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		exit;
 	}
@@ -3095,8 +3095,8 @@ final class Controller {
 	public function ai_provider_log_correlation_smoke( WP_REST_Request $request ) {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_ai_client_unavailable',
-				__( 'WordPress AI Client is not available.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_ai_client_unavailable',
+				__( 'WordPress AI Client is not available.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 501 )
 			);
 		}
@@ -3108,8 +3108,8 @@ final class Controller {
 
 		if ( '' === $ai_provider || '' === $ai_model ) {
 			return new WP_Error(
-				'magick_ai_adapter_ai_provider_model_required',
-				__( 'AI provider and model are required for provider log correlation smoke.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_ai_provider_model_required',
+				__( 'AI provider and model are required for provider log correlation smoke.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -3155,7 +3155,7 @@ final class Controller {
 				'provider_call'      => 'wp_ai_client_prompt',
 				'ai_provider'        => $ai_provider,
 				'ai_model'           => $ai_model,
-				'governance_source'  => 'magick-ai-core',
+				'governance_source'  => 'npcink-governance-core',
 				'log_context'        => $log_context,
 				'response_preview'   => $this->text_preview( (string) $result ),
 				'core_proxy_execute' => false,
@@ -3176,7 +3176,7 @@ final class Controller {
 
 		return $this->dispatch_upstream(
 			'GET',
-			'/magick-ai-core/v1/proposals',
+			'/npcink-governance-core/v1/proposals',
 			array(
 				'limit' => $limit,
 			),
@@ -3193,7 +3193,7 @@ final class Controller {
 	public function get_proposal( WP_REST_Request $request ) {
 		$proposal_id = (string) $request->get_param( 'proposal_id' );
 
-		return $this->dispatch_upstream( 'GET', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) );
+		return $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) );
 	}
 
 	/**
@@ -3204,10 +3204,10 @@ final class Controller {
 	public function approval_proxy_disabled(): WP_REST_Response {
 		return new WP_REST_Response(
 			array(
-				'code'                   => 'magick_ai_adapter_approval_proxy_disabled',
-				'message'                => __( 'Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Magick AI Core admin for split approval decisions.', 'magick-ai-adapter' ),
+				'code'                   => 'npcink_openclaw_adapter_approval_proxy_disabled',
+				'message'                => __( 'Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions.', 'npcink-openclaw-adapter' ),
 				'approval_proxy_enabled' => false,
-				'approval_surface'       => 'magick_ai_core_admin',
+				'approval_surface'       => 'npcink_governance_core_admin',
 				'unified_action_route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
 			),
 			403
@@ -3240,7 +3240,7 @@ final class Controller {
 			'caller'     => $this->proposal_caller_context( $request, $ability_id ),
 		);
 
-		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals', $params );
+		$response = $this->dispatch_upstream( 'POST', '/npcink-governance-core/v1/proposals', $params );
 		$this->emit_operation_event( 'adapter.proposal.create', $started, is_wp_error( $response ) ? $response : null, $event_context );
 
 		return $response;
@@ -3278,8 +3278,8 @@ final class Controller {
 		$event_context = $this->observability_request_context( $request, array( 'ability_id' => $plan_ability_id ) );
 		if ( ! isset( self::$allowed_plan_ability_ids[ $plan_ability_id ] ) ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_plan_ability_not_allowed',
-				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_plan_ability_not_allowed',
+				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'                   => 400,
 					'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
@@ -3305,7 +3305,7 @@ final class Controller {
 			'caller'          => $this->proposal_caller_context( $request, $plan_ability_id ),
 		);
 
-		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/from-plan', $params );
+		$response = $this->dispatch_upstream( 'POST', '/npcink-governance-core/v1/proposals/from-plan', $params );
 		if ( is_wp_error( $response ) ) {
 			$response = $this->error_with_operator_feedback( $response, $this->plan_handoff_operator_feedback( $response, $plan_ability_id ) );
 		}
@@ -3352,8 +3352,8 @@ final class Controller {
 					'index'             => $index,
 					'action_id'         => $action_id,
 					'target_ability_id' => $target_ability_id,
-					'block_code'        => 'magick_ai_adapter_write_action_duplicate_id',
-					'reason'            => __( 'Each write_actions item must have a unique action_id.', 'magick-ai-adapter' ),
+					'block_code'        => 'npcink_openclaw_adapter_write_action_duplicate_id',
+					'reason'            => __( 'Each write_actions item must have a unique action_id.', 'npcink-openclaw-adapter' ),
 				);
 				continue;
 			}
@@ -3390,8 +3390,8 @@ final class Controller {
 		}
 
 		return new WP_Error(
-			'magick_ai_adapter_plan_action_input_invalid',
-			__( 'Plan write action input failed Adapter proposal validation.', 'magick-ai-adapter' ),
+			'npcink_openclaw_adapter_plan_action_input_invalid',
+			__( 'Plan write action input failed Adapter proposal validation.', 'npcink-openclaw-adapter' ),
 			array(
 				'status'         => 400,
 				'proposal_count' => 0,
@@ -3410,7 +3410,7 @@ final class Controller {
 	public function commit_preflight( WP_REST_Request $request ) {
 		$started = microtime( true );
 		$proposal_id = (string) $request->get_param( 'proposal_id' );
-		$response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+		$response = $this->dispatch_upstream( 'POST', '/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
 		if ( ! is_wp_error( $response ) && $response instanceof WP_REST_Response ) {
 			$data = $response->get_data();
 			if ( is_array( $data ) ) {
@@ -3450,8 +3450,8 @@ final class Controller {
 		$event_context = $this->observability_request_context( $request, array( 'proposal_id' => $proposal_id ) );
 		if ( '' === $proposal_id ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_proposal_id_required',
-				__( 'proposal_id is required.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_proposal_id_required',
+				__( 'proposal_id is required.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 400 )
 			);
 			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
@@ -3523,8 +3523,8 @@ final class Controller {
 		$event_context = $this->observability_request_context( $request, array( 'proposal_id' => $proposal_id ) );
 		if ( '' === $proposal_id ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_proposal_id_required',
-				__( 'proposal_id is required.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_proposal_id_required',
+				__( 'proposal_id is required.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 400 )
 			);
 			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
@@ -3551,12 +3551,12 @@ final class Controller {
 		if ( 'pending' === $status_before ) {
 			$note = sanitize_text_field( (string) $request->get_param( 'note' ) );
 			if ( '' === $note ) {
-				$note = __( 'Approved by Magick AI Adapter approve-and-execute.', 'magick-ai-adapter' );
+				$note = __( 'Approved by Npcink OpenClaw Adapter approve-and-execute.', 'npcink-openclaw-adapter' );
 			}
 
 			$approved_response = $this->dispatch_upstream(
 				'POST',
-				'/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve',
+				'/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve',
 				array( 'note' => $note ),
 				false,
 				false,
@@ -3570,8 +3570,8 @@ final class Controller {
 			$approved = $approved_response->get_data();
 			if ( ! is_array( $approved ) || 'approved' !== (string) ( $approved['status'] ?? '' ) ) {
 				$error = new WP_Error(
-					'magick_ai_adapter_core_approve_failed',
-					__( 'Core did not return an approved proposal state.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_core_approve_failed',
+					__( 'Core did not return an approved proposal state.', 'npcink-openclaw-adapter' ),
 					array(
 						'status'      => 409,
 						'proposal_id' => $proposal_id,
@@ -3584,10 +3584,10 @@ final class Controller {
 
 			$approved_by_adapter = true;
 		} elseif ( 'approved' !== $status_before ) {
-			$code = 'rejected' === $status_before ? 'magick_ai_adapter_proposal_rejected' : 'magick_ai_adapter_proposal_not_executable';
+			$code = 'rejected' === $status_before ? 'npcink_openclaw_adapter_proposal_rejected' : 'npcink_openclaw_adapter_proposal_not_executable';
 			$error = new WP_Error(
 				$code,
-				__( 'This proposal cannot be approved and executed from its current status.', 'magick-ai-adapter' ),
+				__( 'This proposal cannot be approved and executed from its current status.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'            => 409,
 					'proposal_id'       => $proposal_id,
@@ -3659,7 +3659,7 @@ final class Controller {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function get_core_proposal_data( string $proposal_id ) {
-		$proposal_response = $this->dispatch_upstream( 'GET', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) );
+		$proposal_response = $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) );
 		if ( is_wp_error( $proposal_response ) ) {
 			return $proposal_response;
 		}
@@ -3667,8 +3667,8 @@ final class Controller {
 		$proposal = $proposal_response->get_data();
 		if ( ! is_array( $proposal ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_invalid_core_proposal',
-				__( 'Core proposal response is invalid.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_invalid_core_proposal',
+				__( 'Core proposal response is invalid.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 502 )
 			);
 		}
@@ -3688,8 +3688,8 @@ final class Controller {
 		}
 
 		return new WP_Error(
-			'magick_ai_adapter_execute_ability_not_allowed',
-			__( 'This proposal ability is not allowed for adapter execution.', 'magick-ai-adapter' ),
+			'npcink_openclaw_adapter_execute_ability_not_allowed',
+			__( 'This proposal ability is not allowed for adapter execution.', 'npcink-openclaw-adapter' ),
 			array(
 				'status'                      => 403,
 				'proposal_id'                 => $proposal_id,
@@ -3733,8 +3733,8 @@ final class Controller {
 				}
 
 				return new WP_Error(
-					'magick_ai_adapter_ability_input_field_not_allowed',
-					__( 'Proposal input includes a field that is not allowed for this ability.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_ability_input_field_not_allowed',
+					__( 'Proposal input includes a field that is not allowed for this ability.', 'npcink-openclaw-adapter' ),
 					array_merge(
 						$error_data,
 						array(
@@ -3754,8 +3754,8 @@ final class Controller {
 		}
 		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
 			return new WP_Error(
-				(string) ( $post_id_rule['code'] ?? 'magick_ai_adapter_post_id_required' ),
-				(string) ( $post_id_rule['message'] ?? __( 'Execution input must include post_id.', 'magick-ai-adapter' ) ),
+				(string) ( $post_id_rule['code'] ?? 'npcink_openclaw_adapter_post_id_required' ),
+				(string) ( $post_id_rule['message'] ?? __( 'Execution input must include post_id.', 'npcink-openclaw-adapter' ) ),
 				$error_data
 			);
 		}
@@ -3767,8 +3767,8 @@ final class Controller {
 			}
 
 			return new WP_Error(
-				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_text_missing' ),
-				(string) ( $rule['message'] ?? __( 'Execution input is missing a required text field.', 'magick-ai-adapter' ) ),
+				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_text_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required text field.', 'npcink-openclaw-adapter' ) ),
 				$error_data
 			);
 		}
@@ -3780,8 +3780,8 @@ final class Controller {
 			}
 
 			return new WP_Error(
-				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_slug_missing' ),
-				(string) ( $rule['message'] ?? __( 'Execution input is missing a required slug field.', 'magick-ai-adapter' ) ),
+				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_slug_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required slug field.', 'npcink-openclaw-adapter' ) ),
 				$error_data
 			);
 		}
@@ -3799,8 +3799,8 @@ final class Controller {
 			}
 
 			return new WP_Error(
-				(string) ( $rule['code'] ?? 'magick_ai_adapter_input_enum_invalid' ),
-				(string) ( $rule['message'] ?? __( 'Proposal input includes an invalid enum value.', 'magick-ai-adapter' ) ),
+				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_input_enum_invalid' ),
+				(string) ( $rule['message'] ?? __( 'Proposal input includes an invalid enum value.', 'npcink-openclaw-adapter' ) ),
 				array_merge(
 					$error_data,
 					array(
@@ -3823,8 +3823,8 @@ final class Controller {
 			}
 			if ( ! $has_any_field ) {
 				return new WP_Error(
-					(string) ( $any_fields_rule['code'] ?? 'magick_ai_adapter_required_fields_missing' ),
-					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'magick-ai-adapter' ) ),
+					(string) ( $any_fields_rule['code'] ?? 'npcink_openclaw_adapter_required_fields_missing' ),
+					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'npcink-openclaw-adapter' ) ),
 					$error_data
 				);
 			}
@@ -3840,8 +3840,8 @@ final class Controller {
 			}
 
 			return new WP_Error(
-				(string) ( $rule['code'] ?? 'magick_ai_adapter_required_int_missing' ),
-				(string) ( $rule['message'] ?? __( 'Execution input is missing a required id.', 'magick-ai-adapter' ) ),
+				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_int_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required id.', 'npcink-openclaw-adapter' ) ),
 				$error_data
 			);
 		}
@@ -3852,8 +3852,8 @@ final class Controller {
 			if ( ! $defer_attachment_check && function_exists( 'get_post_type' ) && 'attachment' !== get_post_type( $attachment_id ) ) {
 				$attachment_rule = is_array( $profile['validate_attachment_input'] ) ? $profile['validate_attachment_input'] : array();
 				return new WP_Error(
-					'magick_ai_adapter_attachment_required',
-					(string) ( $attachment_rule['message'] ?? __( 'Execution input must target an existing attachment.', 'magick-ai-adapter' ) ),
+					'npcink_openclaw_adapter_attachment_required',
+					(string) ( $attachment_rule['message'] ?? __( 'Execution input must target an existing attachment.', 'npcink-openclaw-adapter' ) ),
 					array_merge(
 						$error_data,
 						array(
@@ -3868,8 +3868,8 @@ final class Controller {
 			$taxonomy = sanitize_key( (string) ( $input['taxonomy'] ?? 'post_tag' ) );
 			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_taxonomy_required',
-					__( 'set-post-terms execution input must include a valid taxonomy.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_taxonomy_required',
+					__( 'set-post-terms execution input must include a valid taxonomy.', 'npcink-openclaw-adapter' ),
 					$error_data
 				);
 			}
@@ -3877,8 +3877,8 @@ final class Controller {
 			$mode = sanitize_key( (string) ( $input['mode'] ?? 'replace' ) );
 			if ( ! in_array( $mode, array( 'replace', 'append', 'remove' ), true ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_term_mode_invalid',
-					__( 'set-post-terms execution mode must be replace, append, or remove.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_term_mode_invalid',
+					__( 'set-post-terms execution mode must be replace, append, or remove.', 'npcink-openclaw-adapter' ),
 					$error_data
 				);
 			}
@@ -3894,16 +3894,16 @@ final class Controller {
 			) : array();
 			if ( empty( $term_ids ) && empty( $terms ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_terms_required',
-					__( 'set-post-terms execution input must include term_ids or terms.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_terms_required',
+					__( 'set-post-terms execution input must include term_ids or terms.', 'npcink-openclaw-adapter' ),
 					$error_data
 				);
 			}
 
 			if ( ! empty( $input['create_missing'] ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_create_missing_terms_not_allowed',
-					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_create_missing_terms_not_allowed',
+					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'npcink-openclaw-adapter' ),
 					$error_data
 				);
 			}
@@ -3913,8 +3913,8 @@ final class Controller {
 			$taxonomy = array_key_exists( 'taxonomy', $input ) ? sanitize_key( (string) $input['taxonomy'] ) : '';
 			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_taxonomy_required',
-					__( 'delete-term execution input must include a valid taxonomy.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_taxonomy_required',
+					__( 'delete-term execution input must include a valid taxonomy.', 'npcink-openclaw-adapter' ),
 					$error_data
 				);
 			}
@@ -3925,8 +3925,8 @@ final class Controller {
 			$content = (string) ( $input['content'] ?? '' );
 			if ( '' === trim( wp_strip_all_tags( $content ) ) ) {
 				return new WP_Error(
-					(string) ( $comment_body_rule['code'] ?? 'magick_ai_adapter_comment_content_required' ),
-					(string) ( $comment_body_rule['message'] ?? __( 'Comment execution input must include content.', 'magick-ai-adapter' ) ),
+					(string) ( $comment_body_rule['code'] ?? 'npcink_openclaw_adapter_comment_content_required' ),
+					(string) ( $comment_body_rule['message'] ?? __( 'Comment execution input must include content.', 'npcink-openclaw-adapter' ) ),
 					$error_data
 				);
 			}
@@ -3937,8 +3937,8 @@ final class Controller {
 			$content_format = sanitize_key( (string) ( $input['content_format'] ?? 'html' ) );
 			if ( ! in_array( $content_format, (array) ( $content_format_rule['allowed'] ?? array() ), true ) ) {
 				return new WP_Error(
-					(string) ( $content_format_rule['code'] ?? 'magick_ai_adapter_content_format_invalid' ),
-					(string) ( $content_format_rule['message'] ?? __( 'Comment content_format is invalid.', 'magick-ai-adapter' ) ),
+					(string) ( $content_format_rule['code'] ?? 'npcink_openclaw_adapter_content_format_invalid' ),
+					(string) ( $content_format_rule['message'] ?? __( 'Comment content_format is invalid.', 'npcink-openclaw-adapter' ) ),
 					$error_data
 				);
 			}
@@ -4034,8 +4034,8 @@ final class Controller {
 		$invalid_reference = $this->invalid_output_reference_token( $input );
 		if ( '' !== $invalid_reference ) {
 			return new WP_Error(
-				'magick_ai_adapter_output_reference_invalid',
-				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_output_reference_invalid',
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'       => 400,
 					'proposal_id'  => $proposal_id,
@@ -4049,8 +4049,8 @@ final class Controller {
 			$parsed = $this->parse_output_reference( $reference );
 			if ( null === $parsed || empty( $available_outputs[ $parsed['action_id'] ] ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_output_reference_unavailable',
-					__( 'Batch output references must point to an earlier action in the same proposal.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_output_reference_unavailable',
+					__( 'Batch output references must point to an earlier action in the same proposal.', 'npcink-openclaw-adapter' ),
 					array(
 						'status'       => 400,
 						'proposal_id'  => $proposal_id,
@@ -4082,8 +4082,8 @@ final class Controller {
 				|| ! array_key_exists( $parsed['field'], $outputs[ $parsed['action_id'] ] )
 			) {
 				return new WP_Error(
-					'magick_ai_adapter_output_reference_unresolved',
-					__( 'Batch output reference could not be resolved.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_output_reference_unresolved',
+					__( 'Batch output reference could not be resolved.', 'npcink-openclaw-adapter' ),
 					array(
 						'status'       => 409,
 						'proposal_id'  => $proposal_id,
@@ -4099,8 +4099,8 @@ final class Controller {
 		$invalid_reference = $this->invalid_output_reference_token( $value );
 		if ( '' !== $invalid_reference ) {
 			return new WP_Error(
-				'magick_ai_adapter_output_reference_invalid',
-				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_output_reference_invalid',
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'       => 400,
 					'proposal_id'  => $proposal_id,
@@ -4157,8 +4157,8 @@ final class Controller {
 
 		if ( $has_write_actions && $top_level_post_id > 0 ) {
 			return new WP_Error(
-				'magick_ai_adapter_execution_input_ambiguous',
-				__( 'Proposal input must use either post_id or write_actions, not both.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_execution_input_ambiguous',
+				__( 'Proposal input must use either post_id or write_actions, not both.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'      => 400,
 					'proposal_id' => $proposal_id,
@@ -4169,8 +4169,8 @@ final class Controller {
 		if ( $has_write_actions ) {
 			if ( count( $write_actions ) > self::MAX_EXECUTION_ACTIONS ) {
 				return new WP_Error(
-					'magick_ai_adapter_write_actions_limit_exceeded',
-					__( 'Proposal write_actions exceeds the adapter execution limit.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_write_actions_limit_exceeded',
+					__( 'Proposal write_actions exceeds the adapter execution limit.', 'npcink-openclaw-adapter' ),
 					array(
 						'status'      => 400,
 						'proposal_id' => $proposal_id,
@@ -4184,8 +4184,8 @@ final class Controller {
 			foreach ( $write_actions as $index => $raw_action ) {
 				if ( ! is_array( $raw_action ) ) {
 					return new WP_Error(
-						'magick_ai_adapter_write_action_invalid',
-						__( 'Each write_actions item must be an object.', 'magick-ai-adapter' ),
+						'npcink_openclaw_adapter_write_action_invalid',
+						__( 'Each write_actions item must be an object.', 'npcink-openclaw-adapter' ),
 						array(
 							'status'       => 400,
 							'proposal_id'  => $proposal_id,
@@ -4197,8 +4197,8 @@ final class Controller {
 				$target_ability_id = sanitize_text_field( (string) ( $raw_action['target_ability_id'] ?? '' ) );
 				if ( '' === $target_ability_id ) {
 					return new WP_Error(
-						'magick_ai_adapter_write_action_target_required',
-						__( 'Each write_actions item must include target_ability_id.', 'magick-ai-adapter' ),
+						'npcink_openclaw_adapter_write_action_target_required',
+						__( 'Each write_actions item must include target_ability_id.', 'npcink-openclaw-adapter' ),
 						array(
 							'status'       => 400,
 							'proposal_id'  => $proposal_id,
@@ -4228,8 +4228,8 @@ final class Controller {
 				}
 				if ( isset( $available_outputs[ $action_id ] ) ) {
 					return new WP_Error(
-						'magick_ai_adapter_write_action_duplicate_id',
-						__( 'Each write_actions item must have a unique action_id.', 'magick-ai-adapter' ),
+						'npcink_openclaw_adapter_write_action_duplicate_id',
+						__( 'Each write_actions item must have a unique action_id.', 'npcink-openclaw-adapter' ),
 						array(
 							'status'       => 400,
 							'proposal_id'  => $proposal_id,
@@ -4253,8 +4253,8 @@ final class Controller {
 
 				if ( array_key_exists( 'requires_approval', $raw_action ) && true !== (bool) $raw_action['requires_approval'] ) {
 					return new WP_Error(
-						'magick_ai_adapter_write_action_approval_required',
-						__( 'Each executable write action must require Core approval.', 'magick-ai-adapter' ),
+						'npcink_openclaw_adapter_write_action_approval_required',
+						__( 'Each executable write action must require Core approval.', 'npcink-openclaw-adapter' ),
 						array(
 							'status'       => 409,
 							'proposal_id'  => $proposal_id,
@@ -4265,8 +4265,8 @@ final class Controller {
 
 				if ( array_key_exists( 'commit_execution', $raw_action ) && false !== (bool) $raw_action['commit_execution'] ) {
 					return new WP_Error(
-						'magick_ai_adapter_write_action_commit_execution_not_allowed',
-						__( 'Write actions must keep commit_execution=false before Adapter execution.', 'magick-ai-adapter' ),
+						'npcink_openclaw_adapter_write_action_commit_execution_not_allowed',
+						__( 'Write actions must keep commit_execution=false before Adapter execution.', 'npcink-openclaw-adapter' ),
 						array(
 							'status'       => 409,
 							'proposal_id'  => $proposal_id,
@@ -4278,8 +4278,8 @@ final class Controller {
 				$requires_input = is_array( $raw_action['requires_input'] ?? null ) ? array_values( $raw_action['requires_input'] ) : array();
 				if ( ! empty( $requires_input ) ) {
 					return new WP_Error(
-						'magick_ai_adapter_write_action_needs_input',
-						__( 'Write action still requires reviewed input before execution.', 'magick-ai-adapter' ),
+						'npcink_openclaw_adapter_write_action_needs_input',
+						__( 'Write action still requires reviewed input before execution.', 'npcink-openclaw-adapter' ),
 						array(
 							'status'         => 409,
 							'proposal_id'    => $proposal_id,
@@ -4292,8 +4292,8 @@ final class Controller {
 				$preflight_blockers = is_array( $raw_action['preflight_blockers'] ?? null ) ? array_values( $raw_action['preflight_blockers'] ) : array();
 				if ( ( array_key_exists( 'proposal_ready', $raw_action ) && false === (bool) $raw_action['proposal_ready'] ) || ! empty( $preflight_blockers ) ) {
 					return new WP_Error(
-						'magick_ai_adapter_write_action_not_ready',
-						__( 'Write action is not marked ready for execution.', 'magick-ai-adapter' ),
+						'npcink_openclaw_adapter_write_action_not_ready',
+						__( 'Write action is not marked ready for execution.', 'npcink-openclaw-adapter' ),
 						array(
 							'status'              => 409,
 							'proposal_id'         => $proposal_id,
@@ -4387,7 +4387,7 @@ final class Controller {
 				'proposal_id'       => $proposal_id,
 				'post_id'           => $post_id,
 				'correlation_id'    => $correlation_id,
-				'via'               => 'magick-ai-adapter',
+				'via'               => 'npcink-openclaw-adapter',
 			)
 		);
 
@@ -4440,7 +4440,7 @@ final class Controller {
 		$preflight        = $this->consume_cached_preflight_handoff( $proposal_id, $proposal );
 		$preflight_source = is_array( $preflight ) ? 'adapter_cached_handoff' : 'core_commit_preflight';
 		if ( ! is_array( $preflight ) ) {
-			$preflight_response = $this->dispatch_upstream( 'POST', '/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+			$preflight_response = $this->dispatch_upstream( 'POST', '/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
 			if ( is_wp_error( $preflight_response ) ) {
 				return $this->error_with_operator_feedback( $preflight_response, $this->preflight_operator_feedback( $preflight_response, $proposal ) );
 			}
@@ -4448,8 +4448,8 @@ final class Controller {
 			$preflight = $preflight_response->get_data();
 			if ( ! is_array( $preflight ) ) {
 				return new WP_Error(
-					'magick_ai_adapter_invalid_core_preflight',
-					__( 'Core commit preflight response is invalid.', 'magick-ai-adapter' ),
+					'npcink_openclaw_adapter_invalid_core_preflight',
+					__( 'Core commit preflight response is invalid.', 'npcink-openclaw-adapter' ),
 					array( 'status' => 502 )
 				);
 			}
@@ -4459,8 +4459,8 @@ final class Controller {
 		$approval_context = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
 		if ( true !== (bool) ( $approval_context['approval_commit_authorized'] ?? false ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_preflight_not_authorized',
-				__( 'Core commit preflight did not authorize approval commit.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_preflight_not_authorized',
+				__( 'Core commit preflight did not authorize approval commit.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'            => 409,
 					'proposal_id'       => $proposal_id,
@@ -4472,8 +4472,8 @@ final class Controller {
 
 		if ( false !== (bool) ( $preflight['commit_execution'] ?? true ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_core_execution_not_allowed',
-				__( 'Core commit preflight must not execute final writes.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_core_execution_not_allowed',
+				__( 'Core commit preflight must not execute final writes.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'      => 409,
 					'proposal_id' => $proposal_id,
@@ -4484,8 +4484,8 @@ final class Controller {
 
 		if ( false === (bool) ( $preflight['proposal_item_preflight']['executable'] ?? true ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_preflight_item_blocked',
-				__( 'Core commit preflight did not mark the proposal item executable.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_preflight_item_blocked',
+				__( 'Core commit preflight did not mark the proposal item executable.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'            => 409,
 					'proposal_id'       => $proposal_id,
@@ -4498,8 +4498,8 @@ final class Controller {
 		$correlation_id = sanitize_text_field( (string) ( $preflight['correlation_id'] ?? ( $approval_context['correlation_id'] ?? '' ) ) );
 		if ( '' === $correlation_id ) {
 			return new WP_Error(
-				'magick_ai_adapter_preflight_correlation_required',
-				__( 'Core commit preflight did not return a correlation id.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_preflight_correlation_required',
+				__( 'Core commit preflight did not return a correlation id.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'      => 409,
 					'proposal_id' => $proposal_id,
@@ -4516,10 +4516,10 @@ final class Controller {
 		$base_request_context = $this->request_log_context( $request, '' !== $proposal_ability_id ? $proposal_ability_id : (string) ( $actions[0]['ability_id'] ?? '' ) );
 		$base_request_context['proposal_id']    = $proposal_id;
 		$base_request_context['correlation_id'] = $correlation_id;
-		$magick_ai_core = is_array( $base_request_context['magick_ai_core'] ?? null ) ? $base_request_context['magick_ai_core'] : array();
-		$magick_ai_core['proposal_id']    = $proposal_id;
-		$magick_ai_core['correlation_id'] = $correlation_id;
-		$base_request_context['magick_ai_core'] = $magick_ai_core;
+		$npcink_governance_core = is_array( $base_request_context['npcink_governance_core'] ?? null ) ? $base_request_context['npcink_governance_core'] : array();
+		$npcink_governance_core['proposal_id']    = $proposal_id;
+		$npcink_governance_core['correlation_id'] = $correlation_id;
+		$base_request_context['npcink_governance_core'] = $npcink_governance_core;
 
 		$results = array();
 		$outputs = array();
@@ -4723,13 +4723,13 @@ final class Controller {
 		return array(
 			'status'                   => 'plan_revision_required',
 			'severity'                 => 'error',
-			'message'                  => __( 'The plan was not accepted for Core proposal intake.', 'magick-ai-adapter' ),
+			'message'                  => __( 'The plan was not accepted for Core proposal intake.', 'npcink-openclaw-adapter' ),
 			'reasons'                  => $reasons,
 			'revision_fields'          => $this->operator_revision_fields( $blocked, $core_data ),
 			'next_steps'               => array(
-				__( 'Show these reasons to the operator.', 'magick-ai-adapter' ),
-				__( 'Revise the Toolbox plan or reviewed draft, then submit a new from-plan request.', 'magick-ai-adapter' ),
-				__( 'Do not call approve-and-execute until Core creates a proposal.', 'magick-ai-adapter' ),
+				__( 'Show these reasons to the operator.', 'npcink-openclaw-adapter' ),
+				__( 'Revise the Toolbox plan or reviewed draft, then submit a new from-plan request.', 'npcink-openclaw-adapter' ),
+				__( 'Do not call approve-and-execute until Core creates a proposal.', 'npcink-openclaw-adapter' ),
 			),
 			'can_retry_after_revision' => true,
 			'core_evidence'            => array(
@@ -4755,7 +4755,7 @@ final class Controller {
 		if ( empty( $reasons ) ) {
 			$reasons[] = sprintf(
 				/* translators: %s: proposal status. */
-				__( 'Core proposal status is %s.', 'magick-ai-adapter' ),
+				__( 'Core proposal status is %s.', 'npcink-openclaw-adapter' ),
 				$status_before
 			);
 		}
@@ -4764,21 +4764,21 @@ final class Controller {
 			'status'                   => 'proposal_' . sanitize_key( $status_before ),
 			'severity'                 => 'error',
 			'message'                  => 'rejected' === $status_before
-				? __( 'Core rejected this proposal. Adapter will not execute it.', 'magick-ai-adapter' )
-				: __( 'This proposal is not in an executable Core status.', 'magick-ai-adapter' ),
+				? __( 'Core rejected this proposal. Adapter will not execute it.', 'npcink-openclaw-adapter' )
+				: __( 'This proposal is not in an executable Core status.', 'npcink-openclaw-adapter' ),
 			'reasons'                  => $reasons,
 			'revision_fields'          => array(),
 			'next_steps'               => array(
-				__( 'Show the Core decision to the operator.', 'magick-ai-adapter' ),
-				__( 'Revise the source plan or draft, then create a new Core proposal.', 'magick-ai-adapter' ),
-				__( 'Do not retry approve-and-execute against this proposal id.', 'magick-ai-adapter' ),
+				__( 'Show the Core decision to the operator.', 'npcink-openclaw-adapter' ),
+				__( 'Revise the source plan or draft, then create a new Core proposal.', 'npcink-openclaw-adapter' ),
+				__( 'Do not retry approve-and-execute against this proposal id.', 'npcink-openclaw-adapter' ),
 			),
 			'can_retry_after_revision' => true,
 			'core_evidence'            => array(
 				'proposal_id'  => $proposal_id,
 				'ability_id'   => $ability_id,
 				'status'       => sanitize_key( $status_before ),
-				'detail_route' => '/wp-json/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ),
+				'detail_route' => '/wp-json/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ),
 			),
 		);
 	}
@@ -4804,40 +4804,40 @@ final class Controller {
 		foreach ( $needs_input as $field ) {
 			$reasons[] = sprintf(
 				/* translators: %s: missing field name. */
-				__( 'Missing required input: %s.', 'magick-ai-adapter' ),
+				__( 'Missing required input: %s.', 'npcink-openclaw-adapter' ),
 				$field
 			);
 		}
 
 		if ( false === (bool) ( $item_preflight['proposal_ready'] ?? true ) && empty( $reasons ) ) {
-			$reasons[] = __( 'Core marks the proposal item as not ready for execution.', 'magick-ai-adapter' );
+			$reasons[] = __( 'Core marks the proposal item as not ready for execution.', 'npcink-openclaw-adapter' );
 		}
 		if ( empty( $reasons ) ) {
-			$reasons[] = null !== $error ? $error->get_error_message() : __( 'Core commit preflight did not authorize execution.', 'magick-ai-adapter' );
+			$reasons[] = null !== $error ? $error->get_error_message() : __( 'Core commit preflight did not authorize execution.', 'npcink-openclaw-adapter' );
 		}
 
 		$core_error_code = null !== $error ? $error->get_error_code() : '';
-		if ( 'magick_ai_core_commit_preflight_already_issued' === $core_error_code ) {
-			$reasons[] = __( 'Core has already issued the one-time execution handoff. If commit-preflight was called directly against Core, Adapter cannot recover that handoff.', 'magick-ai-adapter' );
+		if ( 'npcink_governance_core_commit_preflight_already_issued' === $core_error_code ) {
+			$reasons[] = __( 'Core has already issued the one-time execution handoff. If commit-preflight was called directly against Core, Adapter cannot recover that handoff.', 'npcink-openclaw-adapter' );
 		}
 
 		$next_steps = array(
-			__( 'Show Core preflight blockers to the operator.', 'magick-ai-adapter' ),
-			__( 'Revise the proposal input or source plan, then create a new proposal.', 'magick-ai-adapter' ),
-			__( 'Do not retry approve-and-execute until Core preflight can pass.', 'magick-ai-adapter' ),
+			__( 'Show Core preflight blockers to the operator.', 'npcink-openclaw-adapter' ),
+			__( 'Revise the proposal input or source plan, then create a new proposal.', 'npcink-openclaw-adapter' ),
+			__( 'Do not retry approve-and-execute until Core preflight can pass.', 'npcink-openclaw-adapter' ),
 		);
-		if ( 'magick_ai_core_commit_preflight_already_issued' === $core_error_code ) {
+		if ( 'npcink_governance_core_commit_preflight_already_issued' === $core_error_code ) {
 			$next_steps = array(
-				__( 'Create a new proposal for the same intended write.', 'magick-ai-adapter' ),
-				__( 'After approval, call Adapter execute or approve-and-execute; do not call Core commit-preflight directly.', 'magick-ai-adapter' ),
-				__( 'Use Adapter commit-preflight only as an advanced diagnostic step and follow it immediately with Adapter execute.', 'magick-ai-adapter' ),
+				__( 'Create a new proposal for the same intended write.', 'npcink-openclaw-adapter' ),
+				__( 'After approval, call Adapter execute or approve-and-execute; do not call Core commit-preflight directly.', 'npcink-openclaw-adapter' ),
+				__( 'Use Adapter commit-preflight only as an advanced diagnostic step and follow it immediately with Adapter execute.', 'npcink-openclaw-adapter' ),
 			);
 		}
 
 		return array(
 			'status'                   => 'preflight_blocked',
 			'severity'                 => 'error',
-			'message'                  => __( 'Core commit preflight blocked execution. Adapter did not run the write ability.', 'magick-ai-adapter' ),
+			'message'                  => __( 'Core commit preflight blocked execution. Adapter did not run the write ability.', 'npcink-openclaw-adapter' ),
 			'reasons'                  => array_values( array_unique( $reasons ) ),
 			'revision_fields'          => array_values( array_unique( $needs_input ) ),
 			'next_steps'               => $next_steps,
@@ -5115,8 +5115,8 @@ final class Controller {
 
 		if ( '' === $approved_hash || $approved_hash !== $current_hash || ( ! empty( $execution_handoff ) && $handoff_hash !== $approved_hash ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_preflight_input_hash_mismatch',
-				__( 'Core commit preflight approved input hash does not match the current proposal input.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_preflight_input_hash_mismatch',
+				__( 'Core commit preflight approved input hash does not match the current proposal input.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'              => 409,
 					'proposal_id'         => $proposal_id,
@@ -5132,8 +5132,8 @@ final class Controller {
 		$handoff_policy = sanitize_key( (string) ( $execution_handoff['policy_version'] ?? $policy_version ) );
 		if ( 'core-preflight-v1' !== $policy_version || ( ! empty( $execution_handoff ) && 'core-preflight-v1' !== $handoff_policy ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_preflight_policy_version_invalid',
-				__( 'Core commit preflight policy version is not accepted by Adapter execution.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_preflight_policy_version_invalid',
+				__( 'Core commit preflight policy version is not accepted by Adapter execution.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'                  => 409,
 					'proposal_id'             => $proposal_id,
@@ -5186,8 +5186,8 @@ final class Controller {
 	 */
 	private function execution_already_completed_error( string $proposal_id, array $record ): WP_Error {
 		return new WP_Error(
-			'magick_ai_adapter_execution_already_completed',
-			__( 'Adapter has already completed execution for this proposal.', 'magick-ai-adapter' ),
+			'npcink_openclaw_adapter_execution_already_completed',
+			__( 'Adapter has already completed execution for this proposal.', 'npcink-openclaw-adapter' ),
 			array(
 				'status'              => 409,
 				'proposal_id'         => $proposal_id,
@@ -5382,8 +5382,8 @@ final class Controller {
 
 		if ( 'direct_read' !== (string) ( $capability['governance_mode'] ?? '' ) || 'wp_abilities_rest' !== (string) ( $capability['execution_surface'] ?? '' ) ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_proposal_required',
-				__( 'This ability is not direct-read. Create a Core proposal instead.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_proposal_required',
+				__( 'This ability is not direct-read. Create a Core proposal instead.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'     => 403,
 					'capability' => $this->public_capability_guidance( $capability ),
@@ -5395,8 +5395,8 @@ final class Controller {
 
 		if ( true === (bool) ( $capability['core_proxy_execute'] ?? false ) || true === (bool) ( $capability['commit_execution'] ?? false ) ) {
 			$error = new WP_Error(
-				'magick_ai_adapter_invalid_core_guidance',
-				__( 'Core guidance unexpectedly allows proxy or commit execution.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_invalid_core_guidance',
+				__( 'Core guidance unexpectedly allows proxy or commit execution.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 500 )
 			);
 			$this->emit_operation_event( 'adapter.ability.run_read', $started, $error, array( 'ability_id' => $ability_id ) );
@@ -5477,9 +5477,9 @@ final class Controller {
 			? sanitize_text_field( (string) $log_context['correlation_id'] )
 			: wp_generate_uuid4();
 
-		$magick_ai_core = is_array( $log_context['magick_ai_core'] ?? null ) ? $log_context['magick_ai_core'] : array();
-		$magick_ai_core['correlation_id'] = $log_context['correlation_id'];
-		$log_context['magick_ai_core']    = $magick_ai_core;
+		$npcink_governance_core = is_array( $log_context['npcink_governance_core'] ?? null ) ? $log_context['npcink_governance_core'] : array();
+		$npcink_governance_core['correlation_id'] = $log_context['correlation_id'];
+		$log_context['npcink_governance_core']    = $npcink_governance_core;
 
 		return $this->sanitize_log_context( $log_context );
 	}
@@ -5613,8 +5613,8 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	private function dispatch_upstream_with_runtime_context( array $runtime_context, string $method, string $route, array $params = array(), bool $query_params = false, bool $json_body = false ) {
-		$previous = isset( $GLOBALS['magick_ai_runtime_wp_ability_context'] ) ? $GLOBALS['magick_ai_runtime_wp_ability_context'] : null;
-		$GLOBALS['magick_ai_runtime_wp_ability_context'] = array(
+		$previous = isset( $GLOBALS['npcink_ai_runtime_wp_ability_context'] ) ? $GLOBALS['npcink_ai_runtime_wp_ability_context'] : null;
+		$GLOBALS['npcink_ai_runtime_wp_ability_context'] = array(
 			'context' => $this->sanitize_runtime_context( $runtime_context ),
 		);
 
@@ -5622,9 +5622,9 @@ final class Controller {
 			return $this->dispatch_upstream( $method, $route, $params, $query_params, $json_body );
 		} finally {
 			if ( null === $previous ) {
-				unset( $GLOBALS['magick_ai_runtime_wp_ability_context'] );
+				unset( $GLOBALS['npcink_ai_runtime_wp_ability_context'] );
 			} else {
-				$GLOBALS['magick_ai_runtime_wp_ability_context'] = $previous;
+				$GLOBALS['npcink_ai_runtime_wp_ability_context'] = $previous;
 			}
 		}
 	}
@@ -5662,7 +5662,7 @@ final class Controller {
 			return $context;
 		}
 
-		$context['magick_ai_adapter'] = $this->current_request_log_context;
+		$context['npcink_openclaw_adapter'] = $this->current_request_log_context;
 
 		foreach ( array( 'proposal_id', 'correlation_id', 'ability_id', 'post_id', 'adapter_request_id', 'adapter_route', 'ai_provider', 'ai_model', 'governance_source' ) as $key ) {
 			if ( isset( $this->current_request_log_context[ $key ] ) ) {
@@ -5670,8 +5670,8 @@ final class Controller {
 			}
 		}
 
-		if ( isset( $this->current_request_log_context['magick_ai_core'] ) && is_array( $this->current_request_log_context['magick_ai_core'] ) ) {
-			$context['magick_ai_core'] = $this->current_request_log_context['magick_ai_core'];
+		if ( isset( $this->current_request_log_context['npcink_governance_core'] ) && is_array( $this->current_request_log_context['npcink_governance_core'] ) ) {
+			$context['npcink_governance_core'] = $this->current_request_log_context['npcink_governance_core'];
 		}
 
 		return $context;
@@ -5684,7 +5684,7 @@ final class Controller {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function find_core_capability( string $ability_id ) {
-		$response = $this->dispatch_upstream( 'GET', '/magick-ai-core/v1/capabilities' );
+		$response = $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/capabilities' );
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
@@ -5697,8 +5697,8 @@ final class Controller {
 		}
 
 		return new WP_Error(
-			'magick_ai_adapter_ability_not_found',
-			__( 'The requested ability is not discoverable through Core.', 'magick-ai-adapter' ),
+			'npcink_openclaw_adapter_ability_not_found',
+			__( 'The requested ability is not discoverable through Core.', 'npcink-openclaw-adapter' ),
 			array( 'status' => 404 )
 		);
 	}
@@ -5720,8 +5720,8 @@ final class Controller {
 		$token   = $use_core_app_token ? $this->core_app_token() : '';
 		$user_id = get_current_user_id();
 
-		if ( '' !== $token && 0 === strpos( $route, '/magick-ai-core/v1/' ) ) {
-			$request->set_header( 'x-magick-ai-core-app-token', $token );
+		if ( '' !== $token && 0 === strpos( $route, '/npcink-governance-core/v1/' ) ) {
+			$request->set_header( 'x-npcink-governance-core-app-token', $token );
 			wp_set_current_user( 0 );
 		}
 
@@ -5737,15 +5737,15 @@ final class Controller {
 		}
 
 		$response = rest_do_request( $request );
-		if ( '' !== $token && 0 === strpos( $route, '/magick-ai-core/v1/' ) ) {
+		if ( '' !== $token && 0 === strpos( $route, '/npcink-governance-core/v1/' ) ) {
 			wp_set_current_user( $user_id );
 		}
 		$status   = (int) $response->get_status();
 
 		if ( $status < 200 || $status >= 300 ) {
 			$data    = $response->get_data();
-			$code    = is_array( $data ) ? (string) ( $data['code'] ?? 'magick_ai_adapter_upstream_failed' ) : 'magick_ai_adapter_upstream_failed';
-			$message = is_array( $data ) ? (string) ( $data['message'] ?? __( 'The upstream WordPress REST request failed.', 'magick-ai-adapter' ) ) : __( 'The upstream WordPress REST request failed.', 'magick-ai-adapter' );
+			$code    = is_array( $data ) ? (string) ( $data['code'] ?? 'npcink_openclaw_adapter_upstream_failed' ) : 'npcink_openclaw_adapter_upstream_failed';
+			$message = is_array( $data ) ? (string) ( $data['message'] ?? __( 'The upstream WordPress REST request failed.', 'npcink-openclaw-adapter' ) ) : __( 'The upstream WordPress REST request failed.', 'npcink-openclaw-adapter' );
 
 			$this->emit_operation_event(
 				'adapter.core.request',
@@ -5789,16 +5789,16 @@ final class Controller {
 	 * @return string
 	 */
 	private function core_app_token(): string {
-		if ( defined( 'MAGICK_AI_ADAPTER_CORE_APP_TOKEN' ) ) {
-			return trim( (string) constant( 'MAGICK_AI_ADAPTER_CORE_APP_TOKEN' ) );
+		if ( defined( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' ) ) {
+			return trim( (string) constant( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' ) );
 		}
 
-		$env_token = getenv( 'MAGICK_AI_ADAPTER_CORE_APP_TOKEN' );
+		$env_token = getenv( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' );
 		if ( is_string( $env_token ) && '' !== trim( $env_token ) ) {
 			return trim( $env_token );
 		}
 
-		$option = get_option( 'magick_ai_adapter_core_app_token', '' );
+		$option = get_option( 'npcink_openclaw_adapter_core_app_token', '' );
 		return is_string( $option ) ? trim( $option ) : '';
 	}
 
@@ -5826,7 +5826,7 @@ final class Controller {
 		$ops_ability     = 'npcink-abilities-toolkit/wp-ops-diagnostics-detail';
 
 		return array(
-			'site-info'              => array( 'ability_id' => 'magick-ai/site-info' ),
+			'site-info'              => array( 'ability_id' => 'npcink-abilities-toolkit/site-info' ),
 			'site-summary'           => array( 'ability_id' => 'npcink-abilities-toolkit/site-summary' ),
 			'wp-diagnostics-summary' => array( 'ability_id' => $summary_ability ),
 			'active-plugins-detail'  => array(
@@ -5918,39 +5918,39 @@ final class Controller {
 				'default_input'  => self::ops_diagnostics_input(),
 			),
 			'workflow-recipes'       => array( 'ability_id' => 'npcink-abilities-toolkit/list-workflow-recipes' ),
-			'posts'                  => array( 'ability_id' => 'magick-ai/list-posts' ),
-			'post-context'           => array( 'ability_id' => 'magick-ai/get-post-context' ),
-			'media'                  => array( 'ability_id' => 'magick-ai/list-media' ),
-			'terms'                  => array( 'ability_id' => 'magick-ai/list-terms' ),
-			'taxonomy-terms'         => array( 'ability_id' => 'magick-ai/list-taxonomy-terms' ),
-			'categories'             => array( 'ability_id' => 'magick-ai/list-categories' ),
-			'tags'                   => array( 'ability_id' => 'magick-ai/list-tags' ),
-			'term'                   => array( 'ability_id' => 'magick-ai/get-term' ),
-			'comments'               => array( 'ability_id' => 'magick-ai/list-comments' ),
-			'users'                  => array( 'ability_id' => 'magick-ai/list-users' ),
-			'menu'                   => array( 'ability_id' => 'magick-ai/get-menu' ),
-			'internal-link-targets'   => array( 'ability_id' => 'magick-ai/resolve-internal-link-targets' ),
-			'post-stats'             => array( 'ability_id' => 'magick-ai/get-post-stats' ),
-			'post-revisions'         => array( 'ability_id' => 'magick-ai/list-revisions' ),
-			'post-meta'              => array( 'ability_id' => 'magick-ai/get-post-meta' ),
-			'pages'                  => array( 'ability_id' => 'magick-ai/list-pages' ),
-			'page'                   => array( 'ability_id' => 'magick-ai/get-page' ),
-			'page-structure'         => array( 'ability_id' => 'magick-ai/inspect-page-structure' ),
-			'pages-tree'             => array( 'ability_id' => 'magick-ai/list-pages-tree' ),
-			'content-inventory-health' => array( 'ability_id' => 'magick-ai/get-content-inventory-health' ),
-			'content-inventory-fix-plan' => array( 'ability_id' => 'magick-ai/build-content-inventory-fix-plan' ),
-			'test-content-cleanup-plan' => array( 'ability_id' => 'magick-ai/build-test-content-cleanup-plan' ),
-			'content-discoverability-context' => array( 'ability_id' => 'magick-ai-toolbox/get-content-discoverability-context' ),
-			'content-discoverability-validation' => array( 'ability_id' => 'magick-ai-toolbox/validate-content-discoverability-context' ),
-			'content-discoverability-brief' => array( 'ability_id' => 'magick-ai-toolbox/build-content-discoverability-brief' ),
-			'article-writing-pack' => array( 'ability_id' => 'magick-ai-toolbox/build-ai-article-writing-pack' ),
-			'site-operations-dashboard' => array( 'ability_id' => 'magick-ai/get-site-operations-dashboard' ),
-			'publishing-calendar-context' => array( 'ability_id' => 'magick-ai/get-publishing-calendar-context' ),
-			'media-inventory-health' => array( 'ability_id' => 'magick-ai/get-media-inventory-health' ),
-			'media-inventory-fix-plan' => array( 'ability_id' => 'magick-ai/build-media-inventory-fix-plan' ),
-			'media-attachment-by-url' => array( 'ability_id' => 'magick-ai/resolve-media-attachment-by-url' ),
-			'media-asset-inspection' => array( 'ability_id' => 'magick-ai/inspect-media-asset' ),
-			'taxonomy-inventory-health' => array( 'ability_id' => 'magick-ai/get-taxonomy-inventory-health' ),
+			'posts'                  => array( 'ability_id' => 'npcink-abilities-toolkit/list-posts' ),
+			'post-context'           => array( 'ability_id' => 'npcink-abilities-toolkit/get-post-context' ),
+			'media'                  => array( 'ability_id' => 'npcink-abilities-toolkit/list-media' ),
+			'terms'                  => array( 'ability_id' => 'npcink-abilities-toolkit/list-terms' ),
+			'taxonomy-terms'         => array( 'ability_id' => 'npcink-abilities-toolkit/list-taxonomy-terms' ),
+			'categories'             => array( 'ability_id' => 'npcink-abilities-toolkit/list-categories' ),
+			'tags'                   => array( 'ability_id' => 'npcink-abilities-toolkit/list-tags' ),
+			'term'                   => array( 'ability_id' => 'npcink-abilities-toolkit/get-term' ),
+			'comments'               => array( 'ability_id' => 'npcink-abilities-toolkit/list-comments' ),
+			'users'                  => array( 'ability_id' => 'npcink-abilities-toolkit/list-users' ),
+			'menu'                   => array( 'ability_id' => 'npcink-abilities-toolkit/get-menu' ),
+			'internal-link-targets'   => array( 'ability_id' => 'npcink-abilities-toolkit/resolve-internal-link-targets' ),
+			'post-stats'             => array( 'ability_id' => 'npcink-abilities-toolkit/get-post-stats' ),
+			'post-revisions'         => array( 'ability_id' => 'npcink-abilities-toolkit/list-revisions' ),
+			'post-meta'              => array( 'ability_id' => 'npcink-abilities-toolkit/get-post-meta' ),
+			'pages'                  => array( 'ability_id' => 'npcink-abilities-toolkit/list-pages' ),
+			'page'                   => array( 'ability_id' => 'npcink-abilities-toolkit/get-page' ),
+			'page-structure'         => array( 'ability_id' => 'npcink-abilities-toolkit/inspect-page-structure' ),
+			'pages-tree'             => array( 'ability_id' => 'npcink-abilities-toolkit/list-pages-tree' ),
+			'content-inventory-health' => array( 'ability_id' => 'npcink-abilities-toolkit/get-content-inventory-health' ),
+			'content-inventory-fix-plan' => array( 'ability_id' => 'npcink-abilities-toolkit/build-content-inventory-fix-plan' ),
+			'test-content-cleanup-plan' => array( 'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan' ),
+			'content-discoverability-context' => array( 'ability_id' => 'npcink-toolbox/get-content-discoverability-context' ),
+			'content-discoverability-validation' => array( 'ability_id' => 'npcink-toolbox/validate-content-discoverability-context' ),
+			'content-discoverability-brief' => array( 'ability_id' => 'npcink-toolbox/build-content-discoverability-brief' ),
+			'article-writing-pack' => array( 'ability_id' => 'npcink-toolbox/build-ai-article-writing-pack' ),
+			'site-operations-dashboard' => array( 'ability_id' => 'npcink-abilities-toolkit/get-site-operations-dashboard' ),
+			'publishing-calendar-context' => array( 'ability_id' => 'npcink-abilities-toolkit/get-publishing-calendar-context' ),
+			'media-inventory-health' => array( 'ability_id' => 'npcink-abilities-toolkit/get-media-inventory-health' ),
+			'media-inventory-fix-plan' => array( 'ability_id' => 'npcink-abilities-toolkit/build-media-inventory-fix-plan' ),
+			'media-attachment-by-url' => array( 'ability_id' => 'npcink-abilities-toolkit/resolve-media-attachment-by-url' ),
+			'media-asset-inspection' => array( 'ability_id' => 'npcink-abilities-toolkit/inspect-media-asset' ),
+			'taxonomy-inventory-health' => array( 'ability_id' => 'npcink-abilities-toolkit/get-taxonomy-inventory-health' ),
 		);
 	}
 
@@ -6060,7 +6060,7 @@ final class Controller {
 				'requires_php',
 				'dependencies',
 				'dependency_count',
-				'is_magick_ai',
+				'is_npcink',
 				'update_available',
 				'latest_version',
 			),
@@ -6130,8 +6130,8 @@ final class Controller {
 			$overrides['max_width'] = $overrides['target_max_width'];
 		}
 
-		if ( function_exists( 'magick_ai_core_build_media_derivative_ability_input' ) ) {
-			$ability_input = magick_ai_core_build_media_derivative_ability_input( $overrides );
+		if ( function_exists( 'npcink_governance_core_build_media_derivative_ability_input' ) ) {
+			$ability_input = npcink_governance_core_build_media_derivative_ability_input( $overrides );
 			if ( empty( $overrides['watermark_enabled'] ) && array_key_exists( 'watermark_enabled', $overrides ) ) {
 				unset( $ability_input['watermark'] );
 			} elseif ( is_array( $overrides['watermark'] ?? null ) && ! empty( $overrides['watermark'] ) ) {
@@ -6161,8 +6161,8 @@ final class Controller {
 		$attachment_id = absint( $contract['attachment_id'] ?? $ability_input['attachment_id'] ?? 0 );
 		if ( $attachment_id <= 0 ) {
 			return new WP_Error(
-				'magick_ai_adapter_media_derivative_attachment_required',
-				__( 'attachment_id is required when no source_artifact is supplied.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_media_derivative_attachment_required',
+				__( 'attachment_id is required when no source_artifact is supplied.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -6195,8 +6195,8 @@ final class Controller {
 		}
 
 		$attachment_id = absint( $ability_input['watermark_attachment_id'] ?? 0 );
-		if ( $attachment_id <= 0 && function_exists( 'magick_ai_core_get_media_derivative_settings' ) ) {
-			$settings      = magick_ai_core_get_media_derivative_settings();
+		if ( $attachment_id <= 0 && function_exists( 'npcink_governance_core_get_media_derivative_settings' ) ) {
+			$settings      = npcink_governance_core_get_media_derivative_settings();
 			$attachment_id = absint( is_array( $settings ) ? ( $settings['watermark_attachment_id'] ?? 0 ) : 0 );
 		}
 		if ( $attachment_id <= 0 ) {
@@ -6217,8 +6217,8 @@ final class Controller {
 		$path = function_exists( 'get_attached_file' ) ? get_attached_file( $attachment_id ) : '';
 		if ( ! is_string( $path ) || '' === $path || ! is_readable( $path ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_media_derivative_file_unreadable',
-				__( 'The local attachment file is not readable for media derivative upload.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_media_derivative_file_unreadable',
+				__( 'The local attachment file is not readable for media derivative upload.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'        => 400,
 					'attachment_id' => $attachment_id,
@@ -6240,15 +6240,15 @@ final class Controller {
 	 * @return object|WP_Error
 	 */
 	private function media_derivative_runtime_client() {
-		if ( ! function_exists( 'magick_ai_cloud_addon_verified_runtime_client' ) ) {
+		if ( ! function_exists( 'npcink_cloud_addon_verified_runtime_client' ) ) {
 			return $this->cloud_addon_unavailable_error();
 		}
 
-		$client = magick_ai_cloud_addon_verified_runtime_client();
+		$client = npcink_cloud_addon_verified_runtime_client();
 		if ( ! is_object( $client ) ) {
 			return new WP_Error(
-				'magick_ai_adapter_cloud_addon_unverified',
-				__( 'Magick AI Cloud Addon must be configured and verified before media derivative run reads.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_cloud_addon_unverified',
+				__( 'Npcink Cloud Addon must be configured and verified before media derivative run reads.', 'npcink-openclaw-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -6263,11 +6263,11 @@ final class Controller {
 	 */
 	private function cloud_addon_unavailable_error(): WP_Error {
 		return new WP_Error(
-			'magick_ai_adapter_cloud_addon_unavailable',
-			__( 'Magick AI Cloud Addon is required for media derivative Cloud transport.', 'magick-ai-adapter' ),
+			'npcink_openclaw_adapter_cloud_addon_unavailable',
+			__( 'Npcink Cloud Addon is required for media derivative Cloud transport.', 'npcink-openclaw-adapter' ),
 			array(
 				'status'        => 501,
-				'required_plugin' => 'magick-ai-cloud-addon',
+				'required_plugin' => 'npcink-cloud-addon',
 			)
 		);
 	}
@@ -6552,18 +6552,18 @@ final class Controller {
 		$context['adapter_route']      = isset( $context['adapter_route'] ) && '' !== (string) $context['adapter_route']
 			? sanitize_text_field( (string) $context['adapter_route'] )
 			: $request->get_route();
-		$context['governance_source']  = 'magick-ai-core';
-		$context['via']                = 'magick-ai-adapter';
+		$context['governance_source']  = 'npcink-governance-core';
+		$context['via']                = 'npcink-openclaw-adapter';
 
-		$magick_ai_core = is_array( $context['magick_ai_core'] ?? null ) ? $context['magick_ai_core'] : array();
+		$npcink_governance_core = is_array( $context['npcink_governance_core'] ?? null ) ? $context['npcink_governance_core'] : array();
 		if ( isset( $context['proposal_id'] ) && '' !== (string) $context['proposal_id'] ) {
-			$magick_ai_core['proposal_id'] = $context['proposal_id'];
+			$npcink_governance_core['proposal_id'] = $context['proposal_id'];
 		}
 		if ( isset( $context['correlation_id'] ) && '' !== (string) $context['correlation_id'] ) {
-			$magick_ai_core['correlation_id'] = $context['correlation_id'];
+			$npcink_governance_core['correlation_id'] = $context['correlation_id'];
 		}
-		if ( ! empty( $magick_ai_core ) ) {
-			$context['magick_ai_core'] = $magick_ai_core;
+		if ( ! empty( $npcink_governance_core ) ) {
+			$context['npcink_governance_core'] = $npcink_governance_core;
 		}
 
 		return $this->sanitize_log_context( $context );
@@ -6580,7 +6580,7 @@ final class Controller {
 		return array_merge(
 			array(
 				'caller_type' => 'openclaw_adapter',
-				'via'         => 'magick-ai-adapter',
+				'via'         => 'npcink-openclaw-adapter',
 			),
 			$this->request_log_context( $request, $ability_id ),
 			$this->object_param( $request, 'caller' )

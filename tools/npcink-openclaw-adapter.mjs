@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)));
-const packageCli = join(rootDir, 'packages', 'adapter-cli', 'bin', 'magick-adapter.mjs');
+const packageCli = join(rootDir, 'packages', 'adapter-cli', 'bin', 'npcink-openclaw-adapter.mjs');
 const child = spawn(process.execPath, [packageCli, ...process.argv.slice(2)], { stdio: 'inherit' });
 
 child.on('error', (error) => {

@@ -46,9 +46,9 @@ this recipe.
 1. Discover Adapter state and route guidance:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/health
-GET /wp-json/magick-ai-adapter/v1/help
-GET /wp-json/magick-ai-adapter/v1/capabilities
+GET /wp-json/npcink-openclaw-adapter/v1/health
+GET /wp-json/npcink-openclaw-adapter/v1/help
+GET /wp-json/npcink-openclaw-adapter/v1/capabilities
 ```
 
 2. Confirm this ability id is present in Core capabilities with
@@ -56,20 +56,20 @@ GET /wp-json/magick-ai-adapter/v1/capabilities
    `execution_surface=wp_abilities_rest`:
 
 ```text
-magick-ai-toolbox/build-ai-article-writing-pack
+npcink-toolbox/build-ai-article-writing-pack
 ```
 
 3. Build the writing pack through the shortcut:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/article-writing-pack?topic=AI_TOPIC
+GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack?topic=AI_TOPIC
 ```
 
 For richer input, use `POST /run-read-ability`:
 
 ```json
 {
-  "ability_id": "magick-ai-toolbox/build-ai-article-writing-pack",
+  "ability_id": "npcink-toolbox/build-ai-article-writing-pack",
   "input": {
     "topic": "AI topic",
     "title": "Suggested title",
@@ -110,7 +110,7 @@ cloud_evidence.web_search when external evidence is available
 
 ```json
 {
-  "ability_id": "magick-ai-toolbox/build-article-write-plan",
+  "ability_id": "npcink-toolbox/build-article-write-plan",
   "input": {
     "draft_title": "Reviewed title",
     "draft_body": "Reviewed body",
@@ -123,18 +123,18 @@ cloud_evidence.web_search when external evidence is available
 ```
 
 6. If the reviewed plan should become WordPress data, call
-   `POST /wp-json/magick-ai-adapter/v1/proposals/from-plan` and keep using
+   `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan` and keep using
    Core proposal status, approval, and commit-preflight routes.
 
 7. For a reviewed multi-article draft batch, use
-   `magick-ai-toolbox/build-article-batch-write-plan` and submit only its
+   `npcink-toolbox/build-article-batch-write-plan` and submit only its
    returned plan to `POST /proposals/from-plan`.
 
 8. For reviewed article drafts that also include selected image-source
-   candidates, use `magick-ai-toolbox/build-article-media-batch-write-plan`.
-   The plan may include `magick-ai/create-draft`,
-   `magick-ai/upload-media-from-url`, `magick-ai/update-media-details`, and
-   `magick-ai/set-post-featured-image` write actions with `$outputs.*`
+   candidates, use `npcink-toolbox/build-article-media-batch-write-plan`.
+   The plan may include `npcink-abilities-toolkit/create-draft`,
+   `npcink-abilities-toolkit/upload-media-from-url`, `npcink-abilities-toolkit/update-media-details`, and
+   `npcink-abilities-toolkit/set-post-featured-image` write actions with `$outputs.*`
    dependencies. OpenClaw must still treat this as a Core proposal handoff,
    not permission to upload media or set featured images directly.
 

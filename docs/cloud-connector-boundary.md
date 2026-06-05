@@ -5,12 +5,12 @@ Date: 2026-05-30
 
 ## Purpose
 
-Magick AI Adapter is the OpenClaw channel layer. It is not the WordPress-side
+Npcink OpenClaw Adapter is the OpenClaw channel layer. It is not the WordPress-side
 Cloud connector.
 
 Cloud runtime access, Cloud API key storage, request signing, entitlement
 reads, observability upload, and hosted-runtime transport belong to the
-standalone `magick-ai-cloud-addon`. Adapter may use that addon through its
+standalone `npcink-cloud-addon`. Adapter may use that addon through its
 public PHP seam when OpenClaw needs a Cloud-backed operation, but Adapter must
 not grow its own Cloud settings, signing client, `/cloud/*` REST namespace, or
 Cloud execution truth.
@@ -19,21 +19,21 @@ Cloud execution truth.
 
 | Project | Owns | Does not own |
 | --- | --- | --- |
-| `magick-ai-abilities` | Canonical WordPress ability definitions, schemas, callbacks, permissions, dry-run previews, and read-only workflow recipe metadata. | Cloud calls, model routing, queues, billing, quota, approval state, audit truth, workflow runtime, or final writes. |
-| `magick-ai-core` | Governance, ability intake, proposal records, approval/rejection, commit preflight, scoped app keys, rate limits, and audit records. | Ability definitions, cloud execution, task queues, model routing, product workflows, or final write execution. |
-| `magick-ai-adapter` | OpenClaw-facing REST routes, non-secret WordPress connection manifest, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, one allowlisted approve-and-execute orchestration path, and optional calls into the Cloud Addon seam. | Cloud settings, Cloud API key storage, Cloud request signing, `/cloud/*` routes, ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, generic approve/reject proxying, or final write authority. |
-| `magick-ai-cloud-addon` | Cloud Base URL/API key settings, signed hosted runtime transport, run/result reads, entitlement and stats projections, media derivative transport helpers, and opt-in metadata-only plugin observability upload. | OpenClaw product UX, Core governance truth, local ability truth, approval truth, WordPress writes, prompt/router/preset control, scheduler truth, workflow/task queue control, or billing truth. |
-| `magick-ai-cloud` | Hosted runtime, Cloud API, worker execution, run status, provider telemetry, usage/stats, health, entitlement, quota, diagnostics, and Cloud-side analysis generation. | WordPress control plane, local ability truth, local approval truth, OpenClaw projection truth, or WordPress writes. |
+| `npcink-abilities-toolkit` | Canonical WordPress ability definitions, schemas, callbacks, permissions, dry-run previews, and read-only workflow recipe metadata. | Cloud calls, model routing, queues, billing, quota, approval state, audit truth, workflow runtime, or final writes. |
+| `npcink-governance-core` | Governance, ability intake, proposal records, approval/rejection, commit preflight, scoped app keys, rate limits, and audit records. | Ability definitions, cloud execution, task queues, model routing, product workflows, or final write execution. |
+| `npcink-openclaw-adapter` | OpenClaw-facing REST routes, non-secret WordPress connection manifest, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, one allowlisted approve-and-execute orchestration path, and optional calls into the Cloud Addon seam. | Cloud settings, Cloud API key storage, Cloud request signing, `/cloud/*` routes, ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, generic approve/reject proxying, or final write authority. |
+| `npcink-cloud-addon` | Cloud Base URL/API key settings, signed hosted runtime transport, run/result reads, entitlement and stats projections, media derivative transport helpers, and opt-in metadata-only plugin observability upload. | OpenClaw product UX, Core governance truth, local ability truth, approval truth, WordPress writes, prompt/router/preset control, scheduler truth, workflow/task queue control, or billing truth. |
+| `npcink-cloud` | Hosted runtime, Cloud API, worker execution, run status, provider telemetry, usage/stats, health, entitlement, quota, diagnostics, and Cloud-side analysis generation. | WordPress control plane, local ability truth, local approval truth, OpenClaw projection truth, or WordPress writes. |
 
 ## Recommended Cloud Flow
 
 ```text
 OpenClaw
-  -> magick-ai-adapter
-      -> magick-ai-core        // governance, approval, audit, preflight
-      -> magick-ai-abilities   // local WordPress data and ability callbacks
-      -> magick-ai-cloud-addon // signed Cloud transport seam
-          -> magick-ai-cloud   // hosted execution, stats, analysis, workers
+  -> npcink-openclaw-adapter
+      -> npcink-governance-core        // governance, approval, audit, preflight
+      -> npcink-abilities-toolkit   // local WordPress data and ability callbacks
+      -> npcink-cloud-addon // signed Cloud transport seam
+          -> npcink-cloud   // hosted execution, stats, analysis, workers
 ```
 
 The adapter is the local entry point for OpenClaw. Cloud Addon is the WordPress-side Cloud connector. Cloud remains the hosted execution and analysis
@@ -44,8 +44,8 @@ local capability and callback source.
 
 Adapter may add bounded Cloud Addon integration code for:
 
-- detecting whether `magick-ai-cloud-addon` is active;
-- calling `magick_ai_cloud_addon_runtime_client()` or a more specific public
+- detecting whether `npcink-cloud-addon` is active;
+- calling `npcink_cloud_addon_runtime_client()` or a more specific public
   helper exposed by the addon;
 - returning Cloud Addon status or Cloud run/result projections to OpenClaw when
   a user action explicitly needs a Cloud-backed operation;
@@ -56,7 +56,7 @@ Adapter may add bounded Cloud Addon integration code for:
 
 Adapter must keep these calls thin. It delegates Cloud credentials, signing,
 endpoint allowlists, durable execution, retry, queueing, analytics, and
-Cloud-side projections to `magick-ai-cloud-addon` and `magick-ai-cloud`.
+Cloud-side projections to `npcink-cloud-addon` and `npcink-cloud`.
 
 Adapter must not register Adapter-owned `/cloud/*` routes unless a future ADR
 explicitly moves Cloud connector ownership back from Cloud Addon.
@@ -113,10 +113,10 @@ or proposal input for local review.
 
 Adapter may consume only the Cloud Addon public seam. Current examples include:
 
-- `magick_ai_cloud_addon_runtime_client()`;
-- `magick_ai_cloud_addon_verified_runtime_client()`;
-- `magick_ai_cloud_addon_dispatch_media_derivative_cloud_request()`;
-- `magick_ai_cloud_addon_build_media_derivative_proposal_payload()`.
+- `npcink_cloud_addon_runtime_client()`;
+- `npcink_cloud_addon_verified_runtime_client()`;
+- `npcink_cloud_addon_dispatch_media_derivative_cloud_request()`;
+- `npcink_cloud_addon_build_media_derivative_proposal_payload()`.
 
 Adapter must not expose a parallel `/cloud/*` REST surface or duplicate Cloud
 Addon settings. If OpenClaw needs Cloud health, run status, results, stats,

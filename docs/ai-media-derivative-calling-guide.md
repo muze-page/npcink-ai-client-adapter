@@ -18,7 +18,7 @@ attachment metadata.
 Discovery ability:
 
 ```text
-magick-ai/build-media-derivative-cloud-request
+npcink-abilities-toolkit/build-media-derivative-cloud-request
 ```
 
 This is a read-only WordPress ability. It builds the one-run request contract
@@ -27,7 +27,7 @@ for Cloud media derivative processing.
 Bulk planning ability:
 
 ```text
-magick-ai/build-media-derivative-batch-plan
+npcink-abilities-toolkit/build-media-derivative-batch-plan
 ```
 
 This is also read-only. Use it before natural-language bulk requests such as
@@ -38,7 +38,7 @@ Cloud, create proposals, approve adoption, or return a WordPress write decision.
 Verified local REST discovery:
 
 ```text
-GET /wp-json/wp-abilities/v1/abilities/magick-ai/build-media-derivative-cloud-request
+GET /wp-json/wp-abilities/v1/abilities/npcink-abilities-toolkit/build-media-derivative-cloud-request
 ```
 
 Expected discovery properties:
@@ -69,13 +69,13 @@ AI callers should use Adapter's bounded media derivative recipe, not direct
 Cloud runtime calls:
 
 1. Select or receive a WordPress image `attachment_id`. For bulk requests, first
-   call `magick-ai/build-media-derivative-batch-plan` through
+   call `npcink-abilities-toolkit/build-media-derivative-batch-plan` through
    `/run-read-ability`, review `candidates` and `skipped`, and process only a
    small approved slice.
 2. Call:
 
    ```http
-   POST /wp-json/magick-ai-adapter/v1/media-derivative-runs
+   POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs
    ```
 
    Example body:
@@ -101,20 +101,20 @@ Cloud runtime calls:
 3. Poll:
 
    ```http
-   GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}
+   GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}
    ```
 
 4. Read result:
 
    ```http
-   GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}/result
+   GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result
    ```
 
 5. Show the local same-origin preview URL from the result when present.
 6. Build proposal payload:
 
    ```http
-   POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload
+   POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload
    ```
 
    Include `ability_response`, `cloud_result`, `derivative_artifact`, and
@@ -124,11 +124,11 @@ Cloud runtime calls:
 7. For full media optimization, submit the returned `from_plan_request` to:
 
    ```text
-   POST /wp-json/magick-ai-adapter/v1/proposals/from-plan
+   POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan
    ```
 
-   Core will create one batch proposal containing `magick-ai/update-media-details`
-   and `magick-ai/adopt-cloud-media-derivative`.
+   Core will create one batch proposal containing `npcink-abilities-toolkit/update-media-details`
+   and `npcink-abilities-toolkit/adopt-cloud-media-derivative`.
    If `media_details_input` is missing, collect reviewed title/alt/caption/
    description/source metadata first and retry `POST /media-derivative-proposal-payload`;
    do not create a derivative-only Core proposal for the same optimization
@@ -145,14 +145,14 @@ Cloud runtime calls:
 Advanced local callers may call the read ability directly:
 
 ```http
-POST /wp-json/magick-ai-adapter/v1/run-read-ability
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
 ```
 
 Example body:
 
 ```json
 {
-  "ability_id": "magick-ai/build-media-derivative-cloud-request",
+  "ability_id": "npcink-abilities-toolkit/build-media-derivative-cloud-request",
   "input": {
     "attachment_id": 123,
     "preferred_format": "webp",
@@ -172,7 +172,7 @@ For batch planning:
 
 ```json
 {
-  "ability_id": "magick-ai/build-media-derivative-batch-plan",
+  "ability_id": "npcink-abilities-toolkit/build-media-derivative-batch-plan",
   "input": {
     "date_from": "2026-04-01",
     "date_to": "2026-04-30 23:59:59",
@@ -191,7 +191,7 @@ candidate's `cloud_request_input`.
 Write ability:
 
 ```text
-magick-ai/adopt-cloud-media-derivative
+npcink-abilities-toolkit/adopt-cloud-media-derivative
 ```
 
 This ability is intentionally separate from the read ability. It requires local
@@ -213,7 +213,7 @@ execution path.
 Do:
 
 - use `POST /media-derivative-runs` as the normal entrypoint;
-- use `magick-ai/build-media-derivative-batch-plan` before bulk conversion
+- use `npcink-abilities-toolkit/build-media-derivative-batch-plan` before bulk conversion
   requests;
 - treat Cloud artifacts as short-lived previews;
 - preserve `run_id`, `artifact_id`, `expires_at`, checksum, dimensions, and
@@ -234,13 +234,13 @@ Do not:
 ## Related Routes
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/media-derivative-runs
-GET  /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}
-GET  /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}/result
-GET  /wp-json/magick-ai-adapter/v1/media-derivative-artifacts/{artifact_id}/preview
-POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload
-POST /wp-json/magick-ai-adapter/v1/proposals
-POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
+POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs
+GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}
+GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result
+GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview
+POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload
+POST /wp-json/npcink-openclaw-adapter/v1/proposals
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
 ## Related Documents

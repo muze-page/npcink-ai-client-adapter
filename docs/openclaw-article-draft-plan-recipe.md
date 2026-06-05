@@ -18,7 +18,7 @@ Layer ownership stays fixed:
 - Toolbox builds `article_write_plan` artifacts.
 - Adapter exposes the OpenClaw channel recipe and forwards the reviewed plan.
 - Core validates the plan, owns proposal status, approval, preflight, and audit.
-- Abilities executes the final `magick-ai/create-draft` callback only after
+- Abilities executes the final `npcink-abilities-toolkit/create-draft` callback only after
   Core approval and commit preflight.
 - Cloud Addon is not part of this local control loop.
 
@@ -34,7 +34,7 @@ queue, hosted drafting path, or Cloud article import for this recipe.
 
 ```json
 {
-  "ability_id": "magick-ai-toolbox/build-article-write-plan",
+  "ability_id": "npcink-toolbox/build-article-write-plan",
   "input": {
     "title": "Reviewed draft title",
     "content_markdown": "Reviewed draft body.",
@@ -46,14 +46,14 @@ queue, hosted drafting path, or Cloud article import for this recipe.
 Send that payload to:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/run-read-ability
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
 ```
 
 3. Forward the returned plan to Core through Adapter:
 
 ```json
 {
-  "plan_ability_id": "magick-ai-toolbox/build-article-write-plan",
+  "plan_ability_id": "npcink-toolbox/build-article-write-plan",
   "plan": {
     "artifact_type": "article_write_plan",
     "version": 1,
@@ -73,19 +73,19 @@ POST /wp-json/magick-ai-adapter/v1/run-read-ability
 Send that payload to:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/proposals/from-plan
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan
 ```
 
 4. Poll proposal status through Adapter:
 
 ```text
-GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}
+GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}
 ```
 
 5. Execute only after Core approval and commit preflight:
 
 ```text
-POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
 ## Required Plan Shape
@@ -98,7 +98,7 @@ Core accepts only `artifact_type=article_write_plan` plans that include:
 - `article_draft_candidate`
 - `discoverability_pack`
 - `article_risk_report`
-- exactly one `write_actions[]` item targeting `magick-ai/create-draft`
+- exactly one `write_actions[]` item targeting `npcink-abilities-toolkit/create-draft`
 
 The final action must stay draft-only with `dry_run=true` and `commit=false`
 before Core approval. Plans with `risk_level=high`, non-empty

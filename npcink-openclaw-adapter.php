@@ -1,0 +1,46 @@
+<?php
+/**
+ * Plugin Name: Npcink OpenClaw Adapter
+ * Description: Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities execution.
+ * Version: 0.1.0
+ * Requires PHP: 8.0
+ * Requires at least: 7.0
+ * Author: Npcink
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: npcink-openclaw-adapter
+ *
+ * @package NpcinkOpenClawAdapter
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'NPCINK_OPENCLAW_ADAPTER_VERSION', '0.1.0' );
+define( 'NPCINK_OPENCLAW_ADAPTER_FILE', __FILE__ );
+define( 'NPCINK_OPENCLAW_ADAPTER_DIR', plugin_dir_path( __FILE__ ) );
+
+spl_autoload_register(
+	static function ( string $class ): void {
+		$prefix = 'Npcink\\OpenClawAdapter\\';
+		if ( 0 !== strpos( $class, $prefix ) ) {
+			return;
+		}
+
+		$relative = substr( $class, strlen( $prefix ) );
+		$path     = NPCINK_OPENCLAW_ADAPTER_DIR . 'includes/' . str_replace( '\\', '/', $relative ) . '.php';
+
+		if ( is_readable( $path ) ) {
+			require_once $path;
+		}
+	}
+);
+
+add_action(
+	'plugins_loaded',
+	static function (): void {
+		$plugin = new Npcink\OpenClawAdapter\Plugin();
+		$plugin->boot();
+	}
+);

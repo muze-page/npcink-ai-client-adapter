@@ -10,8 +10,8 @@ WordPress write ownership local.
 - Core owns local media policy defaults, proposal governance, approval,
   commit-preflight, and audit.
 - Abilities own the canonical
-  `magick-ai/build-media-derivative-cloud-request` read-only contract and the
-  `magick-ai/build-media-derivative-batch-plan` read-only candidate planner.
+  `npcink-abilities-toolkit/build-media-derivative-cloud-request` read-only contract and the
+  `npcink-abilities-toolkit/build-media-derivative-batch-plan` read-only candidate planner.
 - Cloud Addon owns Cloud credentials, signing, media derivative transport, run
   reads, and result reads.
 - Cloud owns runtime processing and short-TTL derivative artifacts.
@@ -24,7 +24,7 @@ replace media files.
 ## Flow
 
 0. Optional bulk planning through `POST /run-read-ability`
-   - Ability: `magick-ai/build-media-derivative-batch-plan`.
+   - Ability: `npcink-abilities-toolkit/build-media-derivative-batch-plan`.
    - Use for requests like "convert April media library images to PNG".
    - Inputs may include `date_from`, `date_to`, `target_format`,
      `exclude_formats`, size/dimension filters, and `max_items`.
@@ -69,7 +69,7 @@ replace media files.
      optional reviewed `media_details_input`.
    - Returns the legacy Core-ready single derivative `proposal_payload`.
    - When `media_details_input` is present, also returns `from_plan_request`
-     for `magick-ai/build-media-optimization-plan`.
+     for `npcink-abilities-toolkit/build-media-optimization-plan`.
    - When `media_details_input` is missing for an optimize-image request, stop
      and collect reviewed metadata; do not create a derivative-only Core
      proposal for the same user intent.
@@ -79,8 +79,8 @@ replace media files.
    - For the user intent "optimize this media item", submit the returned
      `from_plan_request`.
    - Core creates one batch proposal with `input.write_actions[]` containing
-     `magick-ai/update-media-details` and
-     `magick-ai/adopt-cloud-media-derivative`.
+     `npcink-abilities-toolkit/update-media-details` and
+     `npcink-abilities-toolkit/adopt-cloud-media-derivative`.
    - If Core reports the media optimization plan ability is unavailable,
      surface the capability/version guard and update the local Abilities/Core
      stack; do not split this user intent into two proposals.

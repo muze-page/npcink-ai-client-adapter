@@ -11,31 +11,31 @@ This is a governed handoff, not a direct media write path.
 ## Contract
 
 - Candidate contract: `image_candidate.v1`
-- Plan ability: `magick-ai-toolbox/build-image-candidate-adoption-plan`
+- Plan ability: `npcink-toolbox/build-image-candidate-adoption-plan`
 - Plan artifact: `image_candidate_adoption_plan`
-- Handoff route: `POST /wp-json/magick-ai-adapter/v1/proposals/from-plan`
-- Status route: `GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}`
+- Handoff route: `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`
+- Status route: `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
 - Final route:
-  `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute`
+  `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`
 - Final write abilities:
-  `magick-ai/upload-media-from-url`,
-  `magick-ai/update-media-details`, and optional
-  `magick-ai/set-post-featured-image`
+  `npcink-abilities-toolkit/upload-media-from-url`,
+  `npcink-abilities-toolkit/update-media-details`, and optional
+  `npcink-abilities-toolkit/set-post-featured-image`
 
 ## Flow
 
 1. Collect image candidates through
-   `magick-ai-toolbox/search-image-source` or another approved direct-read
+   `npcink-toolbox/search-image-source` or another approved direct-read
    source that returns `image_candidate.v1`.
 2. Let the operator select one candidate and review license, attribution,
    prompt/model provenance, and warnings.
-3. Run `magick-ai-toolbox/build-image-candidate-adoption-plan` through
+3. Run `npcink-toolbox/build-image-candidate-adoption-plan` through
    `POST /run-read-ability`.
 4. Forward the returned `image_candidate_adoption_plan` to Core through
-   `POST /wp-json/magick-ai-adapter/v1/proposals/from-plan`.
+   `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`.
 5. Poll the proposal.
 6. Only after Core approval and commit preflight, call
-   `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute`.
+   `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`.
 
 ## Guardrails
 

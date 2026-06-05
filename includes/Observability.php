@@ -2,10 +2,10 @@
 /**
  * Local observability event bridge.
  *
- * @package MagickAIAdapter
+ * @package NpcinkOpenClawAdapter
  */
 
-namespace MagickAI\Adapter;
+namespace Npcink\OpenClawAdapter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -28,13 +28,13 @@ final class Observability {
 		}
 
 		do_action(
-			'magick_ai_observability_event',
+			'npcink_openclaw_adapter_observability_event',
 			array_merge(
 				self::sanitize_payload( $payload ),
 				array(
 					'schema_version' => '2026-06-01',
-					'plugin_slug'    => 'magick-ai-adapter',
-					'plugin_version' => defined( 'MAGICK_AI_ADAPTER_VERSION' ) ? MAGICK_AI_ADAPTER_VERSION : '',
+					'plugin_slug'    => 'npcink-openclaw-adapter',
+					'plugin_version' => defined( 'NPCINK_OPENCLAW_ADAPTER_VERSION' ) ? NPCINK_OPENCLAW_ADAPTER_VERSION : '',
 					'source'         => 'local',
 					'event_kind'     => $event_kind,
 					'emitted_at'     => gmdate( 'c' ),

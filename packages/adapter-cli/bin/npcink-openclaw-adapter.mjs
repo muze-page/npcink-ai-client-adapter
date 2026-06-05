@@ -18,9 +18,9 @@ if (!['connect', 'status', 'request'].includes(command)) {
 function printUsage() {
   console.error([
     'Usage:',
-    '  magick-adapter connect --site=https://example.test --profile=local [--insecure-local-tls]',
-    '  magick-adapter status --profile=local [--insecure-local-tls]',
-    '  magick-adapter request --profile=local [--insecure-local-tls] METHOD /adapter-route [--body-file=/tmp/body.json|--body-stdin]',
+    '  npcink-openclaw-adapter connect --site=https://example.test --profile=local [--insecure-local-tls]',
+    '  npcink-openclaw-adapter status --profile=local [--insecure-local-tls]',
+    '  npcink-openclaw-adapter request --profile=local [--insecure-local-tls] METHOD /adapter-route [--body-file=/tmp/body.json|--body-stdin]',
   ].join('\n'));
 }
 
@@ -45,7 +45,7 @@ function profilePathFromArgs(args) {
   const profile = parsed.get('profile') || 'default';
   return {
     profile,
-    profilePath: parsed.get('profile-file') || join(homedir(), '.magick-ai-adapter', 'keypair-profiles', `${profile}.json`),
+    profilePath: parsed.get('profile-file') || join(homedir(), '.npcink-openclaw-adapter', 'keypair-profiles', `${profile}.json`),
     insecureLocalTls: parsed.has('insecure-local-tls'),
   };
 }

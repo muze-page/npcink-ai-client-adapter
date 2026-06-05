@@ -1,6 +1,6 @@
 # Adapter Admin Surface Standard
 
-Status: active for `Magick AI -> Adapter`.
+Status: active for `Npcink -> Adapter`.
 
 ## Purpose
 

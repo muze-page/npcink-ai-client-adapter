@@ -73,13 +73,13 @@ run_wp() {
 
 run_wp core is-installed >/dev/null
 
-plugin_dir="$WP_PATH/wp-content/plugins/magick-ai-adapter"
+plugin_dir="$WP_PATH/wp-content/plugins/npcink-openclaw-adapter"
 if [[ ! -e "$plugin_dir" ]]; then
 	ln -s "$ROOT_DIR" "$plugin_dir"
 fi
 
-if [[ "$(run_wp plugin status magick-ai-adapter --field=status 2>/dev/null || true)" == "inactive" ]]; then
-	run_wp plugin activate magick-ai-adapter >/dev/null
+if [[ "$(run_wp plugin status npcink-openclaw-adapter --field=status 2>/dev/null || true)" != "active" ]]; then
+	run_wp plugin activate npcink-openclaw-adapter >/dev/null
 fi
 
 run_wp eval-file "$ROOT_DIR/tests/smoke-wp.php"

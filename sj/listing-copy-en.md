@@ -2,11 +2,11 @@
 
 ## Plugin Name
 
-Magick AI Adapter
+Npcink OpenClaw Adapter
 
 ## Short Description
 
-Thin OpenClaw adapter for Magick AI Core governance and WordPress Abilities API
+Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities API
 routing.
 
 ## Tags
@@ -15,7 +15,7 @@ ai, governance, automation, rest-api, abilities
 
 ## Description
 
-Magick AI Adapter gives OpenClaw one WordPress REST namespace for Magick AI
+Npcink OpenClaw Adapter gives OpenClaw one WordPress REST namespace for Npcink
 Core governance and WordPress Abilities API routing.
 
 It reads Core capability guidance, runs approved direct-read abilities through
@@ -27,9 +27,9 @@ Adapter is intentionally thin. It is the channel layer, not the ability layer,
 governance layer, cloud connector, workflow runtime, MCP server, model client,
 or generic final write executor.
 
-In productized OpenClaw setup, OpenClaw connects to Adapter. Magick AI Core
+In productized OpenClaw setup, OpenClaw connects to Adapter. Npcink Governance Core
 remains the governance backend for proposal storage, approval, commit
-preflight, and audit. Magick AI Abilities and other providers remain the owners
+preflight, and audit. Npcink Abilities Toolkit and other providers remain the owners
 of ability definitions, callbacks, schemas, and permissions.
 
 ## Key Features
@@ -38,7 +38,7 @@ of ability definitions, callbacks, schemas, and permissions.
 - Expose Adapter health, help, capability, read, proposal, and handoff routes.
 - Read Core governance guidance before direct-read ability execution.
 - Route direct-read abilities through the WordPress Abilities API.
-- Forward governed write requests to Magick AI Core proposal routes.
+- Forward governed write requests to Npcink Governance Core proposal routes.
 - Preserve Core approval, commit-preflight, and audit boundaries.
 - Create a one-time WordPress Application Password and non-secret connection manifest for OpenClaw.
 - Keep Adapter thin instead of becoming an ability registry, workflow runtime,
@@ -46,7 +46,7 @@ of ability definitions, callbacks, schemas, and permissions.
 
 ## Who This Is For
 
-- WordPress administrators connecting OpenClaw to a Magick AI site.
+- WordPress administrators connecting OpenClaw to a Npcink site.
 - OpenClaw environments that need one WordPress REST entry point.
 - Host setups that use Core for governance and Abilities API providers for
   execution contracts.
@@ -57,18 +57,18 @@ of ability definitions, callbacks, schemas, and permissions.
 
 - WordPress 7.0 or later.
 - PHP 8.0 or later.
-- Magick AI Core for governance.
-- A WordPress Abilities API provider, such as Magick AI Abilities, for ability
+- Npcink Governance Core for governance.
+- A WordPress Abilities API provider, such as Npcink Abilities Toolkit, for ability
   definitions and callbacks.
 
 ## Series Boundary
 
-In the Magick AI plugin family:
+In the Npcink plugin family:
 
-- Magick AI Abilities owns ability definitions and callbacks.
-- Magick AI Core owns governance, approval, preflight, and audit.
-- Magick AI Adapter owns OpenClaw channel adaptation.
-- Magick AI Cloud Addon owns cloud service connection.
+- Npcink Abilities Toolkit owns ability definitions and callbacks.
+- Npcink Governance Core owns governance, approval, preflight, and audit.
+- Npcink OpenClaw Adapter owns OpenClaw channel adaptation.
+- Npcink Cloud Addon owns cloud service connection.
 
 This separation keeps Adapter focused on connection and routing, while Core
 remains the governance truth source and Abilities remains the capability

@@ -5,7 +5,7 @@ Status: accepted working notes for future humans and agents.
 Date: 2026-06-04.
 
 This document summarizes the product and security decisions behind the
-`Magick AI -> Adapter` connection flow. Read this before changing handoff,
+`Npcink -> Adapter` connection flow. Read this before changing handoff,
 credential, OpenClaw, WorkBuddy, or local CLI behavior.
 
 ## Current Product Shape
@@ -55,13 +55,13 @@ user's local machine. Therefore:
 The current test package is:
 
 ```bash
-@npcink/magick-ai-adapter-cli@0.1.0
+@npcink/openclaw-adapter-cli@0.1.0
 ```
 
 Use this command form in user-facing copy:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter status --profile=local
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter status --profile=local
 ```
 
 The `cd ~ &&` prefix is intentional. Running package commands from inside the
@@ -69,11 +69,11 @@ package source directory can cause npm to resolve local project context and
 fail with:
 
 ```text
-sh: magick-adapter: command not found
+sh: npcink-openclaw-adapter: command not found
 ```
 
 When the official npm organization exists, the package can move to a product
-scope such as `@magick-ai/adapter-cli`, but update all admin copy, docs, and
+scope such as `@npcink-abilities-toolkit/adapter-cli`, but update all admin copy, docs, and
 tests together.
 
 ## Secret Handling Rules
@@ -105,7 +105,7 @@ For unknown clients:
   Password path is acceptable.
 - If there is no clear secret field, use the local signed key-pair path.
 - The AI client should call the request wrapper; it should not read, print,
-  summarize, or copy `~/.magick-ai-adapter/keypair-profiles/*.json`.
+  summarize, or copy `~/.npcink-openclaw-adapter/keypair-profiles/*.json`.
 
 ## Explicit Non-Goals
 
@@ -158,7 +158,7 @@ composer test:all
 npm --prefix packages/adapter-cli run check
 git diff --check
 rg "<secret-danger-pattern from the current acceptance checklist>" .
-rg "wp_insert_post|wp_update_post|workflow runtime|durable queue|scheduler" /Users/muze/gitee/magick-ai-adapter
+rg "wp_insert_post|wp_update_post|workflow runtime|durable queue|scheduler" /Users/muze/gitee/npcink-openclaw-adapter
 ```
 
 Expected notes:

@@ -4,8 +4,8 @@
 
 These notes cover the WordPress.org listing assets for:
 
-- Plugin: Magick AI Adapter
-- Slug: `magick-ai-adapter`
+- Plugin: Npcink OpenClaw Adapter
+- Slug: `npcink-openclaw-adapter`
 - Asset folder: `sj/`
 - WordPress.org export folder: `sj/exports/wordpress-org/`
 
@@ -57,7 +57,7 @@ The assets intentionally avoid:
 - Screenshots of third-party proprietary interfaces.
 
 The design uses abstract geometric shapes, protocol bridge metaphors,
-bounded channel routing, OpenClaw-to-WordPress handoff paths, and Magick AI
+bounded channel routing, OpenClaw-to-WordPress handoff paths, and Npcink
 family visual styling.
 
 ## Publishing Status

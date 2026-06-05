@@ -1,8 +1,8 @@
 <?php
 /**
- * Real WordPress smoke test for Magick AI Adapter.
+ * Real WordPress smoke test for Npcink OpenClaw Adapter.
  *
- * @package MagickAIAdapter
+ * @package NpcinkOpenClawAdapter
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -139,7 +139,7 @@ function maa_adapter_smoke_rest_result( string $method, string $route, array $pa
 	);
 }
 
-if ( ! function_exists( 'magick_ai_cloud_addon_build_media_derivative_proposal_payload' ) ) {
+if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payload' ) ) {
 	/**
 	 * Local smoke double for the Cloud Addon proposal payload builder.
 	 *
@@ -148,7 +148,7 @@ if ( ! function_exists( 'magick_ai_cloud_addon_build_media_derivative_proposal_p
 	 * @param array<string,mixed> $artifact Derivative artifact.
 	 * @return array<string,mixed>|WP_Error
 	 */
-	function magick_ai_cloud_addon_build_media_derivative_proposal_payload( array $ability_response, array $cloud_result, array $artifact ) {
+	function npcink_cloud_addon_build_media_derivative_proposal_payload( array $ability_response, array $cloud_result, array $artifact ) {
 		$attachment_id = absint( $ability_response['data']['attachment_id'] ?? ( $ability_response['attachment_id'] ?? ( $artifact['attachment_id'] ?? 0 ) ) );
 		$artifact_id   = sanitize_text_field( (string) ( $artifact['artifact_id'] ?? '' ) );
 		if ( $attachment_id <= 0 || '' === $artifact_id ) {
@@ -201,7 +201,7 @@ function maa_adapter_smoke_cloud_artifact_download( $download, array $artifact )
 
 	return $downloads[ $artifact_id ];
 }
-add_filter( 'magick_ai_abilities_cloud_media_derivative_artifact_download', 'maa_adapter_smoke_cloud_artifact_download', 10, 2 );
+add_filter( 'npcink_abilities_toolkit_cloud_media_derivative_artifact_download', 'maa_adapter_smoke_cloud_artifact_download', 10, 2 );
 
 /**
  * Captured Adapter observability events.
@@ -217,13 +217,13 @@ $GLOBALS['maa_adapter_smoke_observability_events'] = array();
  * @return void
  */
 function maa_adapter_smoke_capture_observability_event( $event ): void {
-	if ( ! is_array( $event ) || 'magick-ai-adapter' !== (string) ( $event['plugin_slug'] ?? '' ) ) {
+	if ( ! is_array( $event ) || 'npcink-openclaw-adapter' !== (string) ( $event['plugin_slug'] ?? '' ) ) {
 		return;
 	}
 
 	$GLOBALS['maa_adapter_smoke_observability_events'][] = $event;
 }
-add_action( 'magick_ai_observability_event', 'maa_adapter_smoke_capture_observability_event' );
+add_action( 'npcink_openclaw_adapter_observability_event', 'maa_adapter_smoke_capture_observability_event' );
 
 /**
  * Finds the latest captured Adapter observability event.
@@ -410,7 +410,7 @@ function maa_adapter_smoke_register_attachment_fixture( int $attachment_id ): vo
 
 	$registry =& maa_adapter_smoke_fixture_registry();
 	$registry['attachment_ids'][] = $attachment_id;
-	update_post_meta( $attachment_id, '_magick_ai_adapter_smoke_fixture_run_id', maa_adapter_smoke_run_id() );
+	update_post_meta( $attachment_id, '_npcink_openclaw_adapter_smoke_fixture_run_id', maa_adapter_smoke_run_id() );
 }
 
 /**
@@ -427,7 +427,7 @@ function maa_adapter_smoke_current_run_attachment_ids(): array {
 					get_posts(
 						array(
 							'fields'         => 'ids',
-							'meta_key'       => '_magick_ai_adapter_smoke_fixture_run_id',
+							'meta_key'       => '_npcink_openclaw_adapter_smoke_fixture_run_id',
 							'meta_value'     => maa_adapter_smoke_run_id(),
 							'post_status'    => 'inherit',
 							'post_type'      => 'attachment',
@@ -500,7 +500,7 @@ function maa_adapter_smoke_known_media_fixture_file_paths(): array {
 	$paths = array();
 	foreach ( array( 'adapter-rename-*', 'codex-commit-*' ) as $pattern ) {
 		$paths = array_merge( $paths, (array) glob( $basedir . '/20[0-9][0-9]/*/' . $pattern ) );
-		$paths = array_merge( $paths, (array) glob( $basedir . '/magick-ai-backups/20[0-9][0-9]/*/' . $pattern ) );
+		$paths = array_merge( $paths, (array) glob( $basedir . '/npcink-abilities-toolkit-backups/20[0-9][0-9]/*/' . $pattern ) );
 	}
 
 	return array_values( array_filter( array_unique( $paths ), 'is_file' ) );
@@ -542,7 +542,7 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 
 	$proposal_ids = array_values( array_unique( array_filter( array_map( 'strval', (array) ( $registry['proposal_ids'] ?? array() ) ) ) ) );
 	if ( ! empty( $proposal_ids ) ) {
-		$execution_records = get_option( 'magick_ai_adapter_execution_records', array() );
+		$execution_records = get_option( 'npcink_openclaw_adapter_execution_records', array() );
 		if ( is_array( $execution_records ) ) {
 			foreach ( $proposal_ids as $cleanup_proposal_id ) {
 				unset( $execution_records[ md5( $cleanup_proposal_id ) ] );
@@ -552,10 +552,10 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 					}
 				}
 			}
-			update_option( 'magick_ai_adapter_execution_records', $execution_records, false );
+			update_option( 'npcink_openclaw_adapter_execution_records', $execution_records, false );
 		}
 
-		$preflight_handoffs = get_option( 'magick_ai_adapter_preflight_handoffs', array() );
+		$preflight_handoffs = get_option( 'npcink_openclaw_adapter_preflight_handoffs', array() );
 		if ( is_array( $preflight_handoffs ) ) {
 			foreach ( $proposal_ids as $cleanup_proposal_id ) {
 				unset( $preflight_handoffs[ md5( $cleanup_proposal_id ) ] );
@@ -565,21 +565,21 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 					}
 				}
 			}
-			update_option( 'magick_ai_adapter_preflight_handoffs', $preflight_handoffs, false );
+			update_option( 'npcink_openclaw_adapter_preflight_handoffs', $preflight_handoffs, false );
 		}
 
 		foreach ( $proposal_ids as $cleanup_proposal_id ) {
-			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
-			$wpdb->delete( $wpdb->prefix . 'magick_ai_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+			$wpdb->delete( $wpdb->prefix . 'npcink_governance_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+			$wpdb->delete( $wpdb->prefix . 'npcink_governance_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
 		}
 	}
 
 	$core_app_ids = array_values( array_unique( array_filter( array_map( 'strval', (array) ( $registry['core_app_ids'] ?? array() ) ) ) ) );
 	$core_app_key_ids = array_values( array_unique( array_filter( array_map( 'strval', (array) ( $registry['core_app_key_ids'] ?? array() ) ) ) ) );
 	if ( ! empty( $core_app_ids ) || ! empty( $core_app_key_ids ) ) {
-		$audit_table = $wpdb->prefix . 'magick_ai_core_audit_log';
-		$app_table   = $wpdb->prefix . 'magick_ai_core_app_keys';
-		$rate_table  = $wpdb->prefix . 'magick_ai_core_app_rate_limits';
+		$audit_table = $wpdb->prefix . 'npcink_governance_core_audit_log';
+		$app_table   = $wpdb->prefix . 'npcink_governance_core_app_keys';
+		$rate_table  = $wpdb->prefix . 'npcink_governance_core_app_rate_limits';
 		foreach ( $core_app_ids as $core_app_id ) {
 			$wpdb->delete( $rate_table, array( 'app_id' => sanitize_text_field( $core_app_id ) ), array( '%s' ) );
 			$wpdb->query(
@@ -881,8 +881,8 @@ $maa_adapter_smoke_cleanup_comment_ids =& $maa_adapter_smoke_fixture_registry['c
 $maa_adapter_smoke_cleanup_terms =& $maa_adapter_smoke_fixture_registry['terms'];
 register_shutdown_function( 'maa_adapter_smoke_cleanup_registered_fixtures' );
 
-$health = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/health' );
-$health_dispatch_event = maa_adapter_smoke_observability_event( 'adapter.openclaw.dispatch.completed', 'ok', '/magick-ai-adapter/v1/health' );
+$health = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/health' );
+$health_dispatch_event = maa_adapter_smoke_observability_event( 'adapter.openclaw.dispatch.completed', 'ok', '/npcink-openclaw-adapter/v1/health' );
 maa_adapter_smoke_assert( ! empty( $health_dispatch_event ), 'adapter emits OpenClaw dispatch completed event for health' );
 maa_adapter_smoke_assert( 'GET' === (string) ( $health_dispatch_event['method'] ?? '' ), 'adapter health dispatch event carries method' );
 maa_adapter_smoke_assert( 200 === (int) ( $health_dispatch_event['status_code'] ?? 0 ), 'adapter health dispatch event carries status code' );
@@ -892,17 +892,17 @@ maa_adapter_smoke_assert( true === (bool) ( $health['abilities_catalog'] ?? fals
 maa_adapter_smoke_assert( false === (bool) ( $health['core_proxy_execute'] ?? true ), 'adapter keeps Core proxy execution disabled' );
 maa_adapter_smoke_assert( false === (bool) ( $health['commit_execution'] ?? true ), 'adapter keeps Core commit execution disabled' );
 maa_adapter_smoke_assert( false === (bool) ( $health['approval_proxy_enabled'] ?? true ), 'adapter health keeps approval proxy disabled' );
-maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $health['approval_surface'] ?? '' ), 'adapter health exposes Core admin approval surface' );
+maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $health['approval_surface'] ?? '' ), 'adapter health exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $health ), 'adapter health exposes Core app token configured state without token value' );
 maa_adapter_smoke_assert( isset( $health['read_shortcuts']['media'] ), 'adapter health exposes expanded read shortcuts' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['active-plugins-detail'] ?? '' ), 'adapter active plugins shortcut uses ops diagnostics detail' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['plugin-conflict-diagnostics'] ?? '' ), 'adapter plugin conflict shortcut uses ops diagnostics detail' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['recent-error-log-tail'] ?? '' ), 'adapter explicit log shortcut uses ops diagnostics detail' );
-maa_adapter_smoke_assert( 'magick-ai/list-posts' === (string) ( $health['read_shortcuts']['posts'] ?? '' ), 'adapter health exposes posts shortcut' );
-maa_adapter_smoke_assert( 'magick-ai/get-post-context' === (string) ( $health['read_shortcuts']['post-context'] ?? '' ), 'adapter health exposes post context shortcut' );
-maa_adapter_smoke_assert( 'magick-ai/list-users' === (string) ( $health['read_shortcuts']['users'] ?? '' ), 'adapter health exposes users shortcut' );
-maa_adapter_smoke_assert( 'magick-ai/get-menu' === (string) ( $health['read_shortcuts']['menu'] ?? '' ), 'adapter health exposes menu shortcut' );
-maa_adapter_smoke_assert( 'magick-ai-toolbox/build-ai-article-writing-pack' === (string) ( $health['read_shortcuts']['article-writing-pack'] ?? '' ), 'adapter health exposes AI article writing pack shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-posts' === (string) ( $health['read_shortcuts']['posts'] ?? '' ), 'adapter health exposes posts shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-context' === (string) ( $health['read_shortcuts']['post-context'] ?? '' ), 'adapter health exposes post context shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-users' === (string) ( $health['read_shortcuts']['users'] ?? '' ), 'adapter health exposes users shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-menu' === (string) ( $health['read_shortcuts']['menu'] ?? '' ), 'adapter health exposes menu shortcut' );
+maa_adapter_smoke_assert( 'npcink-toolbox/build-ai-article-writing-pack' === (string) ( $health['read_shortcuts']['article-writing-pack'] ?? '' ), 'adapter health exposes AI article writing pack shortcut' );
 maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_log_contents'] ?? true ), 'adapter health exposes diagnostics default without log contents' );
 maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_active_plugins'] ?? false ), 'adapter health exposes active plugin rows by default' );
 maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_inactive_plugins'] ?? true ), 'adapter health does not request inactive plugin rows by default' );
@@ -916,35 +916,35 @@ maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['explicit_log
 maa_adapter_smoke_assert( in_array( 'adapter_request_id', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes provider log adapter request id context' );
 maa_adapter_smoke_assert( in_array( 'ai_provider', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes provider context field' );
 maa_adapter_smoke_assert( in_array( 'ai_model', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes model context field' );
-maa_adapter_smoke_assert( in_array( 'magick_ai_core.correlation_id', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes nested Core correlation context field' );
+maa_adapter_smoke_assert( in_array( 'npcink_governance_core.correlation_id', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes nested Core correlation context field' );
 maa_adapter_smoke_assert( 'wordpress_rest_application_password' === (string) ( $health['auth']['type'] ?? '' ), 'adapter health exposes Application Password auth handoff' );
 maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_guidance']['proposal_status']['core_required_scope'] ?? '' ), 'adapter health documents proposal status read scope' );
 maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes proposal status routes' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/from-plan', (array) ( $health['plan_proposal_routes'] ?? array() ), true ), 'adapter health exposes plan-to-proposal route' );
-maa_adapter_smoke_assert( in_array( 'magick-ai-toolbox/build-article-batch-write-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article batch plan allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/build-media-optimization-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media optimization plan allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/build-media-rename-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media rename plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article batch plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-optimization-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media optimization plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-rename-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media rename plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approved proposal execution route' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approve-and-execute route' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/create-draft', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes create-draft execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/update-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-post execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/patch-setting-value', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes patch-setting-value execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-seo-meta', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-seo-meta execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-slug', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-slug execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/set-post-terms', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-terms execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/delete-term', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-term execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/update-media-details', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-media-details execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/optimize-media-asset', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes optimize-media-asset execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/replace-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes replace-media-file execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/adopt-cloud-media-derivative', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes adopt-cloud-media-derivative execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/rename-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes rename-media-file execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/delete-media-permanently', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-media-permanently execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/trash-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-comment execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'magick-ai/approve-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes approve-comment execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/trash-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-post execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/create-draft', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes create-draft execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/update-post', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-post execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/patch-setting-value', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes patch-setting-value execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/set-post-seo-meta', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-seo-meta execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/set-post-slug', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-slug execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/set-post-terms', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes set-post-terms execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/delete-term', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-term execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/update-media-details', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-media-details execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/optimize-media-asset', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes optimize-media-asset execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/replace-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes replace-media-file execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/adopt-cloud-media-derivative', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes adopt-cloud-media-derivative execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/rename-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes rename-media-file execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/delete-media-permanently', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-media-permanently execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/trash-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes trash-comment execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/approve-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes approve-comment execute allowlist' );
 
-$help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
+$help = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/help' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals/{proposal_id}' ), 'adapter help exposes proposal detail route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/from-plan' ), 'adapter help exposes plan-to-proposal route' );
@@ -958,28 +958,28 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/med
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/article-writing-pack' ), 'adapter help exposes AI article writing pack shortcut' );
-maa_adapter_smoke_assert( in_array( 'magick-ai-toolbox/build-article-batch-write-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article batch plan allowlist' );
-maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
-maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
+maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article batch plan allowlist' );
+maa_adapter_smoke_assert( 'npcink-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );
-maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-batch-write-plan' === (string) ( $help['openclaw_recipes']['article_batch_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article batch draft plan entrypoint ability' );
+maa_adapter_smoke_assert( 'npcink-toolbox/build-article-batch-write-plan' === (string) ( $help['openclaw_recipes']['article_batch_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article batch draft plan entrypoint ability' );
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_batch_draft_plan']['guardrails']['batch_approval'] ?? false ), 'adapter help marks OpenClaw article batch draft plan as batch approval' );
-maa_adapter_smoke_assert( 'magick-ai/build-media-optimization-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['optimization_plan_ability_id'] ?? '' ), 'adapter help exposes media optimization plan ability for derivative workflow' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-optimization-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['optimization_plan_ability_id'] ?? '' ), 'adapter help exposes media optimization plan ability for derivative workflow' );
 maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['preferred_core_route'] ?? '' ), 'adapter help defaults media derivative optimization to Core from-plan' );
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['single_approval_required'] ?? false ), 'adapter help marks media optimization as one approval' );
 maa_adapter_smoke_assert( in_array( 'media_details_input', (array) ( $help['openclaw_recipes']['media_derivative_cloud']['required_reviewed_input'] ?? array() ), true ), 'adapter help requires reviewed media details for media optimization' );
 maa_adapter_smoke_assert( 'request_reviewed_media_details_input_before_core_proposal' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['missing_reviewed_input_behavior'] ?? '' ), 'adapter help blocks media optimization proposal before reviewed metadata' );
-maa_adapter_smoke_assert( 'magick-ai-toolbox/build-ai-article-writing-pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes AI article writing pack recipe entrypoint ability' );
+maa_adapter_smoke_assert( 'npcink-toolbox/build-ai-article-writing-pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes AI article writing pack recipe entrypoint ability' );
 maa_adapter_smoke_assert( 'ai_article_writing_pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['artifact_type'] ?? '' ), 'adapter help marks AI article writing recipe artifact type' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['direct_wordpress_write'] ?? true ), 'adapter help marks AI article writing recipe as no direct write' );
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['content_discoverability_suggestions']['default_input']['search_policy']['requires_external_evidence'] ?? false ), 'adapter help passes Cloud search intent for content discoverability recipe' );
 maa_adapter_smoke_assert( 3 === (int) ( $help['openclaw_recipes']['content_discoverability_suggestions']['default_input']['search_policy']['max_results'] ?? 0 ), 'adapter help bounds content discoverability Cloud search results' );
 maa_adapter_smoke_assert( 30 === (int) ( $help['openclaw_recipes']['content_discoverability_suggestions']['default_input']['search_policy']['recency_days'] ?? 0 ), 'adapter help bounds content discoverability Cloud search recency' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['default_input']['search_policy']['enhance_with_reader'] ?? true ), 'adapter help keeps AI article recipe reader enhancement off by default' );
-maa_adapter_smoke_assert( 'magick-ai-cloud' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['cloud_search_owner'] ?? '' ), 'adapter help keeps Cloud as search owner for AI article recipe' );
+maa_adapter_smoke_assert( 'npcink-cloud' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['cloud_search_owner'] ?? '' ), 'adapter help keeps Cloud as search owner for AI article recipe' );
 maa_adapter_smoke_assert( in_array( 'GET /plugin-conflict-diagnostics', (array) ( $help['route_groups']['read_shortcuts'] ?? array() ), true ), 'adapter help keeps grouped read shortcut routes for humans' );
 maa_adapter_smoke_assert( false === (bool) ( $help['approval_proxy_enabled'] ?? true ), 'adapter help keeps approval proxy disabled' );
-maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $help['approval_surface'] ?? '' ), 'adapter help exposes Core admin approval surface' );
+maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $help['approval_surface'] ?? '' ), 'adapter help exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $help ), 'adapter help exposes Core app token configured state without token value' );
 maa_adapter_smoke_assert( false === (bool) ( $help['non_goals']['approval_proxy_enabled'] ?? true ), 'adapter help keeps approval proxy disabled' );
 maa_adapter_smoke_assert( false === (bool) ( $help['non_goals']['reject_proxy_enabled'] ?? true ), 'adapter help keeps rejection proxy disabled' );
@@ -995,23 +995,23 @@ maa_adapter_smoke_assert( ! is_wp_error( $smoke_terms ) && ! empty( $smoke_terms
 $smoke_term  = $smoke_terms[0];
 $term_detail = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/term',
+	'/npcink-openclaw-adapter/v1/term',
 	array(
 		'id' => (int) $smoke_term->term_id,
 	)
 );
-maa_adapter_smoke_assert( 'magick-ai/get-term' === (string) ( $term_detail['ability_id'] ?? '' ), 'adapter resolves term detail from list id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-term' === (string) ( $term_detail['ability_id'] ?? '' ), 'adapter resolves term detail from list id' );
 
-$capabilities = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/capabilities' );
-$core_request_event = maa_adapter_smoke_observability_event( 'adapter.core.request', 'ok', '/magick-ai-core/v1/capabilities' );
+$capabilities = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/capabilities' );
+$core_request_event = maa_adapter_smoke_observability_event( 'adapter.core.request', 'ok', '/npcink-governance-core/v1/capabilities' );
 maa_adapter_smoke_assert( ! empty( $core_request_event ), 'adapter emits Core relay success event for capabilities' );
 maa_adapter_smoke_assert( 'GET' === (string) ( $core_request_event['method'] ?? '' ), 'adapter Core relay success event carries method' );
 maa_adapter_smoke_assert( 200 === (int) ( $core_request_event['status_code'] ?? 0 ), 'adapter Core relay success event carries status code' );
 maa_adapter_smoke_assert_observability_safe( $core_request_event, 'adapter Core relay success event' );
 
-$missing_core_proposal = maa_adapter_smoke_rest_result( 'GET', '/magick-ai-adapter/v1/proposals/missing-observability-smoke' );
+$missing_core_proposal = maa_adapter_smoke_rest_result( 'GET', '/npcink-openclaw-adapter/v1/proposals/missing-observability-smoke' );
 maa_adapter_smoke_assert( 404 === (int) $missing_core_proposal['status'], 'adapter Core relay failure smoke returns missing proposal status' );
-$core_request_error_event = maa_adapter_smoke_observability_event( 'adapter.core.request', 'error', '/magick-ai-core/v1/proposals/missing-observability-smoke' );
+$core_request_error_event = maa_adapter_smoke_observability_event( 'adapter.core.request', 'error', '/npcink-governance-core/v1/proposals/missing-observability-smoke' );
 maa_adapter_smoke_assert( ! empty( $core_request_error_event ), 'adapter emits Core relay failure event for missing proposal' );
 maa_adapter_smoke_assert( 404 === (int) ( $core_request_error_event['status_code'] ?? 0 ), 'adapter Core relay failure event carries status code' );
 maa_adapter_smoke_assert( '' !== (string) ( $core_request_error_event['error_code'] ?? '' ), 'adapter Core relay failure event carries stable error code' );
@@ -1022,19 +1022,19 @@ maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/wp-diagnostics
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/wp-ops-diagnostics-detail'] ), 'adapter exposes ops diagnostics capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/list-workflow-recipes'] ), 'adapter exposes workflow recipe list capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/get-workflow-recipe'] ), 'adapter exposes workflow recipe detail capability through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-content-inventory-fix-plan'] ), 'adapter capabilities expose content inventory fix plan through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-test-content-cleanup-plan'] ), 'adapter capabilities expose test content cleanup plan through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-inventory-fix-plan'] ), 'adapter capabilities expose media inventory fix plan through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-reference-repair-plan'] ), 'adapter capabilities expose media reference repair plan through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai/build-media-settings-reference-repair-plan'] ), 'adapter capabilities expose media settings reference repair plan through Core' );
-maa_adapter_smoke_assert( isset( $by_id['magick-ai/optimize-media-metadata'] ), 'adapter capabilities expose media metadata optimization through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-content-inventory-fix-plan'] ), 'adapter capabilities expose content inventory fix plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-test-content-cleanup-plan'] ), 'adapter capabilities expose test content cleanup plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-media-inventory-fix-plan'] ), 'adapter capabilities expose media inventory fix plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-media-reference-repair-plan'] ), 'adapter capabilities expose media reference repair plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-media-settings-reference-repair-plan'] ), 'adapter capabilities expose media settings reference repair plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/optimize-media-metadata'] ), 'adapter capabilities expose media metadata optimization through Core' );
 maa_adapter_smoke_assert( 'direct_read' === (string) ( $by_id['npcink-abilities-toolkit/site-summary']['governance_mode'] ?? '' ), 'site-summary is direct read' );
 
 $content_plan_response = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/run-read-ability',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'input'      => array(
 			'per_page'    => 1,
 			'max_actions' => 1,
@@ -1055,9 +1055,9 @@ maa_adapter_smoke_assert( false === (bool) ( $content_plan_response['redaction_r
 
 $media_plan_response = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/run-read-ability',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'ability_id' => 'magick-ai/build-media-inventory-fix-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-media-inventory-fix-plan',
 		'input'      => array(
 			'per_page'                  => 1,
 			'max_actions'               => 1,
@@ -1068,12 +1068,12 @@ $media_plan_response = maa_adapter_smoke_rest(
 $media_plan = is_array( $media_plan_response['result']['data'] ?? null ) ? $media_plan_response['result']['data'] : array();
 maa_adapter_smoke_assert( array_key_exists( 'skipped_destructive_candidates', $media_plan ), 'adapter media plan preserves skipped destructive candidates field' );
 foreach ( (array) ( $media_plan['write_actions'] ?? array() ) as $media_action ) {
-	maa_adapter_smoke_assert( ! is_array( $media_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_action['target_ability_id'] ?? '' ), 'adapter media plan does not promote skipped deletes into write actions by default' );
+	maa_adapter_smoke_assert( ! is_array( $media_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_action['target_ability_id'] ?? '' ), 'adapter media plan does not promote skipped deletes into write actions by default' );
 }
 
 $media_plan_shortcut = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/media-inventory-fix-plan',
+	'/npcink-openclaw-adapter/v1/media-inventory-fix-plan',
 	array(
 		'per_page'                  => 1,
 		'max_actions'               => 1,
@@ -1084,16 +1084,16 @@ $media_plan_shortcut = maa_adapter_smoke_rest(
 );
 $media_shortcut_plan = is_array( $media_plan_shortcut['result']['data'] ?? null ) ? $media_plan_shortcut['result']['data'] : array();
 foreach ( (array) ( $media_shortcut_plan['write_actions'] ?? array() ) as $media_shortcut_action ) {
-	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_delete_candidates=false as false' );
-	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_trash_parent_media=false as false' );
-	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_unattached_test_media=false as false' );
+	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_delete_candidates=false as false' );
+	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_trash_parent_media=false as false' );
+	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_unattached_test_media=false as false' );
 }
 
 $unallowed_plan_bridge = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id' => 'magick-ai/site-info',
+		'plan_ability_id' => 'npcink-abilities-toolkit/site-info',
 		'plan'            => array(
 			'requires_approval' => true,
 			'commit_execution'  => false,
@@ -1103,22 +1103,22 @@ $unallowed_plan_bridge = maa_adapter_smoke_rest_result(
 	)
 );
 maa_adapter_smoke_assert( 400 === (int) $unallowed_plan_bridge['status'], 'adapter rejects unallowed plan-to-proposal ability before Core forwarding' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' === (string) ( $unallowed_plan_bridge['data']['code'] ?? '' ), 'adapter unallowed plan rejection uses adapter error code' );
-$plan_ingest_error_event = maa_adapter_smoke_observability_event( 'adapter.proposal.plan_ingest', 'error', '/magick-ai-adapter/v1/proposals/from-plan' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_plan_ability_not_allowed' === (string) ( $unallowed_plan_bridge['data']['code'] ?? '' ), 'adapter unallowed plan rejection uses adapter error code' );
+$plan_ingest_error_event = maa_adapter_smoke_observability_event( 'adapter.proposal.plan_ingest', 'error', '/npcink-openclaw-adapter/v1/proposals/from-plan' );
 maa_adapter_smoke_assert( ! empty( $plan_ingest_error_event ), 'adapter emits plan handoff failure observability event' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' === (string) ( $plan_ingest_error_event['error_code'] ?? '' ), 'adapter plan handoff failure event carries stable error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_plan_ability_not_allowed' === (string) ( $plan_ingest_error_event['error_code'] ?? '' ), 'adapter plan handoff failure event carries stable error code' );
 maa_adapter_smoke_assert( 400 === (int) ( $plan_ingest_error_event['status_code'] ?? 0 ), 'adapter plan handoff failure event carries status code' );
 maa_adapter_smoke_assert_observability_safe( $plan_ingest_error_event, 'adapter plan handoff failure event' );
-$plan_dispatch_error_event = maa_adapter_smoke_observability_event( 'adapter.openclaw.dispatch.failed', 'error', '/magick-ai-adapter/v1/proposals/from-plan' );
+$plan_dispatch_error_event = maa_adapter_smoke_observability_event( 'adapter.openclaw.dispatch.failed', 'error', '/npcink-openclaw-adapter/v1/proposals/from-plan' );
 maa_adapter_smoke_assert( ! empty( $plan_dispatch_error_event ), 'adapter emits OpenClaw dispatch failed event for plan handoff failure' );
 maa_adapter_smoke_assert( 400 === (int) ( $plan_dispatch_error_event['status_code'] ?? 0 ), 'adapter dispatch failed event carries status code' );
 maa_adapter_smoke_assert_observability_safe( $plan_dispatch_error_event, 'adapter dispatch failed event' );
 
 $invalid_plan_action_bridge = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+		'plan_ability_id' => 'npcink-toolbox/build-article-write-plan',
 		'plan'            => array(
 			'requires_approval' => true,
 			'commit_execution'  => false,
@@ -1126,7 +1126,7 @@ $invalid_plan_action_bridge = maa_adapter_smoke_rest_result(
 			'write_actions'     => array(
 				array(
 					'action_id'         => 'invalid-update-post-status',
-					'target_ability_id' => 'magick-ai/update-post',
+					'target_ability_id' => 'npcink-abilities-toolkit/update-post',
 					'requires_approval' => true,
 					'commit_execution'  => false,
 					'proposal_ready'    => true,
@@ -1145,19 +1145,19 @@ $invalid_plan_action_bridge = maa_adapter_smoke_rest_result(
 $invalid_plan_action_error = is_array( $invalid_plan_action_bridge['data']['data'] ?? null ) ? $invalid_plan_action_bridge['data']['data'] : array();
 $invalid_plan_action_block = is_array( $invalid_plan_action_error['blocked_items'][0] ?? null ) ? $invalid_plan_action_error['blocked_items'][0] : array();
 maa_adapter_smoke_assert( 400 === (int) $invalid_plan_action_bridge['status'], 'adapter plan-to-proposal rejects invalid profiled action input before Core forwarding' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_plan_action_input_invalid' === (string) ( $invalid_plan_action_bridge['data']['code'] ?? '' ), 'adapter plan action input rejection uses adapter error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_plan_action_input_invalid' === (string) ( $invalid_plan_action_bridge['data']['code'] ?? '' ), 'adapter plan action input rejection uses adapter error code' );
 maa_adapter_smoke_assert( 0 === (int) ( $invalid_plan_action_error['proposal_count'] ?? -1 ), 'adapter plan action input rejection creates no proposals' );
 maa_adapter_smoke_assert( 0 === (int) ( $invalid_plan_action_block['index'] ?? -1 ), 'adapter plan action input rejection carries action index' );
 maa_adapter_smoke_assert( 'invalid-update-post-status' === (string) ( $invalid_plan_action_block['action_id'] ?? '' ), 'adapter plan action input rejection carries action id' );
-maa_adapter_smoke_assert( 'magick-ai/update-post' === (string) ( $invalid_plan_action_block['target_ability_id'] ?? '' ), 'adapter plan action input rejection carries target ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-post' === (string) ( $invalid_plan_action_block['target_ability_id'] ?? '' ), 'adapter plan action input rejection carries target ability id' );
 maa_adapter_smoke_assert( 'status' === (string) ( $invalid_plan_action_block['field'] ?? '' ), 'adapter plan action input rejection carries field' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_ability_input_field_not_allowed' === (string) ( $invalid_plan_action_block['block_code'] ?? '' ), 'adapter plan action input rejection reuses proposal schema field error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_ability_input_field_not_allowed' === (string) ( $invalid_plan_action_block['block_code'] ?? '' ), 'adapter plan action input rejection reuses proposal schema field error code' );
 
 $duplicate_plan_action_bridge = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'plan_ability_id' => 'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'plan'            => array(
 			'requires_approval' => true,
 			'commit_execution'  => false,
@@ -1165,7 +1165,7 @@ $duplicate_plan_action_bridge = maa_adapter_smoke_rest_result(
 			'write_actions'     => array(
 				array(
 					'action_id'         => 'duplicate-plan-action',
-					'target_ability_id' => 'magick-ai/create-draft',
+					'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 					'input'             => array(
 						'title'   => 'Adapter duplicate plan action one',
 						'dry_run' => true,
@@ -1177,7 +1177,7 @@ $duplicate_plan_action_bridge = maa_adapter_smoke_rest_result(
 				),
 				array(
 					'action_id'         => 'duplicate-plan-action',
-					'target_ability_id' => 'magick-ai/create-draft',
+					'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 					'input'             => array(
 						'title'   => 'Adapter duplicate plan action two',
 						'dry_run' => true,
@@ -1194,13 +1194,13 @@ $duplicate_plan_action_bridge = maa_adapter_smoke_rest_result(
 $duplicate_plan_action_error = is_array( $duplicate_plan_action_bridge['data']['data'] ?? null ) ? $duplicate_plan_action_bridge['data']['data'] : array();
 $duplicate_plan_action_block = is_array( $duplicate_plan_action_error['blocked_items'][0] ?? null ) ? $duplicate_plan_action_error['blocked_items'][0] : array();
 maa_adapter_smoke_assert( 400 === (int) $duplicate_plan_action_bridge['status'], 'adapter plan-to-proposal rejects duplicate action ids before Core forwarding' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_write_action_duplicate_id' === (string) ( $duplicate_plan_action_block['block_code'] ?? '' ), 'adapter duplicate plan action rejection uses duplicate id block code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_write_action_duplicate_id' === (string) ( $duplicate_plan_action_block['block_code'] ?? '' ), 'adapter duplicate plan action rejection uses duplicate id block code' );
 
 $embedded_output_plan_bridge = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'plan_ability_id' => 'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'plan'            => array(
 			'requires_approval' => true,
 			'commit_execution'  => false,
@@ -1208,7 +1208,7 @@ $embedded_output_plan_bridge = maa_adapter_smoke_rest_result(
 			'write_actions'     => array(
 				array(
 					'action_id'         => 'embedded-output-token',
-					'target_ability_id' => 'magick-ai/create-draft',
+					'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 					'input'             => array(
 						'title'   => 'Adapter embedded output token smoke',
 						'content' => 'prefix-$outputs.embedded-output-token.post_id',
@@ -1226,13 +1226,13 @@ $embedded_output_plan_bridge = maa_adapter_smoke_rest_result(
 $embedded_output_error = is_array( $embedded_output_plan_bridge['data']['data'] ?? null ) ? $embedded_output_plan_bridge['data']['data'] : array();
 $embedded_output_block = is_array( $embedded_output_error['blocked_items'][0] ?? null ) ? $embedded_output_error['blocked_items'][0] : array();
 maa_adapter_smoke_assert( 400 === (int) $embedded_output_plan_bridge['status'], 'adapter plan-to-proposal rejects embedded output reference tokens before Core forwarding' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_output_reference_invalid' === (string) ( $embedded_output_block['block_code'] ?? '' ), 'adapter embedded plan output token rejection uses output reference invalid code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_output_reference_invalid' === (string) ( $embedded_output_block['block_code'] ?? '' ), 'adapter embedded plan output token rejection uses output reference invalid code' );
 
 $output_reference_plan_bridge = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id' => 'magick-ai/build-content-inventory-fix-plan',
+		'plan_ability_id' => 'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'plan'            => array(
 			'success' => true,
 			'data'    => array(
@@ -1241,7 +1241,7 @@ $output_reference_plan_bridge = maa_adapter_smoke_rest(
 				'write_actions'    => array(
 					array(
 						'action_id'         => 'create-draft-fixture',
-						'target_ability_id' => 'magick-ai/create-draft',
+						'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 						'input'             => array(
 							'status'         => 'draft',
 							'title'          => 'Adapter from-plan output reference draft',
@@ -1256,7 +1256,7 @@ $output_reference_plan_bridge = maa_adapter_smoke_rest(
 					),
 					array(
 						'action_id'         => 'update-created-draft',
-						'target_ability_id' => 'magick-ai/update-post',
+						'target_ability_id' => 'npcink-abilities-toolkit/update-post',
 						'depends_on'        => array( 'create-draft-fixture' ),
 						'input'             => array(
 							'post_id'        => '$outputs.create-draft-fixture.post_id',
@@ -1272,7 +1272,7 @@ $output_reference_plan_bridge = maa_adapter_smoke_rest(
 					),
 					array(
 						'action_id'         => 'trash-created-draft',
-						'target_ability_id' => 'magick-ai/trash-post',
+						'target_ability_id' => 'npcink-abilities-toolkit/trash-post',
 						'depends_on'        => array( 'create-draft-fixture' ),
 						'input'             => array(
 							'post_id' => '$outputs.create-draft-fixture.post_id',
@@ -1304,7 +1304,7 @@ $output_reference_plan_actions = is_array( $output_reference_plan_proposal['inpu
 maa_adapter_smoke_assert( 'plan_to_proposal_batch' === (string) ( $output_reference_plan_proposal['preview']['source']['type'] ?? '' ), 'adapter from-plan output reference proposal records batch source' );
 maa_adapter_smoke_assert( 3 === count( $output_reference_plan_actions ), 'adapter from-plan output reference proposal preserves ordered actions' );
 maa_adapter_smoke_assert( '$outputs.create-draft-fixture.post_id' === (string) ( $output_reference_plan_actions[1]['input']['post_id'] ?? '' ), 'adapter from-plan output reference proposal preserves unresolved post_id reference' );
-$output_reference_plan_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $output_reference_plan_proposal_id ) . '/approve-and-execute' );
+$output_reference_plan_result = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $output_reference_plan_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $output_reference_plan_result['success'] ?? false ), 'adapter from-plan output-reference batch approve-and-execute succeeds' );
 maa_adapter_smoke_assert( 3 === (int) ( $output_reference_plan_result['executed_count'] ?? 0 ), 'adapter from-plan output-reference batch executes all actions' );
 $output_reference_plan_post_id = (int) ( $output_reference_plan_result['results'][0]['post_id'] ?? 0 );
@@ -1362,7 +1362,7 @@ $article_plan = array(
 	'write_actions'           => array(
 		array(
 			'action_id'         => 'create-article-draft',
-			'target_ability_id' => 'magick-ai/create-draft',
+			'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 			'input'             => array(
 				'status'         => 'draft',
 				'title'          => 'Adapter Article Draft Plan Smoke',
@@ -1384,11 +1384,11 @@ $article_plan = array(
 	),
 	'action_count'            => 1,
 );
-$article_plan_bridge = maa_adapter_smoke_rest(
+$article_plan_bridge_result = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id'    => 'magick-ai-toolbox/build-article-write-plan',
+		'plan_ability_id'    => 'npcink-toolbox/build-article-write-plan',
 		'plan'               => $article_plan,
 		'plan_input'         => array(
 			'title' => 'Adapter Article Draft Plan Smoke',
@@ -1400,26 +1400,33 @@ $article_plan_bridge = maa_adapter_smoke_rest(
 		),
 	)
 );
-maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-write-plan' === (string) ( $article_plan_bridge['plan_ability_id'] ?? '' ), 'adapter forwards Toolbox article plan to Core' );
-maa_adapter_smoke_assert( 1 === (int) ( $article_plan_bridge['proposal_count'] ?? 0 ), 'adapter article plan creates one Core proposal' );
-$article_plan_proposal    = is_array( $article_plan_bridge['proposals'][0] ?? null ) ? $article_plan_bridge['proposals'][0] : array();
-$article_plan_proposal_id = (string) ( $article_plan_proposal['proposal_id'] ?? '' );
-$maa_adapter_smoke_cleanup_proposal_ids[] = $article_plan_proposal_id;
-maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $article_plan_proposal['ability_id'] ?? '' ), 'adapter article plan creates a create-draft proposal' );
-maa_adapter_smoke_assert( 'draft' === (string) ( $article_plan_proposal['input']['status'] ?? '' ), 'adapter article plan proposal is draft-only' );
-maa_adapter_smoke_assert( 'article_write_plan' === (string) ( $article_plan_proposal['preview']['article_workflow']['artifact_type'] ?? '' ), 'adapter article plan proposal preserves article workflow preview' );
-$plan_ingest_success_event = maa_adapter_smoke_observability_event( 'adapter.proposal.plan_ingest', 'ok', '/magick-ai-adapter/v1/proposals/from-plan' );
-maa_adapter_smoke_assert( ! empty( $plan_ingest_success_event ), 'adapter emits plan handoff success observability event' );
-maa_adapter_smoke_assert( 'adapter-article-plan-request' === (string) ( $plan_ingest_success_event['adapter_request_id'] ?? '' ), 'adapter plan handoff success event carries adapter request id' );
-maa_adapter_smoke_assert( 'adapter-article-plan-correlation' === (string) ( $plan_ingest_success_event['correlation_id'] ?? '' ), 'adapter plan handoff success event carries correlation id' );
-maa_adapter_smoke_assert_observability_safe( $plan_ingest_success_event, 'adapter plan handoff success event' );
-$article_plan_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $article_plan_proposal_id ) . '/approve-and-execute' );
-maa_adapter_smoke_assert( true === (bool) ( $article_plan_execute['success'] ?? false ), 'adapter article plan approve-and-execute succeeds' );
-maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $article_plan_execute['ability_id'] ?? '' ), 'adapter article plan execution uses create-draft ability' );
-$article_plan_post_id = (int) ( $article_plan_execute['post_id'] ?? 0 );
-$maa_adapter_smoke_cleanup_post_ids[] = $article_plan_post_id;
-maa_adapter_smoke_assert( $article_plan_post_id > 0, 'adapter article plan execution returns created draft post id' );
-maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $article_plan_post_id ), 'adapter article plan creates only a WordPress draft' );
+$article_plan_bridge = is_array( $article_plan_bridge_result['data'] ) ? $article_plan_bridge_result['data'] : array();
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_plan_ability_not_allowed' !== (string) ( $article_plan_bridge['code'] ?? '' ), 'adapter does not reject article plan at Adapter allowlist' );
+if ( 404 === (int) $article_plan_bridge_result['status'] && 'npcink_governance_core_plan_ability_unavailable' === (string) ( $article_plan_bridge['code'] ?? '' ) ) {
+	maa_adapter_smoke_assert( '/npcink-governance-core/v1/proposals/from-plan' === (string) ( $article_plan_bridge['data']['upstream_route'] ?? '' ), 'adapter forwards article plan to Core when local Core catalog lacks the planning ability' );
+} else {
+	maa_adapter_smoke_assert( $article_plan_bridge_result['status'] >= 200 && $article_plan_bridge_result['status'] < 300, 'POST /npcink-openclaw-adapter/v1/proposals/from-plan accepts article plan' );
+	maa_adapter_smoke_assert( 'npcink-toolbox/build-article-write-plan' === (string) ( $article_plan_bridge['plan_ability_id'] ?? '' ), 'adapter forwards Toolbox article plan to Core' );
+	maa_adapter_smoke_assert( 1 === (int) ( $article_plan_bridge['proposal_count'] ?? 0 ), 'adapter article plan creates one Core proposal' );
+	$article_plan_proposal    = is_array( $article_plan_bridge['proposals'][0] ?? null ) ? $article_plan_bridge['proposals'][0] : array();
+	$article_plan_proposal_id = (string) ( $article_plan_proposal['proposal_id'] ?? '' );
+	$maa_adapter_smoke_cleanup_proposal_ids[] = $article_plan_proposal_id;
+	maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $article_plan_proposal['ability_id'] ?? '' ), 'adapter article plan creates a create-draft proposal' );
+	maa_adapter_smoke_assert( 'draft' === (string) ( $article_plan_proposal['input']['status'] ?? '' ), 'adapter article plan proposal is draft-only' );
+	maa_adapter_smoke_assert( 'article_write_plan' === (string) ( $article_plan_proposal['preview']['article_workflow']['artifact_type'] ?? '' ), 'adapter article plan proposal preserves article workflow preview' );
+	$plan_ingest_success_event = maa_adapter_smoke_observability_event( 'adapter.proposal.plan_ingest', 'ok', '/npcink-openclaw-adapter/v1/proposals/from-plan' );
+	maa_adapter_smoke_assert( ! empty( $plan_ingest_success_event ), 'adapter emits plan handoff success observability event' );
+	maa_adapter_smoke_assert( 'adapter-article-plan-request' === (string) ( $plan_ingest_success_event['adapter_request_id'] ?? '' ), 'adapter plan handoff success event carries adapter request id' );
+	maa_adapter_smoke_assert( 'adapter-article-plan-correlation' === (string) ( $plan_ingest_success_event['correlation_id'] ?? '' ), 'adapter plan handoff success event carries correlation id' );
+	maa_adapter_smoke_assert_observability_safe( $plan_ingest_success_event, 'adapter plan handoff success event' );
+	$article_plan_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $article_plan_proposal_id ) . '/approve-and-execute' );
+	maa_adapter_smoke_assert( true === (bool) ( $article_plan_execute['success'] ?? false ), 'adapter article plan approve-and-execute succeeds' );
+	maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $article_plan_execute['ability_id'] ?? '' ), 'adapter article plan execution uses create-draft ability' );
+	$article_plan_post_id = (int) ( $article_plan_execute['post_id'] ?? 0 );
+	$maa_adapter_smoke_cleanup_post_ids[] = $article_plan_post_id;
+	maa_adapter_smoke_assert( $article_plan_post_id > 0, 'adapter article plan execution returns created draft post id' );
+	maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $article_plan_post_id ), 'adapter article plan creates only a WordPress draft' );
+}
 
 $article_batch_plan = $article_plan;
 $article_batch_plan['artifact_type'] = 'article_batch_write_plan';
@@ -1464,7 +1471,7 @@ for ( $article_batch_index = 1; $article_batch_index <= 3; $article_batch_index+
 	);
 	$article_batch_plan['write_actions'][] = array(
 		'action_id'         => 'create-article-draft-' . $article_batch_index,
-		'target_ability_id' => 'magick-ai/create-draft',
+		'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 		'input'             => array(
 			'status'         => 'draft',
 			'title'          => $article_batch_title,
@@ -1482,9 +1489,9 @@ for ( $article_batch_index = 1; $article_batch_index <= 3; $article_batch_index+
 $article_batch_plan['action_count'] = count( $article_batch_plan['write_actions'] );
 $article_batch_bridge_result = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id'    => 'magick-ai-toolbox/build-article-batch-write-plan',
+		'plan_ability_id'    => 'npcink-toolbox/build-article-batch-write-plan',
 		'plan'               => $article_batch_plan,
 		'plan_input'         => array(
 			'topic'         => 'Adapter article batch draft plan smoke',
@@ -1498,12 +1505,12 @@ $article_batch_bridge_result = maa_adapter_smoke_rest_result(
 	)
 );
 $article_batch_bridge_data = is_array( $article_batch_bridge_result['data'] ) ? $article_batch_bridge_result['data'] : array();
-maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' !== (string) ( $article_batch_bridge_data['code'] ?? '' ), 'adapter does not reject article batch plan at Adapter allowlist' );
-if ( 404 === (int) $article_batch_bridge_result['status'] && 'magick_ai_core_plan_ability_unavailable' === (string) ( $article_batch_bridge_data['code'] ?? '' ) ) {
-	maa_adapter_smoke_assert( '/magick-ai-core/v1/proposals/from-plan' === (string) ( $article_batch_bridge_data['data']['upstream_route'] ?? '' ), 'adapter forwards article batch plan to Core when local Core catalog lacks the planning ability' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_plan_ability_not_allowed' !== (string) ( $article_batch_bridge_data['code'] ?? '' ), 'adapter does not reject article batch plan at Adapter allowlist' );
+if ( 404 === (int) $article_batch_bridge_result['status'] && 'npcink_governance_core_plan_ability_unavailable' === (string) ( $article_batch_bridge_data['code'] ?? '' ) ) {
+	maa_adapter_smoke_assert( '/npcink-governance-core/v1/proposals/from-plan' === (string) ( $article_batch_bridge_data['data']['upstream_route'] ?? '' ), 'adapter forwards article batch plan to Core when local Core catalog lacks the planning ability' );
 } else {
-	maa_adapter_smoke_assert( $article_batch_bridge_result['status'] >= 200 && $article_batch_bridge_result['status'] < 300, 'POST /magick-ai-adapter/v1/proposals/from-plan accepts article batch plan' );
-	maa_adapter_smoke_assert( 'magick-ai-toolbox/build-article-batch-write-plan' === (string) ( $article_batch_bridge_data['plan_ability_id'] ?? '' ), 'adapter forwards Toolbox article batch plan to Core' );
+	maa_adapter_smoke_assert( $article_batch_bridge_result['status'] >= 200 && $article_batch_bridge_result['status'] < 300, 'POST /npcink-openclaw-adapter/v1/proposals/from-plan accepts article batch plan' );
+	maa_adapter_smoke_assert( 'npcink-toolbox/build-article-batch-write-plan' === (string) ( $article_batch_bridge_data['plan_ability_id'] ?? '' ), 'adapter forwards Toolbox article batch plan to Core' );
 	maa_adapter_smoke_assert( 1 === (int) ( $article_batch_bridge_data['proposal_count'] ?? 0 ), 'adapter article batch plan creates one Core batch proposal' );
 	$article_batch_proposal    = is_array( $article_batch_bridge_data['proposals'][0] ?? null ) ? $article_batch_bridge_data['proposals'][0] : array();
 	$article_batch_proposal_id = (string) ( $article_batch_proposal['proposal_id'] ?? '' );
@@ -1516,19 +1523,23 @@ $blocked_article_plan['article_risk_report']['risk_level'] = 'high';
 $blocked_article_plan['article_risk_report']['ready_for_proposal'] = true;
 $blocked_article_handoff = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id' => 'magick-ai-toolbox/build-article-write-plan',
+		'plan_ability_id' => 'npcink-toolbox/build-article-write-plan',
 		'plan'            => $blocked_article_plan,
 		'plan_input'      => array(
 			'title' => 'Adapter blocked article plan handoff',
 		),
 	)
 );
-maa_adapter_smoke_assert( 422 === (int) $blocked_article_handoff['status'], 'adapter article plan handoff returns Core intake failure' );
-maa_adapter_smoke_assert( 'plan_revision_required' === (string) ( $blocked_article_handoff['data']['data']['operator_feedback']['status'] ?? '' ), 'adapter article plan handoff returns operator feedback' );
-maa_adapter_smoke_assert( 'magick_ai_core_article_plan_risk_blocked' === (string) ( $blocked_article_handoff['data']['data']['operator_feedback']['core_evidence']['core_error_code'] ?? '' ), 'adapter article plan handoff feedback preserves Core error code' );
-maa_adapter_smoke_assert( true === (bool) ( $blocked_article_handoff['data']['data']['operator_feedback']['can_retry_after_revision'] ?? false ), 'adapter article plan handoff feedback marks revision retryable' );
+if ( 404 === (int) $blocked_article_handoff['status'] && 'npcink_governance_core_plan_ability_unavailable' === (string) ( $blocked_article_handoff['data']['code'] ?? '' ) ) {
+	maa_adapter_smoke_assert( '/npcink-governance-core/v1/proposals/from-plan' === (string) ( $blocked_article_handoff['data']['data']['upstream_route'] ?? '' ), 'adapter forwards blocked article plan to Core when local Core catalog lacks the planning ability' );
+} else {
+	maa_adapter_smoke_assert( 422 === (int) $blocked_article_handoff['status'], 'adapter article plan handoff returns Core intake failure' );
+	maa_adapter_smoke_assert( 'plan_revision_required' === (string) ( $blocked_article_handoff['data']['data']['operator_feedback']['status'] ?? '' ), 'adapter article plan handoff returns operator feedback' );
+	maa_adapter_smoke_assert( 'npcink_governance_core_article_plan_risk_blocked' === (string) ( $blocked_article_handoff['data']['data']['operator_feedback']['core_evidence']['core_error_code'] ?? '' ), 'adapter article plan handoff feedback preserves Core error code' );
+	maa_adapter_smoke_assert( true === (bool) ( $blocked_article_handoff['data']['data']['operator_feedback']['can_retry_after_revision'] ?? false ), 'adapter article plan handoff feedback marks revision retryable' );
+}
 
 $media_plan_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
 $maa_adapter_smoke_cleanup_attachment_ids[] = $media_plan_attachment_id;
@@ -1540,9 +1551,9 @@ $media_e2e_input = array(
 );
 $media_e2e_plan_response = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/run-read-ability',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'ability_id' => 'magick-ai/build-media-inventory-fix-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-media-inventory-fix-plan',
 		'input'      => $media_e2e_input,
 	)
 );
@@ -1551,14 +1562,14 @@ maa_adapter_smoke_assert( ! empty( $media_e2e_plan['write_actions'] ), 'adapter 
 maa_adapter_smoke_assert( ! empty( $media_e2e_plan['manual_review'] ), 'adapter e2e media plan contains manual_review rows before proposal handoff' );
 maa_adapter_smoke_assert( ! empty( $media_e2e_plan['skipped_destructive_candidates'] ), 'adapter e2e media plan contains skipped destructive candidates before proposal handoff' );
 foreach ( (array) ( $media_e2e_plan['write_actions'] ?? array() ) as $media_e2e_action ) {
-	maa_adapter_smoke_assert( ! is_array( $media_e2e_action ) || 'magick-ai/delete-media-permanently' !== (string) ( $media_e2e_action['target_ability_id'] ?? '' ), 'adapter e2e media plan keeps delete-media-permanently out of write_actions by default' );
+	maa_adapter_smoke_assert( ! is_array( $media_e2e_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_e2e_action['target_ability_id'] ?? '' ), 'adapter e2e media plan keeps delete-media-permanently out of write_actions by default' );
 }
 
 $plan_bridge = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array(
-		'plan_ability_id'    => 'magick-ai/build-media-inventory-fix-plan',
+		'plan_ability_id'    => 'npcink-abilities-toolkit/build-media-inventory-fix-plan',
 		'plan'               => $media_e2e_plan_response['result'],
 		'plan_input'         => $media_e2e_input,
 		'adapter_request_id' => 'adapter-plan-e2e-request',
@@ -1568,21 +1579,21 @@ $plan_bridge = maa_adapter_smoke_rest(
 		),
 	)
 );
-maa_adapter_smoke_assert( 'magick-ai/build-media-inventory-fix-plan' === (string) ( $plan_bridge['plan_ability_id'] ?? '' ), 'adapter forwards plan-to-proposal route to Core' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-inventory-fix-plan' === (string) ( $plan_bridge['plan_ability_id'] ?? '' ), 'adapter forwards plan-to-proposal route to Core' );
 maa_adapter_smoke_assert( false === (bool) ( $plan_bridge['commit_execution'] ?? true ), 'adapter plan-to-proposal response preserves commit_execution=false' );
 maa_adapter_smoke_assert( is_array( $plan_bridge['proposals'] ?? null ), 'adapter plan-to-proposal response preserves proposal list state' );
 maa_adapter_smoke_assert( (int) ( $plan_bridge['proposal_count'] ?? 0 ) >= 1, 'adapter e2e media plan creates Core proposal' );
 foreach ( (array) ( $plan_bridge['proposals'] ?? array() ) as $created_plan_proposal ) {
 	if ( is_array( $created_plan_proposal ) && '' !== (string) ( $created_plan_proposal['proposal_id'] ?? '' ) ) {
 		$maa_adapter_smoke_cleanup_proposal_ids[] = (string) $created_plan_proposal['proposal_id'];
-		maa_adapter_smoke_assert( 'magick-ai/delete-media-permanently' !== (string) ( $created_plan_proposal['ability_id'] ?? '' ), 'adapter e2e media plan keeps delete-media-permanently out of created proposals by default' );
+		maa_adapter_smoke_assert( 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $created_plan_proposal['ability_id'] ?? '' ), 'adapter e2e media plan keeps delete-media-permanently out of created proposals by default' );
 	}
 }
 $plan_proposal = is_array( $plan_bridge['proposals'][0] ?? null ) ? $plan_bridge['proposals'][0] : array();
 $plan_proposal_id = (string) ( $plan_proposal['proposal_id'] ?? '' );
 maa_adapter_smoke_assert( '' !== $plan_proposal_id, 'adapter e2e media plan returned a proposal id' );
 maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_proposal['caller']['adapter_request_id'] ?? '' ), 'adapter plan proposal caller carries adapter request id' );
-$plan_proposal_detail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $plan_proposal_id ) );
+$plan_proposal_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $plan_proposal_id ) );
 maa_adapter_smoke_assert( $plan_proposal_id === (string) ( $plan_proposal_detail['proposal_id'] ?? '' ), 'adapter e2e plan proposal detail is readable through adapter' );
 maa_adapter_smoke_assert( is_array( $plan_proposal_detail['preview'] ?? null ), 'adapter e2e plan proposal detail preserves preview object' );
 maa_adapter_smoke_assert( is_array( $plan_proposal_detail['input'] ?? null ), 'adapter e2e plan proposal detail preserves write action input' );
@@ -1598,7 +1609,7 @@ $media_optimization_artifact_id = 'adapter-smoke-webp-artifact-' . substr( wp_ge
 $media_optimization_artifact_contents = 'adapter-smoke-webp-derivative-bytes';
 $media_optimization_missing_details_payload = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/media-derivative-proposal-payload',
+	'/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
 	maa_adapter_smoke_media_optimization_payload_params( $media_optimization_attachment_id, $media_optimization_artifact_id . '-missing-details', $media_optimization_artifact_contents, false )
 );
 maa_adapter_smoke_assert( false === (bool) ( $media_optimization_missing_details_payload['proposal_ready'] ?? true ), 'adapter media optimization payload is not proposal-ready without metadata input' );
@@ -1607,24 +1618,24 @@ maa_adapter_smoke_assert( in_array( 'media_details_input', (array) ( $media_opti
 maa_adapter_smoke_assert( false !== strpos( (string) ( $media_optimization_missing_details_payload['next_step'] ?? '' ), '/proposals/from-plan' ), 'adapter media optimization missing-input next step still points back to from-plan' );
 $media_optimization_payload = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/media-derivative-proposal-payload',
+	'/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
 	maa_adapter_smoke_media_optimization_payload_params( $media_optimization_attachment_id, $media_optimization_artifact_id, $media_optimization_artifact_contents, true )
 );
 maa_adapter_smoke_assert( true === (bool) ( $media_optimization_payload['proposal_ready'] ?? false ), 'adapter media derivative payload is ready for one optimization proposal' );
 maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $media_optimization_payload['preferred_core_route'] ?? '' ), 'adapter media derivative payload prefers Core from-plan route' );
 maa_adapter_smoke_assert( 'surface_plan_ability_unavailable_do_not_split_into_two_proposals' === (string) ( $media_optimization_payload['ability_guard']['missing_capability_behavior'] ?? '' ), 'adapter media derivative payload exposes missing-capability guard' );
 $media_optimization_from_plan = is_array( $media_optimization_payload['from_plan_request'] ?? null ) ? $media_optimization_payload['from_plan_request'] : array();
-maa_adapter_smoke_assert( 'magick-ai/build-media-optimization-plan' === (string) ( $media_optimization_from_plan['plan_ability_id'] ?? '' ), 'adapter media derivative payload returns media optimization from_plan_request' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-optimization-plan' === (string) ( $media_optimization_from_plan['plan_ability_id'] ?? '' ), 'adapter media derivative payload returns media optimization from_plan_request' );
 $media_optimization_plan = is_array( $media_optimization_from_plan['plan'] ?? null ) ? $media_optimization_from_plan['plan'] : array();
 maa_adapter_smoke_assert( 'media_optimization_plan' === (string) ( $media_optimization_plan['artifact_type'] ?? '' ), 'adapter media derivative payload returns media optimization plan artifact' );
 maa_adapter_smoke_assert( true === (bool) ( $media_optimization_plan['batch_approval'] ?? false ), 'adapter media optimization plan requests one batch approval' );
 maa_adapter_smoke_assert( 2 === count( (array) ( $media_optimization_plan['write_actions'] ?? array() ) ), 'adapter media optimization plan includes two write actions' );
-maa_adapter_smoke_assert( 'magick-ai/update-media-details' === (string) ( $media_optimization_plan['write_actions'][0]['target_ability_id'] ?? '' ), 'adapter media optimization plan starts with metadata update' );
-maa_adapter_smoke_assert( 'magick-ai/adopt-cloud-media-derivative' === (string) ( $media_optimization_plan['write_actions'][1]['target_ability_id'] ?? '' ), 'adapter media optimization plan includes derivative adoption' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-media-details' === (string) ( $media_optimization_plan['write_actions'][0]['target_ability_id'] ?? '' ), 'adapter media optimization plan starts with metadata update' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/adopt-cloud-media-derivative' === (string) ( $media_optimization_plan['write_actions'][1]['target_ability_id'] ?? '' ), 'adapter media optimization plan includes derivative adoption' );
 
 $media_optimization_bridge_result = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals/from-plan',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
 	array_merge(
 		$media_optimization_from_plan,
 		array(
@@ -1641,11 +1652,11 @@ $media_optimization_bridge_result = maa_adapter_smoke_rest_result(
 	)
 );
 $media_optimization_bridge = is_array( $media_optimization_bridge_result['data'] ) ? $media_optimization_bridge_result['data'] : array();
-maa_adapter_smoke_assert( 'magick_ai_adapter_plan_ability_not_allowed' !== (string) ( $media_optimization_bridge['code'] ?? '' ), 'adapter does not reject media optimization plan at Adapter allowlist' );
-if ( 404 === (int) $media_optimization_bridge_result['status'] && 'magick_ai_core_plan_ability_unavailable' === (string) ( $media_optimization_bridge['code'] ?? '' ) ) {
-	maa_adapter_smoke_assert( '/magick-ai-core/v1/proposals/from-plan' === (string) ( $media_optimization_bridge['data']['upstream_route'] ?? '' ), 'adapter forwards media optimization plan to Core when local Core catalog lacks the planning ability' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_plan_ability_not_allowed' !== (string) ( $media_optimization_bridge['code'] ?? '' ), 'adapter does not reject media optimization plan at Adapter allowlist' );
+if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_governance_core_plan_ability_unavailable' === (string) ( $media_optimization_bridge['code'] ?? '' ) ) {
+	maa_adapter_smoke_assert( '/npcink-governance-core/v1/proposals/from-plan' === (string) ( $media_optimization_bridge['data']['upstream_route'] ?? '' ), 'adapter forwards media optimization plan to Core when local Core catalog lacks the planning ability' );
 } else {
-	maa_adapter_smoke_assert( $media_optimization_bridge_result['status'] >= 200 && $media_optimization_bridge_result['status'] < 300, 'POST /magick-ai-adapter/v1/proposals/from-plan accepts media optimization plan' );
+	maa_adapter_smoke_assert( $media_optimization_bridge_result['status'] >= 200 && $media_optimization_bridge_result['status'] < 300, 'POST /npcink-openclaw-adapter/v1/proposals/from-plan accepts media optimization plan' );
 	maa_adapter_smoke_assert( 1 === (int) ( $media_optimization_bridge['proposal_count'] ?? 0 ), 'adapter media optimization plan creates one Core batch proposal' );
 	$media_optimization_proposal = is_array( $media_optimization_bridge['proposals'][0] ?? null ) ? $media_optimization_bridge['proposals'][0] : array();
 	$media_optimization_proposal_id = (string) ( $media_optimization_proposal['proposal_id'] ?? '' );
@@ -1654,22 +1665,22 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'magick_ai_cor
 	maa_adapter_smoke_assert( 2 === count( (array) ( $media_optimization_proposal['input']['write_actions'] ?? array() ) ), 'adapter media optimization Core proposal stores metadata and derivative actions' );
 	$media_optimization_approved = maa_adapter_smoke_rest(
 		'POST',
-		'/magick-ai-core/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/approve',
+		'/npcink-governance-core/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/approve',
 		array(
 			'note' => 'Approve adapter media optimization smoke batch execution.',
 		)
 	);
 	maa_adapter_smoke_assert( 'approved' === (string) ( $media_optimization_approved['status'] ?? '' ), 'Core admin REST approval succeeds for media optimization batch proposal' );
-	$media_optimization_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/commit-preflight' );
+	$media_optimization_preflight = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/commit-preflight' );
 	maa_adapter_smoke_assert( false === (bool) ( $media_optimization_preflight['commit_execution'] ?? true ), 'adapter media optimization preflight keeps Core commit_execution=false' );
 	maa_adapter_smoke_assert( true === (bool) ( $media_optimization_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter media optimization preflight caches execution handoff' );
-	$media_optimization_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/execute' );
+	$media_optimization_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) . '/execute' );
 	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_execute['status'] ?? '' ), 'adapter media optimization execute succeeds after one Core batch approval' );
 	maa_adapter_smoke_assert( 'batch_write_actions' === (string) ( $media_optimization_execute['execution_mode'] ?? '' ), 'adapter media optimization executes as batch write_actions' );
 	maa_adapter_smoke_assert( 2 === (int) ( $media_optimization_execute['executed_count'] ?? 0 ), 'adapter media optimization executes metadata and derivative actions together' );
 	maa_adapter_smoke_assert( 'Adapter media optimization smoke' === (string) get_the_title( $media_optimization_attachment_id ), 'adapter media optimization batch updates media title' );
 	maa_adapter_smoke_assert( 'Adapter media optimization smoke image' === (string) get_post_meta( $media_optimization_attachment_id, '_wp_attachment_image_alt', true ), 'adapter media optimization batch updates media alt text' );
-	maa_adapter_smoke_assert( 'ai_generated' === (string) get_post_meta( $media_optimization_attachment_id, '_magick_ai_media_source_type', true ), 'adapter media optimization batch updates media source type' );
+	maa_adapter_smoke_assert( 'ai_generated' === (string) get_post_meta( $media_optimization_attachment_id, '_npcink_ai_media_source_type', true ), 'adapter media optimization batch updates media source type' );
 	maa_adapter_smoke_assert( 'image/webp' === (string) get_post_mime_type( $media_optimization_attachment_id ), 'adapter media optimization batch adopts WebP mime type' );
 	$media_optimization_after_relative = (string) get_post_meta( $media_optimization_attachment_id, '_wp_attached_file', true );
 	$media_optimization_after_uploads  = wp_upload_dir();
@@ -1679,7 +1690,7 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'magick_ai_cor
 	maa_adapter_smoke_assert( $media_optimization_artifact_contents === (string) file_get_contents( $media_optimization_after_path ), 'adapter media optimization batch writes expected Cloud artifact bytes' );
 }
 
-$site_summary = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/site-summary' );
+$site_summary = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/site-summary' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-summary' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-summary read ability' );
 maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-summary returns a result object' );
 maa_adapter_smoke_assert( 'direct_read_public' === (string) ( $site_summary['read_policy'] ?? '' ), 'adapter site-summary read carries public read policy' );
@@ -1687,14 +1698,14 @@ maa_adapter_smoke_assert( '' !== (string) ( $site_summary['correlation_id'] ?? '
 
 $discoverability_brief_response = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/content-discoverability-brief',
+	'/npcink-openclaw-adapter/v1/content-discoverability-brief',
 	array(
 		'topic' => 'WordPress AI SEO GEO AEO smoke',
 		'title' => 'WordPress AI SEO GEO AEO smoke',
 	)
 );
 $discoverability_brief = is_array( $discoverability_brief_response['result']['data'] ?? null ) ? $discoverability_brief_response['result']['data'] : ( is_array( $discoverability_brief_response['result'] ?? null ) ? $discoverability_brief_response['result'] : array() );
-maa_adapter_smoke_assert( 'magick-ai-toolbox/build-content-discoverability-brief' === (string) ( $discoverability_brief_response['ability_id'] ?? '' ), 'adapter runs content discoverability brief primary ability' );
+maa_adapter_smoke_assert( 'npcink-toolbox/build-content-discoverability-brief' === (string) ( $discoverability_brief_response['ability_id'] ?? '' ), 'adapter runs content discoverability brief primary ability' );
 maa_adapter_smoke_assert( 'content_discoverability_brief' === (string) ( $discoverability_brief['artifact_type'] ?? '' ), 'content discoverability brief returns the expected artifact type' );
 maa_adapter_smoke_assert( true === (bool) ( $discoverability_brief['primary_contract'] ?? false ), 'content discoverability brief is marked as the primary SEO/GEO/AEO contract' );
 maa_adapter_smoke_assert( 'suggestion_only' === (string) ( $discoverability_brief['write_posture'] ?? '' ), 'content discoverability brief is suggestion-only' );
@@ -1707,14 +1718,14 @@ maa_adapter_smoke_assert( is_array( $discoverability_brief['exceptions'] ?? null
 maa_adapter_smoke_assert( is_array( $discoverability_brief['special_cases'] ?? null ), 'content discoverability brief exposes special cases' );
 maa_adapter_smoke_assert( is_array( $discoverability_brief['proposal_allowed_fields'] ?? null ), 'content discoverability brief exposes proposal allowed fields' );
 
-$diagnostics = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/wp-diagnostics-summary' );
+$diagnostics = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/wp-diagnostics-summary' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-diagnostics-summary' === (string) ( $diagnostics['ability_id'] ?? '' ), 'adapter runs diagnostics read ability' );
 maa_adapter_smoke_assert( is_array( $diagnostics['result'] ?? null ), 'diagnostics returns a result object' );
 maa_adapter_smoke_assert( 'direct_read_sensitive' === (string) ( $diagnostics['read_policy'] ?? '' ), 'adapter diagnostics read carries sensitive read policy' );
 maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_required'] ?? false ), 'adapter diagnostics read requires redaction' );
 maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_applied'] ?? false ), 'adapter diagnostics read applies sensitive redaction policy' );
 
-$active_plugins = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/active-plugins-detail' );
+$active_plugins = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/active-plugins-detail' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $active_plugins['ability_id'] ?? '' ), 'adapter runs active plugins diagnostic shortcut through ops detail' );
 maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins'] ?? null ), 'active plugins diagnostic returns plugin details object' );
 $plugin_result = (array) ( $active_plugins['result']['plugins'] ?? array() );
@@ -1731,23 +1742,23 @@ maa_adapter_smoke_assert( array_key_exists( 'update_available', (array) ( $activ
 maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['must_use'] ?? null ), 'active plugins diagnostic returns must-use plugin group' );
 maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['dropins'] ?? null ), 'active plugins diagnostic returns dropin plugin group' );
 if ( isset( $active_plugins['result']['plugins']['active'][0] ) && is_array( $active_plugins['result']['plugins']['active'][0] ) ) {
-	foreach ( array( 'slug', 'plugin_file', 'name', 'version', 'author', 'status', 'network_active', 'must_use', 'requires_wp', 'requires_php', 'dependencies', 'dependency_count', 'is_magick_ai', 'update_available', 'latest_version' ) as $plugin_row_field ) {
+	foreach ( array( 'slug', 'plugin_file', 'name', 'version', 'author', 'status', 'network_active', 'must_use', 'requires_wp', 'requires_php', 'dependencies', 'dependency_count', 'is_npcink', 'update_available', 'latest_version' ) as $plugin_row_field ) {
 		maa_adapter_smoke_assert( array_key_exists( $plugin_row_field, $active_plugins['result']['plugins']['active'][0] ), 'active plugin row returns field: ' . $plugin_row_field );
 	}
 }
 
-$plugin_conflict = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/plugin-conflict-diagnostics' );
+$plugin_conflict = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $plugin_conflict['ability_id'] ?? '' ), 'adapter runs plugin conflict diagnostic shortcut through ops detail' );
 maa_adapter_smoke_assert( true === (bool) ( $plugin_conflict['result']['plugins']['groups_included']['inactive'] ?? false ), 'plugin conflict diagnostic requests inactive plugin rows' );
 maa_adapter_smoke_assert( 200 === (int) ( $plugin_conflict['result']['plugins']['max_plugins_per_group'] ?? 0 ), 'plugin conflict diagnostic uses deep plugin group limit' );
 maa_adapter_smoke_assert( is_array( $plugin_conflict['result']['plugins']['inactive'] ?? null ), 'plugin conflict diagnostic returns inactive plugin rows array' );
 
-$current_user_permissions = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/current-user-permissions' );
+$current_user_permissions = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/current-user-permissions' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $current_user_permissions['ability_id'] ?? '' ), 'adapter runs current user permissions diagnostic shortcut through ops detail' );
 maa_adapter_smoke_assert( is_array( $current_user_permissions['result']['current_user'] ?? null ), 'current user permissions diagnostic returns user capability object' );
 maa_adapter_smoke_assert( array_key_exists( 'capabilities', (array) ( $current_user_permissions['result']['current_user'] ?? array() ) ), 'current user permissions diagnostic returns capability details' );
 
-$recent_error_log = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/recent-error-log' );
+$recent_error_log = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/recent-error-log' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $recent_error_log['ability_id'] ?? '' ), 'adapter runs default error log diagnostic through ops detail' );
 maa_adapter_smoke_assert( false === (bool) ( $recent_error_log['result']['error_log']['contents_included'] ?? true ), 'default error log diagnostic does not include log contents' );
 maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary'] ?? null ), 'default error log diagnostic exposes severity summary without log contents' );
@@ -1756,13 +1767,13 @@ foreach ( array( 'returned_lines', 'fatal_count', 'error_count', 'warning_count'
 }
 maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary']['by_severity'] ?? null ), 'default error log diagnostic exposes severity summary' );
 
-$recent_error_log_tail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/recent-error-log-tail' );
+$recent_error_log_tail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/recent-error-log-tail' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $recent_error_log_tail['ability_id'] ?? '' ), 'adapter runs explicit error log tail diagnostic through ops detail' );
 maa_adapter_smoke_assert( true === (bool) ( $recent_error_log_tail['result']['error_log']['contents_included'] ?? false ), 'explicit error log tail diagnostic includes log contents' );
 maa_adapter_smoke_assert( is_array( $recent_error_log_tail['result']['error_log']['tail_entries'] ?? null ), 'explicit error log tail diagnostic exposes redacted tail entries' );
 maa_adapter_smoke_assert( is_array( $recent_error_log_tail['result']['error_log']['summary']['by_severity'] ?? null ), 'explicit error log tail diagnostic exposes severity summary' );
 
-$database_info = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/database-info' );
+$database_info = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/database-info' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $database_info['ability_id'] ?? '' ), 'adapter runs database diagnostic shortcut' );
 maa_adapter_smoke_assert( is_array( $database_info['result']['database'] ?? null ), 'database diagnostic returns database object' );
 maa_adapter_smoke_assert( is_array( $database_info['result']['php']['extensions']['loaded'] ?? null ), 'database diagnostic result preserves PHP extension details' );
@@ -1780,33 +1791,33 @@ maa_adapter_smoke_assert( array_key_exists( 'seo_summary', (array) ( $database_i
 maa_adapter_smoke_assert( array_key_exists( 'security_summary', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves security summary' );
 maa_adapter_smoke_assert( array_key_exists( 'performance_summary', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves performance summary' );
 
-$cron_events_detail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/cron-events-detail' );
+$cron_events_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/cron-events-detail' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $cron_events_detail['ability_id'] ?? '' ), 'adapter runs cron events diagnostic shortcut' );
 maa_adapter_smoke_assert( is_array( $cron_events_detail['result']['cron_events'] ?? null ), 'cron events diagnostic returns cron object' );
 maa_adapter_smoke_assert( array_key_exists( 'events', (array) ( $cron_events_detail['result']['cron_events'] ?? array() ) ), 'cron events diagnostic returns event details' );
 
-$workflow_recipes = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/workflow-recipes' );
+$workflow_recipes = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/workflow-recipes' );
 maa_adapter_smoke_assert( isset( $workflow_recipes['result']['cases']['article_publish_preflight'] ), 'adapter returns workflow recipe list result' );
 
 $workflow_recipe = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/workflow-recipe',
+	'/npcink-openclaw-adapter/v1/workflow-recipe',
 	array(
 		'recipe_id' => 'workflow/wordpress_comment_compliance_handoff',
 	)
 );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-workflow-recipe' === (string) ( $workflow_recipe['ability_id'] ?? '' ), 'adapter runs workflow recipe detail ability' );
-maa_adapter_smoke_assert( 'magick-ai/get-comment-compliance-handoff' === (string) ( $workflow_recipe['result']['entrypoint_ability_id'] ?? '' ), 'adapter returns workflow recipe detail result' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-comment-compliance-handoff' === (string) ( $workflow_recipe['result']['entrypoint_ability_id'] ?? '' ), 'adapter returns workflow recipe detail result' );
 
 $site_info = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/site-info',
+	'/npcink-openclaw-adapter/v1/site-info',
 	array(
 		'proposal_id'    => 'proposal-log-context-smoke',
 		'correlation_id' => 'correlation-log-context-smoke',
 	)
 );
-maa_adapter_smoke_assert( 'magick-ai/site-info' === (string) ( $site_info['ability_id'] ?? '' ), 'adapter runs site-info shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-info' === (string) ( $site_info['ability_id'] ?? '' ), 'adapter runs site-info shortcut' );
 maa_adapter_smoke_assert( is_array( $site_info['result'] ?? null ), 'site-info shortcut returns a result object' );
 maa_adapter_smoke_assert( is_array( $site_info['log_context'] ?? null ), 'adapter read response exposes AI request log context' );
 maa_adapter_smoke_assert( 'proposal-log-context-smoke' === (string) ( $site_info['log_context']['proposal_id'] ?? '' ), 'adapter read log context carries proposal id' );
@@ -1814,17 +1825,17 @@ maa_adapter_smoke_assert( 'correlation-log-context-smoke' === (string) ( $site_i
 
 $media = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/media',
+	'/npcink-openclaw-adapter/v1/media',
 	array(
 		'per_page' => 1,
 	)
 );
-maa_adapter_smoke_assert( 'magick-ai/list-media' === (string) ( $media['ability_id'] ?? '' ), 'adapter runs media shortcut with query input' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-media' === (string) ( $media['ability_id'] ?? '' ), 'adapter runs media shortcut with query input' );
 maa_adapter_smoke_assert( is_array( $media['result'] ?? null ), 'media shortcut returns a result object' );
 
 $media_metadata_optimization = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/media-metadata-optimization',
+	'/npcink-openclaw-adapter/v1/media-metadata-optimization',
 	array(
 		'article_title' => 'Adapter media metadata smoke',
 		'focus_keyword' => 'adapter metadata',
@@ -1843,26 +1854,26 @@ $media_metadata_optimization = maa_adapter_smoke_rest(
 );
 $media_metadata_data = is_array( $media_metadata_optimization['result']['data'] ?? null ) ? $media_metadata_optimization['result']['data'] : array();
 $media_metadata_asset = is_array( $media_metadata_data['assets'][0] ?? null ) ? $media_metadata_data['assets'][0] : array();
-maa_adapter_smoke_assert( 'magick-ai/optimize-media-metadata' === (string) ( $media_metadata_optimization['ability_id'] ?? '' ), 'adapter runs media metadata optimization route through read ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/optimize-media-metadata' === (string) ( $media_metadata_optimization['ability_id'] ?? '' ), 'adapter runs media metadata optimization route through read ability' );
 maa_adapter_smoke_assert( 1 === (int) ( $media_metadata_data['summary']['asset_count'] ?? 0 ), 'media metadata optimization returns one asset suggestion' );
 maa_adapter_smoke_assert( is_array( $media_metadata_asset['suggestions'] ?? null ), 'media metadata optimization returns metadata suggestions' );
-maa_adapter_smoke_assert( false === in_array( 'magick-ai/optimize-media-metadata', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'media metadata optimization stays out of Adapter final write allowlist' );
+maa_adapter_smoke_assert( false === in_array( 'npcink-abilities-toolkit/optimize-media-metadata', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'media metadata optimization stays out of Adapter final write allowlist' );
 
 $pages = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/pages',
+	'/npcink-openclaw-adapter/v1/pages',
 	array(
 		'per_page' => 1,
 	)
 );
-maa_adapter_smoke_assert( 'magick-ai/list-pages' === (string) ( $pages['ability_id'] ?? '' ), 'adapter runs pages shortcut with query input' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-pages' === (string) ( $pages['ability_id'] ?? '' ), 'adapter runs pages shortcut with query input' );
 maa_adapter_smoke_assert( is_array( $pages['result'] ?? null ), 'pages shortcut returns a result object' );
 
 $write_run = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/run-read-ability',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'ability_id' => 'magick-ai/create-draft',
+		'ability_id' => 'npcink-abilities-toolkit/create-draft',
 		'input'      => array(
 			'title'   => 'Adapter smoke should not execute writes',
 			'dry_run' => true,
@@ -1874,9 +1885,9 @@ maa_adapter_smoke_assert( 403 === (int) $write_run['status'], 'adapter refuses d
 
 $destructive_run = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/run-read-ability',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'ability_id' => 'magick-ai/delete-media-permanently',
+		'ability_id' => 'npcink-abilities-toolkit/delete-media-permanently',
 		'input'      => array(
 			'attachment_id' => 0,
 			'dry_run'       => true,
@@ -1890,9 +1901,9 @@ $trash_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $trash_post_id;
 $trash_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-post',
+		'ability_id' => 'npcink-abilities-toolkit/trash-post',
 		'title'      => 'Adapter approved trash execution smoke',
 		'summary'    => 'Adapter executes one approved trash-post proposal after Core preflight.',
 		'input'      => array(
@@ -1915,14 +1926,14 @@ $trash_proposal_id = (string) ( $trash_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $trash_proposal_id;
 maa_adapter_smoke_assert( '' !== $trash_proposal_id, 'adapter creates trash-post proposal for approved execution smoke' );
 maa_adapter_smoke_assert( 'pending' === (string) ( $trash_proposal['status'] ?? '' ), 'adapter trash-post proposal starts pending' );
-$proposal_create_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'ok', '/magick-ai-adapter/v1/proposals' );
+$proposal_create_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'ok', '/npcink-openclaw-adapter/v1/proposals' );
 maa_adapter_smoke_assert( ! empty( $proposal_create_event ), 'adapter emits proposal create success observability event' );
-maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $proposal_create_event['ability_id'] ?? '' ), 'adapter proposal create success event carries ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/trash-post' === (string) ( $proposal_create_event['ability_id'] ?? '' ), 'adapter proposal create success event carries ability id' );
 maa_adapter_smoke_assert_observability_safe( $proposal_create_event, 'adapter proposal create success event' );
 
 $pending_execute = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/execute-approved-proposal',
+	'/npcink-openclaw-adapter/v1/execute-approved-proposal',
 	array(
 		'proposal_id' => $trash_proposal_id,
 	)
@@ -1932,17 +1943,17 @@ maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $trash_post_id
 
 $approved_trash = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/approve',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/approve',
 	array(
 		'note' => 'Approve adapter trash execution smoke.',
 	)
 );
 maa_adapter_smoke_assert( 'approved' === (string) ( $approved_trash['status'] ?? '' ), 'Core admin REST approval succeeds for adapter trash execution smoke' );
 
-$executed_trash = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/execute' );
+$executed_trash = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/execute' );
 maa_adapter_smoke_assert( 'executed' === (string) ( $executed_trash['status'] ?? '' ), 'adapter executes approved trash-post proposal' );
 maa_adapter_smoke_assert( $trash_proposal_id === (string) ( $executed_trash['proposal_id'] ?? '' ), 'adapter execute response carries proposal id' );
-maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $executed_trash['ability_id'] ?? '' ), 'adapter execute response carries ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/trash-post' === (string) ( $executed_trash['ability_id'] ?? '' ), 'adapter execute response carries ability id' );
 maa_adapter_smoke_assert( '' !== (string) ( $executed_trash['correlation_id'] ?? '' ), 'adapter execute response carries correlation id' );
 maa_adapter_smoke_assert( '' !== (string) ( $executed_trash['adapter_request_id'] ?? '' ), 'adapter execute response carries adapter request id' );
 maa_adapter_smoke_assert( true === (bool) ( $executed_trash['approval_context']['approval_commit_authorized'] ?? false ), 'adapter execute response carries approval context' );
@@ -1950,9 +1961,9 @@ maa_adapter_smoke_assert( false === (bool) ( $executed_trash['commit_execution']
 maa_adapter_smoke_assert( true === (bool) ( $executed_trash['result']['trashed'] ?? false ), 'adapter execute trashes post' );
 maa_adapter_smoke_assert( false === (bool) ( $executed_trash['result']['dry_run'] ?? true ), 'adapter execute returns non-dry-run ability result' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $trash_post_id ), 'adapter approved execution moves post to trash' );
-$duplicate_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/execute' );
+$duplicate_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $trash_proposal_id ) . '/execute' );
 maa_adapter_smoke_assert( 409 === (int) $duplicate_execute['status'], 'adapter rejects duplicate approved proposal execution' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_execute['data']['code'] ?? '' ), 'adapter duplicate execute uses completed execution error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_execution_already_completed' === (string) ( $duplicate_execute['data']['code'] ?? '' ), 'adapter duplicate execute uses completed execution error code' );
 maa_adapter_smoke_assert( $trash_proposal_id === (string) ( $duplicate_execute['data']['data']['execution_record']['proposal_id'] ?? '' ), 'adapter duplicate execute returns stored execution record' );
 maa_adapter_smoke_assert( (string) ( $executed_trash['execution_record']['adapter_request_id'] ?? '' ) === (string) ( $duplicate_execute['data']['data']['execution_record']['adapter_request_id'] ?? '' ), 'adapter duplicate execute preserves original adapter request id' );
 
@@ -1960,9 +1971,9 @@ $cached_preflight_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $cached_preflight_post_id;
 $cached_preflight_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-post',
+		'ability_id' => 'npcink-abilities-toolkit/trash-post',
 		'title'      => 'Adapter cached preflight handoff smoke',
 		'summary'    => 'Adapter executes one approved trash-post proposal after Adapter commit-preflight caches the Core handoff.',
 		'input'      => array(
@@ -1985,15 +1996,15 @@ $cached_preflight_proposal_id = (string) ( $cached_preflight_proposal['proposal_
 $maa_adapter_smoke_cleanup_proposal_ids[] = $cached_preflight_proposal_id;
 maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/approve',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/approve',
 	array(
 		'note' => 'Approve Adapter cached preflight handoff smoke.',
 	)
 );
-$cached_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/commit-preflight' );
+$cached_preflight = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/commit-preflight' );
 maa_adapter_smoke_assert( true === (bool) ( $cached_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter commit-preflight caches execution handoff' );
 maa_adapter_smoke_assert( false === (bool) ( $cached_preflight['commit_execution'] ?? true ), 'adapter cached preflight keeps commit_execution=false' );
-$cached_preflight_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/execute' );
+$cached_preflight_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $cached_preflight_proposal_id ) . '/execute' );
 maa_adapter_smoke_assert( 'executed' === (string) ( $cached_preflight_execute['status'] ?? '' ), 'adapter cached preflight handoff execute succeeds' );
 maa_adapter_smoke_assert( 'adapter_cached_handoff' === (string) ( $cached_preflight_execute['preflight_source'] ?? '' ), 'adapter execute consumes cached preflight handoff' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $cached_preflight_post_id ), 'adapter cached preflight handoff execution moves post to trash' );
@@ -2002,9 +2013,9 @@ $failed_execution_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $failed_execution_post_id;
 $failed_execution_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-post',
+		'ability_id' => 'npcink-abilities-toolkit/trash-post',
 		'title'      => 'Adapter failed execution record smoke',
 		'summary'    => 'Adapter records a bounded failed execution summary after Core preflight is consumed.',
 		'input'      => array(
@@ -2027,34 +2038,34 @@ $failed_execution_proposal_id = (string) ( $failed_execution_proposal['proposal_
 $maa_adapter_smoke_cleanup_proposal_ids[] = $failed_execution_proposal_id;
 maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/approve',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/approve',
 	array(
 		'note' => 'Approve Adapter failed execution record smoke.',
 	)
 );
-$failed_execution_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/commit-preflight' );
+$failed_execution_preflight = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/commit-preflight' );
 maa_adapter_smoke_assert( true === (bool) ( $failed_execution_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter failed execution smoke caches preflight handoff' );
 maa_adapter_smoke_assert( false === (bool) ( $failed_execution_preflight['commit_execution'] ?? true ), 'adapter failed execution preflight keeps commit_execution=false' );
 wp_delete_post( $failed_execution_post_id, true );
 maa_adapter_smoke_assert( false === get_post_status( $failed_execution_post_id ), 'adapter failed execution smoke removes target post before execute' );
-$failed_execution = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/execute' );
+$failed_execution = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $failed_execution_proposal_id ) . '/execute' );
 maa_adapter_smoke_assert( $failed_execution['status'] >= 400, 'adapter failed execution returns an error response' );
 maa_adapter_smoke_assert( 'failed' === (string) ( $failed_execution['data']['data']['execution_record']['status'] ?? '' ), 'adapter failed execution returns failed execution record' );
 maa_adapter_smoke_assert( $failed_execution_proposal_id === (string) ( $failed_execution['data']['data']['execution_record']['proposal_id'] ?? '' ), 'adapter failed execution record carries proposal id' );
-maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $failed_execution['data']['data']['execution_record']['ability_id'] ?? '' ), 'adapter failed execution record carries ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/trash-post' === (string) ( $failed_execution['data']['data']['execution_record']['ability_id'] ?? '' ), 'adapter failed execution record carries ability id' );
 maa_adapter_smoke_assert( '' !== (string) ( $failed_execution['data']['data']['execution_record']['correlation_id'] ?? '' ), 'adapter failed execution record carries correlation id' );
 maa_adapter_smoke_assert( 0 === (int) ( $failed_execution['data']['data']['execution_record']['executed_count'] ?? -1 ), 'adapter failed execution record carries executed count' );
 maa_adapter_smoke_assert( 1 === (int) ( $failed_execution['data']['data']['execution_record']['failed_count'] ?? 0 ), 'adapter failed execution record carries failed count' );
-maa_adapter_smoke_assert( 'magick_ai_abilities_post_not_found' === (string) ( $failed_execution['data']['data']['execution_record']['error_code'] ?? '' ), 'adapter failed execution record carries ability error code' );
+maa_adapter_smoke_assert( 'npcink_abilities_toolkit_post_not_found' === (string) ( $failed_execution['data']['data']['execution_record']['error_code'] ?? '' ), 'adapter failed execution record carries ability error code' );
 maa_adapter_smoke_assert( false === (bool) ( $failed_execution['data']['data']['execution_record']['commit_execution'] ?? true ), 'adapter failed execution record keeps commit_execution=false' );
 
 $approve_execute_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approve_execute_post_id;
 $approve_execute_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-post',
+		'ability_id' => 'npcink-abilities-toolkit/trash-post',
 		'title'      => 'Adapter unified approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one trash-post proposal.',
 		'input'      => array(
@@ -2076,10 +2087,10 @@ $approve_execute_proposal = maa_adapter_smoke_rest(
 $approve_execute_proposal_id = (string) ( $approve_execute_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $approve_execute_proposal_id;
 maa_adapter_smoke_assert( '' !== $approve_execute_proposal_id, 'adapter creates trash-post proposal for approve-and-execute smoke' );
-$approve_execute_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approve_execute_proposal_id ) . '/approve-and-execute' );
+$approve_execute_result = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $approve_execute_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['success'] ?? false ), 'adapter approve-and-execute succeeds for pending trash-post proposal' );
 maa_adapter_smoke_assert( $approve_execute_proposal_id === (string) ( $approve_execute_result['proposal_id'] ?? '' ), 'adapter approve-and-execute response carries proposal id' );
-maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $approve_execute_result['ability_id'] ?? '' ), 'adapter approve-and-execute response carries ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/trash-post' === (string) ( $approve_execute_result['ability_id'] ?? '' ), 'adapter approve-and-execute response carries ability id' );
 maa_adapter_smoke_assert( $approve_execute_post_id === (int) ( $approve_execute_result['post_id'] ?? 0 ), 'adapter approve-and-execute response carries post id' );
 maa_adapter_smoke_assert( 'pending' === (string) ( $approve_execute_result['status_before'] ?? '' ), 'adapter approve-and-execute records pending status before approval' );
 maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['approved_by_adapter'] ?? false ), 'adapter approve-and-execute auto approves pending proposal through Core' );
@@ -2089,9 +2100,9 @@ maa_adapter_smoke_assert( 'publish' === (string) ( $approve_execute_result['exec
 maa_adapter_smoke_assert( 'trash' === (string) ( $approve_execute_result['execution']['post_status_after'] ?? '' ), 'adapter approve-and-execute records post status after execution' );
 maa_adapter_smoke_assert( true === (bool) ( $approve_execute_result['execution']['success'] ?? false ), 'adapter approve-and-execute execution result succeeds' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $approve_execute_post_id ), 'adapter approve-and-execute moves pending proposal post to trash' );
-$duplicate_approve_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approve_execute_proposal_id ) . '/approve-and-execute' );
+$duplicate_approve_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $approve_execute_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 409 === (int) $duplicate_approve_execute['status'], 'adapter rejects duplicate approve-and-execute request' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_approve_execute['data']['code'] ?? '' ), 'adapter duplicate approve-and-execute uses completed execution error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_execution_already_completed' === (string) ( $duplicate_approve_execute['data']['code'] ?? '' ), 'adapter duplicate approve-and-execute uses completed execution error code' );
 maa_adapter_smoke_assert( $approve_execute_proposal_id === (string) ( $duplicate_approve_execute['data']['data']['execution_record']['proposal_id'] ?? '' ), 'adapter duplicate approve-and-execute returns stored execution record' );
 maa_adapter_smoke_assert( (string) ( $approve_execute_result['execution_record']['adapter_request_id'] ?? '' ) === (string) ( $duplicate_approve_execute['data']['data']['execution_record']['adapter_request_id'] ?? '' ), 'adapter duplicate approve-and-execute preserves original adapter request id' );
 
@@ -2101,16 +2112,16 @@ $maa_adapter_smoke_cleanup_post_ids[] = $batch_post_id;
 $maa_adapter_smoke_cleanup_post_ids[] = $batch_second_post_id;
 $batch_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
 		'title'      => 'Adapter batch approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes a bounded write_actions trash-post batch.',
 		'input'      => array(
 			'write_actions' => array(
 				array(
 					'action_id'         => 'trash-post-' . $batch_post_id,
-					'target_ability_id' => 'magick-ai/trash-post',
+					'target_ability_id' => 'npcink-abilities-toolkit/trash-post',
 					'input'             => array(
 						'post_id' => $batch_post_id,
 						'dry_run' => true,
@@ -2122,7 +2133,7 @@ $batch_proposal = maa_adapter_smoke_rest(
 				),
 				array(
 					'action_id'         => 'trash-post-' . $batch_second_post_id,
-					'target_ability_id' => 'magick-ai/trash-post',
+					'target_ability_id' => 'npcink-abilities-toolkit/trash-post',
 					'input'             => array(
 						'post_id' => $batch_second_post_id,
 						'dry_run' => true,
@@ -2148,28 +2159,28 @@ $batch_proposal = maa_adapter_smoke_rest(
 $batch_proposal_id = (string) ( $batch_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $batch_proposal_id;
 maa_adapter_smoke_assert( '' !== $batch_proposal_id, 'adapter creates write_actions batch proposal for approve-and-execute smoke' );
-$batch_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $batch_proposal_id ) . '/approve-and-execute' );
+$batch_result = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $batch_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $batch_result['success'] ?? false ), 'adapter batch approve-and-execute succeeds for allowlisted write_actions' );
 maa_adapter_smoke_assert( 'batch_write_actions' === (string) ( $batch_result['execution_mode'] ?? '' ), 'adapter batch approve-and-execute reports batch execution mode' );
 maa_adapter_smoke_assert( 2 === (int) ( $batch_result['executed_count'] ?? 0 ), 'adapter batch approve-and-execute reports executed count' );
 maa_adapter_smoke_assert( 0 === (int) ( $batch_result['failed_count'] ?? 1 ), 'adapter batch approve-and-execute reports zero failures' );
 maa_adapter_smoke_assert( is_array( $batch_result['results'] ?? null ) && 2 === count( $batch_result['results'] ), 'adapter batch approve-and-execute returns per-action results' );
-maa_adapter_smoke_assert( 'magick-ai/trash-post' === (string) ( $batch_result['results'][0]['target_ability_id'] ?? '' ), 'adapter batch approve-and-execute result carries target ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/trash-post' === (string) ( $batch_result['results'][0]['target_ability_id'] ?? '' ), 'adapter batch approve-and-execute result carries target ability id' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $batch_post_id ), 'adapter batch approve-and-execute trashes first post' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $batch_second_post_id ), 'adapter batch approve-and-execute trashes second post' );
 
 $referenced_batch_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
 		'title'      => 'Adapter output reference batch smoke',
 		'summary'    => 'Adapter resolves prior action outputs inside one approved write_actions batch.',
 		'input'      => array(
 			'write_actions' => array(
 				array(
 					'action_id'         => 'create-draft',
-					'target_ability_id' => 'magick-ai/create-draft',
+					'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 					'input'             => array(
 						'title'          => 'Adapter referenced batch draft',
 						'content'        => 'Adapter output reference batch smoke.',
@@ -2183,7 +2194,7 @@ $referenced_batch_proposal = maa_adapter_smoke_rest(
 				),
 				array(
 					'action_id'         => 'update-created-draft',
-					'target_ability_id' => 'magick-ai/update-post',
+					'target_ability_id' => 'npcink-abilities-toolkit/update-post',
 					'input'             => array(
 						'post_id'        => '$outputs.create-draft.post_id',
 						'title'          => 'Adapter referenced batch updated draft',
@@ -2198,7 +2209,7 @@ $referenced_batch_proposal = maa_adapter_smoke_rest(
 				),
 				array(
 					'action_id'         => 'trash-created-draft',
-					'target_ability_id' => 'magick-ai/trash-post',
+					'target_ability_id' => 'npcink-abilities-toolkit/trash-post',
 					'input'             => array(
 						'post_id' => '$outputs.create-draft.post_id',
 						'dry_run' => true,
@@ -2224,7 +2235,7 @@ $referenced_batch_proposal = maa_adapter_smoke_rest(
 $referenced_batch_proposal_id = (string) ( $referenced_batch_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $referenced_batch_proposal_id;
 maa_adapter_smoke_assert( '' !== $referenced_batch_proposal_id, 'adapter creates output-reference write_actions batch proposal' );
-$referenced_batch_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $referenced_batch_proposal_id ) . '/approve-and-execute' );
+$referenced_batch_result = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $referenced_batch_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $referenced_batch_result['success'] ?? false ), 'adapter batch approve-and-execute succeeds with output references' );
 maa_adapter_smoke_assert( 3 === (int) ( $referenced_batch_result['executed_count'] ?? 0 ), 'adapter output-reference batch executes all actions' );
 $referenced_batch_post_id = (int) ( $referenced_batch_result['results'][0]['post_id'] ?? 0 );
@@ -2236,16 +2247,16 @@ maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $referenced_batc
 
 $embedded_reference_batch_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
 		'title'      => 'Adapter embedded output reference batch smoke',
 		'summary'    => 'Adapter must reject embedded output reference tokens before batch execution.',
 		'input'      => array(
 			'write_actions' => array(
 				array(
 					'action_id'         => 'embedded-output-reference',
-					'target_ability_id' => 'magick-ai/create-draft',
+					'target_ability_id' => 'npcink-abilities-toolkit/create-draft',
 					'input'             => array(
 						'title'   => 'Adapter embedded output reference batch',
 						'content' => 'prefix-$outputs.embedded-output-reference.post_id',
@@ -2267,9 +2278,9 @@ $embedded_reference_batch_proposal = maa_adapter_smoke_rest(
 );
 $embedded_reference_batch_proposal_id = (string) ( $embedded_reference_batch_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $embedded_reference_batch_proposal_id;
-$embedded_reference_batch_result = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $embedded_reference_batch_proposal_id ) . '/approve-and-execute' );
+$embedded_reference_batch_result = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $embedded_reference_batch_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 400 === (int) $embedded_reference_batch_result['status'], 'adapter batch approve-and-execute rejects embedded output reference tokens before execution' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_output_reference_invalid' === (string) ( $embedded_reference_batch_result['data']['code'] ?? '' ), 'adapter embedded output reference execution rejection uses output reference invalid code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_output_reference_invalid' === (string) ( $embedded_reference_batch_result['data']['code'] ?? '' ), 'adapter embedded output reference execution rejection uses output reference invalid code' );
 
 $bad_batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $bad_batch_second_post_id = maa_adapter_smoke_create_trash_post_fixture();
@@ -2277,16 +2288,16 @@ $maa_adapter_smoke_cleanup_post_ids[] = $bad_batch_post_id;
 $maa_adapter_smoke_cleanup_post_ids[] = $bad_batch_second_post_id;
 $bad_batch_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
 		'title'      => 'Adapter bad batch approve execute smoke',
 		'summary'    => 'Adapter must fail closed when write_actions contains a non-allowlisted target.',
 		'input'      => array(
 			'write_actions' => array(
 				array(
 					'action_id'         => 'trash-post-' . $bad_batch_post_id,
-					'target_ability_id' => 'magick-ai/trash-post',
+					'target_ability_id' => 'npcink-abilities-toolkit/trash-post',
 					'input'             => array(
 						'post_id' => $bad_batch_post_id,
 						'dry_run' => true,
@@ -2298,7 +2309,7 @@ $bad_batch_proposal = maa_adapter_smoke_rest(
 				),
 					array(
 						'action_id'         => 'set-author-' . $bad_batch_second_post_id,
-						'target_ability_id' => 'magick-ai/set-post-author',
+						'target_ability_id' => 'npcink-abilities-toolkit/set-post-author',
 						'input'             => array(
 							'post_id'   => $bad_batch_second_post_id,
 							'author_id' => 1,
@@ -2321,7 +2332,7 @@ $bad_batch_proposal = maa_adapter_smoke_rest(
 );
 $bad_batch_proposal_id = (string) ( $bad_batch_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $bad_batch_proposal_id;
-$bad_batch_result = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $bad_batch_proposal_id ) . '/approve-and-execute' );
+$bad_batch_result = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $bad_batch_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 403 === (int) $bad_batch_result['status'], 'adapter batch approve-and-execute rejects non-allowlisted write_action' );
 maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $bad_batch_post_id ), 'adapter bad batch does not execute allowed action before failing closed' );
 maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $bad_batch_second_post_id ), 'adapter bad batch does not execute non-allowlisted action' );
@@ -2330,9 +2341,9 @@ $approved_skip_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approved_skip_post_id;
 $approved_skip_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-post',
+		'ability_id' => 'npcink-abilities-toolkit/trash-post',
 		'title'      => 'Adapter approved skip smoke',
 		'summary'    => 'Adapter skips Core approve for already approved trash-post proposal.',
 		'input'      => array(
@@ -2352,12 +2363,12 @@ $approved_skip_proposal_id = (string) ( $approved_skip_proposal['proposal_id'] ?
 $maa_adapter_smoke_cleanup_proposal_ids[] = $approved_skip_proposal_id;
 maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $approved_skip_proposal_id ) . '/approve',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $approved_skip_proposal_id ) . '/approve',
 	array(
 		'note' => 'Approve before Adapter approve-and-execute smoke.',
 	)
 );
-$approved_skip_result = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approved_skip_proposal_id ) . '/approve-and-execute' );
+$approved_skip_result = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $approved_skip_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $approved_skip_result['success'] ?? false ), 'adapter approve-and-execute succeeds for already approved proposal' );
 maa_adapter_smoke_assert( 'approved' === (string) ( $approved_skip_result['status_before'] ?? '' ), 'adapter approve-and-execute records approved status before execution' );
 maa_adapter_smoke_assert( false === (bool) ( $approved_skip_result['approved_by_adapter'] ?? true ), 'adapter approve-and-execute skips approve for already approved proposal' );
@@ -2367,9 +2378,9 @@ $rejected_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $rejected_post_id;
 $rejected_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-post',
+		'ability_id' => 'npcink-abilities-toolkit/trash-post',
 		'title'      => 'Adapter rejected approve execute smoke',
 		'summary'    => 'Adapter must not execute rejected trash-post proposal.',
 		'input'      => array(
@@ -2387,12 +2398,12 @@ $rejected_proposal_id = (string) ( $rejected_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $rejected_proposal_id;
 maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $rejected_proposal_id ) . '/reject',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $rejected_proposal_id ) . '/reject',
 	array(
 		'note' => 'Reject Adapter approve-and-execute smoke.',
 	)
 );
-$rejected_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $rejected_proposal_id ) . '/approve-and-execute' );
+$rejected_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $rejected_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 409 === (int) $rejected_execute['status'], 'adapter approve-and-execute rejects rejected proposal' );
 maa_adapter_smoke_assert( 'proposal_rejected' === (string) ( $rejected_execute['data']['data']['operator_feedback']['status'] ?? '' ), 'adapter rejected proposal response returns operator feedback' );
 maa_adapter_smoke_assert( 'Reject Adapter approve-and-execute smoke.' === (string) ( $rejected_execute['data']['data']['operator_feedback']['reasons'][0] ?? '' ), 'adapter rejected proposal feedback preserves Core rejection note' );
@@ -2402,9 +2413,9 @@ $blocked_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $blocked_post_id;
 $blocked_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-post',
+		'ability_id' => 'npcink-abilities-toolkit/trash-post',
 		'title'      => 'Adapter blocked preflight smoke',
 		'summary'    => 'Adapter must not execute if Core commit-preflight blocks the item.',
 		'input'      => array(
@@ -2427,7 +2438,7 @@ $blocked_proposal = maa_adapter_smoke_rest(
 );
 $blocked_proposal_id = (string) ( $blocked_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $blocked_proposal_id;
-$blocked_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $blocked_proposal_id ) . '/approve-and-execute' );
+$blocked_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $blocked_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 409 === (int) $blocked_execute['status'], 'adapter approve-and-execute returns preflight failure' );
 maa_adapter_smoke_assert( 'preflight_blocked' === (string) ( $blocked_execute['data']['data']['operator_feedback']['status'] ?? '' ), 'adapter preflight-blocked response returns operator feedback' );
 maa_adapter_smoke_assert( false === (bool) ( $blocked_execute['data']['data']['operator_feedback']['core_evidence']['commit_execution'] ?? true ), 'adapter preflight-blocked feedback preserves no Core execution' );
@@ -2435,9 +2446,9 @@ maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $blocked_post_
 
 $draft_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/create-draft',
+		'ability_id' => 'npcink-abilities-toolkit/create-draft',
 		'title'      => 'Adapter draft approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one create-draft proposal.',
 		'input'      => array(
@@ -2460,26 +2471,26 @@ $draft_proposal = maa_adapter_smoke_rest(
 $draft_proposal_id = (string) ( $draft_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $draft_proposal_id;
 maa_adapter_smoke_assert( '' !== $draft_proposal_id, 'adapter creates create-draft proposal for approve-and-execute smoke' );
-$draft_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $draft_proposal_id ) . '/approve-and-execute' );
+$draft_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $draft_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $draft_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending create-draft proposal' );
-maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $draft_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries create-draft ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $draft_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries create-draft ability id' );
 maa_adapter_smoke_assert( (int) ( $draft_execute['post_id'] ?? 0 ) > 0, 'adapter approve-and-execute returns created draft post id' );
 maa_adapter_smoke_assert( 'draft' === (string) ( $draft_execute['execution']['post_status_after'] ?? '' ), 'adapter approve-and-execute records draft status after creation' );
 maa_adapter_smoke_assert( false === (bool) ( $draft_execute['execution']['result']['dry_run'] ?? true ), 'adapter create-draft execution returns non-dry-run ability result' );
 $maa_adapter_smoke_cleanup_post_ids[] = (int) ( $draft_execute['post_id'] ?? 0 );
 maa_adapter_smoke_assert( 'draft' === (string) get_post_status( (int) ( $draft_execute['post_id'] ?? 0 ) ), 'adapter approve-and-execute creates a WordPress draft' );
-$duplicate_draft_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $draft_proposal_id ) . '/approve-and-execute' );
+$duplicate_draft_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $draft_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 409 === (int) $duplicate_draft_execute['status'], 'adapter rejects duplicate create-draft approve-and-execute request' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_draft_execute['data']['code'] ?? '' ), 'adapter duplicate create-draft request uses completed execution error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_execution_already_completed' === (string) ( $duplicate_draft_execute['data']['code'] ?? '' ), 'adapter duplicate create-draft request uses completed execution error code' );
 maa_adapter_smoke_assert( (int) ( $draft_execute['post_id'] ?? 0 ) === (int) ( $duplicate_draft_execute['data']['data']['execution_record']['post_id'] ?? 0 ), 'adapter duplicate create-draft returns original created post id' );
 
 $update_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $update_post_id;
 $update_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/update-post',
+		'ability_id' => 'npcink-abilities-toolkit/update-post',
 		'title'      => 'Adapter update-post approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one update-post proposal.',
 		'input'      => array(
@@ -2504,9 +2515,9 @@ $update_proposal = maa_adapter_smoke_rest(
 $update_proposal_id = (string) ( $update_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $update_proposal_id;
 maa_adapter_smoke_assert( '' !== $update_proposal_id, 'adapter creates update-post proposal for approve-and-execute smoke' );
-$update_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $update_proposal_id ) . '/approve-and-execute' );
+$update_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $update_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $update_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending update-post proposal' );
-maa_adapter_smoke_assert( 'magick-ai/update-post' === (string) ( $update_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries update-post ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-post' === (string) ( $update_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries update-post ability id' );
 maa_adapter_smoke_assert( $update_post_id === (int) ( $update_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries updated post id' );
 maa_adapter_smoke_assert( false === (bool) ( $update_execute['execution']['result']['dry_run'] ?? true ), 'adapter update-post execution returns non-dry-run ability result' );
 $updated_post = get_post( $update_post_id );
@@ -2515,9 +2526,9 @@ maa_adapter_smoke_assert( is_object( $updated_post ) && false !== strpos( (strin
 
 $empty_update_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/update-post',
+		'ability_id' => 'npcink-abilities-toolkit/update-post',
 		'title'      => 'Adapter empty update-post smoke',
 		'summary'    => 'Adapter must not execute update-post without update fields.',
 		'input'      => array(
@@ -2533,17 +2544,17 @@ $empty_update_proposal = maa_adapter_smoke_rest_result(
 );
 maa_adapter_smoke_assert( 400 === (int) $empty_update_proposal['status'], 'adapter proposal create rejects update-post without update fields' );
 maa_adapter_smoke_assert( 'Adapter updated post smoke' === (string) get_the_title( $update_post_id ), 'adapter empty update-post rejection leaves post unchanged' );
-$proposal_create_error_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'error', '/magick-ai-adapter/v1/proposals' );
+$proposal_create_error_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'error', '/npcink-openclaw-adapter/v1/proposals' );
 maa_adapter_smoke_assert( ! empty( $proposal_create_error_event ), 'adapter emits proposal create failure observability event' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_update_fields_required' === (string) ( $proposal_create_error_event['error_code'] ?? '' ), 'adapter proposal create failure event carries stable error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_update_fields_required' === (string) ( $proposal_create_error_event['error_code'] ?? '' ), 'adapter proposal create failure event carries stable error code' );
 maa_adapter_smoke_assert( 400 === (int) ( $proposal_create_error_event['status_code'] ?? 0 ), 'adapter proposal create failure event carries status code' );
 maa_adapter_smoke_assert_observability_safe( $proposal_create_error_event, 'adapter proposal create failure event' );
 
 $invalid_update_status_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/update-post',
+		'ability_id' => 'npcink-abilities-toolkit/update-post',
 		'title'      => 'Adapter invalid update-post status smoke',
 		'summary'    => 'Adapter must reject update-post proposal input with undeclared status.',
 		'input'      => array(
@@ -2561,7 +2572,7 @@ $invalid_update_status_proposal = maa_adapter_smoke_rest_result(
 	)
 );
 maa_adapter_smoke_assert( 400 === (int) $invalid_update_status_proposal['status'], 'adapter proposal create rejects update-post status input' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_ability_input_field_not_allowed' === (string) ( $invalid_update_status_proposal['data']['code'] ?? '' ), 'adapter update-post status rejection uses schema field error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_ability_input_field_not_allowed' === (string) ( $invalid_update_status_proposal['data']['code'] ?? '' ), 'adapter update-post status rejection uses schema field error code' );
 
 $seo_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $seo_post_id;
@@ -2569,9 +2580,9 @@ $seo_title = 'Adapter SEO title ' . wp_generate_uuid4();
 $seo_description = 'Adapter SEO description for approve-and-execute smoke.';
 $seo_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-seo-meta',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-seo-meta',
 		'title'      => 'Adapter set-post-seo-meta approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one set-post-seo-meta proposal.',
 		'input'      => array(
@@ -2596,9 +2607,9 @@ $seo_proposal = maa_adapter_smoke_rest(
 $seo_proposal_id = (string) ( $seo_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $seo_proposal_id;
 maa_adapter_smoke_assert( '' !== $seo_proposal_id, 'adapter creates set-post-seo-meta proposal for approve-and-execute smoke' );
-$seo_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $seo_proposal_id ) . '/approve-and-execute' );
+$seo_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $seo_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $seo_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending set-post-seo-meta proposal' );
-maa_adapter_smoke_assert( 'magick-ai/set-post-seo-meta' === (string) ( $seo_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-seo-meta ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/set-post-seo-meta' === (string) ( $seo_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-seo-meta ability id' );
 maa_adapter_smoke_assert( $seo_post_id === (int) ( $seo_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries SEO post id' );
 maa_adapter_smoke_assert( true === (bool) ( $seo_execute['execution']['result']['updated'] ?? false ), 'adapter set-post-seo-meta execution reports update' );
 maa_adapter_smoke_assert( $seo_title === (string) get_post_meta( $seo_post_id, '_yoast_wpseo_title', true ), 'adapter approve-and-execute writes SEO title meta' );
@@ -2606,9 +2617,9 @@ maa_adapter_smoke_assert( $seo_description === (string) get_post_meta( $seo_post
 
 $empty_seo_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-seo-meta',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-seo-meta',
 		'title'      => 'Adapter empty set-post-seo-meta smoke',
 		'summary'    => 'Adapter must not execute set-post-seo-meta without SEO fields.',
 		'input'      => array(
@@ -2629,9 +2640,9 @@ $maa_adapter_smoke_cleanup_post_ids[] = $slug_post_id;
 $slug = 'adapter-slug-smoke-' . substr( md5( wp_generate_uuid4() ), 0, 12 );
 $slug_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-slug',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-slug',
 		'title'      => 'Adapter set-post-slug approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one set-post-slug proposal.',
 		'input'      => array(
@@ -2655,17 +2666,17 @@ $slug_proposal = maa_adapter_smoke_rest(
 $slug_proposal_id = (string) ( $slug_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $slug_proposal_id;
 maa_adapter_smoke_assert( '' !== $slug_proposal_id, 'adapter creates set-post-slug proposal for approve-and-execute smoke' );
-$slug_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $slug_proposal_id ) . '/approve-and-execute' );
+$slug_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $slug_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $slug_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending set-post-slug proposal' );
-maa_adapter_smoke_assert( 'magick-ai/set-post-slug' === (string) ( $slug_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-slug ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/set-post-slug' === (string) ( $slug_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-slug ability id' );
 maa_adapter_smoke_assert( $slug_post_id === (int) ( $slug_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries slug post id' );
 maa_adapter_smoke_assert( $slug === (string) get_post_field( 'post_name', $slug_post_id ), 'adapter approve-and-execute writes post slug' );
 
 $empty_slug_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-slug',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-slug',
 		'title'      => 'Adapter empty set-post-slug smoke',
 		'summary'    => 'Adapter must not execute set-post-slug without a valid slug.',
 		'input'      => array(
@@ -2693,9 +2704,9 @@ $maa_adapter_smoke_cleanup_terms[] = array(
 );
 $set_terms_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-terms',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-terms',
 		'title'      => 'Adapter set-post-terms approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one set-post-terms proposal.',
 		'input'      => array(
@@ -2724,23 +2735,23 @@ $set_terms_proposal = maa_adapter_smoke_rest(
 $set_terms_proposal_id = (string) ( $set_terms_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $set_terms_proposal_id;
 maa_adapter_smoke_assert( '' !== $set_terms_proposal_id, 'adapter creates set-post-terms proposal for approve-and-execute smoke' );
-$set_terms_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $set_terms_proposal_id ) . '/approve-and-execute' );
+$set_terms_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $set_terms_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $set_terms_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending set-post-terms proposal' );
-maa_adapter_smoke_assert( 'magick-ai/set-post-terms' === (string) ( $set_terms_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-terms ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/set-post-terms' === (string) ( $set_terms_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries set-post-terms ability id' );
 maa_adapter_smoke_assert( $set_terms_post_id === (int) ( $set_terms_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries terms post id' );
 maa_adapter_smoke_assert( false === (bool) ( $set_terms_execute['execution']['result']['dry_run'] ?? true ), 'adapter set-post-terms execution returns non-dry-run ability result' );
 $assigned_term_ids = wp_get_post_terms( $set_terms_post_id, 'post_tag', array( 'fields' => 'ids' ) );
 maa_adapter_smoke_assert( ! is_wp_error( $assigned_term_ids ) && in_array( $set_terms_term_id, array_map( 'intval', (array) $assigned_term_ids ), true ), 'adapter approve-and-execute assigns existing post term' );
-$duplicate_set_terms_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $set_terms_proposal_id ) . '/approve-and-execute' );
+$duplicate_set_terms_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $set_terms_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 409 === (int) $duplicate_set_terms_execute['status'], 'adapter rejects duplicate set-post-terms approve-and-execute request' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_execution_already_completed' === (string) ( $duplicate_set_terms_execute['data']['code'] ?? '' ), 'adapter duplicate set-post-terms request uses completed execution error code' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_execution_already_completed' === (string) ( $duplicate_set_terms_execute['data']['code'] ?? '' ), 'adapter duplicate set-post-terms request uses completed execution error code' );
 maa_adapter_smoke_assert( $set_terms_post_id === (int) ( $duplicate_set_terms_execute['data']['data']['execution_record']['post_id'] ?? 0 ), 'adapter duplicate set-post-terms returns original post id' );
 
 $empty_terms_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-terms',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-terms',
 		'title'      => 'Adapter empty set-post-terms smoke',
 		'summary'    => 'Adapter must not execute set-post-terms without terms.',
 		'input'      => array(
@@ -2760,9 +2771,9 @@ maa_adapter_smoke_assert( 400 === (int) $empty_terms_proposal['status'], 'adapte
 
 $create_missing_terms_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-terms',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-terms',
 		'title'      => 'Adapter create-missing terms smoke',
 		'summary'    => 'Adapter must not create missing terms during set-post-terms execution.',
 		'input'      => array(
@@ -2792,9 +2803,9 @@ $maa_adapter_smoke_cleanup_terms[] = array(
 );
 $delete_term_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/delete-term',
+		'ability_id' => 'npcink-abilities-toolkit/delete-term',
 		'title'      => 'Adapter delete-term approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one delete-term proposal.',
 		'input'      => array(
@@ -2818,18 +2829,18 @@ $delete_term_proposal = maa_adapter_smoke_rest(
 $delete_term_proposal_id = (string) ( $delete_term_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $delete_term_proposal_id;
 maa_adapter_smoke_assert( '' !== $delete_term_proposal_id, 'adapter creates delete-term proposal for approve-and-execute smoke' );
-$delete_term_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $delete_term_proposal_id ) . '/approve-and-execute' );
+$delete_term_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $delete_term_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $delete_term_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending delete-term proposal' );
-maa_adapter_smoke_assert( 'magick-ai/delete-term' === (string) ( $delete_term_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries delete-term ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/delete-term' === (string) ( $delete_term_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries delete-term ability id' );
 maa_adapter_smoke_assert( false === (bool) ( $delete_term_execute['execution']['result']['dry_run'] ?? true ), 'adapter delete-term execution returns non-dry-run ability result' );
 maa_adapter_smoke_assert( true === (bool) ( $delete_term_execute['execution']['result']['deleted'] ?? false ), 'adapter delete-term execution reports deletion' );
 maa_adapter_smoke_assert( ! term_exists( $delete_term_id, 'post_tag' ), 'adapter approve-and-execute deletes unused term' );
 
 $empty_delete_term_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/delete-term',
+		'ability_id' => 'npcink-abilities-toolkit/delete-term',
 		'title'      => 'Adapter empty delete-term smoke',
 		'summary'    => 'Adapter must not execute delete-term without term_id.',
 		'input'      => array(
@@ -2847,9 +2858,9 @@ maa_adapter_smoke_assert( 400 === (int) $empty_delete_term_proposal['status'], '
 
 $invalid_taxonomy_delete_term_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/delete-term',
+		'ability_id' => 'npcink-abilities-toolkit/delete-term',
 		'title'      => 'Adapter invalid taxonomy delete-term smoke',
 		'summary'    => 'Adapter must not execute delete-term without a valid taxonomy.',
 		'input'      => array(
@@ -2874,9 +2885,9 @@ $media_details_alt = 'Adapter media details alt smoke.';
 $media_details_copyright = 'Generated asset for this site';
 $media_details_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/update-media-details',
+		'ability_id' => 'npcink-abilities-toolkit/update-media-details',
 		'title'      => 'Adapter update-media-details approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one update-media-details proposal.',
 		'input'      => array(
@@ -2903,21 +2914,21 @@ $media_details_proposal = maa_adapter_smoke_rest(
 $media_details_proposal_id = (string) ( $media_details_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $media_details_proposal_id;
 maa_adapter_smoke_assert( '' !== $media_details_proposal_id, 'adapter creates update-media-details proposal for approve-and-execute smoke' );
-$media_details_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $media_details_proposal_id ) . '/approve-and-execute' );
+$media_details_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $media_details_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $media_details_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending update-media-details proposal' );
-maa_adapter_smoke_assert( 'magick-ai/update-media-details' === (string) ( $media_details_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries update-media-details ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-media-details' === (string) ( $media_details_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries update-media-details ability id' );
 maa_adapter_smoke_assert( $media_details_attachment_id === (int) ( $media_details_execute['execution']['result']['attachment_id'] ?? 0 ), 'adapter update-media-details execution result carries attachment id' );
 maa_adapter_smoke_assert( true === (bool) ( $media_details_execute['execution']['result']['updated'] ?? false ), 'adapter update-media-details execution reports update' );
 maa_adapter_smoke_assert( $media_details_title === (string) get_the_title( $media_details_attachment_id ), 'adapter approve-and-execute updates media title' );
 maa_adapter_smoke_assert( $media_details_alt === (string) get_post_meta( $media_details_attachment_id, '_wp_attachment_image_alt', true ), 'adapter approve-and-execute updates media alt text' );
-maa_adapter_smoke_assert( 'ai_generated' === (string) get_post_meta( $media_details_attachment_id, '_magick_ai_media_source_type', true ), 'adapter approve-and-execute updates media source type' );
-maa_adapter_smoke_assert( $media_details_copyright === (string) get_post_meta( $media_details_attachment_id, '_magick_ai_media_copyright_notice', true ), 'adapter approve-and-execute updates media copyright notice' );
+maa_adapter_smoke_assert( 'ai_generated' === (string) get_post_meta( $media_details_attachment_id, '_npcink_ai_media_source_type', true ), 'adapter approve-and-execute updates media source type' );
+maa_adapter_smoke_assert( $media_details_copyright === (string) get_post_meta( $media_details_attachment_id, '_npcink_ai_media_copyright_notice', true ), 'adapter approve-and-execute updates media copyright notice' );
 
 $empty_media_details_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/update-media-details',
+		'ability_id' => 'npcink-abilities-toolkit/update-media-details',
 		'title'      => 'Adapter empty update-media-details smoke',
 		'summary'    => 'Adapter must not execute update-media-details without detail fields.',
 		'input'      => array(
@@ -2940,9 +2951,9 @@ $rename_dry_before_url = (string) wp_get_attachment_url( $rename_dry_attachment_
 $rename_dry_target_name = 'adapter-rename-dry-target-' . substr( wp_generate_uuid4(), 0, 8 ) . '.png';
 $rename_dry_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/rename-media-file',
+		'ability_id' => 'npcink-abilities-toolkit/rename-media-file',
 		'title'      => 'Adapter rename-media-file dry-run preflight smoke',
 		'summary'    => 'Adapter approves and preflights rename-media-file without executing the final write.',
 		'input'      => array(
@@ -2972,11 +2983,11 @@ $maa_adapter_smoke_cleanup_proposal_ids[] = $rename_dry_proposal_id;
 maa_adapter_smoke_assert( '' !== $rename_dry_proposal_id, 'adapter creates rename-media-file proposal for dry-run preflight smoke' );
 $rename_dry_approved = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $rename_dry_proposal_id ) . '/approve',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $rename_dry_proposal_id ) . '/approve',
 	array( 'note' => 'Adapter rename dry-run preflight smoke approval.' )
 );
 maa_adapter_smoke_assert( 'approved' === (string) ( $rename_dry_approved['status'] ?? '' ), 'Core admin REST approval succeeds for rename-media-file dry-run preflight smoke' );
-$rename_dry_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $rename_dry_proposal_id ) . '/commit-preflight' );
+$rename_dry_preflight = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $rename_dry_proposal_id ) . '/commit-preflight' );
 maa_adapter_smoke_assert( false === (bool) ( $rename_dry_preflight['commit_execution'] ?? true ), 'adapter rename-media-file dry-run preflight preserves Core commit_execution=false' );
 maa_adapter_smoke_assert( true === (bool) ( $rename_dry_preflight['adapter_preflight_handoff_cached'] ?? false ), 'adapter rename-media-file dry-run preflight caches handoff without executing' );
 maa_adapter_smoke_assert( $rename_dry_before_relative === (string) get_post_meta( $rename_dry_attachment_id, '_wp_attached_file', true ), 'adapter rename-media-file dry-run preflight leaves attached file pointer unchanged' );
@@ -2995,9 +3006,9 @@ $rename_commit_target_path = trailingslashit( (string) ( $rename_commit_uploads[
 maa_adapter_smoke_assert( ! file_exists( $rename_commit_target_path ), 'adapter rename-media-file commit target file starts absent' );
 $rename_commit_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/rename-media-file',
+		'ability_id' => 'npcink-abilities-toolkit/rename-media-file',
 		'title'      => 'Adapter rename-media-file approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one rename-media-file proposal.',
 		'input'      => array(
@@ -3025,10 +3036,10 @@ $rename_commit_proposal = maa_adapter_smoke_rest(
 $rename_commit_proposal_id = (string) ( $rename_commit_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $rename_commit_proposal_id;
 maa_adapter_smoke_assert( '' !== $rename_commit_proposal_id, 'adapter creates rename-media-file proposal for approve-and-execute smoke' );
-$rename_commit_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $rename_commit_proposal_id ) . '/approve-and-execute' );
+$rename_commit_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $rename_commit_proposal_id ) . '/approve-and-execute' );
 $rename_commit_result = is_array( $rename_commit_execute['execution']['result'] ?? null ) ? $rename_commit_execute['execution']['result'] : array();
 maa_adapter_smoke_assert( true === (bool) ( $rename_commit_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending rename-media-file proposal' );
-maa_adapter_smoke_assert( 'magick-ai/rename-media-file' === (string) ( $rename_commit_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries rename-media-file ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/rename-media-file' === (string) ( $rename_commit_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries rename-media-file ability id' );
 maa_adapter_smoke_assert( false === (bool) ( $rename_commit_result['dry_run'] ?? true ), 'adapter rename-media-file execution returns non-dry-run ability result' );
 maa_adapter_smoke_assert( true === (bool) ( $rename_commit_result['renamed'] ?? false ), 'adapter rename-media-file execution reports rename' );
 maa_adapter_smoke_assert( $rename_commit_target_relative === (string) get_post_meta( $rename_commit_attachment_id, '_wp_attached_file', true ), 'adapter rename-media-file commit updates attached file pointer' );
@@ -3045,9 +3056,9 @@ $delete_media_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
 $maa_adapter_smoke_cleanup_attachment_ids[] = $delete_media_attachment_id;
 $delete_media_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/delete-media-permanently',
+		'ability_id' => 'npcink-abilities-toolkit/delete-media-permanently',
 		'title'      => 'Adapter delete-media-permanently approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one delete-media-permanently proposal.',
 		'input'      => array(
@@ -3069,18 +3080,18 @@ $delete_media_proposal = maa_adapter_smoke_rest(
 $delete_media_proposal_id = (string) ( $delete_media_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $delete_media_proposal_id;
 maa_adapter_smoke_assert( '' !== $delete_media_proposal_id, 'adapter creates delete-media-permanently proposal for approve-and-execute smoke' );
-$delete_media_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $delete_media_proposal_id ) . '/approve-and-execute' );
+$delete_media_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $delete_media_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $delete_media_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending delete-media-permanently proposal' );
-maa_adapter_smoke_assert( 'magick-ai/delete-media-permanently' === (string) ( $delete_media_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries delete-media-permanently ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/delete-media-permanently' === (string) ( $delete_media_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries delete-media-permanently ability id' );
 maa_adapter_smoke_assert( $delete_media_attachment_id === (int) ( $delete_media_execute['execution']['result']['attachment_id'] ?? 0 ), 'adapter delete-media-permanently execution result carries attachment id' );
 maa_adapter_smoke_assert( true === (bool) ( $delete_media_execute['execution']['result']['deleted'] ?? false ), 'adapter delete-media-permanently execution reports deletion' );
 maa_adapter_smoke_assert( null === get_post( $delete_media_attachment_id ), 'adapter approve-and-execute deletes media attachment permanently' );
 
 $empty_delete_media_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/delete-media-permanently',
+		'ability_id' => 'npcink-abilities-toolkit/delete-media-permanently',
 		'title'      => 'Adapter empty delete-media-permanently smoke',
 		'summary'    => 'Adapter must not execute delete-media-permanently without attachment_id.',
 		'input'      => array(
@@ -3098,9 +3109,9 @@ $non_attachment_delete_media_post_id = maa_adapter_smoke_create_trash_post_fixtu
 $maa_adapter_smoke_cleanup_post_ids[] = $non_attachment_delete_media_post_id;
 $non_attachment_delete_media_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/delete-media-permanently',
+		'ability_id' => 'npcink-abilities-toolkit/delete-media-permanently',
 		'title'      => 'Adapter non-attachment delete-media-permanently smoke',
 		'summary'    => 'Adapter must not execute delete-media-permanently for non-attachment posts.',
 		'input'      => array(
@@ -3122,9 +3133,9 @@ $reply_parent_comment_id = maa_adapter_smoke_create_comment_fixture( $reply_post
 $maa_adapter_smoke_cleanup_comment_ids[] = $reply_parent_comment_id;
 $reply_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/reply-comment',
+		'ability_id' => 'npcink-abilities-toolkit/reply-comment',
 		'title'      => 'Adapter reply-comment approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one reply-comment proposal.',
 		'input'      => array(
@@ -3149,9 +3160,9 @@ $reply_proposal = maa_adapter_smoke_rest(
 $reply_proposal_id = (string) ( $reply_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $reply_proposal_id;
 maa_adapter_smoke_assert( '' !== $reply_proposal_id, 'adapter creates reply-comment proposal for approve-and-execute smoke' );
-$reply_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $reply_proposal_id ) . '/approve-and-execute' );
+$reply_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $reply_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $reply_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending reply-comment proposal' );
-maa_adapter_smoke_assert( 'magick-ai/reply-comment' === (string) ( $reply_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries reply-comment ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/reply-comment' === (string) ( $reply_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries reply-comment ability id' );
 maa_adapter_smoke_assert( $reply_post_id === (int) ( $reply_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries reply post id' );
 maa_adapter_smoke_assert( false === (bool) ( $reply_execute['execution']['result']['dry_run'] ?? true ), 'adapter reply-comment execution returns non-dry-run ability result' );
 $reply_comment_id = (int) ( $reply_execute['execution']['result']['comment_id'] ?? 0 );
@@ -3163,9 +3174,9 @@ maa_adapter_smoke_assert( $reply_post_id === (int) ( $reply_comment->comment_pos
 
 $empty_reply_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/reply-comment',
+		'ability_id' => 'npcink-abilities-toolkit/reply-comment',
 		'title'      => 'Adapter empty reply-comment smoke',
 		'summary'    => 'Adapter must not execute reply-comment without content.',
 		'input'      => array(
@@ -3188,9 +3199,9 @@ $approve_comment_id = maa_adapter_smoke_create_comment_fixture( $approve_comment
 $maa_adapter_smoke_cleanup_comment_ids[] = $approve_comment_id;
 $approve_comment_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/approve-comment',
+		'ability_id' => 'npcink-abilities-toolkit/approve-comment',
 		'title'      => 'Adapter approve-comment approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one approve-comment proposal.',
 		'input'      => array(
@@ -3212,9 +3223,9 @@ $approve_comment_proposal = maa_adapter_smoke_rest(
 $approve_comment_proposal_id = (string) ( $approve_comment_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $approve_comment_proposal_id;
 maa_adapter_smoke_assert( '' !== $approve_comment_proposal_id, 'adapter creates approve-comment proposal for approve-and-execute smoke' );
-$approve_comment_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $approve_comment_proposal_id ) . '/approve-and-execute' );
+$approve_comment_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $approve_comment_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $approve_comment_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending approve-comment proposal' );
-maa_adapter_smoke_assert( 'magick-ai/approve-comment' === (string) ( $approve_comment_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries approve-comment ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/approve-comment' === (string) ( $approve_comment_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries approve-comment ability id' );
 maa_adapter_smoke_assert( $approve_comment_post_id === (int) ( $approve_comment_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries approve-comment post id' );
 maa_adapter_smoke_assert( false === (bool) ( $approve_comment_execute['execution']['result']['dry_run'] ?? true ), 'adapter approve-comment execution returns non-dry-run ability result' );
 maa_adapter_smoke_assert( true === (bool) ( $approve_comment_execute['execution']['result']['updated'] ?? false ), 'adapter approve-comment execution reports update' );
@@ -3222,9 +3233,9 @@ maa_adapter_smoke_assert( 'approved' === wp_get_comment_status( $approve_comment
 
 $empty_approve_comment_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/approve-comment',
+		'ability_id' => 'npcink-abilities-toolkit/approve-comment',
 		'title'      => 'Adapter empty approve-comment smoke',
 		'summary'    => 'Adapter must not execute approve-comment without comment_id.',
 		'input'      => array(
@@ -3246,9 +3257,9 @@ $trash_comment_id = maa_adapter_smoke_create_comment_fixture( $trash_comment_pos
 $maa_adapter_smoke_cleanup_comment_ids[] = $trash_comment_id;
 $trash_comment_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-comment',
+		'ability_id' => 'npcink-abilities-toolkit/trash-comment',
 		'title'      => 'Adapter trash-comment approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes one trash-comment proposal.',
 		'input'      => array(
@@ -3270,17 +3281,17 @@ $trash_comment_proposal = maa_adapter_smoke_rest(
 $trash_comment_proposal_id = (string) ( $trash_comment_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $trash_comment_proposal_id;
 maa_adapter_smoke_assert( '' !== $trash_comment_proposal_id, 'adapter creates trash-comment proposal for approve-and-execute smoke' );
-$trash_comment_execute = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $trash_comment_proposal_id ) . '/approve-and-execute' );
+$trash_comment_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $trash_comment_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $trash_comment_execute['success'] ?? false ), 'adapter approve-and-execute succeeds for pending trash-comment proposal' );
-maa_adapter_smoke_assert( 'magick-ai/trash-comment' === (string) ( $trash_comment_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries trash-comment ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/trash-comment' === (string) ( $trash_comment_execute['ability_id'] ?? '' ), 'adapter approve-and-execute response carries trash-comment ability id' );
 maa_adapter_smoke_assert( $trash_comment_post_id === (int) ( $trash_comment_execute['post_id'] ?? 0 ), 'adapter approve-and-execute response carries trash-comment post id' );
 maa_adapter_smoke_assert( 'trash' === wp_get_comment_status( $trash_comment_id ), 'adapter approve-and-execute trashes comment' );
 
 $empty_trash_comment_proposal = maa_adapter_smoke_rest_result(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/trash-comment',
+		'ability_id' => 'npcink-abilities-toolkit/trash-comment',
 		'title'      => 'Adapter empty trash-comment smoke',
 		'summary'    => 'Adapter must not execute trash-comment without comment_id.',
 		'input'      => array(
@@ -3298,9 +3309,9 @@ maa_adapter_smoke_assert( 400 === (int) $empty_trash_comment_proposal['status'],
 
 $unallowed_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/set-post-author',
+		'ability_id' => 'npcink-abilities-toolkit/set-post-author',
 		'title'      => 'Adapter unallowed approve execute smoke',
 		'summary'    => 'Adapter must not approve-and-execute non-allowlisted proposals.',
 		'input'      => array(
@@ -3314,14 +3325,14 @@ $unallowed_proposal = maa_adapter_smoke_rest(
 );
 $unallowed_proposal_id = (string) ( $unallowed_proposal['proposal_id'] ?? '' );
 $maa_adapter_smoke_cleanup_proposal_ids[] = $unallowed_proposal_id;
-$unallowed_approve_execute = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $unallowed_proposal_id ) . '/approve-and-execute' );
+$unallowed_approve_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $unallowed_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( 403 === (int) $unallowed_approve_execute['status'], 'adapter approve-and-execute rejects non-allowlisted ability' );
 
 $proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/create-draft',
+		'ability_id' => 'npcink-abilities-toolkit/create-draft',
 		'title'      => 'Adapter proposal status smoke',
 		'summary'    => 'Proposal status relay smoke, no final write.',
 		'input'      => array(
@@ -3341,11 +3352,11 @@ $proposal_id = (string) ( $proposal['proposal_id'] ?? '' );
 maa_adapter_smoke_assert( '' !== $proposal_id, 'adapter creates Core proposal for status smoke' );
 maa_adapter_smoke_assert( 'pending' === (string) ( $proposal['status'] ?? '' ), 'adapter created proposal starts pending' );
 maa_adapter_smoke_assert( 'openclaw_adapter' === (string) ( $proposal['caller']['caller_type'] ?? '' ), 'adapter proposal caller marks OpenClaw adapter' );
-maa_adapter_smoke_assert( 'magick-ai-adapter' === (string) ( $proposal['caller']['via'] ?? '' ), 'adapter proposal caller preserves adapter source' );
+maa_adapter_smoke_assert( 'npcink-openclaw-adapter' === (string) ( $proposal['caller']['via'] ?? '' ), 'adapter proposal caller preserves adapter source' );
 
 $proposal_list = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
 		'limit' => 50,
 	)
@@ -3354,14 +3365,14 @@ $found_proposal = false;
 foreach ( (array) ( $proposal_list['items'] ?? array() ) as $item ) {
 	if ( is_array( $item ) && $proposal_id === (string) ( $item['proposal_id'] ?? '' ) ) {
 		$found_proposal = true;
-		maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $item['ability_id'] ?? '' ), 'adapter proposal list preserves ability id' );
+		maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $item['ability_id'] ?? '' ), 'adapter proposal list preserves ability id' );
 		maa_adapter_smoke_assert( 'pending' === (string) ( $item['status'] ?? '' ), 'adapter proposal list preserves status' );
 		break;
 	}
 }
 maa_adapter_smoke_assert( $found_proposal, 'adapter returns created proposal in Core proposal list' );
 
-$proposal_detail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $proposal_id ) );
+$proposal_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) );
 maa_adapter_smoke_assert( $proposal_id === (string) ( $proposal_detail['proposal_id'] ?? '' ), 'adapter returns proposal detail through Core' );
 maa_adapter_smoke_assert( 'pending' === (string) ( $proposal_detail['status'] ?? '' ), 'adapter proposal detail preserves status' );
 maa_adapter_smoke_assert( 'Adapter proposal status smoke' === (string) ( $proposal_detail['title'] ?? '' ), 'adapter proposal detail preserves title' );
@@ -3370,48 +3381,48 @@ maa_adapter_smoke_assert( is_array( $proposal_detail['preview'] ?? null ), 'adap
 maa_adapter_smoke_assert( is_array( $proposal_detail['caller'] ?? null ), 'adapter proposal detail preserves caller' );
 maa_adapter_smoke_assert( is_array( $proposal_detail['audit_timeline'] ?? null ), 'adapter proposal detail preserves audit timeline' );
 
-$approval_stub = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve' );
+$approval_stub = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve' );
 maa_adapter_smoke_assert( 403 === (int) $approval_stub['status'], 'adapter approval stub returns HTTP 403' );
 maa_adapter_smoke_assert( is_array( $approval_stub['data'] ?? null ), 'adapter approval stub returns response object' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_approval_proxy_disabled' === (string) ( $approval_stub['data']['code'] ?? '' ), 'adapter approval stub returns disabled response' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_approval_proxy_disabled' === (string) ( $approval_stub['data']['code'] ?? '' ), 'adapter approval stub returns disabled response' );
 maa_adapter_smoke_assert( false === (bool) ( $approval_stub['data']['approval_proxy_enabled'] ?? true ), 'adapter approval stub reports disabled proxy' );
-maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $approval_stub['data']['approval_surface'] ?? '' ), 'adapter approval stub reports Core admin approval surface' );
+maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $approval_stub['data']['approval_surface'] ?? '' ), 'adapter approval stub reports Core admin approval surface' );
 
-$after_approval_stub = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $proposal_id ) );
+$after_approval_stub = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) );
 maa_adapter_smoke_assert( 'pending' === (string) ( $after_approval_stub['status'] ?? '' ), 'adapter approval stub does not change Core proposal status' );
 
-$rejection_stub = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/reject' );
+$rejection_stub = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/reject' );
 maa_adapter_smoke_assert( 403 === (int) $rejection_stub['status'], 'adapter rejection stub returns HTTP 403' );
 maa_adapter_smoke_assert( is_array( $rejection_stub['data'] ?? null ), 'adapter rejection stub returns response object' );
-maa_adapter_smoke_assert( 'magick_ai_adapter_approval_proxy_disabled' === (string) ( $rejection_stub['data']['code'] ?? '' ), 'adapter rejection stub returns disabled response' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_approval_proxy_disabled' === (string) ( $rejection_stub['data']['code'] ?? '' ), 'adapter rejection stub returns disabled response' );
 maa_adapter_smoke_assert( false === (bool) ( $rejection_stub['data']['approval_proxy_enabled'] ?? true ), 'adapter rejection stub reports disabled proxy' );
-maa_adapter_smoke_assert( 'magick_ai_core_admin' === (string) ( $rejection_stub['data']['approval_surface'] ?? '' ), 'adapter rejection stub reports Core admin approval surface' );
+maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $rejection_stub['data']['approval_surface'] ?? '' ), 'adapter rejection stub reports Core admin approval surface' );
 
-$after_rejection_stub = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $proposal_id ) );
+$after_rejection_stub = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) );
 maa_adapter_smoke_assert( 'pending' === (string) ( $after_rejection_stub['status'] ?? '' ), 'adapter rejection stub does not change Core proposal status' );
 
 $approved = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve',
 	array(
 		'note' => 'Adapter provider log correlation smoke approval.',
 	)
 );
 maa_adapter_smoke_assert( 'approved' === (string) ( $approved['status'] ?? '' ), 'Core admin REST approval succeeds for provider log correlation smoke' );
 
-$preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
+$preflight = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/commit-preflight' );
 $correlation_id = (string) ( $preflight['correlation_id'] ?? '' );
 maa_adapter_smoke_assert( '' !== $correlation_id, 'adapter commit preflight returns correlation id for provider log smoke' );
 maa_adapter_smoke_assert( false === (bool) ( $preflight['commit_execution'] ?? true ), 'adapter commit preflight keeps final execution disabled for provider log smoke' );
 maa_adapter_smoke_assert( $correlation_id === (string) ( $preflight['approval_context']['correlation_id'] ?? '' ), 'adapter commit preflight approval context carries matching correlation id' );
-$commit_preflight_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'ok', '/magick-ai-adapter/v1/proposals/' . $proposal_id . '/commit-preflight' );
+$commit_preflight_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'ok', '/npcink-openclaw-adapter/v1/proposals/' . $proposal_id . '/commit-preflight' );
 maa_adapter_smoke_assert( ! empty( $commit_preflight_event ), 'adapter emits commit preflight success observability event' );
 maa_adapter_smoke_assert( $proposal_id === (string) ( $commit_preflight_event['proposal_id'] ?? '' ), 'adapter commit preflight success event carries proposal id' );
 maa_adapter_smoke_assert_observability_safe( $commit_preflight_event, 'adapter commit preflight success event' );
 
-$missing_preflight = maa_adapter_smoke_rest_result( 'POST', '/magick-ai-adapter/v1/proposals/missing-observability-smoke/commit-preflight' );
+$missing_preflight = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/missing-observability-smoke/commit-preflight' );
 maa_adapter_smoke_assert( 404 === (int) $missing_preflight['status'], 'adapter commit preflight failure smoke returns missing proposal status' );
-$commit_preflight_error_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'error', '/magick-ai-adapter/v1/proposals/missing-observability-smoke/commit-preflight' );
+$commit_preflight_error_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'error', '/npcink-openclaw-adapter/v1/proposals/missing-observability-smoke/commit-preflight' );
 maa_adapter_smoke_assert( ! empty( $commit_preflight_error_event ), 'adapter emits commit preflight failure observability event' );
 maa_adapter_smoke_assert( 404 === (int) ( $commit_preflight_error_event['status_code'] ?? 0 ), 'adapter commit preflight failure event carries status code' );
 maa_adapter_smoke_assert( '' !== (string) ( $commit_preflight_error_event['error_code'] ?? '' ), 'adapter commit preflight failure event carries stable error code' );
@@ -3419,7 +3430,7 @@ maa_adapter_smoke_assert_observability_safe( $commit_preflight_error_event, 'ada
 
 $adapter_core_app = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/apps',
+	'/npcink-governance-core/v1/apps',
 	array(
 		'app_label'           => 'Adapter app-token smoke',
 		'caller_type'         => 'openclaw_adapter',
@@ -3440,21 +3451,21 @@ maa_adapter_smoke_assert( in_array( 'commit:preflight', (array) ( $adapter_core_
 maa_adapter_smoke_assert( ! in_array( 'proposals:approve', (array) ( $adapter_core_app['scopes'] ?? array() ), true ), 'adapter Core app token does not include approval scope' );
 maa_adapter_smoke_assert( ! in_array( 'audit:read', (array) ( $adapter_core_app['scopes'] ?? array() ), true ), 'adapter Core app token does not include audit read scope' );
 
-$previous_adapter_core_app_token = get_option( 'magick_ai_adapter_core_app_token', null );
-update_option( 'magick_ai_adapter_core_app_token', $adapter_core_app_token, false );
+$previous_adapter_core_app_token = get_option( 'npcink_openclaw_adapter_core_app_token', null );
+update_option( 'npcink_openclaw_adapter_core_app_token', $adapter_core_app_token, false );
 
-$app_token_health = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/health' );
+$app_token_health = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/health' );
 maa_adapter_smoke_assert( true === (bool) ( $app_token_health['core_app_token_configured'] ?? false ), 'adapter health reports Core app token configured' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_health, $adapter_core_app_token, 'adapter health with Core app token' );
-$app_token_help = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/help' );
+$app_token_help = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/help' );
 maa_adapter_smoke_assert( true === (bool) ( $app_token_help['core_app_token_configured'] ?? false ), 'adapter help reports Core app token configured' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_help, $adapter_core_app_token, 'adapter help with Core app token' );
 
 $app_token_proposal = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/proposals',
+	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'magick-ai/create-draft',
+		'ability_id' => 'npcink-abilities-toolkit/create-draft',
 		'title'      => 'Adapter app token proposal smoke',
 		'summary'    => 'Adapter must route proposal create to Core with app attribution.',
 		'input'      => array(
@@ -3477,36 +3488,36 @@ maa_adapter_smoke_assert( $adapter_core_app_id === (string) ( $app_token_proposa
 maa_adapter_smoke_assert( 'proposals:create' === (string) ( $app_token_proposal['caller']['auth']['scope'] ?? '' ), 'adapter app-token proposal stores create scope attribution' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_proposal, $adapter_core_app_token, 'adapter app-token proposal create response' );
 
-$app_token_detail = maa_adapter_smoke_rest( 'GET', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $app_token_proposal_id ) );
+$app_token_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $app_token_proposal_id ) );
 maa_adapter_smoke_assert( $app_token_proposal_id === (string) ( $app_token_detail['proposal_id'] ?? '' ), 'adapter reads app-token proposal status through Core app token' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_detail, $adapter_core_app_token, 'adapter app-token proposal detail response' );
 
 $app_token_approved = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-core/v1/proposals/' . rawurlencode( $app_token_proposal_id ) . '/approve',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $app_token_proposal_id ) . '/approve',
 	array(
 		'note' => 'Admin approval for Adapter app token smoke.',
 	)
 );
 maa_adapter_smoke_assert( 'approved' === (string) ( $app_token_approved['status'] ?? '' ), 'Core admin approval succeeds for Adapter app-token proposal' );
 
-$app_token_preflight = maa_adapter_smoke_rest( 'POST', '/magick-ai-adapter/v1/proposals/' . rawurlencode( $app_token_proposal_id ) . '/commit-preflight' );
+$app_token_preflight = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $app_token_proposal_id ) . '/commit-preflight' );
 maa_adapter_smoke_assert( true === (bool) ( $app_token_preflight['approval_context']['approval_commit_authorized'] ?? false ), 'adapter app-token commit preflight returns authorized approval context' );
 maa_adapter_smoke_assert( 'core-preflight-v1' === (string) ( $app_token_preflight['approval_context']['policy_version'] ?? '' ), 'adapter app-token commit preflight returns policy version' );
 maa_adapter_smoke_assert( hash( 'sha256', (string) wp_json_encode( $app_token_detail['input'] ?? array() ) ) === (string) ( $app_token_preflight['approval_context']['approved_input_hash'] ?? '' ), 'adapter app-token commit preflight hash matches proposal input' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_preflight, $adapter_core_app_token, 'adapter app-token commit preflight response' );
 
-$app_token_error = maa_adapter_smoke_rest_result( 'GET', '/magick-ai-adapter/v1/proposals/missing-app-token-smoke' );
+$app_token_error = maa_adapter_smoke_rest_result( 'GET', '/npcink-openclaw-adapter/v1/proposals/missing-app-token-smoke' );
 maa_adapter_smoke_assert( 404 === (int) $app_token_error['status'], 'adapter app-token missing proposal returns error status' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_error, $adapter_core_app_token, 'adapter app-token error response' );
 $app_token_create_event = maa_adapter_smoke_observability_event( 'adapter.proposal.create', 'ok' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_create_event, $adapter_core_app_token, 'adapter app-token proposal create log event' );
-$app_token_preflight_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'ok', '/magick-ai-adapter/v1/proposals/' . $app_token_proposal_id . '/commit-preflight' );
+$app_token_preflight_event = maa_adapter_smoke_observability_event( 'adapter.commit.preflight', 'ok', '/npcink-openclaw-adapter/v1/proposals/' . $app_token_proposal_id . '/commit-preflight' );
 maa_adapter_smoke_assert_payload_excludes_string( $app_token_preflight_event, $adapter_core_app_token, 'adapter app-token preflight log event' );
 
 $app_token_audit = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-core/v1/audit',
+	'/npcink-governance-core/v1/audit',
 	array(
 		'proposal_id' => $app_token_proposal_id,
 		'limit'       => 20,
@@ -3530,19 +3541,19 @@ maa_adapter_smoke_assert( $found_app_token_create_audit, 'Core audit stores Adap
 maa_adapter_smoke_assert( $found_app_token_preflight_audit, 'Core audit stores Adapter app attribution for commit preflight' );
 
 if ( null === $previous_adapter_core_app_token ) {
-	delete_option( 'magick_ai_adapter_core_app_token' );
+	delete_option( 'npcink_openclaw_adapter_core_app_token' );
 } else {
-	update_option( 'magick_ai_adapter_core_app_token', $previous_adapter_core_app_token, false );
+	update_option( 'npcink_openclaw_adapter_core_app_token', $previous_adapter_core_app_token, false );
 }
 
 $provider_model = maa_adapter_smoke_text_generation_model();
 $provider_smoke = maa_adapter_smoke_rest(
 	'POST',
-	'/magick-ai-adapter/v1/ai-provider-log-correlation-smoke',
+	'/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke',
 	array(
 		'proposal_id'    => $proposal_id,
 		'correlation_id' => $correlation_id,
-		'ability_id'     => 'magick-ai/create-draft',
+		'ability_id'     => 'npcink-abilities-toolkit/create-draft',
 		'ai_provider'    => $provider_model['provider'],
 		'ai_model'       => $provider_model['model'],
 		'prompt'         => 'Reply with exactly: OK',
@@ -3551,8 +3562,8 @@ $provider_smoke = maa_adapter_smoke_rest(
 maa_adapter_smoke_assert( 'success' === (string) ( $provider_smoke['status'] ?? '' ), 'adapter provider smoke succeeds with configured text model' );
 maa_adapter_smoke_assert( $provider_model['provider'] === (string) ( $provider_smoke['log_context']['ai_provider'] ?? '' ), 'adapter provider smoke context carries selected provider' );
 maa_adapter_smoke_assert( $provider_model['model'] === (string) ( $provider_smoke['log_context']['ai_model'] ?? '' ), 'adapter provider smoke context carries selected model' );
-maa_adapter_smoke_assert( $proposal_id === (string) ( $provider_smoke['log_context']['magick_ai_core']['proposal_id'] ?? '' ), 'adapter provider smoke context carries nested Core proposal id' );
-maa_adapter_smoke_assert( $correlation_id === (string) ( $provider_smoke['log_context']['magick_ai_core']['correlation_id'] ?? '' ), 'adapter provider smoke context carries nested Core correlation id' );
+maa_adapter_smoke_assert( $proposal_id === (string) ( $provider_smoke['log_context']['npcink_governance_core']['proposal_id'] ?? '' ), 'adapter provider smoke context carries nested Core proposal id' );
+maa_adapter_smoke_assert( $correlation_id === (string) ( $provider_smoke['log_context']['npcink_governance_core']['correlation_id'] ?? '' ), 'adapter provider smoke context carries nested Core correlation id' );
 
 $ai_log = maa_adapter_smoke_find_ai_request_log( $proposal_id, $correlation_id );
 maa_adapter_smoke_assert( is_array( $ai_log ), 'AI Request Logs contains provider request with proposal and correlation context' );
@@ -3560,18 +3571,18 @@ $ai_log_context = is_array( $ai_log['context'] ?? null ) ? $ai_log['context'] : 
 maa_adapter_smoke_assert( 'success' === (string) ( $ai_log['status'] ?? '' ), 'AI Request Logs provider request status is success' );
 maa_adapter_smoke_assert( $proposal_id === (string) ( $ai_log_context['proposal_id'] ?? '' ), 'AI Request Logs context contains proposal id' );
 maa_adapter_smoke_assert( $correlation_id === (string) ( $ai_log_context['correlation_id'] ?? '' ), 'AI Request Logs context contains correlation id' );
-maa_adapter_smoke_assert( 'magick-ai/create-draft' === (string) ( $ai_log_context['ability_id'] ?? '' ), 'AI Request Logs context contains ability id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $ai_log_context['ability_id'] ?? '' ), 'AI Request Logs context contains ability id' );
 maa_adapter_smoke_assert( '' !== (string) ( $ai_log_context['adapter_request_id'] ?? '' ), 'AI Request Logs context contains adapter request id' );
-maa_adapter_smoke_assert( '/magick-ai-adapter/v1/ai-provider-log-correlation-smoke' === (string) ( $ai_log_context['adapter_route'] ?? '' ), 'AI Request Logs context contains adapter route' );
+maa_adapter_smoke_assert( '/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke' === (string) ( $ai_log_context['adapter_route'] ?? '' ), 'AI Request Logs context contains adapter route' );
 maa_adapter_smoke_assert( $provider_model['provider'] === (string) ( $ai_log_context['ai_provider'] ?? '' ), 'AI Request Logs context contains explicit provider even if provider column is blank' );
 maa_adapter_smoke_assert( $provider_model['model'] === (string) ( $ai_log_context['ai_model'] ?? '' ), 'AI Request Logs context contains explicit model even if provider column is blank' );
-maa_adapter_smoke_assert( 'magick-ai-core' === (string) ( $ai_log_context['governance_source'] ?? '' ), 'AI Request Logs context contains Core governance source' );
-maa_adapter_smoke_assert( $proposal_id === (string) ( $ai_log_context['magick_ai_core']['proposal_id'] ?? '' ), 'AI Request Logs context contains nested Core proposal id' );
-maa_adapter_smoke_assert( $correlation_id === (string) ( $ai_log_context['magick_ai_core']['correlation_id'] ?? '' ), 'AI Request Logs context contains nested Core correlation id' );
+maa_adapter_smoke_assert( 'npcink-governance-core' === (string) ( $ai_log_context['governance_source'] ?? '' ), 'AI Request Logs context contains Core governance source' );
+maa_adapter_smoke_assert( $proposal_id === (string) ( $ai_log_context['npcink_governance_core']['proposal_id'] ?? '' ), 'AI Request Logs context contains nested Core proposal id' );
+maa_adapter_smoke_assert( $correlation_id === (string) ( $ai_log_context['npcink_governance_core']['correlation_id'] ?? '' ), 'AI Request Logs context contains nested Core correlation id' );
 
 $core_correlation_audit = maa_adapter_smoke_rest(
 	'GET',
-	'/magick-ai-core/v1/audit',
+	'/npcink-governance-core/v1/audit',
 	array(
 		'correlation_id' => $correlation_id,
 		'limit'          => 10,
@@ -3584,4 +3595,4 @@ maa_adapter_smoke_cleanup_registered_fixtures();
 maa_adapter_smoke_assert( true, 'adapter status smoke cleaned created proposal records' );
 maa_adapter_smoke_assert_no_media_fixture_leaks();
 
-echo "magick-ai-adapter WordPress smoke: ok\n";
+echo "npcink-openclaw-adapter WordPress smoke: ok\n";

@@ -1,15 +1,15 @@
-# Magick AI Adapter
+# Npcink OpenClaw Adapter
 
-Magick AI Adapter is a thin OpenClaw channel plugin for WordPress.
+Npcink OpenClaw Adapter is a thin OpenClaw channel plugin for WordPress.
 
 It gives OpenClaw one WordPress REST namespace that can:
 
-- read Magick AI Core capability guidance;
+- read Npcink Governance Core capability guidance;
 - run approved direct-read abilities through WordPress Abilities API;
 - create Core proposals for write or destructive operations;
 - orchestrate one user-triggered approve-and-execute action through Core.
 
-OpenClaw only connects to Adapter. Magick AI Core is the governance service
+OpenClaw only connects to Adapter. Npcink Governance Core is the governance service
 behind Adapter. Core remains the approval, preflight, and audit truth source;
 the productized OpenClaw user action is exposed by Adapter.
 
@@ -32,19 +32,19 @@ execution allowlist rules.
 Batch plan execution is intentionally narrow. Adapter can execute
 `input.write_actions[]` only after Core approval and commit-preflight, and only
 when every action targets the current execution allowlist
-(`magick-ai/trash-post`, `magick-ai/create-draft`,
-`magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
-`magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
-`magick-ai/delete-term`, `magick-ai/patch-post-content`,
-`magick-ai/patch-setting-value`,
-`magick-ai/update-media-details`,
-`magick-ai/optimize-media-asset`,
-`magick-ai/replace-media-file`,
-`magick-ai/adopt-cloud-media-derivative`,
-`magick-ai/rename-media-file`,
-`magick-ai/delete-media-permanently`,
-`magick-ai/reply-comment`, `magick-ai/trash-comment`,
-`magick-ai/approve-comment`). See
+(`npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`,
+`npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-seo-meta`,
+`npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
+`npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
+`npcink-abilities-toolkit/patch-setting-value`,
+`npcink-abilities-toolkit/update-media-details`,
+`npcink-abilities-toolkit/optimize-media-asset`,
+`npcink-abilities-toolkit/replace-media-file`,
+`npcink-abilities-toolkit/adopt-cloud-media-derivative`,
+`npcink-abilities-toolkit/rename-media-file`,
+`npcink-abilities-toolkit/delete-media-permanently`,
+`npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`,
+`npcink-abilities-toolkit/approve-comment`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
 
 ## Runtime Boundary
@@ -53,102 +53,102 @@ Layer ownership:
 
 | Layer | Plugin | Responsibility |
 | --- | --- | --- |
-| Ability layer | `magick-ai-abilities` | Registers canonical abilities, schemas, callbacks, permissions, and dry-run previews. |
-| Governance layer | `magick-ai-core` | Discovers abilities, classifies risk, stores proposals, handles approval/preflight, and audits governance decisions. |
-| Channel layer | `magick-ai-adapter` | Gives OpenClaw a small REST adapter that calls Core and WordPress Abilities API. |
+| Ability layer | `npcink-abilities-toolkit` | Registers canonical abilities, schemas, callbacks, permissions, and dry-run previews. |
+| Governance layer | `npcink-governance-core` | Discovers abilities, classifies risk, stores proposals, handles approval/preflight, and audits governance decisions. |
+| Channel layer | `npcink-openclaw-adapter` | Gives OpenClaw a small REST adapter that calls Core and WordPress Abilities API. |
 
 ## REST Surface
 
 All routes require `manage_options` through normal WordPress REST
 authentication, such as an administrator Application Password.
 
-- `GET /wp-json/magick-ai-adapter/v1/health`
-- `GET /wp-json/magick-ai-adapter/v1/help`
-- `GET /wp-json/magick-ai-adapter/v1/capabilities`
-- `POST /wp-json/magick-ai-adapter/v1/run-read-ability`
-- `POST /wp-json/magick-ai-adapter/v1/media-metadata-optimization`
-- `POST /wp-json/magick-ai-adapter/v1/media-derivative-runs`
-- `GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}`
-- `GET /wp-json/magick-ai-adapter/v1/media-derivative-runs/{run_id}/result`
-- `GET /wp-json/magick-ai-adapter/v1/media-derivative-artifacts/{artifact_id}/preview`
-- `POST /wp-json/magick-ai-adapter/v1/media-derivative-proposal-payload`
-- `POST /wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke`
-- `GET /wp-json/magick-ai-adapter/v1/site-info`
-- `GET /wp-json/magick-ai-adapter/v1/site-summary`
-- `GET /wp-json/magick-ai-adapter/v1/wp-diagnostics-summary`
-- `GET /wp-json/magick-ai-adapter/v1/wp-ops-diagnostics-detail`
-- `GET /wp-json/magick-ai-adapter/v1/active-plugins-detail`
-- `GET /wp-json/magick-ai-adapter/v1/plugin-conflict-diagnostics`
-- `GET /wp-json/magick-ai-adapter/v1/recent-error-log`
-- `GET /wp-json/magick-ai-adapter/v1/recent-error-log-tail`
-- `GET /wp-json/magick-ai-adapter/v1/current-user-permissions`
-- `GET /wp-json/magick-ai-adapter/v1/php-extensions`
-- `GET /wp-json/magick-ai-adapter/v1/object-cache-status`
-- `GET /wp-json/magick-ai-adapter/v1/database-info`
-- `GET /wp-json/magick-ai-adapter/v1/rewrite-rules-status`
-- `GET /wp-json/magick-ai-adapter/v1/cron-events-detail`
-- `GET /wp-json/magick-ai-adapter/v1/ssl-https-status`
-- `GET /wp-json/magick-ai-adapter/v1/custom-post-types`
-- `GET /wp-json/magick-ai-adapter/v1/roles-capabilities`
-- `GET /wp-json/magick-ai-adapter/v1/widgets-sidebars`
-- `GET /wp-json/magick-ai-adapter/v1/block-theme-assets`
-- `GET /wp-json/magick-ai-adapter/v1/search-index-status`
-- `GET /wp-json/magick-ai-adapter/v1/server-info`
-- `GET /wp-json/magick-ai-adapter/v1/integrations-status`
-- `GET /wp-json/magick-ai-adapter/v1/seo-summary`
-- `GET /wp-json/magick-ai-adapter/v1/security-summary`
-- `GET /wp-json/magick-ai-adapter/v1/performance-summary`
-- `GET /wp-json/magick-ai-adapter/v1/workflow-recipes`
-- `GET /wp-json/magick-ai-adapter/v1/workflow-recipe?recipe_id=workflow/...`
-- `GET /wp-json/magick-ai-adapter/v1/posts`
-- `GET /wp-json/magick-ai-adapter/v1/post-context`
-- `GET /wp-json/magick-ai-adapter/v1/media`
-- `GET /wp-json/magick-ai-adapter/v1/media-attachment-by-url?url={uploads_url}`
-- `GET /wp-json/magick-ai-adapter/v1/terms`
-- `GET /wp-json/magick-ai-adapter/v1/taxonomy-terms`
-- `GET /wp-json/magick-ai-adapter/v1/categories`
-- `GET /wp-json/magick-ai-adapter/v1/tags`
-- `GET /wp-json/magick-ai-adapter/v1/term?id={terms.result.items[].id}`
-- `GET /wp-json/magick-ai-adapter/v1/comments`
-- `GET /wp-json/magick-ai-adapter/v1/users`
-- `GET /wp-json/magick-ai-adapter/v1/menu`
-- `GET /wp-json/magick-ai-adapter/v1/internal-link-targets`
-- `GET /wp-json/magick-ai-adapter/v1/post-stats`
-- `GET /wp-json/magick-ai-adapter/v1/post-revisions`
-- `GET /wp-json/magick-ai-adapter/v1/post-meta`
-- `GET /wp-json/magick-ai-adapter/v1/pages`
-- `GET /wp-json/magick-ai-adapter/v1/page`
-- `GET /wp-json/magick-ai-adapter/v1/page-structure`
-- `GET /wp-json/magick-ai-adapter/v1/pages-tree`
-- `GET /wp-json/magick-ai-adapter/v1/content-inventory-health`
-- `GET /wp-json/magick-ai-adapter/v1/content-inventory-fix-plan`
-- `GET /wp-json/magick-ai-adapter/v1/test-content-cleanup-plan`
-- `GET /wp-json/magick-ai-adapter/v1/content-discoverability-context`
-- `GET /wp-json/magick-ai-adapter/v1/content-discoverability-validation`
-- `GET /wp-json/magick-ai-adapter/v1/content-discoverability-brief`
-- `GET /wp-json/magick-ai-adapter/v1/article-writing-pack`
-- `GET /wp-json/magick-ai-adapter/v1/site-operations-dashboard`
-- `GET /wp-json/magick-ai-adapter/v1/publishing-calendar-context`
-- `GET /wp-json/magick-ai-adapter/v1/media-inventory-health`
-- `GET /wp-json/magick-ai-adapter/v1/media-inventory-fix-plan`
-- `GET /wp-json/magick-ai-adapter/v1/taxonomy-inventory-health`
-- `GET /wp-json/magick-ai-adapter/v1/proposals`
-- `GET /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}`
-- `POST /wp-json/magick-ai-adapter/v1/proposals`
-- `POST /wp-json/magick-ai-adapter/v1/proposals/from-plan`
-- `POST /wp-json/magick-ai-adapter/v1/execute-approved-proposal`
-- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/execute`
-- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve-and-execute`
-- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/approve`
-- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/reject`
-- `POST /wp-json/magick-ai-adapter/v1/proposals/{proposal_id}/commit-preflight`
+- `GET /wp-json/npcink-openclaw-adapter/v1/health`
+- `GET /wp-json/npcink-openclaw-adapter/v1/help`
+- `GET /wp-json/npcink-openclaw-adapter/v1/capabilities`
+- `POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`
+- `POST /wp-json/npcink-openclaw-adapter/v1/media-metadata-optimization`
+- `POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs`
+- `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}`
+- `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result`
+- `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview`
+- `POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload`
+- `POST /wp-json/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke`
+- `GET /wp-json/npcink-openclaw-adapter/v1/site-info`
+- `GET /wp-json/npcink-openclaw-adapter/v1/site-summary`
+- `GET /wp-json/npcink-openclaw-adapter/v1/wp-diagnostics-summary`
+- `GET /wp-json/npcink-openclaw-adapter/v1/wp-ops-diagnostics-detail`
+- `GET /wp-json/npcink-openclaw-adapter/v1/active-plugins-detail`
+- `GET /wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics`
+- `GET /wp-json/npcink-openclaw-adapter/v1/recent-error-log`
+- `GET /wp-json/npcink-openclaw-adapter/v1/recent-error-log-tail`
+- `GET /wp-json/npcink-openclaw-adapter/v1/current-user-permissions`
+- `GET /wp-json/npcink-openclaw-adapter/v1/php-extensions`
+- `GET /wp-json/npcink-openclaw-adapter/v1/object-cache-status`
+- `GET /wp-json/npcink-openclaw-adapter/v1/database-info`
+- `GET /wp-json/npcink-openclaw-adapter/v1/rewrite-rules-status`
+- `GET /wp-json/npcink-openclaw-adapter/v1/cron-events-detail`
+- `GET /wp-json/npcink-openclaw-adapter/v1/ssl-https-status`
+- `GET /wp-json/npcink-openclaw-adapter/v1/custom-post-types`
+- `GET /wp-json/npcink-openclaw-adapter/v1/roles-capabilities`
+- `GET /wp-json/npcink-openclaw-adapter/v1/widgets-sidebars`
+- `GET /wp-json/npcink-openclaw-adapter/v1/block-theme-assets`
+- `GET /wp-json/npcink-openclaw-adapter/v1/search-index-status`
+- `GET /wp-json/npcink-openclaw-adapter/v1/server-info`
+- `GET /wp-json/npcink-openclaw-adapter/v1/integrations-status`
+- `GET /wp-json/npcink-openclaw-adapter/v1/seo-summary`
+- `GET /wp-json/npcink-openclaw-adapter/v1/security-summary`
+- `GET /wp-json/npcink-openclaw-adapter/v1/performance-summary`
+- `GET /wp-json/npcink-openclaw-adapter/v1/workflow-recipes`
+- `GET /wp-json/npcink-openclaw-adapter/v1/workflow-recipe?recipe_id=workflow/...`
+- `GET /wp-json/npcink-openclaw-adapter/v1/posts`
+- `GET /wp-json/npcink-openclaw-adapter/v1/post-context`
+- `GET /wp-json/npcink-openclaw-adapter/v1/media`
+- `GET /wp-json/npcink-openclaw-adapter/v1/media-attachment-by-url?url={uploads_url}`
+- `GET /wp-json/npcink-openclaw-adapter/v1/terms`
+- `GET /wp-json/npcink-openclaw-adapter/v1/taxonomy-terms`
+- `GET /wp-json/npcink-openclaw-adapter/v1/categories`
+- `GET /wp-json/npcink-openclaw-adapter/v1/tags`
+- `GET /wp-json/npcink-openclaw-adapter/v1/term?id={terms.result.items[].id}`
+- `GET /wp-json/npcink-openclaw-adapter/v1/comments`
+- `GET /wp-json/npcink-openclaw-adapter/v1/users`
+- `GET /wp-json/npcink-openclaw-adapter/v1/menu`
+- `GET /wp-json/npcink-openclaw-adapter/v1/internal-link-targets`
+- `GET /wp-json/npcink-openclaw-adapter/v1/post-stats`
+- `GET /wp-json/npcink-openclaw-adapter/v1/post-revisions`
+- `GET /wp-json/npcink-openclaw-adapter/v1/post-meta`
+- `GET /wp-json/npcink-openclaw-adapter/v1/pages`
+- `GET /wp-json/npcink-openclaw-adapter/v1/page`
+- `GET /wp-json/npcink-openclaw-adapter/v1/page-structure`
+- `GET /wp-json/npcink-openclaw-adapter/v1/pages-tree`
+- `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-health`
+- `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-fix-plan`
+- `GET /wp-json/npcink-openclaw-adapter/v1/test-content-cleanup-plan`
+- `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context`
+- `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation`
+- `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief`
+- `GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack`
+- `GET /wp-json/npcink-openclaw-adapter/v1/site-operations-dashboard`
+- `GET /wp-json/npcink-openclaw-adapter/v1/publishing-calendar-context`
+- `GET /wp-json/npcink-openclaw-adapter/v1/media-inventory-health`
+- `GET /wp-json/npcink-openclaw-adapter/v1/media-inventory-fix-plan`
+- `GET /wp-json/npcink-openclaw-adapter/v1/taxonomy-inventory-health`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`
+- `POST /wp-json/npcink-openclaw-adapter/v1/execute-approved-proposal`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/execute`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/reject`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/commit-preflight`
 
 GET shortcut query parameters are forwarded as ability `input`. For example,
 `/media?per_page=10&has_empty_alt=1` becomes read input for
-`magick-ai/list-media`.
+`npcink-abilities-toolkit/list-media`.
 
 Diagnostics shortcuts are Adapter aliases over existing direct-read abilities
-from `magick-ai-abilities`; Adapter does not collect these facts itself.
+from `npcink-abilities-toolkit`; Adapter does not collect these facts itself.
 `wp-diagnostics-summary` is only a quick overview. P0/P1/P2 troubleshooting
 detail shortcuts call `npcink-abilities-toolkit/wp-ops-diagnostics-detail`.
 
@@ -167,7 +167,7 @@ Default diagnostics detail input is:
 ```
 
 For deep plugin conflict troubleshooting, use
-`GET /wp-json/magick-ai-adapter/v1/plugin-conflict-diagnostics` or send the
+`GET /wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics` or send the
 equivalent input:
 
 ```json
@@ -207,41 +207,41 @@ grouped by `plugins.active`, `plugins.inactive`, `plugins.update_available`,
 compatibility `contents` array is only redline text for display. The
 diagnostics abilities own redaction and schema boundaries. Adapter does not
 read arbitrary files, expose database names/table names, collect secrets,
-invent diagnostics data, or mix Magick AI runtime, MCP, or cloud state into the
+invent diagnostics data, or mix Npcink runtime, MCP, or cloud state into the
 WordPress diagnostics mapping.
 
 Content shortcuts pass query parameters through to the underlying ability input,
-including the current `magick-ai/list-posts` filters, richer
-`magick-ai/get-post-context` output, term sample-post flags, user
+including the current `npcink-abilities-toolkit/list-posts` filters, richer
+`npcink-abilities-toolkit/get-post-context` output, term sample-post flags, user
 `author_profile`, comment post context, media `attached_to`/`usage`, and
-`magick-ai/get-menu` tree output.
+`npcink-abilities-toolkit/get-menu` tree output.
 
 For media metadata optimization, `POST /media-metadata-optimization` calls the
-read-only `magick-ai/optimize-media-metadata` ability and returns suggestions
+read-only `npcink-abilities-toolkit/optimize-media-metadata` ability and returns suggestions
 for attachment title, alt, caption, description, `source_type`, source,
 photographer, attribution, and copyright fields. It does not write media
 records or replace files. To apply reviewed suggestions, create a governed
-Core proposal for `magick-ai/update-media-details`, then execute through
+Core proposal for `npcink-abilities-toolkit/update-media-details`, then execute through
 Adapter's existing Core-approved allowlisted path.
 
 For media format attention, `run-read-ability` may call
-`magick-ai/inspect-media-asset` directly, and the shortcut key
+`npcink-abilities-toolkit/inspect-media-asset` directly, and the shortcut key
 `media-asset-inspection` maps to the same read-only ability. The response
 contains file size, dimensions, target format, compression, resize, and
 derivative recommendations only.
 
 For a hard-coded local uploads URL, `GET /media-attachment-by-url?url={url}`
-maps to `magick-ai/resolve-media-attachment-by-url`. It returns bounded
+maps to `npcink-abilities-toolkit/resolve-media-attachment-by-url`. It returns bounded
 read-only attachment candidates and match evidence so the caller can continue
 through preview, Core proposal, approval, preflight, and execution without using
 database, WP-CLI, or filesystem lookup.
 
 For Cloud-generated media derivatives, use `POST /media-derivative-runs`.
 Adapter builds the local read-only
-`magick-ai/build-media-derivative-cloud-request` contract, uses Core media
+`npcink-abilities-toolkit/build-media-derivative-cloud-request` contract, uses Core media
 policy defaults when available, supplies the local source attachment file or a
 caller-provided short-TTL artifact reference, and dispatches only through
-`magick-ai-cloud-addon`. Image watermark plans may supply a watermark artifact
+`npcink-cloud-addon`. Image watermark plans may supply a watermark artifact
 or use the local Core watermark attachment; text watermark plans are dispatched
 as structured text options without a watermark artifact. The route returns a
 Cloud run projection plus the ability response. Poll
@@ -254,10 +254,10 @@ auth or the short-lived local `preview_sig` emitted in the URL. Then call
 result, derivative artifact, and reviewed `media_details_input` when the user
 intent is full image optimization. Adapter returns a legacy single derivative
 `proposal_payload` plus a `from_plan_request` for
-`magick-ai/build-media-optimization-plan`; submit that request to
+`npcink-abilities-toolkit/build-media-optimization-plan`; submit that request to
 `POST /proposals/from-plan` so Core creates one batch proposal containing
-`magick-ai/update-media-details` and
-`magick-ai/adopt-cloud-media-derivative`. The payload is Core-ready but not
+`npcink-abilities-toolkit/update-media-details` and
+`npcink-abilities-toolkit/adopt-cloud-media-derivative`. The payload is Core-ready but not
 submitted, approved, or executed by Adapter. If `media_details_input` is
 missing, stop and collect reviewed metadata before creating a Core proposal; do
 not create a derivative-only proposal for the same optimize-image intent. If Core reports the media
@@ -272,18 +272,18 @@ calling Cloud directly.
 Adapter does not create a media registry, artifact registry, Cloud settings
 surface, approval truth, attachment metadata update, or file replacement. To
 adopt a Cloud derivative artifact as the attachment main file, create a
-governed Core proposal for `magick-ai/adopt-cloud-media-derivative`, then
+governed Core proposal for `npcink-abilities-toolkit/adopt-cloud-media-derivative`, then
 execute only through Adapter's Core-approved allowlisted path. To switch the
 attachment main file to an already recorded local derivative, create a governed
-Core proposal for `magick-ai/replace-media-file`; both write abilities record
+Core proposal for `npcink-abilities-toolkit/replace-media-file`; both write abilities record
 backup and rollback metadata. Adapter does not accept arbitrary replacement
 URLs or replace files outside Core-approved execution.
 
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
 `openclaw_thread_id`, `ability_id`, `adapter_request_id`, `adapter_route`,
-`ai_provider`, `ai_model`, `governance_source=magick-ai-core`, and nested
-`magick_ai_core.proposal_id` / `magick_ai_core.correlation_id` into AI Request
+`ai_provider`, `ai_model`, `governance_source=npcink-governance-core`, and nested
+`npcink_governance_core.proposal_id` / `npcink_governance_core.correlation_id` into AI Request
 Logs context through the `wpai_request_log_context` filter while an ability or
 bounded provider smoke request is running. POST `/run-read-ability` accepts
 these values in a top-level `log_context` object. This lets AI Request Logs
@@ -296,12 +296,12 @@ does not put provider credentials, prompts, responses, token details, or AI
 Request Logs into Core.
 AI Request Logs are the provider request log.
 
-## Magick AI Adapter UI
+## Npcink OpenClaw Adapter UI
 
 WordPress administrators can open:
 
 ```text
-Magick AI -> Adapter
+Npcink -> Adapter
 ```
 
 The page default view shows:
@@ -310,7 +310,7 @@ The page default view shows:
   password, credential, or secret field;
 - Adapter base URL and non-secret connection manifest URL;
 - Core and WordPress Abilities API connection status;
-- a higher-security signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter`;
+- a higher-security signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter`;
 - authorized public key management with revoke actions;
 - a `Proposal status` lookup where operators paste the `Proposal ID` returned
   to OpenClaw, see Core status through Adapter's read-only proposal proxy, open
@@ -347,23 +347,23 @@ only the public key to WordPress for admin approval, and signs later Adapter
 requests:
 
 ```text
-GET  /wp-json/magick-ai-adapter/v1/connection/manifest
-POST /wp-json/magick-ai-adapter/v1/connect/device/start
-POST /wp-json/magick-ai-adapter/v1/connect/device/poll
-GET  /wp-json/magick-ai-adapter/v1/connection/key-pairs
+GET  /wp-json/npcink-openclaw-adapter/v1/connection/manifest
+POST /wp-json/npcink-openclaw-adapter/v1/connect/device/start
+POST /wp-json/npcink-openclaw-adapter/v1/connect/device/poll
+GET  /wp-json/npcink-openclaw-adapter/v1/connection/key-pairs
 ```
 
 For local validation, use the npm CLI on the same machine or execution
 environment as OpenClaw:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter status --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
 public key, and the script will save a local profile under
-`~/.magick-ai-adapter/keypair-profiles/` before testing a signed `GET /health`
+`~/.npcink-openclaw-adapter/keypair-profiles/` before testing a signed `GET /health`
 request. Use `--no-open` if you want to print the URL without opening a browser.
 The profile contains the local private key; do not paste or log it. Production
 clients should store the private key in the OS keychain or the client credential
@@ -377,11 +377,11 @@ After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /health
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls GET /capabilities
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
 ```
 
 The request command accepts only Adapter-relative routes such as `/health`,
@@ -393,20 +393,20 @@ The CLI refuses those routes when the body still contains preview markers such
 as `dry_run=true`, `commit=false`, or `commit_execution=false`; for dry-run or
 preflight-only validation, use `/proposals/{proposal_id}/commit-preflight` with
 `--intent=preflight` and stop there.
-The repository keeps `tools/magick-adapter.mjs`,
+The repository keeps `tools/npcink-openclaw-adapter.mjs`,
 `tools/keypair-device-pairing.mjs`, and `tools/keypair-adapter-request.mjs` as
 development compatibility wrappers. The user-facing local client entrypoint is
 the published npm CLI. For repo-local package testing, use:
 
 ```bash
-npx --yes --package /path/to/magick-ai-adapter/packages/adapter-cli magick-adapter status --profile=local --insecure-local-tls
+npx --yes --package /path/to/npcink-openclaw-adapter/packages/adapter-cli npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
 for the public-key pairing and request-signing contract.
 
 When the current site URL is local (`localhost`, loopback, or `.local`), the
-handoff form can include `MAGICK_AI_ADAPTER_INSECURE_SSL=true` in copied
+handoff form can include `NPCINK_OPENCLAW_ADAPTER_INSECURE_SSL=true` in copied
 OpenClaw client configuration. This only affects the generated client env text;
 it does not change WordPress or Adapter server-side TLS behavior.
 
@@ -429,14 +429,14 @@ For the OpenClaw SEO/AEO/GEO suggestion recipe, use
 [`docs/openclaw-content-discoverability-recipe.md`](docs/openclaw-content-discoverability-recipe.md).
 The primary SEO/GEO/AEO entrypoint is
 `GET /content-discoverability-brief` or
-`magick-ai-toolbox/build-content-discoverability-brief`.
+`npcink-toolbox/build-content-discoverability-brief`.
 Use `article-writing-pack` only for broad natural-language requests such as
 "help me write an article".
 
 For broad natural-language article requests, use
 [`docs/openclaw-ai-article-writing-pack-recipe.md`](docs/openclaw-ai-article-writing-pack-recipe.md).
 The shortcut `GET /article-writing-pack` forwards input to
-`magick-ai-toolbox/build-ai-article-writing-pack` and returns a
+`npcink-toolbox/build-ai-article-writing-pack` and returns a
 suggestion-only writing pack for a local OpenClaw review candidate. This is an
 article assistant path, not an article generator, Cloud writer, or batch
 publishing surface.
@@ -447,7 +447,7 @@ For productized OpenClaw acceptance, use
 For the admin page hierarchy and non-goals, use
 [`docs/admin-surface-standard.md`](docs/admin-surface-standard.md).
 
-Cloud runtime access belongs to the standalone `magick-ai-cloud-addon`.
+Cloud runtime access belongs to the standalone `npcink-cloud-addon`.
 Adapter must not add its own Cloud settings, signing client, or `/cloud/*`
 routes. If an OpenClaw flow needs hosted runtime, Adapter should call the Cloud
 Addon public PHP seam described in
@@ -456,7 +456,7 @@ Addon public PHP seam described in
 ## Observability
 
 Adapter emits local metadata-only events through
-`magick_ai_observability_event`; the Cloud Addon is the only uploader. Current
+`npcink_openclaw_adapter_observability_event`; the Cloud Addon is the only uploader. Current
 canonical Adapter event kinds are `adapter.core.request`,
 `adapter.proposal.create`, `adapter.proposal.plan_ingest`,
 `adapter.commit.preflight`, `adapter.proposal.execute`,
@@ -481,7 +481,7 @@ Initial connection:
    - `core_capabilities=true`
    - `abilities_catalog=true`
    - `approval_proxy_enabled=false`
-   - `approval_surface=magick_ai_core_admin`
+   - `approval_surface=npcink_governance_core_admin`
    - `core_proxy_execute=false`
    - `commit_execution=false`
 4. OpenClaw calls `GET /capabilities` and uses Core guidance as the only
@@ -509,15 +509,15 @@ Read-only execution:
 Plan-to-proposal flow:
 
 1. OpenClaw runs one of the direct-read planning abilities:
-   `magick-ai/build-content-inventory-fix-plan`,
-   `magick-ai/build-test-content-cleanup-plan`,
-	   `magick-ai/build-media-inventory-fix-plan`,
-	   `magick-ai/build-media-reference-repair-plan`, or
-	   `magick-ai/build-media-settings-reference-repair-plan`, or
-	   `magick-ai/build-media-rename-plan`, or
-	   `magick-ai-toolbox/build-article-write-plan`, or
-	   `magick-ai-toolbox/build-article-batch-write-plan`, or
-	   `magick-ai-toolbox/build-article-media-batch-write-plan`.
+   `npcink-abilities-toolkit/build-content-inventory-fix-plan`,
+   `npcink-abilities-toolkit/build-test-content-cleanup-plan`,
+	   `npcink-abilities-toolkit/build-media-inventory-fix-plan`,
+	   `npcink-abilities-toolkit/build-media-reference-repair-plan`, or
+	   `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`, or
+	   `npcink-abilities-toolkit/build-media-rename-plan`, or
+	   `npcink-toolbox/build-article-write-plan`, or
+	   `npcink-toolbox/build-article-batch-write-plan`, or
+	   `npcink-toolbox/build-article-media-batch-write-plan`.
 2. The adapter preserves plan fields including `batch_id`, `issue_types`,
    `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
    `requires_approval`, `commit_execution`, `dry_run`, `manual_review`,
@@ -525,33 +525,33 @@ Plan-to-proposal flow:
 3. OpenClaw calls `POST /proposals/from-plan` with `plan_ability_id`, `plan`,
    optional `plan_input`, and `caller` metadata.
 4. The adapter forwards that payload to Core
-   `POST /magick-ai-core/v1/proposals/from-plan` and preserves Core status.
+   `POST /npcink-governance-core/v1/proposals/from-plan` and preserves Core status.
    Adapter does not promote destructive candidates into executable actions.
 	   For the Toolbox article write plan, Adapter still only forwards the
 	   reviewed `article_write_plan`; Core validates the plan and Adapter later
-	   executes `magick-ai/create-draft` only after Core approval and
+	   executes `npcink-abilities-toolkit/create-draft` only after Core approval and
 	   commit-preflight. The machine-readable OpenClaw playbook is exposed as
 	   `openclaw_recipes.article_draft_plan` from `GET /help`.
 	   For reviewed 2-5 article draft batches, use
-	   `magick-ai-toolbox/build-article-batch-write-plan`; Core creates one
+	   `npcink-toolbox/build-article-batch-write-plan`; Core creates one
 	   batch proposal and Adapter later executes only the approved
-	   `magick-ai/create-draft` write actions. The machine-readable playbook is
+	   `npcink-abilities-toolkit/create-draft` write actions. The machine-readable playbook is
 	   exposed as `openclaw_recipes.article_batch_draft_plan` from `GET /help`.
 	   See [OpenClaw Article Batch Draft Plan Recipe](docs/openclaw-article-batch-draft-plan-recipe.md).
 	   For reviewed article batches with selected image-source candidates, use
-	   `magick-ai-toolbox/build-article-media-batch-write-plan`; Core creates one
+	   `npcink-toolbox/build-article-media-batch-write-plan`; Core creates one
 	   batch proposal and Adapter later executes only approved
-	   `magick-ai/create-draft`, `magick-ai/upload-media-from-url`,
-	   `magick-ai/update-media-details`, and
-	   `magick-ai/set-post-featured-image` actions. The machine-readable
+	   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/upload-media-from-url`,
+	   `npcink-abilities-toolkit/update-media-details`, and
+	   `npcink-abilities-toolkit/set-post-featured-image` actions. The machine-readable
 	   playbook is exposed as `openclaw_recipes.article_media_batch_plan` from
 	   `GET /help`. See
 	   [OpenClaw Article Media Batch Plan Recipe](docs/openclaw-article-media-batch-plan-recipe.md).
 	   For adopting one reviewed `image_candidate.v1` into the media library,
-	   call `magick-ai-toolbox/build-image-candidate-adoption-plan`; Core
+	   call `npcink-toolbox/build-image-candidate-adoption-plan`; Core
 	   creates one batch proposal and Adapter later executes only approved
-	   `magick-ai/upload-media-from-url`, `magick-ai/update-media-details`, and
-	   optional `magick-ai/set-post-featured-image` actions. The
+	   `npcink-abilities-toolkit/upload-media-from-url`, `npcink-abilities-toolkit/update-media-details`, and
+	   optional `npcink-abilities-toolkit/set-post-featured-image` actions. The
 	   machine-readable playbook is exposed as
 	   `openclaw_recipes.image_candidate_adoption_plan` from `GET /help`. See
 	   [OpenClaw Image Candidate Adoption Plan Recipe](docs/openclaw-image-candidate-adoption-plan-recipe.md).
@@ -583,18 +583,18 @@ Proposal-required write flow:
    `commit_execution=false`. For dry-run-only verification, stop here and do
    not call execute.
 9. For the current approved proposal execution path, Adapter may execute only
-   `magick-ai/trash-post`, `magick-ai/create-draft`,
-   `magick-ai/update-post`, `magick-ai/set-post-seo-meta`,
-	   `magick-ai/set-post-slug`, `magick-ai/set-post-terms`,
-	   `magick-ai/delete-term`, `magick-ai/patch-post-content`,
-	   `magick-ai/patch-setting-value`,
-	   `magick-ai/update-media-details`,
-	   `magick-ai/optimize-media-asset`,
-	   `magick-ai/replace-media-file`,
-	   `magick-ai/adopt-cloud-media-derivative`,
-	   `magick-ai/rename-media-file`,
-	   `magick-ai/delete-media-permanently`, `magick-ai/reply-comment`,
-   `magick-ai/trash-comment`, or `magick-ai/approve-comment` through
+   `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`,
+   `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-seo-meta`,
+	   `npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
+	   `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
+	   `npcink-abilities-toolkit/patch-setting-value`,
+	   `npcink-abilities-toolkit/update-media-details`,
+	   `npcink-abilities-toolkit/optimize-media-asset`,
+	   `npcink-abilities-toolkit/replace-media-file`,
+	   `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
+	   `npcink-abilities-toolkit/rename-media-file`,
+	   `npcink-abilities-toolkit/delete-media-permanently`, `npcink-abilities-toolkit/reply-comment`,
+   `npcink-abilities-toolkit/trash-comment`, or `npcink-abilities-toolkit/approve-comment` through
    `POST /proposals/{proposal_id}/execute` or
    `POST /execute-approved-proposal`.
 10. Adapter fetches the Core proposal, consumes a cached Adapter preflight
@@ -608,7 +608,7 @@ Proposal-required write flow:
     stores and returns only a bounded failed execution summary; it does not
     store the full proposal or create a retry queue. Repeating the same
     successful proposal execution returns
-    `magick_ai_adapter_execution_already_completed` and does not run the
+    `npcink_openclaw_adapter_execution_already_completed` and does not run the
     ability again.
 11. Adapter does not create its own proposal or approval state and does not
     batch silently execute destructive actions. The unified action only
@@ -619,8 +619,8 @@ Proposal list/detail are read-only Core proxies. They preserve Core response
 fields such as `proposal_id`, `ability_id`, `status`, `title`, `summary`,
 `input`, `preview`, `caller`, `created_at`, `updated_at`, and detail
 `audit_timeline` when Core returns it. Adapter may be configured with a Core app
-token through `MAGICK_AI_ADAPTER_CORE_APP_TOKEN` or the
-`magick_ai_adapter_core_app_token` option. When configured, Adapter sends that
+token through `NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN` or the
+`npcink_openclaw_adapter_core_app_token` option. When configured, Adapter sends that
 token only on internal Core REST requests and does not print it. That key must
 include `proposals:read` for proposal status, plus the other scopes needed by
 the Core routes Adapter calls. The adapter must not print Core tokens in logs,
@@ -629,7 +629,7 @@ proposal payloads, error responses, or documentation examples.
 When OpenClaw has a Core `proposal_id` or commit-preflight `correlation_id`, it
 should pass those values to Adapter read or future execution requests as
 `log_context` or query parameters. Adapter will include them under
-`magick_ai_adapter`, top-level context fields, and nested `magick_ai_core`
+`npcink_openclaw_adapter`, top-level context fields, and nested `npcink_governance_core`
 context for provider request log correlation.
 
 For local readiness smoke, administrators can manually call the provider log
@@ -644,8 +644,8 @@ This example uses local Ollama when `qwen3.5:0.8b` is available:
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
-  -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"magick-ai/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
-  "https://example.test/wp-json/magick-ai-adapter/v1/ai-provider-log-correlation-smoke"
+  -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"npcink-abilities-toolkit/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
+  "https://example.test/wp-json/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke"
 ```
 
 If the AI Request Logs provider column is blank for a local connector, inspect
@@ -654,11 +654,11 @@ and explicit `ai_model` sent to the smoke route.
 
 `POST /proposals/{proposal_id}/approve` and
 `POST /proposals/{proposal_id}/reject` are disabled stubs. They return HTTP 403
-with `code=magick_ai_adapter_approval_proxy_disabled`,
+with `code=npcink_openclaw_adapter_approval_proxy_disabled`,
 `approval_proxy_enabled=false`, and
-`approval_surface=magick_ai_core_admin`. For the Adapter/OpenClaw unified user
+`approval_surface=npcink_governance_core_admin`. For the Adapter/OpenClaw unified user
 action, use `POST /proposals/{proposal_id}/approve-and-execute`; otherwise use
-Magick AI Core admin for split approval decisions. The adapter does not forward
+Npcink Governance Core admin for split approval decisions. The adapter does not forward
 the standalone approve/reject stub routes to Core and does not require a
 default Core key with approval or rejection scopes.
 
@@ -666,7 +666,7 @@ Example health request:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://example.test/wp-json/magick-ai-adapter/v1/health"
+  "https://example.test/wp-json/npcink-openclaw-adapter/v1/health"
 ```
 
 Example proposal request:
@@ -674,15 +674,15 @@ Example proposal request:
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
-  -d '{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
-  "https://example.test/wp-json/magick-ai-adapter/v1/proposals"
+  -d '{"ability_id":"npcink-abilities-toolkit/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
+  "https://example.test/wp-json/npcink-openclaw-adapter/v1/proposals"
 ```
 
 Example proposal status request:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://example.test/wp-json/magick-ai-adapter/v1/proposals/PROPOSAL_ID"
+  "https://example.test/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID"
 ```
 
 ## OpenClaw Flow
@@ -709,18 +709,18 @@ Write or destructive abilities:
 6. Adapter relays Core `commit_execution=false`. Dry-run-only verification
    stops at Adapter commit-preflight; do not call execute unless the operator
    intends a final write.
-7. For approved proposal execution, only `magick-ai/trash-post`,
-   `magick-ai/create-draft`, `magick-ai/update-post`,
-   `magick-ai/patch-post-content`, `magick-ai/patch-setting-value`,
-   `magick-ai/set-post-seo-meta`, `magick-ai/set-post-slug`,
-	   `magick-ai/set-post-terms`, `magick-ai/delete-term`,
-	   `magick-ai/update-media-details`, `magick-ai/optimize-media-asset`,
-	   `magick-ai/replace-media-file`,
-	   `magick-ai/adopt-cloud-media-derivative`,
-	   `magick-ai/rename-media-file`,
-	   `magick-ai/delete-media-permanently`,
-   `magick-ai/reply-comment`, `magick-ai/trash-comment`, and
-   `magick-ai/approve-comment` are supported in
+7. For approved proposal execution, only `npcink-abilities-toolkit/trash-post`,
+   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
+   `npcink-abilities-toolkit/patch-post-content`, `npcink-abilities-toolkit/patch-setting-value`,
+   `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
+	   `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
+	   `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/optimize-media-asset`,
+	   `npcink-abilities-toolkit/replace-media-file`,
+	   `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
+	   `npcink-abilities-toolkit/rename-media-file`,
+	   `npcink-abilities-toolkit/delete-media-permanently`,
+   `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`, and
+   `npcink-abilities-toolkit/approve-comment` are supported in
    this adapter. The execution input may be a single allowlisted proposal input or a bounded
    `input.write_actions[]` batch where every action targets the allowlist.
    OpenClaw calls `/proposals/{proposal_id}/execute`; Adapter performs Core
@@ -738,7 +738,7 @@ For profiled abilities, Adapter also validates proposal input at
 the proposal is sent to Core. The same Adapter-owned input schema check also
 runs for profiled `plan.write_actions[]` during `POST /proposals/from-plan`
 before Adapter forwards the plan to Core; invalid actions return
-`magick_ai_adapter_plan_action_input_invalid` with `blocked_items[]` carrying
+`npcink_openclaw_adapter_plan_action_input_invalid` with `blocked_items[]` carrying
 the action index, action id, target ability id, blocked field, and reused
 single-proposal block code. Exact `$outputs.<prior_action_id>.<field>`
 references are allowed in profiled plan action input only when they point to an

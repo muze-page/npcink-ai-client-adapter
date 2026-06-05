@@ -1,7 +1,7 @@
 # Key Pair Device Pairing Contract
 
 This document defines the Phase 2 MVP for connecting OpenClaw-style local
-clients to Magick AI Adapter without transferring a WordPress Application
+clients to Npcink OpenClaw Adapter without transferring a WordPress Application
 Password.
 
 ## Boundary
@@ -34,7 +34,7 @@ Adapter does not own:
 
 ## REST Routes
 
-### `POST /wp-json/magick-ai-adapter/v1/connect/device/start`
+### `POST /wp-json/npcink-openclaw-adapter/v1/connect/device/start`
 
 Public route. Starts a pending pairing.
 
@@ -42,11 +42,11 @@ Request:
 
 ```json
 {
-  "schema_version": "magick_ai_device_pairing.v1",
+  "schema_version": "npcink_openclaw_adapter_device_pairing.v1",
   "client": {
     "name": "OpenClaw",
     "device_name": "Muze Mac",
-    "broker": "@magick-ai/adapter-broker",
+    "broker": "@npcink-abilities-toolkit/adapter-broker",
     "broker_version": "0.1.0"
   },
   "key": {
@@ -64,8 +64,8 @@ Response:
 {
   "device_code": "dev_...",
   "user_code": "ABCD-1234",
-  "verification_uri": "https://example.test/wp-admin/admin.php?page=magick-ai-adapter-pair",
-  "verification_uri_complete": "https://example.test/wp-admin/admin.php?page=magick-ai-adapter-pair&user_code=ABCD-1234",
+  "verification_uri": "https://example.test/wp-admin/admin.php?page=npcink-openclaw-adapter-pair",
+  "verification_uri_complete": "https://example.test/wp-admin/admin.php?page=npcink-openclaw-adapter-pair&user_code=ABCD-1234",
   "expires_in": 600,
   "interval": 3
 }
@@ -73,7 +73,7 @@ Response:
 
 Adapter stores only a hash of `device_code`.
 
-### `POST /wp-json/magick-ai-adapter/v1/connect/device/poll`
+### `POST /wp-json/npcink-openclaw-adapter/v1/connect/device/poll`
 
 Public route. Polls a pending pairing.
 
@@ -95,7 +95,7 @@ Approved response:
   "connection_id": "mag_conn_...",
   "key_id": "mk_...",
   "site_url": "https://example.test",
-  "adapter_base_url": "https://example.test/wp-json/magick-ai-adapter/v1",
+  "adapter_base_url": "https://example.test/wp-json/npcink-openclaw-adapter/v1",
   "scopes_effective": ["magick.read", "magick.propose", "magick.status"]
 }
 ```
@@ -107,7 +107,7 @@ Rejected or expired pairings do not return private material.
 The WordPress admin route is:
 
 ```text
-wp-admin/admin.php?page=magick-ai-adapter-pair&user_code=ABCD-1234
+wp-admin/admin.php?page=npcink-openclaw-adapter-pair&user_code=ABCD-1234
 ```
 
 The page requires an authenticated WordPress user with `manage_options`. It
@@ -135,19 +135,19 @@ The user can approve or reject. On approval, Adapter stores:
 Signed Adapter calls use these headers:
 
 ```http
-X-Magick-Key-Id: mk_...
-X-Magick-Timestamp: 2026-06-01T12:00:00Z
-X-Magick-Nonce: BASE64URL_RANDOM
-X-Magick-Content-SHA256: sha256:...
-X-Magick-Signature-Alg: Ed25519
-X-Magick-Signature: BASE64URL_SIGNATURE
+X-Npcink-Key-Id: mk_...
+X-Npcink-Timestamp: 2026-06-01T12:00:00Z
+X-Npcink-Nonce: BASE64URL_RANDOM
+X-Npcink-Content-SHA256: sha256:...
+X-Npcink-Signature-Alg: Ed25519
+X-Npcink-Signature: BASE64URL_SIGNATURE
 ```
 
 Clients should also send the same fields in `Authorization` as a transport
-fallback for local web servers that drop custom `X-Magick-*` headers:
+fallback for local web servers that drop custom `X-Npcink-*` headers:
 
 ```http
-Authorization: Magick-Signature key_id="mk_...", timestamp="2026-06-01T12:00:00Z", nonce="BASE64URL_RANDOM", content_sha256="sha256:...", alg="Ed25519", signature="BASE64URL_SIGNATURE"
+Authorization: Npcink-Signature key_id="mk_...", timestamp="2026-06-01T12:00:00Z", nonce="BASE64URL_RANDOM", content_sha256="sha256:...", alg="Ed25519", signature="BASE64URL_SIGNATURE"
 ```
 
 Canonical request:
@@ -180,21 +180,21 @@ Adapter verifies:
 OpenClaw-style clients can use the npm CLI after pairing:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter connect --site=https://example.test --profile=local
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter status --profile=local
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local GET /health
-cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter request --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter connect --site=https://example.test --profile=local
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter status --profile=local
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local GET /health
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
 ```
 
 The wrapper:
 
 - reads the local key-pair profile from
-  `~/.magick-ai-adapter/keypair-profiles/`;
+  `~/.npcink-openclaw-adapter/keypair-profiles/`;
 - signs the Adapter request locally;
 - rejects absolute URLs and accepts only Adapter-relative routes;
 - prints only the Adapter JSON response;
 - does not print the private key, profile JSON, `Authorization`, or
-  `X-Magick-*` signature headers.
+  `X-Npcink-*` signature headers.
 
 ## Scopes
 

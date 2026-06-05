@@ -2,12 +2,12 @@
 /**
  * OpenClaw connection admin page.
  *
- * @package MagickAIAdapter
+ * @package NpcinkOpenClawAdapter
  */
 
-namespace MagickAI\Adapter\Admin;
+namespace Npcink\OpenClawAdapter\Admin;
 
-use MagickAI\Adapter\Rest\Controller;
+use Npcink\OpenClawAdapter\Rest\Controller;
 use WP_Error;
 use WP_REST_Request;
 
@@ -19,13 +19,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Renders a read-only connection handoff surface for OpenClaw.
  */
 final class Connection_Page {
-	const PARENT_MENU_SLUG = 'magick-ai';
-	const MENU_SLUG        = 'magick-ai-adapter';
+	const PARENT_MENU_SLUG = 'npcink';
+	const MENU_SLUG        = 'npcink-openclaw-adapter';
 	const MENU_CAPABILITY  = 'manage_options';
-	const CREATE_ACTION    = 'magick_ai_adapter_create_openclaw_password';
-	const PAIR_MENU_SLUG   = 'magick-ai-adapter-pair';
-	const PAIR_ACTION      = 'magick_ai_adapter_pairing_decision';
-	const REVOKE_KEY_ACTION = 'magick_ai_adapter_revoke_client_key';
+	const CREATE_ACTION    = 'npcink_openclaw_adapter_create_openclaw_password';
+	const PAIR_MENU_SLUG   = 'npcink-openclaw-adapter-pair';
+	const PAIR_ACTION      = 'npcink_openclaw_adapter_pairing_decision';
+	const REVOKE_KEY_ACTION = 'npcink_openclaw_adapter_revoke_client_key';
 	const DATETIME_DISPLAY_FORMAT = 'Y-m-d H:i:s';
 
 	/**
@@ -38,8 +38,8 @@ final class Connection_Page {
 
 		add_submenu_page(
 			self::PARENT_MENU_SLUG,
-			__( 'Magick AI Adapter', 'magick-ai-adapter' ),
-			__( 'Adapter', 'magick-ai-adapter' ),
+			__( 'Npcink OpenClaw Adapter', 'npcink-openclaw-adapter' ),
+			__( 'Adapter', 'npcink-openclaw-adapter' ),
 			self::MENU_CAPABILITY,
 			self::MENU_SLUG,
 			array( $this, 'render' ),
@@ -48,8 +48,8 @@ final class Connection_Page {
 
 		add_submenu_page(
 			null,
-			__( 'Approve Magick AI Client', 'magick-ai-adapter' ),
-			__( 'Approve Magick AI Client', 'magick-ai-adapter' ),
+			__( 'Approve Npcink Client', 'npcink-openclaw-adapter' ),
+			__( 'Approve Npcink Client', 'npcink-openclaw-adapter' ),
 			self::MENU_CAPABILITY,
 			self::PAIR_MENU_SLUG,
 			array( $this, 'render_pairing_page' )
@@ -57,7 +57,7 @@ final class Connection_Page {
 	}
 
 	/**
-	 * Ensures the shared Magick AI parent menu exists.
+	 * Ensures the shared Npcink parent menu exists.
 	 *
 	 * @return void
 	 */
@@ -67,8 +67,8 @@ final class Connection_Page {
 		}
 
 		add_menu_page(
-			__( 'Magick AI', 'magick-ai-adapter' ),
-			__( 'Magick AI', 'magick-ai-adapter' ),
+			__( 'Npcink', 'npcink-openclaw-adapter' ),
+			__( 'Npcink', 'npcink-openclaw-adapter' ),
 			self::MENU_CAPABILITY,
 			self::PARENT_MENU_SLUG,
 			array( $this, 'render_overview' ),
@@ -78,8 +78,8 @@ final class Connection_Page {
 
 		add_submenu_page(
 			self::PARENT_MENU_SLUG,
-			__( 'Magick AI Overview', 'magick-ai-adapter' ),
-			__( 'Overview', 'magick-ai-adapter' ),
+			__( 'Npcink Overview', 'npcink-openclaw-adapter' ),
+			__( 'Overview', 'npcink-openclaw-adapter' ),
 			self::MENU_CAPABILITY,
 			self::PARENT_MENU_SLUG,
 			array( $this, 'render_overview' ),
@@ -88,7 +88,7 @@ final class Connection_Page {
 	}
 
 	/**
-	 * Returns whether another Magick AI plugin already created the parent menu.
+	 * Returns whether another Npcink plugin already created the parent menu.
 	 *
 	 * @return bool
 	 */
@@ -105,26 +105,26 @@ final class Connection_Page {
 	}
 
 	/**
-	 * Renders the shared Magick AI overview page.
+	 * Renders the shared Npcink overview page.
 	 *
 	 * @return void
 	 */
 	public function render_overview(): void {
 		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
-			wp_die( esc_html__( 'You do not have permission to view this page.', 'magick-ai-adapter' ) );
+			wp_die( esc_html__( 'You do not have permission to view this page.', 'npcink-openclaw-adapter' ) );
 		}
 		?>
 		<div class="wrap">
-			<h1><?php echo esc_html__( 'Magick AI', 'magick-ai-adapter' ); ?></h1>
-			<p><?php echo esc_html__( 'Local WordPress entry points for Magick AI governance, connections, cloud access, and ability packages.', 'magick-ai-adapter' ); ?></p>
-			<h2><?php echo esc_html__( 'Installed Surfaces', 'magick-ai-adapter' ); ?></h2>
+			<h1><?php echo esc_html__( 'Npcink', 'npcink-openclaw-adapter' ); ?></h1>
+			<p><?php echo esc_html__( 'Local WordPress entry points for Npcink governance, connections, cloud access, and ability packages.', 'npcink-openclaw-adapter' ); ?></p>
+			<h2><?php echo esc_html__( 'Installed Surfaces', 'npcink-openclaw-adapter' ); ?></h2>
 			<table class="widefat striped" style="max-width: 860px;">
 				<tbody>
 					<?php
-					$this->render_overview_row( __( 'Core', 'magick-ai-adapter' ), __( 'Review proposals, approval decisions, commit preflight, audit, and Core app keys.', 'magick-ai-adapter' ), 'magick-ai-core' );
-					$this->render_overview_row( __( 'Adapter', 'magick-ai-adapter' ), __( 'Connect OpenClaw through the Adapter surface.', 'magick-ai-adapter' ), self::MENU_SLUG );
-					$this->render_overview_row( __( 'Abilities', 'magick-ai-adapter' ), __( 'Verify WordPress Abilities API packages and demo ability controls.', 'magick-ai-adapter' ), 'magick-ai-abilities' );
-					$this->render_overview_row( __( 'Cloud Addon', 'magick-ai-adapter' ), __( 'Connect this site to Magick AI Cloud without moving local control-plane truth.', 'magick-ai-adapter' ), 'magick-ai-cloud-addon' );
+					$this->render_overview_row( __( 'Core', 'npcink-openclaw-adapter' ), __( 'Review proposals, approval decisions, commit preflight, audit, and Core app keys.', 'npcink-openclaw-adapter' ), 'npcink-governance-core' );
+					$this->render_overview_row( __( 'Adapter', 'npcink-openclaw-adapter' ), __( 'Connect OpenClaw through the Adapter surface.', 'npcink-openclaw-adapter' ), self::MENU_SLUG );
+					$this->render_overview_row( __( 'Abilities', 'npcink-openclaw-adapter' ), __( 'Verify WordPress Abilities API packages and demo ability controls.', 'npcink-openclaw-adapter' ), 'npcink-abilities-toolkit' );
+					$this->render_overview_row( __( 'Cloud Addon', 'npcink-openclaw-adapter' ), __( 'Connect this site to Npcink Cloud without moving local control-plane truth.', 'npcink-openclaw-adapter' ), 'npcink-cloud-addon' );
 					?>
 				</tbody>
 			</table>
@@ -147,9 +147,9 @@ final class Connection_Page {
 			<td><?php echo esc_html( $description ); ?></td>
 			<td>
 				<?php if ( $this->is_submenu_registered( $slug ) ) : ?>
-					<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $slug ) ); ?>"><?php echo esc_html__( 'Open', 'magick-ai-adapter' ); ?></a>
+					<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $slug ) ); ?>"><?php echo esc_html__( 'Open', 'npcink-openclaw-adapter' ); ?></a>
 				<?php else : ?>
-					<span style="color: #646970;"><?php echo esc_html__( 'Not installed', 'magick-ai-adapter' ); ?></span>
+					<span style="color: #646970;"><?php echo esc_html__( 'Not installed', 'npcink-openclaw-adapter' ); ?></span>
 				<?php endif; ?>
 			</td>
 		</tr>
@@ -157,7 +157,7 @@ final class Connection_Page {
 	}
 
 	/**
-	 * Returns whether a Magick AI submenu has been registered.
+	 * Returns whether a Npcink submenu has been registered.
 	 *
 	 * @param string $slug Menu page slug.
 	 * @return bool
@@ -181,7 +181,7 @@ final class Connection_Page {
 	 */
 	public function render(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to view this page.', 'magick-ai-adapter' ) );
+			wp_die( esc_html__( 'You do not have permission to view this page.', 'npcink-openclaw-adapter' ) );
 		}
 
 		$base_url        = rest_url( Controller::NAMESPACE );
@@ -209,18 +209,18 @@ final class Connection_Page {
 		$lookup_id       = isset( $_GET['adapter_proposal_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adapter_proposal_id'] ) ) : '';
 		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
 		?>
-		<div class="wrap magick-ai-adapter-connection">
-			<h1><?php echo esc_html__( 'Magick AI Adapter', 'magick-ai-adapter' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'Connect OpenClaw to this WordPress site through the Adapter REST surface.', 'magick-ai-adapter' ); ?></p>
+		<div class="wrap npcink-openclaw-adapter-connection">
+			<h1><?php echo esc_html__( 'Npcink OpenClaw Adapter', 'npcink-openclaw-adapter' ); ?></h1>
+			<p class="description"><?php echo esc_html__( 'Connect OpenClaw to this WordPress site through the Adapter REST surface.', 'npcink-openclaw-adapter' ); ?></p>
 
 			<style>
-				.magick-ai-adapter-connection {
+				.npcink-openclaw-adapter-connection {
 					max-width: 1180px;
 				}
-				.magick-ai-adapter-connection .maa-tabs {
+				.npcink-openclaw-adapter-connection .maa-tabs {
 					display: none;
 				}
-				.magick-ai-adapter-connection .maa-tab {
+				.npcink-openclaw-adapter-connection .maa-tab {
 					margin: 0;
 					padding: 9px 14px;
 					border: 1px solid transparent;
@@ -230,31 +230,31 @@ final class Connection_Page {
 					cursor: pointer;
 					font-weight: 600;
 				}
-				.magick-ai-adapter-connection .maa-tab:hover {
+				.npcink-openclaw-adapter-connection .maa-tab:hover {
 					color: #135e96;
 				}
-				.magick-ai-adapter-connection .maa-tab.is-active {
+				.npcink-openclaw-adapter-connection .maa-tab.is-active {
 					margin-bottom: -1px;
 					border-color: #c3c4c7;
 					background: #fff;
 					color: #1d2327;
 				}
-				.magick-ai-adapter-connection .maa-tab-panel {
+				.npcink-openclaw-adapter-connection .maa-tab-panel {
 					padding-top: 0;
 				}
-				.magick-ai-adapter-connection .maa-tab-panel.is-active {
+				.npcink-openclaw-adapter-connection .maa-tab-panel.is-active {
 					display: block;
 				}
-				.magick-ai-adapter-connection .maa-workspace {
+				.npcink-openclaw-adapter-connection .maa-workspace {
 					display: grid;
 					grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
 					gap: 16px;
 					align-items: start;
 				}
-				.magick-ai-adapter-connection .maa-workspace > * {
+				.npcink-openclaw-adapter-connection .maa-workspace > * {
 					min-width: 0;
 				}
-				.magick-ai-adapter-connection .maa-summary {
+				.npcink-openclaw-adapter-connection .maa-summary {
 					display: flex;
 					flex-wrap: wrap;
 					gap: 10px 18px;
@@ -264,71 +264,71 @@ final class Connection_Page {
 					background: #fff;
 					padding: 10px 14px;
 				}
-				.magick-ai-adapter-connection .maa-section {
+				.npcink-openclaw-adapter-connection .maa-section {
 					background: #fff;
 				}
-				.magick-ai-adapter-connection .maa-summary-item {
+				.npcink-openclaw-adapter-connection .maa-summary-item {
 					display: flex;
 					gap: 6px;
 					align-items: center;
 					min-width: 0;
 				}
-				.magick-ai-adapter-connection .maa-summary-item:first-child {
+				.npcink-openclaw-adapter-connection .maa-summary-item:first-child {
 					padding-right: 18px;
 					border-right: 1px solid #dcdcde;
 				}
-				.magick-ai-adapter-connection .maa-label {
+				.npcink-openclaw-adapter-connection .maa-label {
 					display: block;
 					margin-bottom: 4px;
 					color: #646970;
 					font-size: 12px;
 					line-height: 1.4;
 				}
-				.magick-ai-adapter-connection .maa-value {
+				.npcink-openclaw-adapter-connection .maa-value {
 					font-weight: 600;
 				}
-				.magick-ai-adapter-connection .maa-status {
+				.npcink-openclaw-adapter-connection .maa-status {
 					display: inline-block;
 					padding: 2px 8px;
 					border-radius: 3px;
 					font-size: 12px;
 					font-weight: 600;
 				}
-				.magick-ai-adapter-connection .maa-status-ok {
+				.npcink-openclaw-adapter-connection .maa-status-ok {
 					background: #edfaef;
 					color: #008a20;
 				}
-				.magick-ai-adapter-connection .maa-status-warning {
+				.npcink-openclaw-adapter-connection .maa-status-warning {
 					background: #fcf9e8;
 					color: #996800;
 				}
-				.magick-ai-adapter-connection .maa-status-error {
+				.npcink-openclaw-adapter-connection .maa-status-error {
 					background: #fcf0f1;
 					color: #b32d2e;
 				}
-				.magick-ai-adapter-connection .maa-section {
+				.npcink-openclaw-adapter-connection .maa-section {
 					box-sizing: border-box;
 					border: 1px solid #dcdcde;
 					padding: 16px;
 					margin-bottom: 16px;
 					min-width: 0;
 				}
-				.magick-ai-adapter-connection .maa-section-highlight {
+				.npcink-openclaw-adapter-connection .maa-section-highlight {
 					border-left: 4px solid #2271b1;
 				}
-				.magick-ai-adapter-connection .maa-section h2 {
+				.npcink-openclaw-adapter-connection .maa-section h2 {
 					margin: 0 0 10px;
 					font-size: 16px;
 				}
-				.magick-ai-adapter-connection .maa-section h3 {
+				.npcink-openclaw-adapter-connection .maa-section h3 {
 					margin: 18px 0 8px;
 					font-size: 14px;
 				}
-				.magick-ai-adapter-connection .maa-section-intro {
+				.npcink-openclaw-adapter-connection .maa-section-intro {
 					margin: 0 0 14px;
 					color: #50575e;
 				}
-				.magick-ai-adapter-connection details.maa-section > summary {
+				.npcink-openclaw-adapter-connection details.maa-section > summary {
 					display: flex;
 					flex-wrap: wrap;
 					align-items: center;
@@ -338,27 +338,27 @@ final class Connection_Page {
 					padding: 16px;
 					cursor: pointer;
 				}
-				.magick-ai-adapter-connection details.maa-section > summary:hover {
+				.npcink-openclaw-adapter-connection details.maa-section > summary:hover {
 					background: #f6f7f7;
 				}
-				.magick-ai-adapter-connection details.maa-section > summary strong {
+				.npcink-openclaw-adapter-connection details.maa-section > summary strong {
 					display: block;
 					font-size: 16px;
 				}
-				.magick-ai-adapter-connection details.maa-section > summary::after {
+				.npcink-openclaw-adapter-connection details.maa-section > summary::after {
 					content: "+";
 					color: #2271b1;
 					font-size: 18px;
 					font-weight: 600;
 				}
-				.magick-ai-adapter-connection details.maa-section[open] > summary::after {
+				.npcink-openclaw-adapter-connection details.maa-section[open] > summary::after {
 					content: "-";
 				}
-				.magick-ai-adapter-connection .maa-inline-disclosure {
+				.npcink-openclaw-adapter-connection .maa-inline-disclosure {
 					margin-top: 18px;
 					border-top: 1px solid #dcdcde;
 				}
-				.magick-ai-adapter-connection .maa-inline-disclosure > summary {
+				.npcink-openclaw-adapter-connection .maa-inline-disclosure > summary {
 					display: flex;
 					flex-wrap: wrap;
 					align-items: center;
@@ -367,28 +367,28 @@ final class Connection_Page {
 					padding: 12px 0;
 					cursor: pointer;
 				}
-				.magick-ai-adapter-connection .maa-inline-disclosure > summary strong {
+				.npcink-openclaw-adapter-connection .maa-inline-disclosure > summary strong {
 					font-size: 14px;
 				}
-				.magick-ai-adapter-connection .maa-inline-disclosure > summary::after {
+				.npcink-openclaw-adapter-connection .maa-inline-disclosure > summary::after {
 					content: "+";
 					color: #2271b1;
 					font-size: 18px;
 					font-weight: 600;
 				}
-				.magick-ai-adapter-connection .maa-inline-disclosure[open] > summary::after {
+				.npcink-openclaw-adapter-connection .maa-inline-disclosure[open] > summary::after {
 					content: "-";
 				}
-				.magick-ai-adapter-connection code,
-				.magick-ai-adapter-connection pre,
-				.magick-ai-adapter-connection textarea {
+				.npcink-openclaw-adapter-connection code,
+				.npcink-openclaw-adapter-connection pre,
+				.npcink-openclaw-adapter-connection textarea {
 					font-family: Consolas, Monaco, monospace;
 				}
-				.magick-ai-adapter-connection code {
+				.npcink-openclaw-adapter-connection code {
 					overflow-wrap: anywhere;
 					word-break: break-word;
 				}
-				.magick-ai-adapter-connection pre {
+				.npcink-openclaw-adapter-connection pre {
 					overflow: auto;
 					margin: 10px 0 0;
 					padding: 12px;
@@ -396,102 +396,102 @@ final class Connection_Page {
 					border: 1px solid #dcdcde;
 					white-space: pre-wrap;
 				}
-				.magick-ai-adapter-connection textarea {
+				.npcink-openclaw-adapter-connection textarea {
 					width: 100%;
 					min-height: 180px;
 				}
-				.magick-ai-adapter-connection input[type="text"] {
+				.npcink-openclaw-adapter-connection input[type="text"] {
 					box-sizing: border-box;
 					max-width: 100%;
 					width: 100%;
 				}
-				.magick-ai-adapter-connection .maa-copy-row {
+				.npcink-openclaw-adapter-connection .maa-copy-row {
 					display: grid;
 					grid-template-columns: minmax(0, 1fr) auto;
 					gap: 8px;
 					align-items: center;
 					margin: 14px 0;
 				}
-				.magick-ai-adapter-connection .maa-copy-row > div {
+				.npcink-openclaw-adapter-connection .maa-copy-row > div {
 					min-width: 0;
 				}
-				.magick-ai-adapter-connection .maa-command-row {
+				.npcink-openclaw-adapter-connection .maa-command-row {
 					grid-template-columns: 1fr;
 					margin: 16px 0;
 				}
-				.magick-ai-adapter-connection .maa-command-row .button {
+				.npcink-openclaw-adapter-connection .maa-command-row .button {
 					justify-self: start;
 				}
-				.magick-ai-adapter-connection .maa-copy-value {
+				.npcink-openclaw-adapter-connection .maa-copy-value {
 					display: block;
 					padding: 8px 10px;
 					background: #f6f7f7;
 					border: 1px solid #dcdcde;
 				}
-				.magick-ai-adapter-connection .maa-inline-note {
+				.npcink-openclaw-adapter-connection .maa-inline-note {
 					margin: 8px 0 0;
 					color: #646970;
 				}
-				.magick-ai-adapter-connection .maa-option {
+				.npcink-openclaw-adapter-connection .maa-option {
 					margin: 16px 0;
 				}
-				.magick-ai-adapter-connection .maa-option label {
+				.npcink-openclaw-adapter-connection .maa-option label {
 					display: flex;
 					gap: 8px;
 					align-items: flex-start;
 					font-weight: 600;
 				}
-				.magick-ai-adapter-connection .maa-option input {
+				.npcink-openclaw-adapter-connection .maa-option input {
 					margin-top: 2px;
 				}
-				.magick-ai-adapter-connection .maa-route-list {
+				.npcink-openclaw-adapter-connection .maa-route-list {
 					margin: 0;
 				}
-				.magick-ai-adapter-connection .maa-route-list li {
+				.npcink-openclaw-adapter-connection .maa-route-list li {
 					margin-bottom: 8px;
 				}
-				.magick-ai-adapter-connection .maa-form-actions {
+				.npcink-openclaw-adapter-connection .maa-form-actions {
 					margin: 12px 0 0;
 				}
-				.magick-ai-adapter-connection .maa-status-table th {
+				.npcink-openclaw-adapter-connection .maa-status-table th {
 					width: 160px;
 				}
-				.magick-ai-adapter-connection .maa-action-row {
+				.npcink-openclaw-adapter-connection .maa-action-row {
 					display: flex;
 					flex-wrap: wrap;
 					gap: 8px;
 					align-items: center;
 					margin-top: 12px;
 				}
-				.magick-ai-adapter-connection .maa-advanced-group {
+				.npcink-openclaw-adapter-connection .maa-advanced-group {
 					margin-top: 16px;
 					padding-top: 14px;
 					border-top: 1px solid #dcdcde;
 				}
-				.magick-ai-adapter-connection .maa-advanced-group:first-of-type {
+				.npcink-openclaw-adapter-connection .maa-advanced-group:first-of-type {
 					margin-top: 0;
 					padding-top: 0;
 					border-top: 0;
 				}
 				@media (max-width: 960px) {
-					.magick-ai-adapter-connection .maa-workspace {
+					.npcink-openclaw-adapter-connection .maa-workspace {
 						grid-template-columns: 1fr;
 					}
 				}
 				@media (max-width: 782px) {
-					.magick-ai-adapter-connection .maa-summary {
+					.npcink-openclaw-adapter-connection .maa-summary {
 						display: block;
 					}
-					.magick-ai-adapter-connection .maa-summary-item {
+					.npcink-openclaw-adapter-connection .maa-summary-item {
 						margin: 8px 0;
 					}
-					.magick-ai-adapter-connection .maa-summary-item:first-child {
+					.npcink-openclaw-adapter-connection .maa-summary-item:first-child {
 						padding-right: 0;
 						border-right: 0;
 					}
 				}
 				@media (max-width: 480px) {
-					.magick-ai-adapter-connection .maa-copy-row {
+					.npcink-openclaw-adapter-connection .maa-copy-row {
 						grid-template-columns: 1fr;
 					}
 				}
@@ -499,136 +499,136 @@ final class Connection_Page {
 
 			<div class="maa-summary">
 				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></span>
+					<span class="maa-label"><?php echo esc_html__( 'Status', 'npcink-openclaw-adapter' ); ?></span>
 					<span class="maa-status maa-status-<?php echo esc_attr( $status['level'] ); ?>"><?php echo esc_html( $status['label'] ); ?></span>
 				</div>
 				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Core capabilities', 'magick-ai-adapter' ); ?></span>
-					<span class="maa-value"><?php echo ! empty( $health['core_capabilities'] ) ? esc_html__( 'Available', 'magick-ai-adapter' ) : esc_html__( 'Missing', 'magick-ai-adapter' ); ?></span>
+					<span class="maa-label"><?php echo esc_html__( 'Core capabilities', 'npcink-openclaw-adapter' ); ?></span>
+					<span class="maa-value"><?php echo ! empty( $health['core_capabilities'] ) ? esc_html__( 'Available', 'npcink-openclaw-adapter' ) : esc_html__( 'Missing', 'npcink-openclaw-adapter' ); ?></span>
 				</div>
 				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Abilities API', 'magick-ai-adapter' ); ?></span>
-					<span class="maa-value"><?php echo ! empty( $health['abilities_catalog'] ) ? esc_html__( 'Available', 'magick-ai-adapter' ) : esc_html__( 'Missing', 'magick-ai-adapter' ); ?></span>
+					<span class="maa-label"><?php echo esc_html__( 'Abilities API', 'npcink-openclaw-adapter' ); ?></span>
+					<span class="maa-value"><?php echo ! empty( $health['abilities_catalog'] ) ? esc_html__( 'Available', 'npcink-openclaw-adapter' ) : esc_html__( 'Missing', 'npcink-openclaw-adapter' ); ?></span>
 				</div>
 				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Write execution', 'magick-ai-adapter' ); ?></span>
-					<span class="maa-value"><?php echo esc_html__( 'Proposal required', 'magick-ai-adapter' ); ?></span>
+					<span class="maa-label"><?php echo esc_html__( 'Write execution', 'npcink-openclaw-adapter' ); ?></span>
+					<span class="maa-value"><?php echo esc_html__( 'Proposal required', 'npcink-openclaw-adapter' ); ?></span>
 				</div>
 			</div>
 
 			<div class="maa-workspace">
 				<div class="maa-section maa-section-highlight">
-					<h2><?php echo esc_html__( 'Simple connection', 'magick-ai-adapter' ); ?></h2>
-					<p class="maa-section-intro"><?php echo esc_html__( 'Use when the client has a dedicated secret field.', 'magick-ai-adapter' ); ?></p>
+					<h2><?php echo esc_html__( 'Simple connection', 'npcink-openclaw-adapter' ); ?></h2>
+					<p class="maa-section-intro"><?php echo esc_html__( 'Use when the client has a dedicated secret field.', 'npcink-openclaw-adapter' ); ?></p>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="<?php echo esc_attr( self::CREATE_ACTION ); ?>" />
 						<?php wp_nonce_field( self::CREATE_ACTION ); ?>
 						<p>
-							<label for="magick-ai-adapter-password-name-compact"><span class="maa-label"><?php echo esc_html__( 'Application name', 'magick-ai-adapter' ); ?></span></label>
-							<input id="magick-ai-adapter-password-name-compact" class="regular-text" type="text" name="application_name" value="OpenClaw via Magick AI Adapter" />
+							<label for="npcink-openclaw-adapter-password-name-compact"><span class="maa-label"><?php echo esc_html__( 'Application name', 'npcink-openclaw-adapter' ); ?></span></label>
+							<input id="npcink-openclaw-adapter-password-name-compact" class="regular-text" type="text" name="application_name" value="OpenClaw via Npcink OpenClaw Adapter" />
 						</p>
 						<div class="maa-option">
 							<label>
 								<input type="checkbox" name="include_local_tls" value="1" <?php checked( $this->is_local_url( home_url() ) ); ?> />
-								<span><?php echo esc_html__( 'Include LocalWP TLS setting', 'magick-ai-adapter' ); ?></span>
+								<span><?php echo esc_html__( 'Include LocalWP TLS setting', 'npcink-openclaw-adapter' ); ?></span>
 							</label>
-							<p class="description"><?php echo esc_html__( 'LocalWP TLS option. Use only for localhost or .local testing.', 'magick-ai-adapter' ); ?></p>
+							<p class="description"><?php echo esc_html__( 'LocalWP TLS option. Use only for localhost or .local testing.', 'npcink-openclaw-adapter' ); ?></p>
 						</div>
 						<p class="maa-form-actions">
 							<button type="submit" class="button button-primary" <?php disabled( ! $can_create_password ); ?>>
-								<?php echo esc_html__( 'Create Application Password connection', 'magick-ai-adapter' ); ?>
+								<?php echo esc_html__( 'Create Application Password connection', 'npcink-openclaw-adapter' ); ?>
 							</button>
 						</p>
 						<?php if ( ! $can_create_password ) : ?>
-							<p class="description"><?php echo esc_html__( 'Application Passwords are not available for this user or site.', 'magick-ai-adapter' ); ?></p>
+							<p class="description"><?php echo esc_html__( 'Application Passwords are not available for this user or site.', 'npcink-openclaw-adapter' ); ?></p>
 						<?php endif; ?>
 					</form>
-					<p class="description"><?php echo esc_html__( 'The password is shown once. Store it only in the client secret field.', 'magick-ai-adapter' ); ?></p>
+					<p class="description"><?php echo esc_html__( 'The password is shown once. Store it only in the client secret field.', 'npcink-openclaw-adapter' ); ?></p>
 				</div>
 
 				<div class="maa-section">
-					<h2><?php echo esc_html__( 'Connection values', 'magick-ai-adapter' ); ?></h2>
+					<h2><?php echo esc_html__( 'Connection values', 'npcink-openclaw-adapter' ); ?></h2>
 					<div class="maa-copy-row">
 						<div>
-							<span class="maa-label"><?php echo esc_html__( 'Adapter Base URL', 'magick-ai-adapter' ); ?></span>
+							<span class="maa-label"><?php echo esc_html__( 'Adapter Base URL', 'npcink-openclaw-adapter' ); ?></span>
 							<code class="maa-copy-value" id="maa-base-url"><?php echo esc_html( $base_url ); ?></code>
 						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-base-url"><?php echo esc_html__( 'Copy', 'magick-ai-adapter' ); ?></button>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-base-url"><?php echo esc_html__( 'Copy', 'npcink-openclaw-adapter' ); ?></button>
 					</div>
 					<div class="maa-copy-row">
 						<div>
-							<span class="maa-label"><?php echo esc_html__( 'WordPress user', 'magick-ai-adapter' ); ?></span>
+							<span class="maa-label"><?php echo esc_html__( 'WordPress user', 'npcink-openclaw-adapter' ); ?></span>
 							<code class="maa-copy-value" id="maa-username"><?php echo esc_html( $username ); ?></code>
 						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-username"><?php echo esc_html__( 'Copy', 'magick-ai-adapter' ); ?></button>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-username"><?php echo esc_html__( 'Copy', 'npcink-openclaw-adapter' ); ?></button>
 					</div>
 					<div class="maa-copy-row">
 						<div>
-							<span class="maa-label"><?php echo esc_html__( 'Connection manifest', 'magick-ai-adapter' ); ?></span>
+							<span class="maa-label"><?php echo esc_html__( 'Connection manifest', 'npcink-openclaw-adapter' ); ?></span>
 							<code class="maa-copy-value" id="maa-manifest-url"><?php echo esc_html( $manifest_url ); ?></code>
 						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-manifest-url"><?php echo esc_html__( 'Copy manifest URL', 'magick-ai-adapter' ); ?></button>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-manifest-url"><?php echo esc_html__( 'Copy manifest URL', 'npcink-openclaw-adapter' ); ?></button>
 					</div>
 					<div class="maa-copy-row">
 						<div>
-							<span class="maa-label"><?php echo esc_html__( 'Client env placeholder', 'magick-ai-adapter' ); ?></span>
-							<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder only.', 'magick-ai-adapter' ); ?></p>
+							<span class="maa-label"><?php echo esc_html__( 'Client env placeholder', 'npcink-openclaw-adapter' ); ?></span>
+							<p class="maa-inline-note"><?php echo esc_html__( 'Copies the Adapter URL, username, and password placeholder only.', 'npcink-openclaw-adapter' ); ?></p>
 							<textarea id="maa-client-config" hidden readonly><?php echo esc_textarea( $client_config ); ?></textarea>
 						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-client-config"><?php echo esc_html__( 'Copy env placeholder', 'magick-ai-adapter' ); ?></button>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-client-config"><?php echo esc_html__( 'Copy env placeholder', 'npcink-openclaw-adapter' ); ?></button>
 					</div>
-					<p class="description"><?php echo esc_html__( 'Writes require Core proposal approval before Adapter execution.', 'magick-ai-adapter' ); ?></p>
+					<p class="description"><?php echo esc_html__( 'Writes require Core proposal approval before Adapter execution.', 'npcink-openclaw-adapter' ); ?></p>
 				</div>
 			</div>
 
 			<details class="maa-section">
 				<summary>
-					<strong><?php echo esc_html__( 'Higher security: signed key-pair', 'magick-ai-adapter' ); ?></strong>
-					<span class="description"><?php echo esc_html__( 'Recommended when the client should not receive an Application Password.', 'magick-ai-adapter' ); ?></span>
+					<strong><?php echo esc_html__( 'Higher security: signed key-pair', 'npcink-openclaw-adapter' ); ?></strong>
+					<span class="description"><?php echo esc_html__( 'Recommended when the client should not receive an Application Password.', 'npcink-openclaw-adapter' ); ?></span>
 				</summary>
-				<p><?php echo esc_html__( 'Run this in the same environment as OpenClaw. The private key stays local and Adapter stores only the approved public key.', 'magick-ai-adapter' ); ?></p>
+				<p><?php echo esc_html__( 'Run this in the same environment as OpenClaw. The private key stays local and Adapter stores only the approved public key.', 'npcink-openclaw-adapter' ); ?></p>
 				<div class="maa-copy-row maa-command-row">
 					<div>
-						<span class="maa-label"><?php echo esc_html__( 'Connect command', 'magick-ai-adapter' ); ?></span>
+						<span class="maa-label"><?php echo esc_html__( 'Connect command', 'npcink-openclaw-adapter' ); ?></span>
 						<code class="maa-copy-value" id="maa-local-cli-connect-command"><?php echo esc_html( $local_cli_connect_command ); ?></code>
 					</div>
-					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-connect-command"><?php echo esc_html__( 'Copy connect command', 'magick-ai-adapter' ); ?></button>
+					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-connect-command"><?php echo esc_html__( 'Copy connect command', 'npcink-openclaw-adapter' ); ?></button>
 				</div>
 				<div class="maa-copy-row maa-command-row">
 					<div>
-						<span class="maa-label"><?php echo esc_html__( 'Status command', 'magick-ai-adapter' ); ?></span>
+						<span class="maa-label"><?php echo esc_html__( 'Status command', 'npcink-openclaw-adapter' ); ?></span>
 						<code class="maa-copy-value" id="maa-local-cli-status-command"><?php echo esc_html( $local_cli_status_command ); ?></code>
 					</div>
-					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-status-command"><?php echo esc_html__( 'Copy status command', 'magick-ai-adapter' ); ?></button>
+					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-status-command"><?php echo esc_html__( 'Copy status command', 'npcink-openclaw-adapter' ); ?></button>
 				</div>
 				<details class="maa-inline-disclosure">
 					<summary>
-						<strong><?php echo esc_html__( 'Full OpenClaw instructions', 'magick-ai-adapter' ); ?></strong>
-						<span class="description"><?php echo esc_html__( 'Copy only when the client needs the longer setup text.', 'magick-ai-adapter' ); ?></span>
+						<strong><?php echo esc_html__( 'Full OpenClaw instructions', 'npcink-openclaw-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Copy only when the client needs the longer setup text.', 'npcink-openclaw-adapter' ); ?></span>
 					</summary>
-					<p class="description"><?php echo esc_html__( 'Do not ask OpenClaw to read the local keypair profile file. Writes still require Core proposal, approval, and preflight.', 'magick-ai-adapter' ); ?></p>
+					<p class="description"><?php echo esc_html__( 'Do not ask OpenClaw to read the local keypair profile file. Writes still require Core proposal, approval, and preflight.', 'npcink-openclaw-adapter' ); ?></p>
 					<textarea id="maa-local-cli-setup" rows="14" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
 					<p class="maa-action-row">
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy OpenClaw CLI instructions', 'magick-ai-adapter' ); ?></button>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy OpenClaw CLI instructions', 'npcink-openclaw-adapter' ); ?></button>
 					</p>
 				</details>
 			</details>
 
 			<details class="maa-section"<?php echo '' !== $lookup_id ? ' open' : ''; ?>>
 				<summary>
-					<strong><?php echo esc_html__( 'Proposal lookup', 'magick-ai-adapter' ); ?></strong>
-					<span class="description"><?php echo esc_html__( 'Check a proposal after OpenClaw creates one.', 'magick-ai-adapter' ); ?></span>
+					<strong><?php echo esc_html__( 'Proposal lookup', 'npcink-openclaw-adapter' ); ?></strong>
+					<span class="description"><?php echo esc_html__( 'Check a proposal after OpenClaw creates one.', 'npcink-openclaw-adapter' ); ?></span>
 				</summary>
-				<p><?php echo esc_html__( 'Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval.', 'magick-ai-adapter' ); ?></p>
+				<p><?php echo esc_html__( 'Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval.', 'npcink-openclaw-adapter' ); ?></p>
 				<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 					<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>" />
 					<p>
-						<label for="magick-ai-adapter-proposal-lookup"><span class="maa-label"><?php echo esc_html__( 'Proposal ID', 'magick-ai-adapter' ); ?></span></label>
-						<input id="magick-ai-adapter-proposal-lookup" class="regular-text" type="text" name="adapter_proposal_id" value="<?php echo esc_attr( $lookup_id ); ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+						<label for="npcink-openclaw-adapter-proposal-lookup"><span class="maa-label"><?php echo esc_html__( 'Proposal ID', 'npcink-openclaw-adapter' ); ?></span></label>
+						<input id="npcink-openclaw-adapter-proposal-lookup" class="regular-text" type="text" name="adapter_proposal_id" value="<?php echo esc_attr( $lookup_id ); ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
 					</p>
 					<p class="maa-form-actions">
-						<button type="submit" class="button"><?php echo esc_html__( 'Check status', 'magick-ai-adapter' ); ?></button>
-						<a class="button" href="<?php echo esc_url( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?>"><?php echo esc_html__( 'Open proposal API', 'magick-ai-adapter' ); ?></a>
+						<button type="submit" class="button"><?php echo esc_html__( 'Check status', 'npcink-openclaw-adapter' ); ?></button>
+						<a class="button" href="<?php echo esc_url( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?>"><?php echo esc_html__( 'Open proposal API', 'npcink-openclaw-adapter' ); ?></a>
 					</p>
 				</form>
 				<?php $this->render_proposal_lookup_result( $lookup_id, $lookup_result ); ?>
@@ -636,38 +636,38 @@ final class Connection_Page {
 
 			<details class="maa-section">
 				<summary>
-					<strong><?php echo esc_html__( 'Advanced', 'magick-ai-adapter' ); ?></strong>
-					<span class="description"><?php echo esc_html__( 'Diagnostics, route catalog, examples, and boundary notes.', 'magick-ai-adapter' ); ?></span>
+					<strong><?php echo esc_html__( 'Advanced', 'npcink-openclaw-adapter' ); ?></strong>
+					<span class="description"><?php echo esc_html__( 'Diagnostics, route catalog, examples, and boundary notes.', 'npcink-openclaw-adapter' ); ?></span>
 				</summary>
 
 				<div class="maa-advanced-group">
-					<h3><?php echo esc_html__( 'Diagnostics URLs', 'magick-ai-adapter' ); ?></h3>
-					<p><span class="maa-label"><?php echo esc_html__( 'Health', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $health_url ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Help', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $help_url ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $capabilities_url ); ?></code></p>
+					<h3><?php echo esc_html__( 'Diagnostics URLs', 'npcink-openclaw-adapter' ); ?></h3>
+					<p><span class="maa-label"><?php echo esc_html__( 'Health', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( $health_url ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Help', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( $help_url ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( $capabilities_url ); ?></code></p>
 				</div>
 
 				<div class="maa-advanced-group">
-					<h3><?php echo esc_html__( 'Key pair clients', 'magick-ai-adapter' ); ?></h3>
-					<p><?php echo esc_html__( 'Device-paired clients sign Adapter requests.', 'magick-ai-adapter' ); ?></p>
-					<p><?php echo esc_html__( 'Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval.', 'magick-ai-adapter' ); ?></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Manifest', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $manifest_url ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Key pairs', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( $key_pairs_url ); ?></code></p>
-					<p><?php echo esc_html__( 'Revoke a public key to stop the matching local profile from authenticating. Adapter never stores the private key.', 'magick-ai-adapter' ); ?></p>
+					<h3><?php echo esc_html__( 'Key pair clients', 'npcink-openclaw-adapter' ); ?></h3>
+					<p><?php echo esc_html__( 'Device-paired clients sign Adapter requests.', 'npcink-openclaw-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval.', 'npcink-openclaw-adapter' ); ?></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Manifest', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( $manifest_url ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Key pairs', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( $key_pairs_url ); ?></code></p>
+					<p><?php echo esc_html__( 'Revoke a public key to stop the matching local profile from authenticating. Adapter never stores the private key.', 'npcink-openclaw-adapter' ); ?></p>
 					<?php $this->render_key_pair_clients_table( $key_records ); ?>
 				</div>
 
 				<div class="maa-advanced-group">
-					<h3><?php echo esc_html__( 'Route catalog', 'magick-ai-adapter' ); ?></h3>
-					<p><strong><?php echo esc_html__( 'Proposal routes', 'magick-ai-adapter' ); ?></strong></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Proposal list', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Proposal detail', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}' ) ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Plan to proposals', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/from-plan' ) ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Commit preflight', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/commit-preflight' ) ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Approve and execute', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/approve-and-execute' ) ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Approval disabled stub', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/approve' ) ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Reject disabled stub', 'magick-ai-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/reject' ) ); ?></code></p>
-					<h3><?php echo esc_html__( 'Read shortcuts', 'magick-ai-adapter' ); ?></h3>
+					<h3><?php echo esc_html__( 'Route catalog', 'npcink-openclaw-adapter' ); ?></h3>
+					<p><strong><?php echo esc_html__( 'Proposal routes', 'npcink-openclaw-adapter' ); ?></strong></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Proposal list', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Proposal detail', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}' ) ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Plan to proposals', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/from-plan' ) ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Commit preflight', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/commit-preflight' ) ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Approve and execute', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/approve-and-execute' ) ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Approval disabled stub', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/approve' ) ); ?></code></p>
+					<p><span class="maa-label"><?php echo esc_html__( 'Reject disabled stub', 'npcink-openclaw-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/reject' ) ); ?></code></p>
+					<h3><?php echo esc_html__( 'Read shortcuts', 'npcink-openclaw-adapter' ); ?></h3>
 					<ul class="maa-route-list">
 						<?php foreach ( $shortcuts as $route => $ability_id ) : ?>
 							<li><code><?php echo esc_html( 'GET /wp-json/' . Controller::NAMESPACE . '/' . $route ); ?></code><br><span class="description"><?php echo esc_html( $ability_id ); ?></span></li>
@@ -676,21 +676,21 @@ final class Connection_Page {
 				</div>
 
 				<div class="maa-advanced-group">
-					<h3><?php echo esc_html__( 'Example requests', 'magick-ai-adapter' ); ?></h3>
-					<p><?php echo esc_html__( 'Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals.', 'magick-ai-adapter' ); ?></p>
+					<h3><?php echo esc_html__( 'Example requests', 'npcink-openclaw-adapter' ); ?></h3>
+					<p><?php echo esc_html__( 'Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals.', 'npcink-openclaw-adapter' ); ?></p>
 					<pre><?php echo esc_html( $example_request ); ?></pre>
 					<pre><?php echo esc_html( $proposal_request ); ?></pre>
 					<pre><?php echo esc_html( $proposal_status_request ); ?></pre>
 				</div>
 
 				<div class="maa-advanced-group">
-					<h3><?php echo esc_html__( 'Handoff prompt', 'magick-ai-adapter' ); ?></h3>
+					<h3><?php echo esc_html__( 'Handoff prompt', 'npcink-openclaw-adapter' ); ?></h3>
 					<textarea readonly><?php echo esc_textarea( $handoff_prompt ); ?></textarea>
 				</div>
 
 				<div class="maa-advanced-group">
-					<h3><?php echo esc_html__( 'Boundary', 'magick-ai-adapter' ); ?></h3>
-					<p><?php echo esc_html__( 'OpenClaw only connects to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight.', 'magick-ai-adapter' ); ?></p>
+					<h3><?php echo esc_html__( 'Boundary', 'npcink-openclaw-adapter' ); ?></h3>
+					<p><?php echo esc_html__( 'OpenClaw only connects to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight.', 'npcink-openclaw-adapter' ); ?></p>
 					<p><code>approval_proxy_enabled=false</code></p>
 					<p><code>core_proxy_execute=false</code></p>
 					<p><code>commit_execution=false</code></p>
@@ -699,7 +699,7 @@ final class Connection_Page {
 
 			<script>
 				(function () {
-					var root = document.querySelector('.magick-ai-adapter-connection');
+					var root = document.querySelector('.npcink-openclaw-adapter-connection');
 					if (!root) {
 						return;
 					}
@@ -714,7 +714,7 @@ final class Connection_Page {
 
 							window.navigator.clipboard.writeText(text).then(function () {
 								var oldText = button.textContent;
-								button.textContent = '<?php echo esc_js( __( 'Copied', 'magick-ai-adapter' ) ); ?>';
+								button.textContent = '<?php echo esc_js( __( 'Copied', 'npcink-openclaw-adapter' ) ); ?>';
 								window.setTimeout(function () {
 									button.textContent = oldText;
 								}, 1500);
@@ -734,7 +734,7 @@ final class Connection_Page {
 	 */
 	public function render_pairing_page(): void {
 		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
-			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'magick-ai-adapter' ) );
+			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'npcink-openclaw-adapter' ) );
 		}
 
 		$user_code = isset( $_GET['user_code'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_GET['user_code'] ) ) ) : '';
@@ -744,35 +744,35 @@ final class Connection_Page {
 		$scopes    = is_array( $pairing['scopes'] ?? null ) ? $pairing['scopes'] : array();
 		$status    = (string) ( $pairing['status'] ?? 'pending' );
 		?>
-		<div class="wrap magick-ai-adapter-connection">
-			<h1><?php echo esc_html__( 'Approve Magick AI Client', 'magick-ai-adapter' ); ?></h1>
+		<div class="wrap npcink-openclaw-adapter-connection">
+			<h1><?php echo esc_html__( 'Approve Npcink Client', 'npcink-openclaw-adapter' ); ?></h1>
 			<?php if ( empty( $pairing ) ) : ?>
-				<div class="notice notice-error"><p><?php echo esc_html__( 'Device pairing code was not found or has expired.', 'magick-ai-adapter' ); ?></p></div>
+				<div class="notice notice-error"><p><?php echo esc_html__( 'Device pairing code was not found or has expired.', 'npcink-openclaw-adapter' ); ?></p></div>
 			<?php else : ?>
 				<?php if ( 'approved' === $status ) : ?>
 					<div class="notice notice-success">
-						<p><strong><?php echo esc_html__( 'Connection approved.', 'magick-ai-adapter' ); ?></strong></p>
-						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will finish polling and save its local profile. Adapter stores only the public key; the private key was never sent to WordPress.', 'magick-ai-adapter' ); ?></p>
+						<p><strong><?php echo esc_html__( 'Connection approved.', 'npcink-openclaw-adapter' ); ?></strong></p>
+						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will finish polling and save its local profile. Adapter stores only the public key; the private key was never sent to WordPress.', 'npcink-openclaw-adapter' ); ?></p>
 					</div>
 				<?php elseif ( 'rejected' === $status ) : ?>
 					<div class="notice notice-warning">
-						<p><strong><?php echo esc_html__( 'Connection rejected.', 'magick-ai-adapter' ); ?></strong></p>
-						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will stop polling with a rejected status.', 'magick-ai-adapter' ); ?></p>
+						<p><strong><?php echo esc_html__( 'Connection rejected.', 'npcink-openclaw-adapter' ); ?></strong></p>
+						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will stop polling with a rejected status.', 'npcink-openclaw-adapter' ); ?></p>
 					</div>
 				<?php else : ?>
-					<p><?php echo esc_html__( 'Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer.', 'magick-ai-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer.', 'npcink-openclaw-adapter' ); ?></p>
 				<?php endif; ?>
 				<table class="widefat striped" style="max-width: 860px;">
 					<tbody>
-						<tr><th scope="row"><?php echo esc_html__( 'User code', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( $user_code ); ?></code></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['name'] ?? '' ) ); ?></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Device', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['device_name'] ?? '' ) ); ?></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Broker', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( trim( (string) ( $client['broker'] ?? '' ) . ' ' . (string) ( $client['broker_version'] ?? '' ) ) ); ?></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $key['fingerprint'] ?? '' ) ); ?></code></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th><td><?php echo esc_html( implode( ', ', $scopes ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'User code', 'npcink-openclaw-adapter' ); ?></th><td><code><?php echo esc_html( $user_code ); ?></code></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Client', 'npcink-openclaw-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['name'] ?? '' ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Device', 'npcink-openclaw-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['device_name'] ?? '' ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Broker', 'npcink-openclaw-adapter' ); ?></th><td><?php echo esc_html( trim( (string) ( $client['broker'] ?? '' ) . ' ' . (string) ( $client['broker_version'] ?? '' ) ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Fingerprint', 'npcink-openclaw-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $key['fingerprint'] ?? '' ) ); ?></code></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Scopes', 'npcink-openclaw-adapter' ); ?></th><td><?php echo esc_html( implode( ', ', $scopes ) ); ?></td></tr>
 						<?php if ( 'approved' === $status ) : ?>
-							<tr><th scope="row"><?php echo esc_html__( 'Connection ID', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['connection_id'] ?? '' ) ); ?></code></td></tr>
-							<tr><th scope="row"><?php echo esc_html__( 'Key ID', 'magick-ai-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['key_id'] ?? '' ) ); ?></code></td></tr>
+							<tr><th scope="row"><?php echo esc_html__( 'Connection ID', 'npcink-openclaw-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['connection_id'] ?? '' ) ); ?></code></td></tr>
+							<tr><th scope="row"><?php echo esc_html__( 'Key ID', 'npcink-openclaw-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['key_id'] ?? '' ) ); ?></code></td></tr>
 						<?php endif; ?>
 					</tbody>
 				</table>
@@ -781,8 +781,8 @@ final class Connection_Page {
 						<input type="hidden" name="action" value="<?php echo esc_attr( self::PAIR_ACTION ); ?>" />
 						<input type="hidden" name="user_code" value="<?php echo esc_attr( $user_code ); ?>" />
 						<?php wp_nonce_field( self::PAIR_ACTION . '_' . $user_code ); ?>
-						<button type="submit" name="decision" value="approve" class="button button-primary"><?php echo esc_html__( 'Approve connection', 'magick-ai-adapter' ); ?></button>
-						<button type="submit" name="decision" value="reject" class="button"><?php echo esc_html__( 'Reject', 'magick-ai-adapter' ); ?></button>
+						<button type="submit" name="decision" value="approve" class="button button-primary"><?php echo esc_html__( 'Approve connection', 'npcink-openclaw-adapter' ); ?></button>
+						<button type="submit" name="decision" value="reject" class="button"><?php echo esc_html__( 'Reject', 'npcink-openclaw-adapter' ); ?></button>
 					</form>
 				<?php endif; ?>
 			<?php endif; ?>
@@ -797,7 +797,7 @@ final class Connection_Page {
 	 */
 	public function handle_pairing_decision(): void {
 		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
-			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'magick-ai-adapter' ) );
+			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'npcink-openclaw-adapter' ) );
 		}
 
 		$user_code = isset( $_POST['user_code'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_POST['user_code'] ) ) ) : '';
@@ -836,7 +836,7 @@ final class Connection_Page {
 	 */
 	public function handle_revoke_client_key(): void {
 		if ( ! current_user_can( self::MENU_CAPABILITY ) ) {
-			wp_die( esc_html__( 'You do not have permission to revoke client keys.', 'magick-ai-adapter' ) );
+			wp_die( esc_html__( 'You do not have permission to revoke client keys.', 'npcink-openclaw-adapter' ) );
 		}
 
 		$key_id = isset( $_POST['key_id'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['key_id'] ) ) : '';
@@ -858,18 +858,18 @@ final class Connection_Page {
 	 */
 	public function handle_create_openclaw_password(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to create OpenClaw handoff credentials.', 'magick-ai-adapter' ) );
+			wp_die( esc_html__( 'You do not have permission to create OpenClaw handoff credentials.', 'npcink-openclaw-adapter' ) );
 		}
 
 		check_admin_referer( self::CREATE_ACTION );
 
 		if ( ! $this->can_create_application_password() || ! class_exists( 'WP_Application_Passwords' ) ) {
-			wp_die( esc_html__( 'Application Passwords are not available for this user or site.', 'magick-ai-adapter' ) );
+			wp_die( esc_html__( 'Application Passwords are not available for this user or site.', 'npcink-openclaw-adapter' ) );
 		}
 
 		$user_id            = get_current_user_id();
 		$application_name   = isset( $_POST['application_name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['application_name'] ) ) : '';
-		$application_name   = '' !== $application_name ? $application_name : 'OpenClaw via Magick AI Adapter';
+		$application_name   = '' !== $application_name ? $application_name : 'OpenClaw via Npcink OpenClaw Adapter';
 		$include_local_tls  = ! empty( $_POST['include_local_tls'] );
 		$created            = \WP_Application_Passwords::create_new_application_password(
 			$user_id,
@@ -913,20 +913,20 @@ final class Connection_Page {
 		if ( empty( $health ) ) {
 			return array(
 				'level' => 'error',
-				'label' => __( 'Unavailable', 'magick-ai-adapter' ),
+				'label' => __( 'Unavailable', 'npcink-openclaw-adapter' ),
 			);
 		}
 
 		if ( ! empty( $health['core_capabilities'] ) && ! empty( $health['abilities_catalog'] ) ) {
 			return array(
 				'level' => 'ok',
-				'label' => __( 'Ready', 'magick-ai-adapter' ),
+				'label' => __( 'Ready', 'npcink-openclaw-adapter' ),
 			);
 		}
 
 		return array(
 			'level' => 'warning',
-			'label' => __( 'Needs dependencies', 'magick-ai-adapter' ),
+			'label' => __( 'Needs dependencies', 'npcink-openclaw-adapter' ),
 		);
 	}
 
@@ -947,8 +947,8 @@ final class Connection_Page {
 		$data = $response->get_data();
 		if ( $response->get_status() >= 400 ) {
 			return new WP_Error(
-				'magick_ai_adapter_proposal_lookup_failed',
-				__( 'Adapter could not read this Core proposal status.', 'magick-ai-adapter' ),
+				'npcink_openclaw_adapter_proposal_lookup_failed',
+				__( 'Adapter could not read this Core proposal status.', 'npcink-openclaw-adapter' ),
 				array(
 					'status' => $response->get_status(),
 					'data'   => $data,
@@ -969,7 +969,7 @@ final class Connection_Page {
 	private function render_proposal_lookup_result( string $proposal_id, $result ): void {
 		if ( '' === $proposal_id ) {
 			?>
-			<p class="maa-inline-note"><?php echo esc_html__( 'After OpenClaw creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes.', 'magick-ai-adapter' ); ?></p>
+			<p class="maa-inline-note"><?php echo esc_html__( 'After OpenClaw creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes.', 'npcink-openclaw-adapter' ); ?></p>
 			<?php
 			return;
 		}
@@ -979,8 +979,8 @@ final class Connection_Page {
 			$status = is_array( $data ) ? (int) ( $data['status'] ?? 0 ) : 0;
 			?>
 			<div class="notice notice-error inline">
-				<p><strong><?php echo esc_html__( 'Proposal not available.', 'magick-ai-adapter' ); ?></strong></p>
-				<p><?php echo esc_html( $result->get_error_message() ); ?><?php echo $status > 0 ? ' ' . esc_html( sprintf( __( 'HTTP %d', 'magick-ai-adapter' ), $status ) ) : ''; ?></p>
+				<p><strong><?php echo esc_html__( 'Proposal not available.', 'npcink-openclaw-adapter' ); ?></strong></p>
+				<p><?php echo esc_html( $result->get_error_message() ); ?><?php echo $status > 0 ? ' ' . esc_html( sprintf( __( 'HTTP %d', 'npcink-openclaw-adapter' ), $status ) ) : ''; ?></p>
 			</div>
 			<?php
 			return;
@@ -995,7 +995,7 @@ final class Connection_Page {
 		$timeline = is_array( $proposal['audit_timeline'] ?? null ) ? $proposal['audit_timeline'] : array();
 		$core_url = add_query_arg(
 			array(
-				'page'        => 'magick-ai-core',
+				'page'        => 'npcink-governance-core',
 				'proposal_id' => $proposal_id,
 			),
 			admin_url( 'admin.php' )
@@ -1007,43 +1007,43 @@ final class Connection_Page {
 		<table class="widefat striped maa-status-table" style="margin-top: 14px;">
 			<tbody>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Proposal ID', 'magick-ai-adapter' ); ?></th>
+					<th scope="row"><?php echo esc_html__( 'Proposal ID', 'npcink-openclaw-adapter' ); ?></th>
 					<td><code><?php echo esc_html( $proposal_id ); ?></code></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></th>
-					<td><span class="maa-status maa-status-<?php echo esc_attr( $this->proposal_status_level( $status ) ); ?>"><?php echo esc_html( '' !== $status ? $status : __( 'unknown', 'magick-ai-adapter' ) ); ?></span></td>
+					<th scope="row"><?php echo esc_html__( 'Status', 'npcink-openclaw-adapter' ); ?></th>
+					<td><span class="maa-status maa-status-<?php echo esc_attr( $this->proposal_status_level( $status ) ); ?>"><?php echo esc_html( '' !== $status ? $status : __( 'unknown', 'npcink-openclaw-adapter' ) ); ?></span></td>
 				</tr>
 				<?php if ( '' !== $title ) : ?>
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'Title', 'magick-ai-adapter' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'Title', 'npcink-openclaw-adapter' ); ?></th>
 						<td><?php echo esc_html( $title ); ?></td>
 					</tr>
 				<?php endif; ?>
 				<?php if ( '' !== $ability ) : ?>
 					<tr>
-						<th scope="row"><?php echo esc_html__( 'Ability', 'magick-ai-adapter' ); ?></th>
+						<th scope="row"><?php echo esc_html__( 'Ability', 'npcink-openclaw-adapter' ); ?></th>
 						<td><code><?php echo esc_html( $ability ); ?></code></td>
 					</tr>
 				<?php endif; ?>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Created', 'magick-ai-adapter' ); ?></th>
-					<td><?php echo esc_html( '' !== $created ? $this->display_datetime( $created ) : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
+					<th scope="row"><?php echo esc_html__( 'Created', 'npcink-openclaw-adapter' ); ?></th>
+					<td><?php echo esc_html( '' !== $created ? $this->display_datetime( $created ) : __( 'unknown', 'npcink-openclaw-adapter' ) ); ?></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Updated', 'magick-ai-adapter' ); ?></th>
-					<td><?php echo esc_html( '' !== $updated ? $this->display_datetime( $updated ) : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
+					<th scope="row"><?php echo esc_html__( 'Updated', 'npcink-openclaw-adapter' ); ?></th>
+					<td><?php echo esc_html( '' !== $updated ? $this->display_datetime( $updated ) : __( 'unknown', 'npcink-openclaw-adapter' ) ); ?></td>
 				</tr>
 				<tr>
-					<th scope="row"><?php echo esc_html__( 'Audit timeline', 'magick-ai-adapter' ); ?></th>
-					<td><?php echo esc_html( sprintf( __( '%d events', 'magick-ai-adapter' ), count( $timeline ) ) ); ?></td>
+					<th scope="row"><?php echo esc_html__( 'Audit timeline', 'npcink-openclaw-adapter' ); ?></th>
+					<td><?php echo esc_html( sprintf( __( '%d events', 'npcink-openclaw-adapter' ), count( $timeline ) ) ); ?></td>
 				</tr>
 			</tbody>
 		</table>
 		<div class="maa-action-row">
-			<a class="button button-primary" href="<?php echo esc_url( $core_url ); ?>"><?php echo esc_html__( 'Open in Core', 'magick-ai-adapter' ); ?></a>
-			<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-proposal-status-url"><?php echo esc_html__( 'Copy status URL', 'magick-ai-adapter' ); ?></button>
-			<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-proposal-execute-url"><?php echo esc_html__( 'Copy execute URL', 'magick-ai-adapter' ); ?></button>
+			<a class="button button-primary" href="<?php echo esc_url( $core_url ); ?>"><?php echo esc_html__( 'Open in Core', 'npcink-openclaw-adapter' ); ?></a>
+			<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-proposal-status-url"><?php echo esc_html__( 'Copy status URL', 'npcink-openclaw-adapter' ); ?></button>
+			<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-proposal-execute-url"><?php echo esc_html__( 'Copy execute URL', 'npcink-openclaw-adapter' ); ?></button>
 		</div>
 		<p class="maa-inline-note"><?php echo esc_html( $this->proposal_next_step_text( $status ) ); ?></p>
 		<textarea id="maa-proposal-status-url" hidden readonly><?php echo esc_textarea( $status_url ); ?></textarea>
@@ -1077,22 +1077,22 @@ final class Connection_Page {
 	 */
 	private function proposal_next_step_text( string $status ): string {
 		if ( 'pending' === $status ) {
-			return __( 'Next step: review this proposal in Core. Adapter should keep polling status and execute only after Core approval and commit preflight.', 'magick-ai-adapter' );
+			return __( 'Next step: review this proposal in Core. Adapter should keep polling status and execute only after Core approval and commit preflight.', 'npcink-openclaw-adapter' );
 		}
 
 		if ( 'approved' === $status ) {
-			return __( 'Next step: execute through Adapter. Adapter will still call Core commit preflight before any allowlisted WordPress ability execution.', 'magick-ai-adapter' );
+			return __( 'Next step: execute through Adapter. Adapter will still call Core commit preflight before any allowlisted WordPress ability execution.', 'npcink-openclaw-adapter' );
 		}
 
 		if ( 'rejected' === $status ) {
-			return __( 'Next step: stop. Adapter should show the rejection and must not execute this proposal.', 'magick-ai-adapter' );
+			return __( 'Next step: stop. Adapter should show the rejection and must not execute this proposal.', 'npcink-openclaw-adapter' );
 		}
 
 		if ( in_array( $status, array( 'expired', 'archived' ), true ) ) {
-			return __( 'Next step: reopen or inspect this proposal in Core if it still needs a decision.', 'magick-ai-adapter' );
+			return __( 'Next step: reopen or inspect this proposal in Core if it still needs a decision.', 'npcink-openclaw-adapter' );
 		}
 
-		return __( 'Next step: use Core as the approval truth and Adapter as the OpenClaw status and execution channel.', 'magick-ai-adapter' );
+		return __( 'Next step: use Core as the approval truth and Adapter as the OpenClaw status and execution channel.', 'npcink-openclaw-adapter' );
 	}
 
 	/**
@@ -1154,7 +1154,7 @@ final class Connection_Page {
 		<head>
 			<meta charset="<?php echo esc_attr( get_bloginfo( 'charset' ) ); ?>" />
 			<meta name="viewport" content="width=device-width, initial-scale=1" />
-			<title><?php echo esc_html__( 'OpenClaw Handoff Created', 'magick-ai-adapter' ); ?></title>
+			<title><?php echo esc_html__( 'OpenClaw Handoff Created', 'npcink-openclaw-adapter' ); ?></title>
 			<style>
 				body { margin: 0; background: #f0f0f1; color: #1d2327; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 				main { max-width: 960px; margin: 32px auto; padding: 0 24px; }
@@ -1173,55 +1173,55 @@ final class Connection_Page {
 		</head>
 		<body>
 			<main>
-				<h1><?php echo esc_html__( 'OpenClaw Handoff Created', 'magick-ai-adapter' ); ?></h1>
+				<h1><?php echo esc_html__( 'OpenClaw Handoff Created', 'npcink-openclaw-adapter' ); ?></h1>
 				<div class="notice">
-					<p><?php echo esc_html__( 'Copy this Application Password now. WordPress shows it only once and stores only a hash.', 'magick-ai-adapter' ); ?></p>
-					<p><?php echo esc_html__( 'Paste it only into OpenClaw dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text.', 'magick-ai-adapter' ); ?></p>
-					<p><?php echo esc_html__( 'Use this only for OpenClaw access through Magick AI Adapter. Revoke it from the WordPress user profile when the client is retired.', 'magick-ai-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Copy this Application Password now. WordPress shows it only once and stores only a hash.', 'npcink-openclaw-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Paste it only into OpenClaw dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text.', 'npcink-openclaw-adapter' ); ?></p>
+					<p><?php echo esc_html__( 'Use this only for OpenClaw access through Npcink OpenClaw Adapter. Revoke it from the WordPress user profile when the client is retired.', 'npcink-openclaw-adapter' ); ?></p>
 				</div>
 				<table>
 					<tbody>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'Adapter URL', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'Adapter URL', 'npcink-openclaw-adapter' ); ?></th>
 							<td><code><?php echo esc_html( $base_url ); ?></code></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'WordPress user', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'WordPress user', 'npcink-openclaw-adapter' ); ?></th>
 							<td><code><?php echo esc_html( $username ); ?></code></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'Password UUID', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'Password UUID', 'npcink-openclaw-adapter' ); ?></th>
 							<td><code><?php echo esc_html( $password_uuid ); ?></code></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'Application Password', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'Application Password', 'npcink-openclaw-adapter' ); ?></th>
 							<td><textarea id="maa-application-password" rows="3" readonly><?php echo esc_textarea( $password ); ?></textarea></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'Connection manifest', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'Connection manifest', 'npcink-openclaw-adapter' ); ?></th>
 							<td>
 								<textarea id="maa-connection-manifest" rows="16" readonly><?php echo esc_textarea( $this->openclaw_connection_manifest_text( $username, $password_uuid ) ); ?></textarea>
-								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-connection-manifest"><?php echo esc_html__( 'Copy manifest', 'magick-ai-adapter' ); ?></button></p>
+								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-connection-manifest"><?php echo esc_html__( 'Copy manifest', 'npcink-openclaw-adapter' ); ?></button></p>
 							</td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'OpenClaw env placeholder', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'OpenClaw env placeholder', 'npcink-openclaw-adapter' ); ?></th>
 							<td><textarea rows="6" readonly><?php echo esc_textarea( $this->openclaw_env_text( $username, $include_local_tls ) ); ?></textarea></td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'WorkBuddy setup', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'WorkBuddy setup', 'npcink-openclaw-adapter' ); ?></th>
 							<td>
 								<textarea id="maa-workbuddy-setup" rows="18" readonly><?php echo esc_textarea( $this->workbuddy_handoff_text( $username, $password_uuid, $include_local_tls ) ); ?></textarea>
-								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-workbuddy-setup"><?php echo esc_html__( 'Copy WorkBuddy setup', 'magick-ai-adapter' ); ?></button></p>
+								<p class="inline-actions"><button type="button" class="button" data-maa-created-copy-target="maa-workbuddy-setup"><?php echo esc_html__( 'Copy WorkBuddy setup', 'npcink-openclaw-adapter' ); ?></button></p>
 							</td>
 						</tr>
 						<tr>
-							<th scope="row"><?php echo esc_html__( 'OpenClaw handoff', 'magick-ai-adapter' ); ?></th>
+							<th scope="row"><?php echo esc_html__( 'OpenClaw handoff', 'npcink-openclaw-adapter' ); ?></th>
 							<td><textarea rows="18" readonly><?php echo esc_textarea( $this->openclaw_created_handoff_text( $username, $password_uuid, $include_local_tls ) ); ?></textarea></td>
 						</tr>
 					</tbody>
 				</table>
-				<p class="actions"><a class="button" href="<?php echo esc_url( menu_page_url( self::MENU_SLUG, false ) ); ?>"><?php echo esc_html__( 'Back to Magick AI Adapter', 'magick-ai-adapter' ); ?></a></p>
+				<p class="actions"><a class="button" href="<?php echo esc_url( menu_page_url( self::MENU_SLUG, false ) ); ?>"><?php echo esc_html__( 'Back to Npcink OpenClaw Adapter', 'npcink-openclaw-adapter' ); ?></a></p>
 			</main>
 			<script>
 				(function () {
@@ -1235,7 +1235,7 @@ final class Connection_Page {
 
 							window.navigator.clipboard.writeText(text).then(function () {
 								var oldText = button.textContent;
-								button.textContent = '<?php echo esc_js( __( 'Copied', 'magick-ai-adapter' ) ); ?>';
+								button.textContent = '<?php echo esc_js( __( 'Copied', 'npcink-openclaw-adapter' ) ); ?>';
 								window.setTimeout(function () {
 									button.textContent = oldText;
 								}, 1500);
@@ -1271,7 +1271,7 @@ final class Connection_Page {
 	private function proposal_request( string $proposal_url ): string {
 		return 'curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \\' . "\n"
 			. '  -H "Content-Type: application/json" \\' . "\n"
-			. '  -d \'{"ability_id":"magick-ai/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}\' \\' . "\n"
+			. '  -d \'{"ability_id":"npcink-abilities-toolkit/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}\' \\' . "\n"
 			. '  ' . $proposal_url;
 	}
 
@@ -1293,20 +1293,20 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function handoff_prompt( string $base_url ): string {
-		return "Use this WordPress site through Magick AI Adapter.\n"
+		return "Use this WordPress site through Npcink OpenClaw Adapter.\n"
 			. "Adapter base URL: {$base_url}\n"
 			. "Authenticate with WordPress REST Basic Auth using the manifest username and an Application Password stored only in OpenClaw's dedicated secret field.\n"
 			. "Do not paste the secret into chat, tool commands, logs, proposal payloads, files, or copied handoff text.\n"
-			. "OpenClaw only connects to Adapter. Do not connect OpenClaw directly to Magick AI Core.\n"
+			. "OpenClaw only connects to Adapter. Do not connect OpenClaw directly to Npcink Governance Core.\n"
 			. "Start by calling GET /health, GET /help, and GET /capabilities.\n"
 			. "For direct_read abilities, call the matching read shortcut or POST /run-read-ability with the real ability_id and input object.\n"
 			. "For SEO/GEO/AEO suggestions, the primary entrypoint is content-discoverability-brief through openclaw_recipes.content_discoverability_suggestions: validate Toolbox context, read Toolbox context, build one content_discoverability_brief, and return suggestions only.\n"
 			. "Use article-writing-pack only for broad natural-language article requests such as \"help me write an article\": follow openclaw_recipes.ai_article_draft_with_discoverability, draft from the returned ai_article_writing_pack, then use Core proposals for reviewed final writes.\n"
 			. "For proposal_required abilities, POST /proposals with the real ability_id, input, preview, and caller metadata. For read-only planning outputs, POST /proposals/from-plan to let Core create governed proposals.\n"
 			. "Poll GET /proposals/{proposal_id} for Core status. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute so Adapter calls Core approve, Core commit-preflight, and one allowlisted final write. If status=rejected, stop and show the rejection status. If status=approved and execution is intended, call POST /proposals/{proposal_id}/execute. Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true. Use Adapter commit-preflight only as an advanced diagnostic step; for dry-run-only verification, stop at commit-preflight and do not call execute.\n"
-			. "When you have proposal_id or commit-preflight correlation_id, pass them as log_context on POST /run-read-ability or as query fields on read shortcuts so Adapter can add them to AI Request Logs context through wpai_request_log_context. Core Governance Audit is the governance log; AI Request Logs are the provider request log. Adapter context includes ability_id, adapter_request_id, adapter_route, ai_provider, ai_model, governance_source=magick-ai-core, and nested magick_ai_core identifiers.\n"
-			. "POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject are disabled stubs that return approval_proxy_enabled=false. The only Adapter approval path is POST /proposals/{proposal_id}/approve-and-execute, currently allowlisted for magick-ai/trash-post, magick-ai/create-draft, magick-ai/update-post, magick-ai/patch-post-content, magick-ai/patch-setting-value, magick-ai/set-post-seo-meta, magick-ai/set-post-slug, magick-ai/set-post-terms, magick-ai/delete-term, magick-ai/update-media-details, magick-ai/upload-media-from-url, magick-ai/set-post-featured-image, magick-ai/optimize-media-asset, magick-ai/replace-media-file, magick-ai/adopt-cloud-media-derivative, magick-ai/rename-media-file, magick-ai/delete-media-permanently, magick-ai/reply-comment, magick-ai/trash-comment, and magick-ai/approve-comment.\n"
-			. "Handle failures by code: magick_ai_adapter_approval_proxy_disabled means use approve-and-execute or Core admin; magick_ai_adapter_execute_ability_not_allowed means stop because the ability is outside the Adapter execution allowlist; magick_ai_adapter_proposal_rejected means stop and show the rejection; magick_ai_adapter_preflight_not_authorized or magick_ai_adapter_preflight_item_blocked means stop and show Core preflight details.\n"
+			. "When you have proposal_id or commit-preflight correlation_id, pass them as log_context on POST /run-read-ability or as query fields on read shortcuts so Adapter can add them to AI Request Logs context through wpai_request_log_context. Core Governance Audit is the governance log; AI Request Logs are the provider request log. Adapter context includes ability_id, adapter_request_id, adapter_route, ai_provider, ai_model, governance_source=npcink-governance-core, and nested npcink_governance_core identifiers.\n"
+			. "POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject are disabled stubs that return approval_proxy_enabled=false. The only Adapter approval path is POST /proposals/{proposal_id}/approve-and-execute, currently allowlisted for npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, and npcink-abilities-toolkit/approve-comment.\n"
+			. "Handle failures by code: npcink_openclaw_adapter_approval_proxy_disabled means use approve-and-execute or Core admin; npcink_openclaw_adapter_execute_ability_not_allowed means stop because the ability is outside the Adapter execution allowlist; npcink_openclaw_adapter_proposal_rejected means stop and show the rejection; npcink_openclaw_adapter_preflight_not_authorized or npcink_openclaw_adapter_preflight_item_blocked means stop and show Core preflight details.\n"
 			. "Do not ask the adapter to store approval state, run workflows, batch destructive actions, or execute abilities outside the approve-and-execute allowlist. Preserve approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.";
 	}
 
@@ -1333,13 +1333,13 @@ final class Connection_Page {
 	 */
 	private function openclaw_env_text( string $username, bool $include_local_tls ): string {
 		$lines = array(
-			'MAGICK_AI_ADAPTER_BASE_URL=' . rest_url( Controller::NAMESPACE ),
-			'MAGICK_AI_ADAPTER_USERNAME=' . $username,
-			'MAGICK_AI_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
+			'NPCINK_OPENCLAW_ADAPTER_BASE_URL=' . rest_url( Controller::NAMESPACE ),
+			'NPCINK_OPENCLAW_ADAPTER_USERNAME=' . $username,
+			'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 		);
 
 		if ( $include_local_tls ) {
-			$lines[] = 'MAGICK_AI_ADAPTER_INSECURE_SSL=true';
+			$lines[] = 'NPCINK_OPENCLAW_ADAPTER_INSECURE_SSL=true';
 		}
 
 		return implode( "\n", $lines );
@@ -1382,7 +1382,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function openclaw_created_handoff_text( string $username, string $password_uuid, bool $include_local_tls ): string {
-		return "Magick AI Adapter OpenClaw connection\n"
+		return "Npcink OpenClaw Adapter OpenClaw connection\n"
 			. "Connection manifest\n"
 			. $this->openclaw_connection_manifest_text( $username, $password_uuid ) . "\n\n"
 			. "Optional env placeholders\n"
@@ -1390,7 +1390,7 @@ final class Connection_Page {
 			. "Secret handling\n"
 			. "Paste the secret only into OpenClaw's dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text.\n\n"
 			. "Agent rules\n"
-			. "1. Connect to Magick AI Adapter, not directly to Magick AI Core, for productized OpenClaw setup.\n"
+			. "1. Connect to Npcink OpenClaw Adapter, not directly to Npcink Governance Core, for productized OpenClaw setup.\n"
 			. "2. Authenticate with WordPress REST Basic Auth using the manifest username and the Application Password stored in OpenClaw's dedicated secret field.\n"
 			. "3. Call GET /health first and require core_capabilities=true, abilities_catalog=true, approval_proxy_enabled=false, core_proxy_execute=false, and commit_execution=false.\n"
 			. "4. Call GET /help to discover adapter routes, then GET /capabilities before reads or proposals and use only real ability_id values returned by Core.\n"
@@ -1398,11 +1398,11 @@ final class Connection_Page {
 			. "5b. For SEO/GEO/AEO suggestions, the primary entrypoint is content-discoverability-brief: use content_discoverability_suggestions, call content-discoverability-validation, content-discoverability-context, then content-discoverability-brief for one post_id or supplied topic. Return suggestions only; do not write SEO meta, slug, excerpt, schema, media, or posts.\n"
 			. "5c. Use article-writing-pack only for broad article requests like \"help me write an article\" or \"write an AI topic article\": use ai_article_draft_with_discoverability, draft only from the returned pack, and send any reviewed final write through Core proposal/preflight.\n"
 			. "6. For proposal_required abilities, POST /proposals and poll GET /proposals/{proposal_id}. For read-only planning outputs, POST /proposals/from-plan.\n"
-			. "7. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute. Adapter calls Core approve, Core commit-preflight, and one allowlisted final write. Current execution allowlist: magick-ai/trash-post, magick-ai/create-draft, magick-ai/update-post, magick-ai/patch-post-content, magick-ai/patch-setting-value, magick-ai/set-post-seo-meta, magick-ai/set-post-slug, magick-ai/set-post-terms, magick-ai/delete-term, magick-ai/update-media-details, magick-ai/upload-media-from-url, magick-ai/set-post-featured-image, magick-ai/optimize-media-asset, magick-ai/replace-media-file, magick-ai/adopt-cloud-media-derivative, magick-ai/rename-media-file, magick-ai/delete-media-permanently, magick-ai/reply-comment, magick-ai/trash-comment, magick-ai/approve-comment.\n"
+			. "7. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute. Adapter calls Core approve, Core commit-preflight, and one allowlisted final write. Current execution allowlist: npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, npcink-abilities-toolkit/approve-comment.\n"
 			. "7b. If status=rejected, stop and show the rejection status. If status=approved and execution is intended, call POST /proposals/{proposal_id}/execute. Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true. Use Adapter commit-preflight only as an advanced diagnostic step; for dry-run-only verification, stop at commit-preflight and do not call execute.\n"
 			. "8. Pass proposal_id and correlation_id as log_context or read shortcut query fields so AI Request Logs can correlate execution rows with Core audit. Core Governance Audit is the governance log; AI Request Logs are the provider request log. For provider smoke, POST /ai-provider-log-correlation-smoke with a configured text generation ai_provider and ai_model after commit-preflight; local Ollama examples use ai_provider=ollama and ai_model=qwen3.5:0.8b when available.\n"
-			. "9. Treat POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject as disabled stubs. Approval without execution is handled in Magick AI Core admin.\n"
-			. "10. Failure code handling: magick_ai_adapter_approval_proxy_disabled => use approve-and-execute or Core admin; magick_ai_adapter_execute_ability_not_allowed => stop; magick_ai_adapter_proposal_rejected => stop; magick_ai_adapter_preflight_not_authorized or magick_ai_adapter_preflight_item_blocked => show Core preflight details and do not retry execution.\n"
+			. "9. Treat POST /proposals/{proposal_id}/approve and POST /proposals/{proposal_id}/reject as disabled stubs. Approval without execution is handled in Npcink Governance Core admin.\n"
+			. "10. Failure code handling: npcink_openclaw_adapter_approval_proxy_disabled => use approve-and-execute or Core admin; npcink_openclaw_adapter_execute_ability_not_allowed => stop; npcink_openclaw_adapter_proposal_rejected => stop; npcink_openclaw_adapter_preflight_not_authorized or npcink_openclaw_adapter_preflight_item_blocked => show Core preflight details and do not retry execution.\n"
 			. "11. Do not ask the adapter to store approval state, run workflows, batch destructive actions, or execute abilities outside the approve-and-execute allowlist.\n"
 			. "12. Do not execute writes without Core commit preflight.\n"
 			. "13. Do not store or print the secret in logs, proposal payloads, prompts, files, or copied handoff text.\n\n"
@@ -1421,7 +1421,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function workbuddy_handoff_text( string $username, string $password_uuid, bool $include_local_tls ): string {
-		return "Magick AI Adapter WorkBuddy connection\n"
+		return "Npcink OpenClaw Adapter WorkBuddy connection\n"
 			. "Paste this setup into WorkBuddy. It contains no Application Password value.\n\n"
 			. "Connection manifest\n"
 			. $this->openclaw_connection_manifest_text( $username, $password_uuid ) . "\n\n"
@@ -1449,8 +1449,8 @@ final class Connection_Page {
 		$connect_command = $this->local_cli_connect_command( $include_local_tls );
 		$request_prefix = $this->local_cli_request_prefix( $include_local_tls );
 
-		return "Magick AI Adapter local CLI setup\n\n"
-			. "Use this local CLI to call Adapter. Do not read, print, summarize, or copy ~/.magick-ai-adapter/keypair-profiles/*.json.\n\n"
+		return "Npcink OpenClaw Adapter local CLI setup\n\n"
+			. "Use this local CLI to call Adapter. Do not read, print, summarize, or copy ~/.npcink-openclaw-adapter/keypair-profiles/*.json.\n\n"
 			. "Pairing command for the user terminal:\n"
 			. $connect_command . "\n\n"
 			. "Connection status:\n"
@@ -1463,7 +1463,7 @@ final class Connection_Page {
 			. "{$request_prefix} POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit\n\n"
 			. "Rules for OpenClaw:\n"
 			. "1. Do not read, cat, print, summarize, or copy the local keypair profile file.\n"
-			. "2. Do not output private_key_jwk, public_key_jwk, Authorization, X-Magick-Signature, or any signing headers.\n"
+			. "2. Do not output private_key_jwk, public_key_jwk, Authorization, X-Npcink-Signature, or any signing headers.\n"
 			. "3. POST bodies must contain only non-secret JSON. Use --body-file or --body-stdin.\n"
 			. "4. Use only Adapter-relative routes such as /health, /capabilities, or /proposals.\n"
 			. "5. WordPress writes must still go through Core proposal, approval, and preflight.\n"
@@ -1479,7 +1479,7 @@ final class Connection_Page {
 	private function render_key_pair_clients_table( array $key_records ): void {
 		if ( empty( $key_records ) ) :
 			?>
-			<p class="description"><?php echo esc_html__( 'No key-pair clients are registered for this administrator yet. Run the reconnect command, approve the browser prompt, then refresh this page.', 'magick-ai-adapter' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'No key-pair clients are registered for this administrator yet. Run the reconnect command, approve the browser prompt, then refresh this page.', 'npcink-openclaw-adapter' ); ?></p>
 			<?php
 			return;
 		endif;
@@ -1487,12 +1487,12 @@ final class Connection_Page {
 		<table class="widefat striped">
 			<thead>
 				<tr>
-					<th><?php echo esc_html__( 'Client', 'magick-ai-adapter' ); ?></th>
-					<th><?php echo esc_html__( 'Fingerprint', 'magick-ai-adapter' ); ?></th>
-					<th><?php echo esc_html__( 'Scopes', 'magick-ai-adapter' ); ?></th>
-					<th><?php echo esc_html__( 'Last used', 'magick-ai-adapter' ); ?></th>
-					<th><?php echo esc_html__( 'Status', 'magick-ai-adapter' ); ?></th>
-					<th><?php echo esc_html__( 'Action', 'magick-ai-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Client', 'npcink-openclaw-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Fingerprint', 'npcink-openclaw-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Scopes', 'npcink-openclaw-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Last used', 'npcink-openclaw-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Status', 'npcink-openclaw-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Action', 'npcink-openclaw-adapter' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -1502,14 +1502,14 @@ final class Connection_Page {
 						<td><code><?php echo esc_html( (string) ( $record['fingerprint'] ?? '' ) ); ?></code></td>
 						<td><?php echo esc_html( implode( ', ', is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array() ) ); ?></td>
 						<td><?php echo esc_html( $this->display_datetime( (string) ( $record['last_used_at'] ?? '' ) ) ); ?></td>
-						<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'magick-ai-adapter' ) : esc_html__( 'Revoked', 'magick-ai-adapter' ); ?></td>
+						<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'npcink-openclaw-adapter' ) : esc_html__( 'Revoked', 'npcink-openclaw-adapter' ); ?></td>
 						<td>
 							<?php if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) : ?>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 									<input type="hidden" name="action" value="<?php echo esc_attr( self::REVOKE_KEY_ACTION ); ?>" />
 									<input type="hidden" name="key_id" value="<?php echo esc_attr( (string) ( $record['key_id'] ?? '' ) ); ?>" />
 									<?php wp_nonce_field( self::REVOKE_KEY_ACTION . '_' . (string) ( $record['key_id'] ?? '' ) ); ?>
-									<button type="submit" class="button"><?php echo esc_html__( 'Revoke', 'magick-ai-adapter' ); ?></button>
+									<button type="submit" class="button"><?php echo esc_html__( 'Revoke', 'npcink-openclaw-adapter' ); ?></button>
 								</form>
 							<?php endif; ?>
 						</td>
@@ -1556,7 +1556,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function local_cli_prefix(): string {
-		return 'cd ~ && npm exec --yes --package @npcink/magick-ai-adapter-cli -- magick-adapter';
+		return 'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter';
 	}
 
 	/**
