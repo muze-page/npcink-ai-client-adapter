@@ -538,6 +538,12 @@ foreach (
 		'Copy status URL',
 		'Copy execute URL',
 		'proposal_next_step_text',
+		"DATETIME_DISPLAY_FORMAT = 'Y-m-d H:i:s'",
+		'display_datetime',
+		'wp_date( self::DATETIME_DISPLAY_FORMAT, $timestamp )',
+		'$this->display_datetime( $created )',
+		'$this->display_datetime( $updated )',
+		"\$this->display_datetime( (string) ( \$record['last_used_at'] ?? '' ) )",
 		'Adapter Base URL',
 		'WordPress user',
 		'Copy env placeholder',
@@ -631,6 +637,9 @@ maa_adapter_assert( false === strpos( $connection_page, $env_password_key . "' .
 maa_adapter_assert( false === strpos( $connection_page, '$this->openclaw_env_text( $username, $password,' ), 'Connection page does not pass the real Application Password into env text.' );
 maa_adapter_assert( false === strpos( $connection_page, '$this->openclaw_created_handoff_text( $username, $password,' ), 'Connection page does not pass the real secret into copied handoff.' );
 maa_adapter_assert( false === strpos( $connection_page, '$this->workbuddy_handoff_text( $username, $password,' ), 'Connection page does not pass the real secret into WorkBuddy setup.' );
+maa_adapter_assert( false === strpos( $connection_page, "echo esc_html( '' !== \$created ? \$created" ), 'Connection page does not output raw Core proposal creation time.' );
+maa_adapter_assert( false === strpos( $connection_page, "echo esc_html( '' !== \$updated ? \$updated" ), 'Connection page does not output raw Core proposal update time.' );
+maa_adapter_assert( false === strpos( $connection_page, "echo esc_html( (string) ( \$record['last_used_at'] ?? '' )" ), 'Connection page does not output raw key-pair last-used time.' );
 maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_connection_manifest_text( string $username, string $password_uuid )' ), 'Connection manifest receives only username and password UUID.' );
 maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_created_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'Created handoff text receives only username, password UUID, and TLS placeholder flag.' );
 maa_adapter_assert( false !== strpos( $connection_page, 'workbuddy_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'WorkBuddy setup text receives only username, password UUID, and TLS placeholder flag.' );
@@ -652,6 +661,10 @@ foreach (
 		'Core proposal approval tables',
 		'ability definitions',
 		'Cloud Base URL/API key',
+		'Time Display',
+		'WordPress site timezone',
+		'Y-m-d H:i:s',
+		'Do not print raw UTC strings',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $admin_surface_standard, $required ), 'Admin surface standard documents Adapter page boundary: ' . $required );

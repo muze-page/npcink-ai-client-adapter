@@ -26,6 +26,7 @@ final class Connection_Page {
 	const PAIR_MENU_SLUG   = 'magick-ai-adapter-pair';
 	const PAIR_ACTION      = 'magick_ai_adapter_pairing_decision';
 	const REVOKE_KEY_ACTION = 'magick_ai_adapter_revoke_client_key';
+	const DATETIME_DISPLAY_FORMAT = 'Y-m-d H:i:s';
 
 	/**
 	 * Registers the menu item.
@@ -1027,11 +1028,11 @@ final class Connection_Page {
 				<?php endif; ?>
 				<tr>
 					<th scope="row"><?php echo esc_html__( 'Created', 'magick-ai-adapter' ); ?></th>
-					<td><?php echo esc_html( '' !== $created ? $created : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
+					<td><?php echo esc_html( '' !== $created ? $this->display_datetime( $created ) : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
 				</tr>
 				<tr>
 					<th scope="row"><?php echo esc_html__( 'Updated', 'magick-ai-adapter' ); ?></th>
-					<td><?php echo esc_html( '' !== $updated ? $updated : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
+					<td><?php echo esc_html( '' !== $updated ? $this->display_datetime( $updated ) : __( 'unknown', 'magick-ai-adapter' ) ); ?></td>
 				</tr>
 				<tr>
 					<th scope="row"><?php echo esc_html__( 'Audit timeline', 'magick-ai-adapter' ); ?></th>
@@ -1092,6 +1093,35 @@ final class Connection_Page {
 		}
 
 		return __( 'Next step: use Core as the approval truth and Adapter as the OpenClaw status and execution channel.', 'magick-ai-adapter' );
+	}
+
+	/**
+	 * Formats a stored UTC datetime for the site's WordPress timezone.
+	 *
+	 * @param string $datetime UTC datetime string.
+	 * @return string
+	 */
+	private function display_datetime( string $datetime ): string {
+		$datetime = trim( $datetime );
+		if ( '' === $datetime ) {
+			return '';
+		}
+
+		$has_timezone = (bool) preg_match( '/(?:Z|UTC|[+-]\d{2}:?\d{2})$/i', $datetime );
+		$timestamp    = strtotime( $has_timezone ? $datetime : $datetime . ' UTC' );
+		if ( false === $timestamp ) {
+			return $datetime;
+		}
+
+		if ( function_exists( 'wp_date' ) ) {
+			return wp_date( self::DATETIME_DISPLAY_FORMAT, $timestamp );
+		}
+
+		if ( function_exists( 'date_i18n' ) ) {
+			return date_i18n( self::DATETIME_DISPLAY_FORMAT, $timestamp, true );
+		}
+
+		return gmdate( self::DATETIME_DISPLAY_FORMAT, $timestamp );
 	}
 
 	/**
@@ -1471,7 +1501,7 @@ final class Connection_Page {
 						<td><?php echo esc_html( (string) ( $record['client_name'] ?? '' ) ); ?><br><code><?php echo esc_html( (string) ( $record['key_id'] ?? '' ) ); ?></code></td>
 						<td><code><?php echo esc_html( (string) ( $record['fingerprint'] ?? '' ) ); ?></code></td>
 						<td><?php echo esc_html( implode( ', ', is_array( $record['scopes'] ?? null ) ? $record['scopes'] : array() ) ); ?></td>
-						<td><?php echo esc_html( (string) ( $record['last_used_at'] ?? '' ) ); ?></td>
+						<td><?php echo esc_html( $this->display_datetime( (string) ( $record['last_used_at'] ?? '' ) ) ); ?></td>
 						<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'magick-ai-adapter' ) : esc_html__( 'Revoked', 'magick-ai-adapter' ); ?></td>
 						<td>
 							<?php if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) : ?>

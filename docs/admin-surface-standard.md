@@ -56,6 +56,17 @@ Keep these behind explicit advanced sections:
 - failure code mapping;
 - verbose handoff prompt.
 
+## Time Display
+
+Adapter may receive UTC timestamps from Core, local key-pair records, or REST
+responses. Store and proxy those machine values without changing their contract
+semantics, but format any timestamp shown in the wp-admin page through the
+WordPress site timezone.
+
+Visible admin timestamps must use `Y-m-d H:i:s`. Do not print raw UTC strings,
+ISO timestamps, or `*_gmt` values directly in the admin UI unless the label
+explicitly describes a machine/debug value.
+
 ## Do Not Add
 
 Adapter admin must not add:
