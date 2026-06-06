@@ -511,6 +511,7 @@ foreach (
 }
 
 $connection_page = maa_adapter_read( $root . '/includes/Admin/Connection_Page.php' );
+maa_adapter_assert( false !== strpos( $connection_page, "const PARENT_MENU_SLUG = 'npcink-ai';" ), 'Connection page targets the shared Npcink AI parent menu slug.' );
 foreach (
 	array(
 		'Npcink OpenClaw Adapter',

@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Renders a read-only connection handoff surface for OpenClaw.
  */
 final class Connection_Page {
-	const PARENT_MENU_SLUG = 'npcink';
+	const PARENT_MENU_SLUG = 'npcink-ai';
 	const MENU_SLUG        = 'npcink-openclaw-adapter';
 	const MENU_CAPABILITY  = 'manage_options';
 	const CREATE_ACTION    = 'npcink_openclaw_adapter_create_openclaw_password';
