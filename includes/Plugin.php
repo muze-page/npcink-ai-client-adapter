@@ -28,6 +28,7 @@ final class Plugin {
 	 * @return void
 	 */
 	public function boot(): void {
+		add_action( 'init', array( $this, 'load_bundled_translations' ) );
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_filter( 'rest_request_before_callbacks', array( $this, 'capture_adapter_dispatch_start' ), 10, 3 );
 		add_filter( 'rest_request_after_callbacks', array( $this, 'emit_adapter_dispatch_event' ), 10, 3 );
@@ -35,6 +36,24 @@ final class Plugin {
 		add_action( 'admin_post_npcink_openclaw_adapter_create_openclaw_password', array( $this, 'handle_create_openclaw_password' ) );
 		add_action( 'admin_post_npcink_openclaw_adapter_pairing_decision', array( $this, 'handle_pairing_decision' ) );
 		add_action( 'admin_post_npcink_openclaw_adapter_revoke_client_key', array( $this, 'handle_revoke_client_key' ) );
+	}
+
+	/**
+	 * Loads bundled translations for local/private installs.
+	 *
+	 * @return void
+	 */
+	public function load_bundled_translations(): void {
+		$locale = function_exists( 'determine_locale' ) ? determine_locale() : get_locale();
+		$locale = sanitize_file_name( (string) $locale );
+		if ( '' === $locale ) {
+			return;
+		}
+
+		$language_file = NPCINK_OPENCLAW_ADAPTER_DIR . 'languages/npcink-openclaw-adapter-' . $locale . '.mo';
+		if ( is_readable( $language_file ) ) {
+			load_textdomain( 'npcink-openclaw-adapter', $language_file );
+		}
 	}
 
 	/**

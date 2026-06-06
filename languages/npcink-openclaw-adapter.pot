@@ -1,0 +1,1162 @@
+# Copyright (C) 2026 Npcink
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Npcink OpenClaw Adapter 0.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/npcink-openclaw-adapter\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-06-06T07:51:48+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: npcink-openclaw-adapter\n"
+
+#. Plugin Name of the plugin
+#: npcink-openclaw-adapter.php
+#: includes/Admin/Connection_Page.php:50
+#: includes/Admin/Connection_Page.php:251
+msgid "Npcink OpenClaw Adapter"
+msgstr ""
+
+#. Description of the plugin
+#: npcink-openclaw-adapter.php
+msgid "Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities execution."
+msgstr ""
+
+#. Author of the plugin
+#: npcink-openclaw-adapter.php
+#: includes/Admin/Connection_Page.php:108
+#: includes/Admin/Connection_Page.php:109
+#: includes/Admin/Connection_Page.php:156
+msgid "Npcink"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:51
+#: includes/Admin/Connection_Page.php:163
+msgid "Adapter"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:60
+#: includes/Admin/Connection_Page.php:61
+#: includes/Admin/Connection_Page.php:476
+msgid "Approve Npcink Client"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:119
+msgid "Npcink Overview"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:120
+msgid "Overview"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:152
+#: includes/Admin/Connection_Page.php:222
+msgid "You do not have permission to view this page."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:157
+msgid "Local WordPress entry points for Npcink governance, connections, cloud access, and ability packages."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:158
+msgid "Installed Surfaces"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:162
+msgid "Core"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:162
+msgid "Review proposals, approval decisions, commit preflight, audit, and Core app keys."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:163
+msgid "Connect OpenClaw through the Adapter surface."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:164
+msgid "Abilities"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:164
+msgid "Verify WordPress Abilities API packages and demo ability controls."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:165
+msgid "Cloud Addon"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:165
+msgid "Connect this site to Npcink Cloud without moving local control-plane truth."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:188
+msgid "Open"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:190
+msgid "Not installed"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:250
+#: includes/Admin/Connection_Page.php:475
+#: includes/Admin/Connection_Page.php:954
+msgid "Copied"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:252
+msgid "Connect OpenClaw to this WordPress site through the Adapter REST surface."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:256
+#: includes/Admin/Connection_Page.php:750
+#: includes/Admin/Connection_Page.php:1254
+msgid "Status"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:260
+msgid "Core capabilities"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:261
+#: includes/Admin/Connection_Page.php:265
+msgid "Available"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:261
+#: includes/Admin/Connection_Page.php:265
+msgid "Missing"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:264
+msgid "Abilities API"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:268
+msgid "Write execution"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:269
+msgid "Proposal required"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:275
+msgid "Simple connection"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:276
+msgid "Use when the client has a dedicated secret field."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:281
+msgid "Application name"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:287
+msgid "Include LocalWP TLS setting"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:289
+msgid "LocalWP TLS option. Use only for localhost or .local testing."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:293
+msgid "Create Application Password connection"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:297
+#: includes/Admin/Connection_Page.php:595
+msgid "Application Passwords are not available for this user or site."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:300
+msgid "The password is shown once. Store it only in the client secret field."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:304
+msgid "Connection values"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:307
+msgid "Adapter Base URL"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:310
+#: includes/Admin/Connection_Page.php:317
+msgid "Copy"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:314
+#: includes/Admin/Connection_Page.php:969
+msgid "WordPress user"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:321
+#: includes/Admin/Connection_Page.php:981
+msgid "Connection manifest"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:324
+msgid "Copy manifest URL"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:328
+msgid "Client env placeholder"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:329
+msgid "Copies the Adapter URL, username, and password placeholder only."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:332
+msgid "Copy env placeholder"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:334
+msgid "Writes require Core proposal approval before Adapter execution."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:340
+msgid "Higher security: signed key-pair"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:341
+msgid "Recommended when the client should not receive an Application Password."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:343
+msgid "Run this in the same environment as OpenClaw. The private key stays local and Adapter stores only the approved public key."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:346
+msgid "Connect command"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:349
+msgid "Copy connect command"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:353
+msgid "Status command"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:356
+msgid "Copy status command"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:360
+msgid "Full OpenClaw instructions"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:361
+msgid "Copy only when the client needs the longer setup text."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:363
+msgid "Do not ask OpenClaw to read the local keypair profile file. Writes still require Core proposal, approval, and preflight."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:366
+msgid "Copy OpenClaw CLI instructions"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:373
+msgid "Proposal lookup"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:374
+msgid "Check a proposal after OpenClaw creates one."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:376
+msgid "Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:381
+#: includes/Admin/Connection_Page.php:746
+msgid "Proposal ID"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:385
+msgid "Check status"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:386
+msgid "Open proposal API"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:394
+msgid "Advanced"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:395
+msgid "Diagnostics, route catalog, examples, and boundary notes."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:399
+msgid "Diagnostics URLs"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:400
+msgid "Health"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:401
+msgid "Help"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:402
+msgid "Capabilities"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:406
+msgid "Key pair clients"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:407
+msgid "Device-paired clients sign Adapter requests."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:408
+msgid "Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:409
+msgid "Manifest"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:410
+msgid "Key pairs"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:411
+msgid "Revoke a public key to stop the matching local profile from authenticating. Adapter never stores the private key."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:416
+msgid "Route catalog"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:417
+msgid "Proposal routes"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:418
+msgid "Proposal list"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:419
+msgid "Proposal detail"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:420
+msgid "Plan to proposals"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:421
+msgid "Commit preflight"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:422
+msgid "Approve and execute"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:423
+msgid "Approval disabled stub"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:424
+msgid "Reject disabled stub"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:425
+msgid "Read shortcuts"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:434
+msgid "Example requests"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:435
+msgid "Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:442
+msgid "Handoff prompt"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:447
+msgid "Boundary"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:448
+msgid "OpenClaw only connects to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:465
+#: includes/Admin/Connection_Page.php:528
+msgid "You do not have permission to approve device pairing."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:478
+msgid "Device pairing code was not found or has expired."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:482
+msgid "Connection approved."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:483
+msgid "Return to the terminal or local AI client. The client will finish polling and save its local profile. Adapter stores only the public key; the private key was never sent to WordPress."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:487
+msgid "Connection rejected."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:488
+msgid "Return to the terminal or local AI client. The client will stop polling with a rejected status."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:491
+msgid "Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:495
+msgid "User code"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:496
+#: includes/Admin/Connection_Page.php:1250
+msgid "Client"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:497
+msgid "Device"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:498
+msgid "Broker"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:499
+#: includes/Admin/Connection_Page.php:1251
+msgid "Fingerprint"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:500
+#: includes/Admin/Connection_Page.php:1252
+msgid "Scopes"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:502
+msgid "Connection ID"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:503
+msgid "Key ID"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:512
+msgid "Approve connection"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:513
+msgid "Reject"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:567
+msgid "You do not have permission to revoke client keys."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:589
+msgid "You do not have permission to create OpenClaw handoff credentials."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:644
+msgid "Unavailable"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:651
+msgid "Ready"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:657
+msgid "Needs dependencies"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:679
+msgid "Adapter could not read this Core proposal status."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:700
+msgid "After OpenClaw creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:710
+msgid "Proposal not available."
+msgstr ""
+
+#. translators: %d: HTTP status code.
+#: includes/Admin/Connection_Page.php:716
+#, php-format
+msgid "HTTP %d"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:751
+#: includes/Admin/Connection_Page.php:767
+#: includes/Admin/Connection_Page.php:771
+msgid "unknown"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:755
+msgid "Title"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:761
+msgid "Ability"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:766
+msgid "Created"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:770
+msgid "Updated"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:774
+msgid "Audit timeline"
+msgstr ""
+
+#. translators: %d: Number of audit timeline events.
+#: includes/Admin/Connection_Page.php:778
+#, php-format
+msgid "%d events"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:785
+msgid "Open in Core"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:786
+msgid "Copy status URL"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:787
+msgid "Copy execute URL"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:821
+msgid "Next step: review this proposal in Core. Adapter should keep polling status and execute only after Core approval and commit preflight."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:825
+msgid "Next step: execute through Adapter. Adapter will still call Core commit preflight before any allowlisted WordPress ability execution."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:829
+msgid "Next step: stop. Adapter should show the rejection and must not execute this proposal."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:833
+msgid "Next step: reopen or inspect this proposal in Core if it still needs a decision."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:836
+msgid "Next step: use Core as the approval truth and Adapter as the OpenClaw status and execution channel."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:951
+#: includes/Admin/Connection_Page.php:956
+msgid "OpenClaw Handoff Created"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:958
+msgid "Copy this Application Password now. WordPress shows it only once and stores only a hash."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:959
+msgid "Paste it only into OpenClaw dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:960
+msgid "Use this only for OpenClaw access through Npcink OpenClaw Adapter. Revoke it from the WordPress user profile when the client is retired."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:965
+msgid "Adapter URL"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:973
+msgid "Password UUID"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:977
+msgid "Application Password"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:984
+msgid "Copy manifest"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:988
+msgid "OpenClaw env placeholder"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:992
+msgid "WorkBuddy setup"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:995
+msgid "Copy WorkBuddy setup"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:999
+msgid "OpenClaw handoff"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:1004
+msgid "Back to Npcink OpenClaw Adapter"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:1242
+msgid "No key-pair clients are registered for this administrator yet. Run the reconnect command, approve the browser prompt, then refresh this page."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:1253
+msgid "Last used"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:1255
+msgid "Action"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:1265
+msgid "Active"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:1265
+msgid "Revoked"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:1272
+msgid "Revoke"
+msgstr ""
+
+#: includes/Rest/Controller.php:79
+msgid "trash-post execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:90
+msgid "create-draft status must be draft."
+msgstr ""
+
+#: includes/Rest/Controller.php:95
+msgid "create-draft content_format must be html, markdown, or plain."
+msgstr ""
+
+#: includes/Rest/Controller.php:101
+msgid "create-draft execution input must include title."
+msgstr ""
+
+#: includes/Rest/Controller.php:112
+msgid "update-post content_format must be html, markdown, or plain."
+msgstr ""
+
+#: includes/Rest/Controller.php:117
+msgid "update-post execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:122
+msgid "update-post execution input must include title, content, or excerpt."
+msgstr ""
+
+#: includes/Rest/Controller.php:130
+msgid "patch-post-content execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:135
+msgid "patch-post-content execution input must include operations."
+msgstr ""
+
+#: includes/Rest/Controller.php:145
+msgid "patch-setting-value target_type must be option or theme_mod."
+msgstr ""
+
+#: includes/Rest/Controller.php:151
+msgid "patch-setting-value execution input must include operations."
+msgstr ""
+
+#: includes/Rest/Controller.php:156
+msgid "patch-setting-value execution input must include target_name."
+msgstr ""
+
+#: includes/Rest/Controller.php:165
+msgid "set-post-seo-meta execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:170
+msgid "set-post-seo-meta execution input must include seo_title or seo_description."
+msgstr ""
+
+#: includes/Rest/Controller.php:178
+msgid "set-post-slug execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:183
+msgid "set-post-slug execution input must include a valid slug."
+msgstr ""
+
+#: includes/Rest/Controller.php:194
+#: includes/Rest/Controller.php:3961
+msgid "set-post-terms execution mode must be replace, append, or remove."
+msgstr ""
+
+#: includes/Rest/Controller.php:199
+msgid "set-post-terms execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:209
+msgid "delete-term execution input must include term_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:221
+msgid "update-media-details source_type must be owned, ai_generated, stock, external, or test."
+msgstr ""
+
+#: includes/Rest/Controller.php:227
+msgid "update-media-details execution input must include attachment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:233
+msgid "update-media-details execution input must include at least one media detail field."
+msgstr ""
+
+#: includes/Rest/Controller.php:243
+msgid "upload-media-from-url source_type must be owned, ai_generated, stock, external, or test."
+msgstr ""
+
+#: includes/Rest/Controller.php:249
+msgid "upload-media-from-url execution input must include url."
+msgstr ""
+
+#: includes/Rest/Controller.php:258
+msgid "set-post-featured-image execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:263
+msgid "set-post-featured-image execution input must include attachment_id or media_url."
+msgstr ""
+
+#: includes/Rest/Controller.php:273
+msgid "optimize-media-asset preferred_format must be webp, jpeg, or png."
+msgstr ""
+
+#: includes/Rest/Controller.php:279
+msgid "optimize-media-asset execution input must include attachment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:290
+msgid "replace-media-file mode must be replace or rollback."
+msgstr ""
+
+#: includes/Rest/Controller.php:296
+msgid "replace-media-file execution input must include attachment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:306
+msgid "adopt-cloud-media-derivative execution input must include attachment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:312
+msgid "adopt-cloud-media-derivative execution input must include derivative_artifact evidence."
+msgstr ""
+
+#: includes/Rest/Controller.php:322
+msgid "rename-media-file conflict_mode must be fail or unique."
+msgstr ""
+
+#: includes/Rest/Controller.php:328
+msgid "rename-media-file execution input must include attachment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:334
+msgid "rename-media-file execution input must include target_file_name."
+msgstr ""
+
+#: includes/Rest/Controller.php:338
+msgid "rename-media-file execution input must target an existing attachment."
+msgstr ""
+
+#: includes/Rest/Controller.php:347
+msgid "delete-media-permanently execution input must include attachment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:351
+msgid "delete-media-permanently execution input must target an existing attachment."
+msgstr ""
+
+#: includes/Rest/Controller.php:361
+msgid "reply-comment content_format must be html, markdown, or plain."
+msgstr ""
+
+#: includes/Rest/Controller.php:367
+msgid "reply-comment execution input must include comment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:372
+msgid "reply-comment execution input must include content."
+msgstr ""
+
+#: includes/Rest/Controller.php:381
+msgid "trash-comment execution input must include comment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:391
+msgid "approve-comment execution input must include comment_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:1113
+msgid "Ed25519 device pairing requires the PHP sodium extension."
+msgstr ""
+
+#: includes/Rest/Controller.php:1129
+msgid "Device pairing requires client metadata and a base64url Ed25519 public key."
+msgstr ""
+
+#: includes/Rest/Controller.php:1199
+msgid "Device pairing is expired or invalid."
+msgstr ""
+
+#: includes/Rest/Controller.php:1209
+msgid "Device pairing was rejected."
+msgstr ""
+
+#: includes/Rest/Controller.php:1222
+msgid "Device pairing is still pending approval."
+msgstr ""
+
+#: includes/Rest/Controller.php:1292
+msgid "Client key was not found for the current user."
+msgstr ""
+
+#: includes/Rest/Controller.php:1333
+#: includes/Rest/Controller.php:1393
+msgid "Device pairing was not found or expired."
+msgstr ""
+
+#: includes/Rest/Controller.php:1438
+msgid "A JSON request body is required."
+msgstr ""
+
+#: includes/Rest/Controller.php:2690
+msgid "Media derivative ability response is invalid."
+msgstr ""
+
+#: includes/Rest/Controller.php:3179
+msgid "WordPress AI Client is not available."
+msgstr ""
+
+#: includes/Rest/Controller.php:3192
+msgid "AI provider and model are required for provider log correlation smoke."
+msgstr ""
+
+#: includes/Rest/Controller.php:3288
+msgid "Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions."
+msgstr ""
+
+#: includes/Rest/Controller.php:3362
+msgid "This planning ability is not accepted by the adapter plan-to-proposal bridge."
+msgstr ""
+
+#: includes/Rest/Controller.php:3436
+#: includes/Rest/Controller.php:4312
+msgid "Each write_actions item must have a unique action_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:3474
+msgid "Plan write action input failed Adapter proposal validation."
+msgstr ""
+
+#: includes/Rest/Controller.php:3534
+#: includes/Rest/Controller.php:3607
+msgid "proposal_id is required."
+msgstr ""
+
+#: includes/Rest/Controller.php:3634
+msgid "Approved by Npcink OpenClaw Adapter approve-and-execute."
+msgstr ""
+
+#: includes/Rest/Controller.php:3654
+msgid "Core did not return an approved proposal state."
+msgstr ""
+
+#: includes/Rest/Controller.php:3670
+msgid "This proposal cannot be approved and executed from its current status."
+msgstr ""
+
+#: includes/Rest/Controller.php:3751
+msgid "Core proposal response is invalid."
+msgstr ""
+
+#: includes/Rest/Controller.php:3772
+msgid "This proposal ability is not allowed for adapter execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:3817
+msgid "Proposal input includes a field that is not allowed for this ability."
+msgstr ""
+
+#: includes/Rest/Controller.php:3838
+msgid "Execution input must include post_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:3851
+msgid "Execution input is missing a required text field."
+msgstr ""
+
+#: includes/Rest/Controller.php:3864
+msgid "Execution input is missing a required slug field."
+msgstr ""
+
+#: includes/Rest/Controller.php:3883
+msgid "Proposal input includes an invalid enum value."
+msgstr ""
+
+#: includes/Rest/Controller.php:3907
+msgid "Execution input is missing required fields."
+msgstr ""
+
+#: includes/Rest/Controller.php:3924
+msgid "Execution input is missing a required id."
+msgstr ""
+
+#: includes/Rest/Controller.php:3936
+msgid "Execution input must target an existing attachment."
+msgstr ""
+
+#: includes/Rest/Controller.php:3952
+msgid "set-post-terms execution input must include a valid taxonomy."
+msgstr ""
+
+#: includes/Rest/Controller.php:3978
+msgid "set-post-terms execution input must include term_ids or terms."
+msgstr ""
+
+#: includes/Rest/Controller.php:3986
+msgid "set-post-terms execution cannot create missing terms in this adapter policy."
+msgstr ""
+
+#: includes/Rest/Controller.php:3997
+msgid "delete-term execution input must include a valid taxonomy."
+msgstr ""
+
+#: includes/Rest/Controller.php:4009
+msgid "Comment execution input must include content."
+msgstr ""
+
+#: includes/Rest/Controller.php:4021
+msgid "Comment content_format is invalid."
+msgstr ""
+
+#: includes/Rest/Controller.php:4118
+#: includes/Rest/Controller.php:4183
+msgid "Batch output references must use $outputs.action_id.field as the whole value."
+msgstr ""
+
+#: includes/Rest/Controller.php:4133
+msgid "Batch output references must point to an earlier action in the same proposal."
+msgstr ""
+
+#: includes/Rest/Controller.php:4166
+msgid "Batch output reference could not be resolved."
+msgstr ""
+
+#: includes/Rest/Controller.php:4241
+msgid "Proposal input must use either post_id or write_actions, not both."
+msgstr ""
+
+#: includes/Rest/Controller.php:4253
+msgid "Proposal write_actions exceeds the adapter execution limit."
+msgstr ""
+
+#: includes/Rest/Controller.php:4268
+msgid "Each write_actions item must be an object."
+msgstr ""
+
+#: includes/Rest/Controller.php:4281
+msgid "Each write_actions item must include target_ability_id."
+msgstr ""
+
+#: includes/Rest/Controller.php:4337
+msgid "Each executable write action must require Core approval."
+msgstr ""
+
+#: includes/Rest/Controller.php:4349
+msgid "Write actions must keep commit_execution=false before Adapter execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:4362
+msgid "Write action still requires reviewed input before execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:4376
+msgid "Write action is not marked ready for execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:4532
+msgid "Core commit preflight response is invalid."
+msgstr ""
+
+#: includes/Rest/Controller.php:4543
+msgid "Core commit preflight did not authorize approval commit."
+msgstr ""
+
+#: includes/Rest/Controller.php:4556
+msgid "Core commit preflight must not execute final writes."
+msgstr ""
+
+#: includes/Rest/Controller.php:4568
+msgid "Core commit preflight did not mark the proposal item executable."
+msgstr ""
+
+#: includes/Rest/Controller.php:4582
+msgid "Core commit preflight did not return a correlation id."
+msgstr ""
+
+#: includes/Rest/Controller.php:4806
+msgid "The plan was not accepted for Core proposal intake."
+msgstr ""
+
+#: includes/Rest/Controller.php:4810
+msgid "Show these reasons to the operator."
+msgstr ""
+
+#: includes/Rest/Controller.php:4811
+msgid "Revise the Toolbox plan or reviewed draft, then submit a new from-plan request."
+msgstr ""
+
+#: includes/Rest/Controller.php:4812
+msgid "Do not call approve-and-execute until Core creates a proposal."
+msgstr ""
+
+#. translators: %s: proposal status.
+#: includes/Rest/Controller.php:4838
+#, php-format
+msgid "Core proposal status is %s."
+msgstr ""
+
+#: includes/Rest/Controller.php:4847
+msgid "Core rejected this proposal. Adapter will not execute it."
+msgstr ""
+
+#: includes/Rest/Controller.php:4848
+msgid "This proposal is not in an executable Core status."
+msgstr ""
+
+#: includes/Rest/Controller.php:4852
+msgid "Show the Core decision to the operator."
+msgstr ""
+
+#: includes/Rest/Controller.php:4853
+msgid "Revise the source plan or draft, then create a new Core proposal."
+msgstr ""
+
+#: includes/Rest/Controller.php:4854
+msgid "Do not retry approve-and-execute against this proposal id."
+msgstr ""
+
+#. translators: %s: missing field name.
+#: includes/Rest/Controller.php:4887
+#, php-format
+msgid "Missing required input: %s."
+msgstr ""
+
+#: includes/Rest/Controller.php:4893
+msgid "Core marks the proposal item as not ready for execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:4896
+msgid "Core commit preflight did not authorize execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:4901
+msgid "Core has already issued the one-time execution handoff. If commit-preflight was called directly against Core, Adapter cannot recover that handoff."
+msgstr ""
+
+#: includes/Rest/Controller.php:4905
+msgid "Show Core preflight blockers to the operator."
+msgstr ""
+
+#: includes/Rest/Controller.php:4906
+msgid "Revise the proposal input or source plan, then create a new proposal."
+msgstr ""
+
+#: includes/Rest/Controller.php:4907
+msgid "Do not retry approve-and-execute until Core preflight can pass."
+msgstr ""
+
+#: includes/Rest/Controller.php:4911
+msgid "Create a new proposal for the same intended write."
+msgstr ""
+
+#: includes/Rest/Controller.php:4912
+msgid "After approval, call Adapter execute or approve-and-execute; do not call Core commit-preflight directly."
+msgstr ""
+
+#: includes/Rest/Controller.php:4913
+msgid "Use Adapter commit-preflight only as an advanced diagnostic step and follow it immediately with Adapter execute."
+msgstr ""
+
+#: includes/Rest/Controller.php:4920
+msgid "Core commit preflight blocked execution. Adapter did not run the write ability."
+msgstr ""
+
+#: includes/Rest/Controller.php:5199
+msgid "Core commit preflight approved input hash does not match the current proposal input."
+msgstr ""
+
+#: includes/Rest/Controller.php:5216
+msgid "Core commit preflight policy version is not accepted by Adapter execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:5270
+msgid "Adapter has already completed execution for this proposal."
+msgstr ""
+
+#: includes/Rest/Controller.php:5466
+msgid "This ability is not direct-read. Create a Core proposal instead."
+msgstr ""
+
+#: includes/Rest/Controller.php:5479
+msgid "Core guidance unexpectedly allows proxy or commit execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:5781
+msgid "The requested ability is not discoverable through Core."
+msgstr ""
+
+#: includes/Rest/Controller.php:5828
+msgid "The upstream WordPress REST request failed."
+msgstr ""
+
+#: includes/Rest/Controller.php:6245
+msgid "attachment_id is required when no source_artifact is supplied."
+msgstr ""
+
+#: includes/Rest/Controller.php:6301
+msgid "The local attachment file is not readable for media derivative upload."
+msgstr ""
+
+#: includes/Rest/Controller.php:6331
+msgid "Npcink Cloud Addon must be configured and verified before media derivative run reads."
+msgstr ""
+
+#: includes/Rest/Controller.php:6347
+msgid "Npcink Cloud Addon is required for media derivative Cloud transport."
+msgstr ""

@@ -8,6 +8,7 @@ build
 composer.json
 composer.lock
 docs
+scripts
 phpcs.xml
 phpcs.xml.dist
 phpstan.neon

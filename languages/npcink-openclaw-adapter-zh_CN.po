@@ -1,0 +1,1163 @@
+# Copyright (C) 2026 Npcink
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Npcink OpenClaw Adapter 0.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/npcink-openclaw-adapter\n"
+"PO-Revision-Date: 2026-06-06 15:10+0800\n"
+"Last-Translator: Npcink <dev@npcink.local>\n"
+"Language-Team: Chinese (China) <zh_CN@li.org>\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Codex\n"
+"X-Domain: npcink-openclaw-adapter\n"
+
+#. Plugin Name of the plugin
+#: npcink-openclaw-adapter.php
+#: includes/Admin/Connection_Page.php:50
+#: includes/Admin/Connection_Page.php:251
+msgid "Npcink OpenClaw Adapter"
+msgstr "Npcink OpenClaw 适配器"
+
+#. Description of the plugin
+#: npcink-openclaw-adapter.php
+msgid "Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities execution."
+msgstr "用于 Npcink 治理核心和 WordPress 能力执行的轻量 OpenClaw 适配器。"
+
+#. Author of the plugin
+#: npcink-openclaw-adapter.php
+#: includes/Admin/Connection_Page.php:108
+#: includes/Admin/Connection_Page.php:109
+#: includes/Admin/Connection_Page.php:156
+msgid "Npcink"
+msgstr "Npcink"
+
+#: includes/Admin/Connection_Page.php:51
+#: includes/Admin/Connection_Page.php:163
+msgid "Adapter"
+msgstr "适配器"
+
+#: includes/Admin/Connection_Page.php:60
+#: includes/Admin/Connection_Page.php:61
+#: includes/Admin/Connection_Page.php:476
+msgid "Approve Npcink Client"
+msgstr "批准 Npcink 客户端"
+
+#: includes/Admin/Connection_Page.php:119
+msgid "Npcink Overview"
+msgstr "Npcink 概览"
+
+#: includes/Admin/Connection_Page.php:120
+msgid "Overview"
+msgstr "概览"
+
+#: includes/Admin/Connection_Page.php:152
+#: includes/Admin/Connection_Page.php:222
+msgid "You do not have permission to view this page."
+msgstr "您没有权限查看此页面。"
+
+#: includes/Admin/Connection_Page.php:157
+msgid "Local WordPress entry points for Npcink governance, connections, cloud access, and ability packages."
+msgstr "用于 Npcink 治理、连接、云访问和能力包的本地 WordPress 入口。"
+
+#: includes/Admin/Connection_Page.php:158
+msgid "Installed Surfaces"
+msgstr "已安装界面"
+
+#: includes/Admin/Connection_Page.php:162
+msgid "Core"
+msgstr "核心"
+
+#: includes/Admin/Connection_Page.php:162
+msgid "Review proposals, approval decisions, commit preflight, audit, and Core app keys."
+msgstr "查看提案、审批决策、提交预检、审计和核心应用密钥。"
+
+#: includes/Admin/Connection_Page.php:163
+msgid "Connect OpenClaw through the Adapter surface."
+msgstr "通过适配器界面连接 OpenClaw。"
+
+#: includes/Admin/Connection_Page.php:164
+msgid "Abilities"
+msgstr "能力"
+
+#: includes/Admin/Connection_Page.php:164
+msgid "Verify WordPress Abilities API packages and demo ability controls."
+msgstr "验证 WordPress Abilities API 包和演示能力控制。"
+
+#: includes/Admin/Connection_Page.php:165
+msgid "Cloud Addon"
+msgstr "云端插件"
+
+#: includes/Admin/Connection_Page.php:165
+msgid "Connect this site to Npcink Cloud without moving local control-plane truth."
+msgstr "将此站点连接到 Npcink Cloud，同时不迁移本地控制面事实。"
+
+#: includes/Admin/Connection_Page.php:188
+msgid "Open"
+msgstr "打开"
+
+#: includes/Admin/Connection_Page.php:190
+msgid "Not installed"
+msgstr "未安装"
+
+#: includes/Admin/Connection_Page.php:250
+#: includes/Admin/Connection_Page.php:475
+#: includes/Admin/Connection_Page.php:954
+msgid "Copied"
+msgstr "已复制"
+
+#: includes/Admin/Connection_Page.php:252
+msgid "Connect OpenClaw to this WordPress site through the Adapter REST surface."
+msgstr "通过适配器 REST 界面将 OpenClaw 连接到此 WordPress 站点。"
+
+#: includes/Admin/Connection_Page.php:256
+#: includes/Admin/Connection_Page.php:750
+#: includes/Admin/Connection_Page.php:1254
+msgid "Status"
+msgstr "状态"
+
+#: includes/Admin/Connection_Page.php:260
+msgid "Core capabilities"
+msgstr "核心能力"
+
+#: includes/Admin/Connection_Page.php:261
+#: includes/Admin/Connection_Page.php:265
+msgid "Available"
+msgstr "可用"
+
+#: includes/Admin/Connection_Page.php:261
+#: includes/Admin/Connection_Page.php:265
+msgid "Missing"
+msgstr "缺失"
+
+#: includes/Admin/Connection_Page.php:264
+msgid "Abilities API"
+msgstr "能力 API"
+
+#: includes/Admin/Connection_Page.php:268
+msgid "Write execution"
+msgstr "写入执行"
+
+#: includes/Admin/Connection_Page.php:269
+msgid "Proposal required"
+msgstr "需要提案"
+
+#: includes/Admin/Connection_Page.php:275
+msgid "Simple connection"
+msgstr "简单连接"
+
+#: includes/Admin/Connection_Page.php:276
+msgid "Use when the client has a dedicated secret field."
+msgstr "当客户端有专用密钥字段时使用。"
+
+#: includes/Admin/Connection_Page.php:281
+msgid "Application name"
+msgstr "应用名称"
+
+#: includes/Admin/Connection_Page.php:287
+msgid "Include LocalWP TLS setting"
+msgstr "包含 LocalWP TLS 设置"
+
+#: includes/Admin/Connection_Page.php:289
+msgid "LocalWP TLS option. Use only for localhost or .local testing."
+msgstr "LocalWP TLS 选项。仅用于 localhost 或 .local 测试。"
+
+#: includes/Admin/Connection_Page.php:293
+msgid "Create Application Password connection"
+msgstr "创建应用密码连接"
+
+#: includes/Admin/Connection_Page.php:297
+#: includes/Admin/Connection_Page.php:595
+msgid "Application Passwords are not available for this user or site."
+msgstr "此用户或站点不可用应用密码。"
+
+#: includes/Admin/Connection_Page.php:300
+msgid "The password is shown once. Store it only in the client secret field."
+msgstr "密码只显示一次。请只保存到客户端密钥字段。"
+
+#: includes/Admin/Connection_Page.php:304
+msgid "Connection values"
+msgstr "连接参数"
+
+#: includes/Admin/Connection_Page.php:307
+msgid "Adapter Base URL"
+msgstr "适配器基础 URL"
+
+#: includes/Admin/Connection_Page.php:310
+#: includes/Admin/Connection_Page.php:317
+msgid "Copy"
+msgstr "复制"
+
+#: includes/Admin/Connection_Page.php:314
+#: includes/Admin/Connection_Page.php:969
+msgid "WordPress user"
+msgstr "WordPress 用户"
+
+#: includes/Admin/Connection_Page.php:321
+#: includes/Admin/Connection_Page.php:981
+msgid "Connection manifest"
+msgstr "连接清单"
+
+#: includes/Admin/Connection_Page.php:324
+msgid "Copy manifest URL"
+msgstr "复制清单 URL"
+
+#: includes/Admin/Connection_Page.php:328
+msgid "Client env placeholder"
+msgstr "客户端环境变量占位符"
+
+#: includes/Admin/Connection_Page.php:329
+msgid "Copies the Adapter URL, username, and password placeholder only."
+msgstr "仅复制适配器 URL、用户名和密码占位符。"
+
+#: includes/Admin/Connection_Page.php:332
+msgid "Copy env placeholder"
+msgstr "复制环境变量占位符"
+
+#: includes/Admin/Connection_Page.php:334
+msgid "Writes require Core proposal approval before Adapter execution."
+msgstr "写入在适配器执行前需要核心提案批准。"
+
+#: includes/Admin/Connection_Page.php:340
+msgid "Higher security: signed key-pair"
+msgstr "更高安全性：签名密钥对"
+
+#: includes/Admin/Connection_Page.php:341
+msgid "Recommended when the client should not receive an Application Password."
+msgstr "建议在客户端不应接收应用密码时使用。"
+
+#: includes/Admin/Connection_Page.php:343
+msgid "Run this in the same environment as OpenClaw. The private key stays local and Adapter stores only the approved public key."
+msgstr "请在与 OpenClaw 相同的环境中运行。私钥保留在本地，适配器只保存已批准的公钥。"
+
+#: includes/Admin/Connection_Page.php:346
+msgid "Connect command"
+msgstr "连接命令"
+
+#: includes/Admin/Connection_Page.php:349
+msgid "Copy connect command"
+msgstr "复制连接命令"
+
+#: includes/Admin/Connection_Page.php:353
+msgid "Status command"
+msgstr "状态命令"
+
+#: includes/Admin/Connection_Page.php:356
+msgid "Copy status command"
+msgstr "复制状态命令"
+
+#: includes/Admin/Connection_Page.php:360
+msgid "Full OpenClaw instructions"
+msgstr "完整 OpenClaw 说明"
+
+#: includes/Admin/Connection_Page.php:361
+msgid "Copy only when the client needs the longer setup text."
+msgstr "仅在客户端需要较长设置文本时复制。"
+
+#: includes/Admin/Connection_Page.php:363
+msgid "Do not ask OpenClaw to read the local keypair profile file. Writes still require Core proposal, approval, and preflight."
+msgstr "不要让 OpenClaw 读取本地密钥对配置文件。写入仍需要核心提案、批准和预检。"
+
+#: includes/Admin/Connection_Page.php:366
+msgid "Copy OpenClaw CLI instructions"
+msgstr "复制 OpenClaw CLI 说明"
+
+#: includes/Admin/Connection_Page.php:373
+msgid "Proposal lookup"
+msgstr "提案查询"
+
+#: includes/Admin/Connection_Page.php:374
+msgid "Check a proposal after OpenClaw creates one."
+msgstr "在 OpenClaw 创建提案后检查该提案。"
+
+#: includes/Admin/Connection_Page.php:376
+msgid "Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval."
+msgstr "使用返回给 OpenClaw 的提案 ID 检查核心状态，打开核心审批页面，并在批准后从适配器继续执行。"
+
+#: includes/Admin/Connection_Page.php:381
+#: includes/Admin/Connection_Page.php:746
+msgid "Proposal ID"
+msgstr "提案 ID"
+
+#: includes/Admin/Connection_Page.php:385
+msgid "Check status"
+msgstr "检查状态"
+
+#: includes/Admin/Connection_Page.php:386
+msgid "Open proposal API"
+msgstr "打开提案 API"
+
+#: includes/Admin/Connection_Page.php:394
+msgid "Advanced"
+msgstr "高级"
+
+#: includes/Admin/Connection_Page.php:395
+msgid "Diagnostics, route catalog, examples, and boundary notes."
+msgstr "诊断、路由目录、示例和边界说明。"
+
+#: includes/Admin/Connection_Page.php:399
+msgid "Diagnostics URLs"
+msgstr "诊断 URL"
+
+#: includes/Admin/Connection_Page.php:400
+msgid "Health"
+msgstr "健康状态"
+
+#: includes/Admin/Connection_Page.php:401
+msgid "Help"
+msgstr "帮助"
+
+#: includes/Admin/Connection_Page.php:402
+msgid "Capabilities"
+msgstr "能力列表"
+
+#: includes/Admin/Connection_Page.php:406
+msgid "Key pair clients"
+msgstr "密钥对客户端"
+
+#: includes/Admin/Connection_Page.php:407
+msgid "Device-paired clients sign Adapter requests."
+msgstr "设备配对客户端会对适配器请求进行签名。"
+
+#: includes/Admin/Connection_Page.php:408
+msgid "Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval."
+msgstr "第二阶段客户端在本地生成 Ed25519 密钥。适配器只在 WordPress 管理员批准后保存公钥。"
+
+#: includes/Admin/Connection_Page.php:409
+msgid "Manifest"
+msgstr "清单"
+
+#: includes/Admin/Connection_Page.php:410
+msgid "Key pairs"
+msgstr "密钥对"
+
+#: includes/Admin/Connection_Page.php:411
+msgid "Revoke a public key to stop the matching local profile from authenticating. Adapter never stores the private key."
+msgstr "撤销公钥可阻止匹配的本地配置继续认证。适配器永不保存私钥。"
+
+#: includes/Admin/Connection_Page.php:416
+msgid "Route catalog"
+msgstr "路由目录"
+
+#: includes/Admin/Connection_Page.php:417
+msgid "Proposal routes"
+msgstr "提案路由"
+
+#: includes/Admin/Connection_Page.php:418
+msgid "Proposal list"
+msgstr "提案列表"
+
+#: includes/Admin/Connection_Page.php:419
+msgid "Proposal detail"
+msgstr "提案详情"
+
+#: includes/Admin/Connection_Page.php:420
+msgid "Plan to proposals"
+msgstr "计划转提案"
+
+#: includes/Admin/Connection_Page.php:421
+msgid "Commit preflight"
+msgstr "提交预检"
+
+#: includes/Admin/Connection_Page.php:422
+msgid "Approve and execute"
+msgstr "批准并执行"
+
+#: includes/Admin/Connection_Page.php:423
+msgid "Approval disabled stub"
+msgstr "审批禁用占位路由"
+
+#: includes/Admin/Connection_Page.php:424
+msgid "Reject disabled stub"
+msgstr "拒绝禁用占位路由"
+
+#: includes/Admin/Connection_Page.php:425
+msgid "Read shortcuts"
+msgstr "读取快捷方式"
+
+#: includes/Admin/Connection_Page.php:434
+msgid "Example requests"
+msgstr "示例请求"
+
+#: includes/Admin/Connection_Page.php:435
+msgid "Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals."
+msgstr "请使用专用管理员应用密码。只将密码粘贴到 OpenClaw 专用密钥字段，绝不要粘贴到聊天、工具、文件、日志或提案中。"
+
+#: includes/Admin/Connection_Page.php:442
+msgid "Handoff prompt"
+msgstr "交接提示词"
+
+#: includes/Admin/Connection_Page.php:447
+msgid "Boundary"
+msgstr "边界"
+
+#: includes/Admin/Connection_Page.php:448
+msgid "OpenClaw only connects to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight."
+msgstr "OpenClaw 只连接适配器。核心审批后台是适配器背后的人类治理界面。只有核心将能力标记为 wp_abilities_rest 上的 direct_read 时才执行读取。写入会创建核心提案，并停在提交预检。"
+
+#: includes/Admin/Connection_Page.php:465
+#: includes/Admin/Connection_Page.php:528
+msgid "You do not have permission to approve device pairing."
+msgstr "您没有权限批准设备配对。"
+
+#: includes/Admin/Connection_Page.php:478
+msgid "Device pairing code was not found or has expired."
+msgstr "设备配对码不存在或已过期。"
+
+#: includes/Admin/Connection_Page.php:482
+msgid "Connection approved."
+msgstr "连接已批准。"
+
+#: includes/Admin/Connection_Page.php:483
+msgid "Return to the terminal or local AI client. The client will finish polling and save its local profile. Adapter stores only the public key; the private key was never sent to WordPress."
+msgstr "请返回终端或本地 AI 客户端。客户端会完成轮询并保存本地配置。适配器只保存公钥；私钥从未发送到 WordPress。"
+
+#: includes/Admin/Connection_Page.php:487
+msgid "Connection rejected."
+msgstr "连接已拒绝。"
+
+#: includes/Admin/Connection_Page.php:488
+msgid "Return to the terminal or local AI client. The client will stop polling with a rejected status."
+msgstr "请返回终端或本地 AI 客户端。客户端会以已拒绝状态停止轮询。"
+
+#: includes/Admin/Connection_Page.php:491
+msgid "Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer."
+msgstr "只有在您主动发起连接时才批准此本地 AI 客户端。适配器只保存公钥；私钥保留在您的电脑上。"
+
+#: includes/Admin/Connection_Page.php:495
+msgid "User code"
+msgstr "用户代码"
+
+#: includes/Admin/Connection_Page.php:496
+#: includes/Admin/Connection_Page.php:1250
+msgid "Client"
+msgstr "客户端"
+
+#: includes/Admin/Connection_Page.php:497
+msgid "Device"
+msgstr "设备"
+
+#: includes/Admin/Connection_Page.php:498
+msgid "Broker"
+msgstr "代理程序"
+
+#: includes/Admin/Connection_Page.php:499
+#: includes/Admin/Connection_Page.php:1251
+msgid "Fingerprint"
+msgstr "指纹"
+
+#: includes/Admin/Connection_Page.php:500
+#: includes/Admin/Connection_Page.php:1252
+msgid "Scopes"
+msgstr "权限范围"
+
+#: includes/Admin/Connection_Page.php:502
+msgid "Connection ID"
+msgstr "连接 ID"
+
+#: includes/Admin/Connection_Page.php:503
+msgid "Key ID"
+msgstr "密钥 ID"
+
+#: includes/Admin/Connection_Page.php:512
+msgid "Approve connection"
+msgstr "批准连接"
+
+#: includes/Admin/Connection_Page.php:513
+msgid "Reject"
+msgstr "拒绝"
+
+#: includes/Admin/Connection_Page.php:567
+msgid "You do not have permission to revoke client keys."
+msgstr "您没有权限撤销客户端密钥。"
+
+#: includes/Admin/Connection_Page.php:589
+msgid "You do not have permission to create OpenClaw handoff credentials."
+msgstr "您没有权限创建 OpenClaw 交接凭据。"
+
+#: includes/Admin/Connection_Page.php:644
+msgid "Unavailable"
+msgstr "不可用"
+
+#: includes/Admin/Connection_Page.php:651
+msgid "Ready"
+msgstr "就绪"
+
+#: includes/Admin/Connection_Page.php:657
+msgid "Needs dependencies"
+msgstr "需要依赖项"
+
+#: includes/Admin/Connection_Page.php:679
+msgid "Adapter could not read this Core proposal status."
+msgstr "适配器无法读取此核心提案状态。"
+
+#: includes/Admin/Connection_Page.php:700
+msgid "After OpenClaw creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes."
+msgstr "OpenClaw 创建提案后，请在此粘贴提案 ID。待处理决策保留在核心中；适配器负责状态轮询和已批准执行路由。"
+
+#: includes/Admin/Connection_Page.php:710
+msgid "Proposal not available."
+msgstr "提案不可用。"
+
+#. translators: %d: HTTP status code.
+#: includes/Admin/Connection_Page.php:716
+#, php-format
+msgid "HTTP %d"
+msgstr "HTTP %d"
+
+#: includes/Admin/Connection_Page.php:751
+#: includes/Admin/Connection_Page.php:767
+#: includes/Admin/Connection_Page.php:771
+msgid "unknown"
+msgstr "未知"
+
+#: includes/Admin/Connection_Page.php:755
+msgid "Title"
+msgstr "标题"
+
+#: includes/Admin/Connection_Page.php:761
+msgid "Ability"
+msgstr "能力"
+
+#: includes/Admin/Connection_Page.php:766
+msgid "Created"
+msgstr "创建时间"
+
+#: includes/Admin/Connection_Page.php:770
+msgid "Updated"
+msgstr "更新时间"
+
+#: includes/Admin/Connection_Page.php:774
+msgid "Audit timeline"
+msgstr "审计时间线"
+
+#. translators: %d: Number of audit timeline events.
+#: includes/Admin/Connection_Page.php:778
+#, php-format
+msgid "%d events"
+msgstr "%d 个事件"
+
+#: includes/Admin/Connection_Page.php:785
+msgid "Open in Core"
+msgstr "在核心中打开"
+
+#: includes/Admin/Connection_Page.php:786
+msgid "Copy status URL"
+msgstr "复制状态 URL"
+
+#: includes/Admin/Connection_Page.php:787
+msgid "Copy execute URL"
+msgstr "复制执行 URL"
+
+#: includes/Admin/Connection_Page.php:821
+msgid "Next step: review this proposal in Core. Adapter should keep polling status and execute only after Core approval and commit preflight."
+msgstr "下一步：在核心中审核此提案。适配器应持续轮询状态，并且只在核心批准和提交预检后执行。"
+
+#: includes/Admin/Connection_Page.php:825
+msgid "Next step: execute through Adapter. Adapter will still call Core commit preflight before any allowlisted WordPress ability execution."
+msgstr "下一步：通过适配器执行。适配器在执行任何允许列表内的 WordPress 能力前，仍会调用核心提交预检。"
+
+#: includes/Admin/Connection_Page.php:829
+msgid "Next step: stop. Adapter should show the rejection and must not execute this proposal."
+msgstr "下一步：停止。适配器应显示拒绝结果，并且不得执行此提案。"
+
+#: includes/Admin/Connection_Page.php:833
+msgid "Next step: reopen or inspect this proposal in Core if it still needs a decision."
+msgstr "下一步：如果仍需决策，请在核心中重新打开或检查此提案。"
+
+#: includes/Admin/Connection_Page.php:836
+msgid "Next step: use Core as the approval truth and Adapter as the OpenClaw status and execution channel."
+msgstr "下一步：将核心作为审批事实来源，将适配器作为 OpenClaw 状态和执行通道。"
+
+#: includes/Admin/Connection_Page.php:951
+#: includes/Admin/Connection_Page.php:956
+msgid "OpenClaw Handoff Created"
+msgstr "OpenClaw 交接已创建"
+
+#: includes/Admin/Connection_Page.php:958
+msgid "Copy this Application Password now. WordPress shows it only once and stores only a hash."
+msgstr "请立即复制此应用密码。WordPress 只显示一次，并且只保存哈希。"
+
+#: includes/Admin/Connection_Page.php:959
+msgid "Paste it only into OpenClaw dedicated secret field. Do not paste it into chat, tool commands, logs, proposal payloads, files, or copied handoff text."
+msgstr "只将它粘贴到 OpenClaw 专用密钥字段。不要粘贴到聊天、工具命令、日志、提案负载、文件或已复制的交接文本中。"
+
+#: includes/Admin/Connection_Page.php:960
+msgid "Use this only for OpenClaw access through Npcink OpenClaw Adapter. Revoke it from the WordPress user profile when the client is retired."
+msgstr "此凭据仅用于通过 Npcink OpenClaw 适配器访问 OpenClaw。客户端停用时，请从 WordPress 用户资料中撤销它。"
+
+#: includes/Admin/Connection_Page.php:965
+msgid "Adapter URL"
+msgstr "适配器 URL"
+
+#: includes/Admin/Connection_Page.php:973
+msgid "Password UUID"
+msgstr "密码 UUID"
+
+#: includes/Admin/Connection_Page.php:977
+msgid "Application Password"
+msgstr "应用密码"
+
+#: includes/Admin/Connection_Page.php:984
+msgid "Copy manifest"
+msgstr "复制清单"
+
+#: includes/Admin/Connection_Page.php:988
+msgid "OpenClaw env placeholder"
+msgstr "OpenClaw 环境变量占位符"
+
+#: includes/Admin/Connection_Page.php:992
+msgid "WorkBuddy setup"
+msgstr "WorkBuddy 设置"
+
+#: includes/Admin/Connection_Page.php:995
+msgid "Copy WorkBuddy setup"
+msgstr "复制 WorkBuddy 设置"
+
+#: includes/Admin/Connection_Page.php:999
+msgid "OpenClaw handoff"
+msgstr "OpenClaw 交接"
+
+#: includes/Admin/Connection_Page.php:1004
+msgid "Back to Npcink OpenClaw Adapter"
+msgstr "返回 Npcink OpenClaw 适配器"
+
+#: includes/Admin/Connection_Page.php:1242
+msgid "No key-pair clients are registered for this administrator yet. Run the reconnect command, approve the browser prompt, then refresh this page."
+msgstr "此管理员尚未注册密钥对客户端。运行重新连接命令，批准浏览器提示，然后刷新此页面。"
+
+#: includes/Admin/Connection_Page.php:1253
+msgid "Last used"
+msgstr "上次使用"
+
+#: includes/Admin/Connection_Page.php:1255
+msgid "Action"
+msgstr "操作"
+
+#: includes/Admin/Connection_Page.php:1265
+msgid "Active"
+msgstr "有效"
+
+#: includes/Admin/Connection_Page.php:1265
+msgid "Revoked"
+msgstr "已撤销"
+
+#: includes/Admin/Connection_Page.php:1272
+msgid "Revoke"
+msgstr "撤销"
+
+#: includes/Rest/Controller.php:79
+msgid "trash-post execution input must include post_id."
+msgstr "trash-post 执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:90
+msgid "create-draft status must be draft."
+msgstr "create-draft 状态必须是 draft。"
+
+#: includes/Rest/Controller.php:95
+msgid "create-draft content_format must be html, markdown, or plain."
+msgstr "create-draft 的 content_format 必须是 html、markdown 或 plain。"
+
+#: includes/Rest/Controller.php:101
+msgid "create-draft execution input must include title."
+msgstr "create-draft 执行输入必须包含 title。"
+
+#: includes/Rest/Controller.php:112
+msgid "update-post content_format must be html, markdown, or plain."
+msgstr "update-post 的 content_format 必须是 html、markdown 或 plain。"
+
+#: includes/Rest/Controller.php:117
+msgid "update-post execution input must include post_id."
+msgstr "update-post 执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:122
+msgid "update-post execution input must include title, content, or excerpt."
+msgstr "update-post 执行输入必须包含 title、content 或 excerpt。"
+
+#: includes/Rest/Controller.php:130
+msgid "patch-post-content execution input must include post_id."
+msgstr "patch-post-content 执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:135
+msgid "patch-post-content execution input must include operations."
+msgstr "patch-post-content 执行输入必须包含 operations。"
+
+#: includes/Rest/Controller.php:145
+msgid "patch-setting-value target_type must be option or theme_mod."
+msgstr "patch-setting-value 的 target_type 必须是 option 或 theme_mod。"
+
+#: includes/Rest/Controller.php:151
+msgid "patch-setting-value execution input must include operations."
+msgstr "patch-setting-value 执行输入必须包含 operations。"
+
+#: includes/Rest/Controller.php:156
+msgid "patch-setting-value execution input must include target_name."
+msgstr "patch-setting-value 执行输入必须包含 target_name。"
+
+#: includes/Rest/Controller.php:165
+msgid "set-post-seo-meta execution input must include post_id."
+msgstr "set-post-seo-meta 执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:170
+msgid "set-post-seo-meta execution input must include seo_title or seo_description."
+msgstr "set-post-seo-meta 执行输入必须包含 seo_title 或 seo_description。"
+
+#: includes/Rest/Controller.php:178
+msgid "set-post-slug execution input must include post_id."
+msgstr "set-post-slug 执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:183
+msgid "set-post-slug execution input must include a valid slug."
+msgstr "set-post-slug 执行输入必须包含有效 slug。"
+
+#: includes/Rest/Controller.php:194
+#: includes/Rest/Controller.php:3881
+msgid "set-post-terms execution mode must be replace, append, or remove."
+msgstr "set-post-terms 执行模式必须是 replace、append 或 remove。"
+
+#: includes/Rest/Controller.php:199
+msgid "set-post-terms execution input must include post_id."
+msgstr "set-post-terms 执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:209
+msgid "delete-term execution input must include term_id."
+msgstr "delete-term 执行输入必须包含 term_id。"
+
+#: includes/Rest/Controller.php:221
+msgid "update-media-details source_type must be owned, ai_generated, stock, external, or test."
+msgstr "update-media-details 的 source_type 必须是 owned、ai_generated、stock、external 或 test。"
+
+#: includes/Rest/Controller.php:227
+msgid "update-media-details execution input must include attachment_id."
+msgstr "update-media-details 执行输入必须包含 attachment_id。"
+
+#: includes/Rest/Controller.php:233
+msgid "update-media-details execution input must include at least one media detail field."
+msgstr "update-media-details 执行输入必须至少包含一个媒体详情字段。"
+
+#: includes/Rest/Controller.php:243
+msgid "upload-media-from-url source_type must be owned, ai_generated, stock, external, or test."
+msgstr "upload-media-from-url 的 source_type 必须是 owned、ai_generated、stock、external 或 test。"
+
+#: includes/Rest/Controller.php:249
+msgid "upload-media-from-url execution input must include url."
+msgstr "upload-media-from-url 执行输入必须包含 url。"
+
+#: includes/Rest/Controller.php:258
+msgid "set-post-featured-image execution input must include post_id."
+msgstr "set-post-featured-image 执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:263
+msgid "set-post-featured-image execution input must include attachment_id or media_url."
+msgstr "set-post-featured-image 执行输入必须包含 attachment_id 或 media_url。"
+
+#: includes/Rest/Controller.php:273
+msgid "optimize-media-asset preferred_format must be webp, jpeg, or png."
+msgstr "optimize-media-asset 的 preferred_format 必须是 webp、jpeg 或 png。"
+
+#: includes/Rest/Controller.php:279
+msgid "optimize-media-asset execution input must include attachment_id."
+msgstr "optimize-media-asset 执行输入必须包含 attachment_id。"
+
+#: includes/Rest/Controller.php:290
+msgid "replace-media-file mode must be replace or rollback."
+msgstr "replace-media-file 模式必须是 replace 或 rollback。"
+
+#: includes/Rest/Controller.php:296
+msgid "replace-media-file execution input must include attachment_id."
+msgstr "replace-media-file 执行输入必须包含 attachment_id。"
+
+#: includes/Rest/Controller.php:306
+msgid "adopt-cloud-media-derivative execution input must include attachment_id."
+msgstr "adopt-cloud-media-derivative 执行输入必须包含 attachment_id。"
+
+#: includes/Rest/Controller.php:312
+msgid "adopt-cloud-media-derivative execution input must include derivative_artifact evidence."
+msgstr "adopt-cloud-media-derivative 执行输入必须包含 derivative_artifact 证据。"
+
+#: includes/Rest/Controller.php:322
+msgid "rename-media-file conflict_mode must be fail or unique."
+msgstr "rename-media-file 的 conflict_mode 必须是 fail 或 unique。"
+
+#: includes/Rest/Controller.php:328
+msgid "rename-media-file execution input must include attachment_id."
+msgstr "rename-media-file 执行输入必须包含 attachment_id。"
+
+#: includes/Rest/Controller.php:334
+msgid "rename-media-file execution input must include target_file_name."
+msgstr "rename-media-file 执行输入必须包含 target_file_name。"
+
+#: includes/Rest/Controller.php:338
+msgid "rename-media-file execution input must target an existing attachment."
+msgstr "rename-media-file 执行输入必须指向一个已存在的附件。"
+
+#: includes/Rest/Controller.php:347
+msgid "delete-media-permanently execution input must include attachment_id."
+msgstr "delete-media-permanently 执行输入必须包含 attachment_id。"
+
+#: includes/Rest/Controller.php:351
+msgid "delete-media-permanently execution input must target an existing attachment."
+msgstr "delete-media-permanently 执行输入必须指向一个已存在的附件。"
+
+#: includes/Rest/Controller.php:361
+msgid "reply-comment content_format must be html, markdown, or plain."
+msgstr "reply-comment 的 content_format 必须是 html、markdown 或 plain。"
+
+#: includes/Rest/Controller.php:367
+msgid "reply-comment execution input must include comment_id."
+msgstr "reply-comment 执行输入必须包含 comment_id。"
+
+#: includes/Rest/Controller.php:372
+msgid "reply-comment execution input must include content."
+msgstr "reply-comment 执行输入必须包含 content。"
+
+#: includes/Rest/Controller.php:381
+msgid "trash-comment execution input must include comment_id."
+msgstr "trash-comment 执行输入必须包含 comment_id。"
+
+#: includes/Rest/Controller.php:391
+msgid "approve-comment execution input must include comment_id."
+msgstr "approve-comment 执行输入必须包含 comment_id。"
+
+#: includes/Rest/Controller.php:1113
+msgid "Ed25519 device pairing requires the PHP sodium extension."
+msgstr "Ed25519 设备配对需要 PHP sodium 扩展。"
+
+#: includes/Rest/Controller.php:1129
+msgid "Device pairing requires client metadata and a base64url Ed25519 public key."
+msgstr "设备配对需要客户端元数据和 base64url Ed25519 公钥。"
+
+#: includes/Rest/Controller.php:1199
+msgid "Device pairing is expired or invalid."
+msgstr "设备配对已过期或无效。"
+
+#: includes/Rest/Controller.php:1209
+msgid "Device pairing was rejected."
+msgstr "设备配对已被拒绝。"
+
+#: includes/Rest/Controller.php:1222
+msgid "Device pairing is still pending approval."
+msgstr "设备配对仍在等待批准。"
+
+#: includes/Rest/Controller.php:1292
+msgid "Client key was not found for the current user."
+msgstr "未找到当前用户的客户端密钥。"
+
+#: includes/Rest/Controller.php:1333
+#: includes/Rest/Controller.php:1393
+msgid "Device pairing was not found or expired."
+msgstr "设备配对不存在或已过期。"
+
+#: includes/Rest/Controller.php:1438
+msgid "A JSON request body is required."
+msgstr "需要 JSON 请求体。"
+
+#: includes/Rest/Controller.php:2690
+msgid "Media derivative ability response is invalid."
+msgstr "媒体衍生能力响应无效。"
+
+#: includes/Rest/Controller.php:3099
+msgid "WordPress AI Client is not available."
+msgstr "WordPress AI Client 不可用。"
+
+#: includes/Rest/Controller.php:3112
+msgid "AI provider and model are required for provider log correlation smoke."
+msgstr "提供商日志关联冒烟测试需要 AI 提供商和模型。"
+
+#: includes/Rest/Controller.php:3208
+msgid "Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions."
+msgstr "直接批准/拒绝代理路由已禁用。请使用 POST /proposals/{proposal_id}/approve-and-execute 执行适配器统一用户操作，或使用 Npcink 治理核心后台进行拆分审批决策。"
+
+#: includes/Rest/Controller.php:3282
+msgid "This planning ability is not accepted by the adapter plan-to-proposal bridge."
+msgstr "适配器计划转提案桥接不接受此规划能力。"
+
+#: includes/Rest/Controller.php:3356
+#: includes/Rest/Controller.php:4232
+msgid "Each write_actions item must have a unique action_id."
+msgstr "每个 write_actions 项都必须有唯一 action_id。"
+
+#: includes/Rest/Controller.php:3394
+msgid "Plan write action input failed Adapter proposal validation."
+msgstr "计划写入操作输入未通过适配器提案验证。"
+
+#: includes/Rest/Controller.php:3454
+#: includes/Rest/Controller.php:3527
+msgid "proposal_id is required."
+msgstr "需要 proposal_id。"
+
+#: includes/Rest/Controller.php:3554
+msgid "Approved by Npcink OpenClaw Adapter approve-and-execute."
+msgstr "由 Npcink OpenClaw 适配器 approve-and-execute 批准。"
+
+#: includes/Rest/Controller.php:3574
+msgid "Core did not return an approved proposal state."
+msgstr "核心未返回已批准的提案状态。"
+
+#: includes/Rest/Controller.php:3590
+msgid "This proposal cannot be approved and executed from its current status."
+msgstr "此提案在当前状态下不能批准并执行。"
+
+#: includes/Rest/Controller.php:3671
+msgid "Core proposal response is invalid."
+msgstr "核心提案响应无效。"
+
+#: includes/Rest/Controller.php:3692
+msgid "This proposal ability is not allowed for adapter execution."
+msgstr "此提案能力不允许由适配器执行。"
+
+#: includes/Rest/Controller.php:3737
+msgid "Proposal input includes a field that is not allowed for this ability."
+msgstr "提案输入包含此能力不允许的字段。"
+
+#: includes/Rest/Controller.php:3758
+msgid "Execution input must include post_id."
+msgstr "执行输入必须包含 post_id。"
+
+#: includes/Rest/Controller.php:3771
+msgid "Execution input is missing a required text field."
+msgstr "执行输入缺少必需的文本字段。"
+
+#: includes/Rest/Controller.php:3784
+msgid "Execution input is missing a required slug field."
+msgstr "执行输入缺少必需的 slug 字段。"
+
+#: includes/Rest/Controller.php:3803
+msgid "Proposal input includes an invalid enum value."
+msgstr "提案输入包含无效枚举值。"
+
+#: includes/Rest/Controller.php:3827
+msgid "Execution input is missing required fields."
+msgstr "执行输入缺少必需字段。"
+
+#: includes/Rest/Controller.php:3844
+msgid "Execution input is missing a required id."
+msgstr "执行输入缺少必需 ID。"
+
+#: includes/Rest/Controller.php:3856
+msgid "Execution input must target an existing attachment."
+msgstr "执行输入必须指向一个已存在的附件。"
+
+#: includes/Rest/Controller.php:3872
+msgid "set-post-terms execution input must include a valid taxonomy."
+msgstr "set-post-terms 执行输入必须包含有效 taxonomy。"
+
+#: includes/Rest/Controller.php:3898
+msgid "set-post-terms execution input must include term_ids or terms."
+msgstr "set-post-terms 执行输入必须包含 term_ids 或 terms。"
+
+#: includes/Rest/Controller.php:3906
+msgid "set-post-terms execution cannot create missing terms in this adapter policy."
+msgstr "根据此适配器策略，set-post-terms 执行不能创建缺失术语。"
+
+#: includes/Rest/Controller.php:3917
+msgid "delete-term execution input must include a valid taxonomy."
+msgstr "delete-term 执行输入必须包含有效 taxonomy。"
+
+#: includes/Rest/Controller.php:3929
+msgid "Comment execution input must include content."
+msgstr "评论执行输入必须包含 content。"
+
+#: includes/Rest/Controller.php:3941
+msgid "Comment content_format is invalid."
+msgstr "评论 content_format 无效。"
+
+#: includes/Rest/Controller.php:4038
+#: includes/Rest/Controller.php:4103
+msgid "Batch output references must use $outputs.action_id.field as the whole value."
+msgstr "批处理输出引用必须将 $outputs.action_id.field 作为完整值。"
+
+#: includes/Rest/Controller.php:4053
+msgid "Batch output references must point to an earlier action in the same proposal."
+msgstr "批处理输出引用必须指向同一提案中较早的操作。"
+
+#: includes/Rest/Controller.php:4086
+msgid "Batch output reference could not be resolved."
+msgstr "无法解析批处理输出引用。"
+
+#: includes/Rest/Controller.php:4161
+msgid "Proposal input must use either post_id or write_actions, not both."
+msgstr "提案输入必须使用 post_id 或 write_actions，不能同时使用。"
+
+#: includes/Rest/Controller.php:4173
+msgid "Proposal write_actions exceeds the adapter execution limit."
+msgstr "提案 write_actions 超出适配器执行限制。"
+
+#: includes/Rest/Controller.php:4188
+msgid "Each write_actions item must be an object."
+msgstr "每个 write_actions 项都必须是对象。"
+
+#: includes/Rest/Controller.php:4201
+msgid "Each write_actions item must include target_ability_id."
+msgstr "每个 write_actions 项都必须包含 target_ability_id。"
+
+#: includes/Rest/Controller.php:4257
+msgid "Each executable write action must require Core approval."
+msgstr "每个可执行写入操作都必须要求核心批准。"
+
+#: includes/Rest/Controller.php:4269
+msgid "Write actions must keep commit_execution=false before Adapter execution."
+msgstr "写入操作在适配器执行前必须保持 commit_execution=false。"
+
+#: includes/Rest/Controller.php:4282
+msgid "Write action still requires reviewed input before execution."
+msgstr "写入操作在执行前仍需要已审核输入。"
+
+#: includes/Rest/Controller.php:4296
+msgid "Write action is not marked ready for execution."
+msgstr "写入操作尚未标记为可执行。"
+
+#: includes/Rest/Controller.php:4452
+msgid "Core commit preflight response is invalid."
+msgstr "核心提交预检响应无效。"
+
+#: includes/Rest/Controller.php:4463
+msgid "Core commit preflight did not authorize approval commit."
+msgstr "核心提交预检未授权批准提交。"
+
+#: includes/Rest/Controller.php:4476
+msgid "Core commit preflight must not execute final writes."
+msgstr "核心提交预检不得执行最终写入。"
+
+#: includes/Rest/Controller.php:4488
+msgid "Core commit preflight did not mark the proposal item executable."
+msgstr "核心提交预检未将提案项标记为可执行。"
+
+#: includes/Rest/Controller.php:4502
+msgid "Core commit preflight did not return a correlation id."
+msgstr "核心提交预检未返回 correlation id。"
+
+#: includes/Rest/Controller.php:4726
+msgid "The plan was not accepted for Core proposal intake."
+msgstr "该计划未被核心提案接收流程接受。"
+
+#: includes/Rest/Controller.php:4730
+msgid "Show these reasons to the operator."
+msgstr "向操作员显示这些原因。"
+
+#: includes/Rest/Controller.php:4731
+msgid "Revise the Toolbox plan or reviewed draft, then submit a new from-plan request."
+msgstr "修改 Toolbox 计划或已审核草稿，然后提交新的 from-plan 请求。"
+
+#: includes/Rest/Controller.php:4732
+msgid "Do not call approve-and-execute until Core creates a proposal."
+msgstr "在核心创建提案之前，不要调用 approve-and-execute。"
+
+#. translators: %s: proposal status.
+#: includes/Rest/Controller.php:4758
+#, php-format
+msgid "Core proposal status is %s."
+msgstr "核心提案状态为 %s。"
+
+#: includes/Rest/Controller.php:4767
+msgid "Core rejected this proposal. Adapter will not execute it."
+msgstr "核心已拒绝此提案。适配器不会执行它。"
+
+#: includes/Rest/Controller.php:4768
+msgid "This proposal is not in an executable Core status."
+msgstr "此提案不处于可执行的核心状态。"
+
+#: includes/Rest/Controller.php:4772
+msgid "Show the Core decision to the operator."
+msgstr "向操作员显示核心决策。"
+
+#: includes/Rest/Controller.php:4773
+msgid "Revise the source plan or draft, then create a new Core proposal."
+msgstr "修改源计划或草稿，然后创建新的核心提案。"
+
+#: includes/Rest/Controller.php:4774
+msgid "Do not retry approve-and-execute against this proposal id."
+msgstr "不要对这个提案 ID 重试 approve-and-execute。"
+
+#. translators: %s: missing field name.
+#: includes/Rest/Controller.php:4807
+#, php-format
+msgid "Missing required input: %s."
+msgstr "缺少必需输入：%s。"
+
+#: includes/Rest/Controller.php:4813
+msgid "Core marks the proposal item as not ready for execution."
+msgstr "核心将该提案项标记为尚不可执行。"
+
+#: includes/Rest/Controller.php:4816
+msgid "Core commit preflight did not authorize execution."
+msgstr "核心提交预检未授权执行。"
+
+#: includes/Rest/Controller.php:4821
+msgid "Core has already issued the one-time execution handoff. If commit-preflight was called directly against Core, Adapter cannot recover that handoff."
+msgstr "核心已经发出一次性执行交接。如果直接对核心调用了 commit-preflight，适配器无法恢复该交接。"
+
+#: includes/Rest/Controller.php:4825
+msgid "Show Core preflight blockers to the operator."
+msgstr "向操作员显示核心预检阻塞项。"
+
+#: includes/Rest/Controller.php:4826
+msgid "Revise the proposal input or source plan, then create a new proposal."
+msgstr "修改提案输入或源计划，然后创建新提案。"
+
+#: includes/Rest/Controller.php:4827
+msgid "Do not retry approve-and-execute until Core preflight can pass."
+msgstr "在核心预检通过前，不要重试 approve-and-execute。"
+
+#: includes/Rest/Controller.php:4831
+msgid "Create a new proposal for the same intended write."
+msgstr "为同一预期写入创建新提案。"
+
+#: includes/Rest/Controller.php:4832
+msgid "After approval, call Adapter execute or approve-and-execute; do not call Core commit-preflight directly."
+msgstr "批准后，调用适配器 execute 或 approve-and-execute；不要直接调用核心 commit-preflight。"
+
+#: includes/Rest/Controller.php:4833
+msgid "Use Adapter commit-preflight only as an advanced diagnostic step and follow it immediately with Adapter execute."
+msgstr "只将适配器 commit-preflight 作为高级诊断步骤使用，并且随后立即调用适配器 execute。"
+
+#: includes/Rest/Controller.php:4840
+msgid "Core commit preflight blocked execution. Adapter did not run the write ability."
+msgstr "核心提交预检阻止了执行。适配器没有运行写入能力。"
+
+#: includes/Rest/Controller.php:5119
+msgid "Core commit preflight approved input hash does not match the current proposal input."
+msgstr "核心提交预检批准的输入哈希与当前提案输入不匹配。"
+
+#: includes/Rest/Controller.php:5136
+msgid "Core commit preflight policy version is not accepted by Adapter execution."
+msgstr "适配器执行不接受此核心提交预检策略版本。"
+
+#: includes/Rest/Controller.php:5190
+msgid "Adapter has already completed execution for this proposal."
+msgstr "适配器已完成此提案的执行。"
+
+#: includes/Rest/Controller.php:5386
+msgid "This ability is not direct-read. Create a Core proposal instead."
+msgstr "此能力不是直接读取能力。请改为创建核心提案。"
+
+#: includes/Rest/Controller.php:5399
+msgid "Core guidance unexpectedly allows proxy or commit execution."
+msgstr "核心指导意外允许代理或提交执行。"
+
+#: includes/Rest/Controller.php:5701
+msgid "The requested ability is not discoverable through Core."
+msgstr "无法通过核心发现请求的能力。"
+
+#: includes/Rest/Controller.php:5748
+msgid "The upstream WordPress REST request failed."
+msgstr "上游 WordPress REST 请求失败。"
+
+#: includes/Rest/Controller.php:6165
+msgid "attachment_id is required when no source_artifact is supplied."
+msgstr "未提供 source_artifact 时需要 attachment_id。"
+
+#: includes/Rest/Controller.php:6221
+msgid "The local attachment file is not readable for media derivative upload."
+msgstr "本地附件文件不可读，无法上传媒体衍生文件。"
+
+#: includes/Rest/Controller.php:6251
+msgid "Npcink Cloud Addon must be configured and verified before media derivative run reads."
+msgstr "读取媒体衍生运行前，必须先配置并验证 Npcink Cloud Addon。"
+
+#: includes/Rest/Controller.php:6267
+msgid "Npcink Cloud Addon is required for media derivative Cloud transport."
+msgstr "媒体衍生云传输需要 Npcink Cloud Addon。"

@@ -26,7 +26,16 @@ final class Connection_Page {
 	const PAIR_MENU_SLUG   = 'npcink-openclaw-adapter-pair';
 	const PAIR_ACTION      = 'npcink_openclaw_adapter_pairing_decision';
 	const REVOKE_KEY_ACTION = 'npcink_openclaw_adapter_revoke_client_key';
+	const PROPOSAL_LOOKUP_ACTION = 'npcink_openclaw_adapter_proposal_lookup';
+	const PROPOSAL_LOOKUP_NONCE = '_npcink_openclaw_adapter_lookup_nonce';
 	const DATETIME_DISPLAY_FORMAT = 'Y-m-d H:i:s';
+
+	/**
+	 * Admin page hook suffixes that should receive Adapter assets.
+	 *
+	 * @var array<int,string>
+	 */
+	private $admin_page_hooks = array();
 
 	/**
 	 * Registers the menu item.
@@ -36,7 +45,7 @@ final class Connection_Page {
 	public function register(): void {
 		$this->ensure_parent_menu();
 
-		add_submenu_page(
+		$connection_hook = add_submenu_page(
 			self::PARENT_MENU_SLUG,
 			__( 'Npcink OpenClaw Adapter', 'npcink-openclaw-adapter' ),
 			__( 'Adapter', 'npcink-openclaw-adapter' ),
@@ -46,13 +55,42 @@ final class Connection_Page {
 			20
 		);
 
-		add_submenu_page(
+		$pairing_hook = add_submenu_page(
 			null,
 			__( 'Approve Npcink Client', 'npcink-openclaw-adapter' ),
 			__( 'Approve Npcink Client', 'npcink-openclaw-adapter' ),
 			self::MENU_CAPABILITY,
 			self::PAIR_MENU_SLUG,
 			array( $this, 'render_pairing_page' )
+		);
+
+		$this->admin_page_hooks = array_values( array_filter( array( $connection_hook, $pairing_hook ), 'is_string' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+	}
+
+	/**
+	 * Enqueues Adapter admin assets on owned admin pages.
+	 *
+	 * @param string $hook_suffix Current admin page hook suffix.
+	 * @return void
+	 */
+	public function enqueue_admin_assets( string $hook_suffix ): void {
+		if ( ! in_array( $hook_suffix, $this->admin_page_hooks, true ) ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'npcink-openclaw-adapter-admin',
+			plugins_url( 'assets/admin.css', NPCINK_OPENCLAW_ADAPTER_FILE ),
+			array(),
+			NPCINK_OPENCLAW_ADAPTER_VERSION
+		);
+		wp_enqueue_script(
+			'npcink-openclaw-adapter-admin',
+			plugins_url( 'assets/admin.js', NPCINK_OPENCLAW_ADAPTER_FILE ),
+			array(),
+			NPCINK_OPENCLAW_ADAPTER_VERSION,
+			true
 		);
 	}
 
@@ -206,296 +244,12 @@ final class Connection_Page {
 		$local_cli_connect_command = $this->local_cli_connect_command( $include_local_tls );
 		$local_cli_status_command = $this->local_cli_status_command( $include_local_tls );
 		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
-		$lookup_id       = isset( $_GET['adapter_proposal_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['adapter_proposal_id'] ) ) : '';
+		$lookup_id       = $this->proposal_lookup_id_from_request();
 		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
 		?>
-		<div class="wrap npcink-openclaw-adapter-connection">
+		<div class="wrap npcink-openclaw-adapter-connection" data-maa-copied-label="<?php echo esc_attr__( 'Copied', 'npcink-openclaw-adapter' ); ?>">
 			<h1><?php echo esc_html__( 'Npcink OpenClaw Adapter', 'npcink-openclaw-adapter' ); ?></h1>
 			<p class="description"><?php echo esc_html__( 'Connect OpenClaw to this WordPress site through the Adapter REST surface.', 'npcink-openclaw-adapter' ); ?></p>
-
-			<style>
-				.npcink-openclaw-adapter-connection {
-					max-width: 1180px;
-				}
-				.npcink-openclaw-adapter-connection .maa-tabs {
-					display: none;
-				}
-				.npcink-openclaw-adapter-connection .maa-tab {
-					margin: 0;
-					padding: 9px 14px;
-					border: 1px solid transparent;
-					border-bottom: 0;
-					background: transparent;
-					color: #1d2327;
-					cursor: pointer;
-					font-weight: 600;
-				}
-				.npcink-openclaw-adapter-connection .maa-tab:hover {
-					color: #135e96;
-				}
-				.npcink-openclaw-adapter-connection .maa-tab.is-active {
-					margin-bottom: -1px;
-					border-color: #c3c4c7;
-					background: #fff;
-					color: #1d2327;
-				}
-				.npcink-openclaw-adapter-connection .maa-tab-panel {
-					padding-top: 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-tab-panel.is-active {
-					display: block;
-				}
-				.npcink-openclaw-adapter-connection .maa-workspace {
-					display: grid;
-					grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
-					gap: 16px;
-					align-items: start;
-				}
-				.npcink-openclaw-adapter-connection .maa-workspace > * {
-					min-width: 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-summary {
-					display: flex;
-					flex-wrap: wrap;
-					gap: 10px 18px;
-					align-items: center;
-					margin: 18px 0;
-					border: 1px solid #dcdcde;
-					background: #fff;
-					padding: 10px 14px;
-				}
-				.npcink-openclaw-adapter-connection .maa-section {
-					background: #fff;
-				}
-				.npcink-openclaw-adapter-connection .maa-summary-item {
-					display: flex;
-					gap: 6px;
-					align-items: center;
-					min-width: 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-summary-item:first-child {
-					padding-right: 18px;
-					border-right: 1px solid #dcdcde;
-				}
-				.npcink-openclaw-adapter-connection .maa-label {
-					display: block;
-					margin-bottom: 4px;
-					color: #646970;
-					font-size: 12px;
-					line-height: 1.4;
-				}
-				.npcink-openclaw-adapter-connection .maa-value {
-					font-weight: 600;
-				}
-				.npcink-openclaw-adapter-connection .maa-status {
-					display: inline-block;
-					padding: 2px 8px;
-					border-radius: 3px;
-					font-size: 12px;
-					font-weight: 600;
-				}
-				.npcink-openclaw-adapter-connection .maa-status-ok {
-					background: #edfaef;
-					color: #008a20;
-				}
-				.npcink-openclaw-adapter-connection .maa-status-warning {
-					background: #fcf9e8;
-					color: #996800;
-				}
-				.npcink-openclaw-adapter-connection .maa-status-error {
-					background: #fcf0f1;
-					color: #b32d2e;
-				}
-				.npcink-openclaw-adapter-connection .maa-section {
-					box-sizing: border-box;
-					border: 1px solid #dcdcde;
-					padding: 16px;
-					margin-bottom: 16px;
-					min-width: 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-section-highlight {
-					border-left: 4px solid #2271b1;
-				}
-				.npcink-openclaw-adapter-connection .maa-section h2 {
-					margin: 0 0 10px;
-					font-size: 16px;
-				}
-				.npcink-openclaw-adapter-connection .maa-section h3 {
-					margin: 18px 0 8px;
-					font-size: 14px;
-				}
-				.npcink-openclaw-adapter-connection .maa-section-intro {
-					margin: 0 0 14px;
-					color: #50575e;
-				}
-				.npcink-openclaw-adapter-connection details.maa-section > summary {
-					display: flex;
-					flex-wrap: wrap;
-					align-items: center;
-					justify-content: space-between;
-					gap: 8px;
-					margin: -16px;
-					padding: 16px;
-					cursor: pointer;
-				}
-				.npcink-openclaw-adapter-connection details.maa-section > summary:hover {
-					background: #f6f7f7;
-				}
-				.npcink-openclaw-adapter-connection details.maa-section > summary strong {
-					display: block;
-					font-size: 16px;
-				}
-				.npcink-openclaw-adapter-connection details.maa-section > summary::after {
-					content: "+";
-					color: #2271b1;
-					font-size: 18px;
-					font-weight: 600;
-				}
-				.npcink-openclaw-adapter-connection details.maa-section[open] > summary::after {
-					content: "-";
-				}
-				.npcink-openclaw-adapter-connection .maa-inline-disclosure {
-					margin-top: 18px;
-					border-top: 1px solid #dcdcde;
-				}
-				.npcink-openclaw-adapter-connection .maa-inline-disclosure > summary {
-					display: flex;
-					flex-wrap: wrap;
-					align-items: center;
-					justify-content: space-between;
-					gap: 8px;
-					padding: 12px 0;
-					cursor: pointer;
-				}
-				.npcink-openclaw-adapter-connection .maa-inline-disclosure > summary strong {
-					font-size: 14px;
-				}
-				.npcink-openclaw-adapter-connection .maa-inline-disclosure > summary::after {
-					content: "+";
-					color: #2271b1;
-					font-size: 18px;
-					font-weight: 600;
-				}
-				.npcink-openclaw-adapter-connection .maa-inline-disclosure[open] > summary::after {
-					content: "-";
-				}
-				.npcink-openclaw-adapter-connection code,
-				.npcink-openclaw-adapter-connection pre,
-				.npcink-openclaw-adapter-connection textarea {
-					font-family: Consolas, Monaco, monospace;
-				}
-				.npcink-openclaw-adapter-connection code {
-					overflow-wrap: anywhere;
-					word-break: break-word;
-				}
-				.npcink-openclaw-adapter-connection pre {
-					overflow: auto;
-					margin: 10px 0 0;
-					padding: 12px;
-					background: #f6f7f7;
-					border: 1px solid #dcdcde;
-					white-space: pre-wrap;
-				}
-				.npcink-openclaw-adapter-connection textarea {
-					width: 100%;
-					min-height: 180px;
-				}
-				.npcink-openclaw-adapter-connection input[type="text"] {
-					box-sizing: border-box;
-					max-width: 100%;
-					width: 100%;
-				}
-				.npcink-openclaw-adapter-connection .maa-copy-row {
-					display: grid;
-					grid-template-columns: minmax(0, 1fr) auto;
-					gap: 8px;
-					align-items: center;
-					margin: 14px 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-copy-row > div {
-					min-width: 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-command-row {
-					grid-template-columns: 1fr;
-					margin: 16px 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-command-row .button {
-					justify-self: start;
-				}
-				.npcink-openclaw-adapter-connection .maa-copy-value {
-					display: block;
-					padding: 8px 10px;
-					background: #f6f7f7;
-					border: 1px solid #dcdcde;
-				}
-				.npcink-openclaw-adapter-connection .maa-inline-note {
-					margin: 8px 0 0;
-					color: #646970;
-				}
-				.npcink-openclaw-adapter-connection .maa-option {
-					margin: 16px 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-option label {
-					display: flex;
-					gap: 8px;
-					align-items: flex-start;
-					font-weight: 600;
-				}
-				.npcink-openclaw-adapter-connection .maa-option input {
-					margin-top: 2px;
-				}
-				.npcink-openclaw-adapter-connection .maa-route-list {
-					margin: 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-route-list li {
-					margin-bottom: 8px;
-				}
-				.npcink-openclaw-adapter-connection .maa-form-actions {
-					margin: 12px 0 0;
-				}
-				.npcink-openclaw-adapter-connection .maa-status-table th {
-					width: 160px;
-				}
-				.npcink-openclaw-adapter-connection .maa-action-row {
-					display: flex;
-					flex-wrap: wrap;
-					gap: 8px;
-					align-items: center;
-					margin-top: 12px;
-				}
-				.npcink-openclaw-adapter-connection .maa-advanced-group {
-					margin-top: 16px;
-					padding-top: 14px;
-					border-top: 1px solid #dcdcde;
-				}
-				.npcink-openclaw-adapter-connection .maa-advanced-group:first-of-type {
-					margin-top: 0;
-					padding-top: 0;
-					border-top: 0;
-				}
-				@media (max-width: 960px) {
-					.npcink-openclaw-adapter-connection .maa-workspace {
-						grid-template-columns: 1fr;
-					}
-				}
-				@media (max-width: 782px) {
-					.npcink-openclaw-adapter-connection .maa-summary {
-						display: block;
-					}
-					.npcink-openclaw-adapter-connection .maa-summary-item {
-						margin: 8px 0;
-					}
-					.npcink-openclaw-adapter-connection .maa-summary-item:first-child {
-						padding-right: 0;
-						border-right: 0;
-					}
-				}
-				@media (max-width: 480px) {
-					.npcink-openclaw-adapter-connection .maa-copy-row {
-						grid-template-columns: 1fr;
-					}
-				}
-			</style>
 
 			<div class="maa-summary">
 				<div class="maa-summary-item">
@@ -622,6 +376,7 @@ final class Connection_Page {
 				<p><?php echo esc_html__( 'Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval.', 'npcink-openclaw-adapter' ); ?></p>
 				<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 					<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>" />
+					<?php wp_nonce_field( self::PROPOSAL_LOOKUP_ACTION, self::PROPOSAL_LOOKUP_NONCE, false ); ?>
 					<p>
 						<label for="npcink-openclaw-adapter-proposal-lookup"><span class="maa-label"><?php echo esc_html__( 'Proposal ID', 'npcink-openclaw-adapter' ); ?></span></label>
 						<input id="npcink-openclaw-adapter-proposal-lookup" class="regular-text" type="text" name="adapter_proposal_id" value="<?php echo esc_attr( $lookup_id ); ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
@@ -696,33 +451,6 @@ final class Connection_Page {
 					<p><code>commit_execution=false</code></p>
 				</div>
 			</details>
-
-			<script>
-				(function () {
-					var root = document.querySelector('.npcink-openclaw-adapter-connection');
-					if (!root) {
-						return;
-					}
-
-					root.querySelectorAll('[data-maa-copy-target]').forEach(function (button) {
-						button.addEventListener('click', function () {
-							var target = document.getElementById(button.getAttribute('data-maa-copy-target'));
-							var text = target ? (target.value || target.textContent || '') : '';
-							if (!text || !window.navigator.clipboard) {
-								return;
-							}
-
-							window.navigator.clipboard.writeText(text).then(function () {
-								var oldText = button.textContent;
-								button.textContent = '<?php echo esc_js( __( 'Copied', 'npcink-openclaw-adapter' ) ); ?>';
-								window.setTimeout(function () {
-									button.textContent = oldText;
-								}, 1500);
-							});
-						});
-					});
-				})();
-			</script>
 		</div>
 		<?php
 	}
@@ -737,14 +465,14 @@ final class Connection_Page {
 			wp_die( esc_html__( 'You do not have permission to approve device pairing.', 'npcink-openclaw-adapter' ) );
 		}
 
-		$user_code = isset( $_GET['user_code'] ) ? strtoupper( sanitize_text_field( wp_unslash( (string) $_GET['user_code'] ) ) ) : '';
+		$user_code = strtoupper( $this->request_text_field( INPUT_GET, 'user_code' ) );
 		$pairing   = ( new Controller() )->admin_device_pairing( $user_code );
 		$client    = is_array( $pairing['client'] ?? null ) ? $pairing['client'] : array();
 		$key       = is_array( $pairing['key'] ?? null ) ? $pairing['key'] : array();
 		$scopes    = is_array( $pairing['scopes'] ?? null ) ? $pairing['scopes'] : array();
 		$status    = (string) ( $pairing['status'] ?? 'pending' );
 		?>
-		<div class="wrap npcink-openclaw-adapter-connection">
+		<div class="wrap npcink-openclaw-adapter-connection" data-maa-copied-label="<?php echo esc_attr__( 'Copied', 'npcink-openclaw-adapter' ); ?>">
 			<h1><?php echo esc_html__( 'Approve Npcink Client', 'npcink-openclaw-adapter' ); ?></h1>
 			<?php if ( empty( $pairing ) ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html__( 'Device pairing code was not found or has expired.', 'npcink-openclaw-adapter' ); ?></p></div>
@@ -980,7 +708,15 @@ final class Connection_Page {
 			?>
 			<div class="notice notice-error inline">
 				<p><strong><?php echo esc_html__( 'Proposal not available.', 'npcink-openclaw-adapter' ); ?></strong></p>
-				<p><?php echo esc_html( $result->get_error_message() ); ?><?php echo $status > 0 ? ' ' . esc_html( sprintf( __( 'HTTP %d', 'npcink-openclaw-adapter' ), $status ) ) : ''; ?></p>
+				<p>
+					<?php echo esc_html( $result->get_error_message() ); ?>
+					<?php
+					if ( $status > 0 ) {
+						/* translators: %d: HTTP status code. */
+						echo ' ' . esc_html( sprintf( __( 'HTTP %d', 'npcink-openclaw-adapter' ), $status ) );
+					}
+					?>
+				</p>
 			</div>
 			<?php
 			return;
@@ -1036,7 +772,12 @@ final class Connection_Page {
 				</tr>
 				<tr>
 					<th scope="row"><?php echo esc_html__( 'Audit timeline', 'npcink-openclaw-adapter' ); ?></th>
-					<td><?php echo esc_html( sprintf( __( '%d events', 'npcink-openclaw-adapter' ), count( $timeline ) ) ); ?></td>
+					<td>
+						<?php
+						/* translators: %d: Number of audit timeline events. */
+						echo esc_html( sprintf( __( '%d events', 'npcink-openclaw-adapter' ), count( $timeline ) ) );
+						?>
+					</td>
 				</tr>
 			</tbody>
 		</table>
@@ -1136,6 +877,58 @@ final class Connection_Page {
 	}
 
 	/**
+	 * Returns a nonce-verified proposal lookup id from the current GET request.
+	 *
+	 * @return string
+	 */
+	private function proposal_lookup_id_from_request(): string {
+		$proposal_id = $this->request_text_field( INPUT_GET, 'adapter_proposal_id' );
+		if ( '' === $proposal_id ) {
+			return '';
+		}
+
+		$nonce = $this->request_text_field( INPUT_GET, self::PROPOSAL_LOOKUP_NONCE );
+		return wp_verify_nonce( $nonce, self::PROPOSAL_LOOKUP_ACTION ) ? $proposal_id : '';
+	}
+
+	/**
+	 * Returns a sanitized scalar request field without direct superglobal reads.
+	 *
+	 * @param int    $input_type One of the INPUT_* constants.
+	 * @param string $key        Request field name.
+	 * @return string
+	 */
+	private function request_text_field( int $input_type, string $key ): string {
+		$value = filter_input( $input_type, $key, FILTER_UNSAFE_RAW );
+		if ( null === $value || false === $value || is_array( $value ) ) {
+			return '';
+		}
+
+		return sanitize_text_field( wp_unslash( (string) $value ) );
+	}
+
+	/**
+	 * Enqueues assets for the one-time credential handoff page.
+	 *
+	 * @return void
+	 */
+	private function enqueue_created_handoff_assets(): void {
+		wp_enqueue_style(
+			'npcink-openclaw-adapter-created-handoff',
+			plugins_url( 'assets/created-handoff.css', NPCINK_OPENCLAW_ADAPTER_FILE ),
+			array(),
+			NPCINK_OPENCLAW_ADAPTER_VERSION
+		);
+		wp_enqueue_script(
+			'npcink-openclaw-adapter-created-handoff',
+			plugins_url( 'assets/created-handoff.js', NPCINK_OPENCLAW_ADAPTER_FILE ),
+			array(),
+			NPCINK_OPENCLAW_ADAPTER_VERSION,
+			false
+		);
+	}
+
+	/**
 	 * Renders one-time OpenClaw credential handoff.
 	 *
 	 * @param string              $password Application Password.
@@ -1148,6 +941,7 @@ final class Connection_Page {
 		$username      = $user->exists() ? (string) $user->user_login : '';
 		$base_url      = rest_url( Controller::NAMESPACE );
 		$password_uuid = (string) ( $item['uuid'] ?? '' );
+		$this->enqueue_created_handoff_assets();
 		?>
 		<!doctype html>
 		<html <?php language_attributes(); ?>>
@@ -1155,23 +949,9 @@ final class Connection_Page {
 			<meta charset="<?php echo esc_attr( get_bloginfo( 'charset' ) ); ?>" />
 			<meta name="viewport" content="width=device-width, initial-scale=1" />
 			<title><?php echo esc_html__( 'OpenClaw Handoff Created', 'npcink-openclaw-adapter' ); ?></title>
-			<style>
-				body { margin: 0; background: #f0f0f1; color: #1d2327; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-				main { max-width: 960px; margin: 32px auto; padding: 0 24px; }
-				h1 { font-size: 24px; margin: 0 0 16px; }
-				.notice { background: #fff8e5; border-left: 4px solid #dba617; margin: 0 0 20px; padding: 12px 16px; }
-				table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #c3c4c7; }
-				th, td { border-bottom: 1px solid #dcdcde; padding: 12px; text-align: left; vertical-align: top; }
-				th { width: 180px; font-weight: 600; }
-				code, textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-				textarea { box-sizing: border-box; width: 100%; min-height: 96px; padding: 10px; border: 1px solid #8c8f94; background: #fff; color: #1d2327; }
-				.actions { margin-top: 20px; }
-				.inline-actions { margin: 8px 0 0; }
-				.button { display: inline-block; background: #2271b1; border: 1px solid #2271b1; border-radius: 3px; color: #fff; padding: 8px 14px; text-decoration: none; cursor: pointer; }
-				@media (max-width: 720px) { main { padding: 0 12px; } th, td { display: block; width: auto; } }
-			</style>
+			<?php wp_print_styles( array( 'npcink-openclaw-adapter-created-handoff' ) ); ?>
 		</head>
-		<body>
+		<body data-maa-copied-label="<?php echo esc_attr__( 'Copied', 'npcink-openclaw-adapter' ); ?>">
 			<main>
 				<h1><?php echo esc_html__( 'OpenClaw Handoff Created', 'npcink-openclaw-adapter' ); ?></h1>
 				<div class="notice">
@@ -1223,27 +1003,7 @@ final class Connection_Page {
 				</table>
 				<p class="actions"><a class="button" href="<?php echo esc_url( menu_page_url( self::MENU_SLUG, false ) ); ?>"><?php echo esc_html__( 'Back to Npcink OpenClaw Adapter', 'npcink-openclaw-adapter' ); ?></a></p>
 			</main>
-			<script>
-				(function () {
-					document.querySelectorAll('[data-maa-created-copy-target]').forEach(function (button) {
-						button.addEventListener('click', function () {
-							var target = document.getElementById(button.getAttribute('data-maa-created-copy-target'));
-							var text = target ? (target.value || target.textContent || '') : '';
-							if (!text || !window.navigator.clipboard) {
-								return;
-							}
-
-							window.navigator.clipboard.writeText(text).then(function () {
-								var oldText = button.textContent;
-								button.textContent = '<?php echo esc_js( __( 'Copied', 'npcink-openclaw-adapter' ) ); ?>';
-								window.setTimeout(function () {
-									button.textContent = oldText;
-								}, 1500);
-							});
-						});
-					});
-				})();
-			</script>
+			<?php wp_print_scripts( array( 'npcink-openclaw-adapter-created-handoff' ) ); ?>
 		</body>
 		</html>
 		<?php
