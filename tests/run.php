@@ -35,6 +35,7 @@ function maa_adapter_read( string $path ): string {
 $main = maa_adapter_read( $root . '/npcink-openclaw-adapter.php' );
 maa_adapter_assert( false !== strpos( $main, 'Plugin Name: Npcink OpenClaw Adapter' ), 'Main plugin has WordPress plugin header.' );
 maa_adapter_assert( false !== strpos( $main, 'License: GPL-2.0-or-later' ), 'Main plugin declares GPL-compatible license.' );
+maa_adapter_assert( false !== strpos( $main, 'Requires Plugins: npcink-abilities-toolkit' ), 'Main plugin declares confirmed Toolkit dependency slug.' );
 maa_adapter_assert( false !== strpos( $main, 'plugins_loaded' ), 'Main plugin boots on plugins_loaded.' );
 
 $controller = maa_adapter_read( $root . '/includes/Rest/Controller.php' );
@@ -43,6 +44,11 @@ foreach (
 		'npcink-openclaw-adapter/v1',
 		'/health',
 		'/help',
+		'dependency_status',
+		'missing_dependency_for_route',
+		'npcink_openclaw_adapter_missing_dependency',
+		'adapter_entry_with_separate_governance_and_ability_plugins',
+		'npcink_abilities_toolkit_get_registered',
 		'/capabilities',
 		'/connection/manifest',
 		'/connect/device/start',
@@ -725,6 +731,8 @@ foreach (
 		'docs/openclaw-connection-model-notes.md',
 		'docs/openclaw-consumer-acceptance.md',
 		'docs/openclaw-batch-execution-policy.md',
+		'Npcink AI Suite Distribution Contract',
+		'npcink_openclaw_adapter_missing_dependency',
 		'input.write_actions[]',
 		'execution profile registry',
 		'Capability discovery may show more proposal-required abilities',
@@ -972,8 +980,10 @@ foreach (
 		'Requires at least: 7.0',
 		'Tested up to: 7.0',
 		'Requires PHP: 8.0',
+		'Requires Plugins: npcink-abilities-toolkit',
 		'Stable tag: 0.1.0',
 		'License: GPL-2.0-or-later',
+		'structured missing dependency error',
 		'Npcink Governance Core remains the governance backend',
 		'npcink-abilities-toolkit/trash-post',
 	) as $required
@@ -986,12 +996,41 @@ foreach (
 	array(
 		'"license": "GPL-2.0-or-later"',
 		'"package:release"',
+		'"package:suite"',
 		'"plugin-check:release"',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
 		'--exclude-files=.gitignore,.distignore,AGENTS.md,composer.json',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $composer, $required ), 'composer.json contains required text: ' . $required );
+}
+
+$distribution_contract = maa_adapter_read( $root . '/docs/distribution-contract.md' );
+foreach (
+	array(
+		'Npcink AI Suite Distribution Contract',
+		'`npcink-abilities-toolkit` is the current WordPress.org dependency slug',
+		'Core and Adapter slugs are treated as distribution contract values',
+		'npcink_openclaw_adapter_missing_dependency',
+		'Distribution unifies installation, not responsibilities',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $distribution_contract, $required ), 'Distribution contract contains required text: ' . $required );
+}
+
+$suite_packager = maa_adapter_read( $root . '/scripts/package-suite.sh' );
+foreach (
+	array(
+		'NPCINK_GOVERNANCE_CORE_DIR',
+		'NPCINK_ABILITIES_TOOLKIT_DIR',
+		'npcink-ai-suite',
+		'npcink-openclaw-adapter.zip',
+		'npcink-governance-core.zip',
+		'npcink-abilities-toolkit.zip',
+		'VERSION_MATRIX.md',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $suite_packager, $required ), 'Suite packager contains required text: ' . $required );
 }
 
 $distignore = maa_adapter_read( $root . '/.distignore' );

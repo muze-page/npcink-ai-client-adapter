@@ -4,6 +4,7 @@ Tags: ai, governance, automation, rest-api
 Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.0
+Requires Plugins: npcink-abilities-toolkit
 Stable tag: 0.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -16,12 +17,14 @@ Npcink OpenClaw Adapter gives OpenClaw one WordPress REST namespace for reading 
 
 Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, expose generic approve/reject proxying, or execute final write mutations without Core approval and commit-preflight.
 
+Adapter can be distributed as the Npcink AI suite entry plugin while Core and Toolkit remain separate plugins. Adapter health reports missing dependencies and dependency-sensitive routes fail closed with a structured missing dependency error.
+
 Current governed execution support is deliberately limited to individually approved proposal execution for `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
 
 == Installation ==
 
-1. Install and activate Npcink Governance Core.
-2. Install and activate the WordPress Abilities provider used by Npcink.
+1. Install and activate `npcink-abilities-toolkit`.
+2. Install and activate Npcink Governance Core.
 3. Install and activate Npcink OpenClaw Adapter.
 4. Open Npcink > Adapter to create the OpenClaw handoff.
 

@@ -1851,14 +1851,20 @@ final class Controller {
 	 * @return WP_REST_Response
 	 */
 	public function health(): WP_REST_Response {
-		$routes = rest_get_server()->get_routes();
+		$dependencies = $this->dependency_status();
 
 		return new WP_REST_Response(
 			array(
 				'adapter'                => 'npcink-openclaw-adapter',
 				'version'                => NPCINK_OPENCLAW_ADAPTER_VERSION,
-				'core_capabilities'      => isset( $routes['/npcink-governance-core/v1/capabilities'] ),
-				'abilities_catalog'      => isset( $routes['/wp-abilities/v1/abilities'] ),
+				'distribution_mode'      => 'adapter_entry_with_separate_governance_and_ability_plugins',
+				'core_capabilities'      => (bool) ( $dependencies['items']['npcink-governance-core']['available'] ?? false ),
+				'abilities_catalog'      => (bool) ( $dependencies['items']['wordpress-abilities-api']['available'] ?? false ),
+				'abilities_toolkit'      => (bool) ( $dependencies['items']['npcink-abilities-toolkit']['available'] ?? false ),
+				'dependencies_ready'     => empty( $dependencies['missing'] ),
+				'dependencies'           => $dependencies['items'],
+				'dependency_count'       => count( $dependencies['items'] ),
+				'missing_dependencies'   => $dependencies['missing'],
 				'core_proxy_execute'     => false,
 				'commit_execution'       => false,
 				'approval_proxy_enabled' => false,
@@ -2039,6 +2045,8 @@ final class Controller {
 				'approval_proxy_enabled' => false,
 				'approval_surface' => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
+				'distribution_mode' => 'adapter_entry_with_separate_governance_and_ability_plugins',
+				'dependencies' => $this->dependency_status()['items'],
 				'ai_request_log_context' => array(
 					'accepted_param' => 'log_context',
 					'query_fields'   => array(
@@ -5775,6 +5783,22 @@ final class Controller {
 	 */
 	private function dispatch_upstream( string $method, string $route, array $params = array(), bool $query_params = false, bool $json_body = false, bool $use_core_app_token = true ) {
 		$started = microtime( true );
+		$dependency_error = $this->missing_dependency_for_route( $route );
+		if ( is_wp_error( $dependency_error ) ) {
+			$this->emit_operation_event(
+				'adapter.core.request',
+				$started,
+				$dependency_error,
+				array(
+					'method'      => strtoupper( $method ),
+					'route'       => $route,
+					'status_code' => $this->error_status_code( $dependency_error, 503 ),
+				)
+			);
+
+			return $dependency_error;
+		}
+
 		$request = new WP_REST_Request( $method, $route );
 		$token   = $use_core_app_token ? $this->core_app_token() : '';
 		$user_id = get_current_user_id();
@@ -5840,6 +5864,110 @@ final class Controller {
 		);
 
 		return new WP_REST_Response( $response->get_data(), $status );
+	}
+
+	/**
+	 * Returns suite dependency status for productized Adapter entry.
+	 *
+	 * @return array{items:array<string,array<string,mixed>>,missing:array<int,string>}
+	 */
+	private function dependency_status(): array {
+		$items = array(
+			'npcink-governance-core' => array(
+				'label'        => 'Npcink Governance Core',
+				'slug'         => 'npcink-governance-core',
+				'slug_status'  => 'planned',
+				'required_for' => array( 'capabilities', 'proposals', 'commit_preflight', 'approved_execution' ),
+				'available'    => $this->rest_route_available( '/npcink-governance-core/v1/capabilities' ),
+				'detector'     => 'rest_route:/npcink-governance-core/v1/capabilities',
+			),
+			'wordpress-abilities-api' => array(
+				'label'        => 'WordPress Abilities API',
+				'slug'         => 'wordpress-core',
+				'slug_status'  => 'platform',
+				'required_for' => array( 'read_ability_execution', 'approved_execution' ),
+				'available'    => $this->rest_route_available( '/wp-abilities/v1/abilities' ),
+				'detector'     => 'rest_route:/wp-abilities/v1/abilities',
+			),
+			'npcink-abilities-toolkit' => array(
+				'label'        => 'Npcink Abilities Toolkit',
+				'slug'         => 'npcink-abilities-toolkit',
+				'slug_status'  => 'wordpress_org_declared',
+				'required_for' => array( 'reference_abilities', 'read_shortcuts', 'execution_profiles' ),
+				'available'    => function_exists( 'npcink_abilities_toolkit_get_registered' ),
+				'detector'     => 'function:npcink_abilities_toolkit_get_registered',
+			),
+		);
+		$missing = array();
+		foreach ( $items as $key => $item ) {
+			if ( empty( $item['available'] ) ) {
+				$missing[] = $key;
+			}
+		}
+
+		return array(
+			'items'   => $items,
+			'missing' => $missing,
+		);
+	}
+
+	/**
+	 * Returns a structured dependency error for routes that cannot run alone.
+	 *
+	 * @param string $route REST route.
+	 * @return WP_Error|null
+	 */
+	private function missing_dependency_for_route( string $route ): ?WP_Error {
+		if ( 0 === strpos( $route, '/npcink-governance-core/v1/' ) && ! $this->rest_route_available( '/npcink-governance-core/v1/capabilities' ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_missing_dependency',
+				__( 'Npcink Governance Core is required before Adapter can read capabilities, create proposals, or run commit preflight.', 'npcink-openclaw-adapter' ),
+				array(
+					'status'              => 503,
+					'dependency'          => 'npcink-governance-core',
+					'dependency_detector' => 'rest_route:/npcink-governance-core/v1/capabilities',
+					'distribution_mode'   => 'adapter_entry_with_separate_governance_and_ability_plugins',
+				)
+			);
+		}
+
+		if ( 0 === strpos( $route, '/wp-abilities/v1/' ) && ! $this->rest_route_available( '/wp-abilities/v1/abilities' ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_missing_dependency',
+				__( 'WordPress Abilities API is required before Adapter can execute read abilities or approved write abilities.', 'npcink-openclaw-adapter' ),
+				array(
+					'status'              => 503,
+					'dependency'          => 'wordpress-abilities-api',
+					'dependency_detector' => 'rest_route:/wp-abilities/v1/abilities',
+					'distribution_mode'   => 'adapter_entry_with_separate_governance_and_ability_plugins',
+				)
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Extracts an error status code with a fallback.
+	 *
+	 * @param WP_Error $error Error.
+	 * @param int      $fallback Fallback status.
+	 * @return int
+	 */
+	private function error_status_code( WP_Error $error, int $fallback ): int {
+		$data = $error->get_error_data();
+		return is_array( $data ) ? absint( $data['status'] ?? $fallback ) : $fallback;
+	}
+
+	/**
+	 * Returns whether a REST route is registered.
+	 *
+	 * @param string $route REST route.
+	 * @return bool
+	 */
+	private function rest_route_available( string $route ): bool {
+		$routes = rest_get_server()->get_routes();
+		return isset( $routes[ $route ] );
 	}
 
 	/**

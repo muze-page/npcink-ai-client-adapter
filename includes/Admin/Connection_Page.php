@@ -265,10 +265,22 @@ final class Connection_Page {
 					<span class="maa-value"><?php echo ! empty( $health['abilities_catalog'] ) ? esc_html__( 'Available', 'npcink-openclaw-adapter' ) : esc_html__( 'Missing', 'npcink-openclaw-adapter' ); ?></span>
 				</div>
 				<div class="maa-summary-item">
+					<span class="maa-label"><?php echo esc_html__( 'Abilities Toolkit', 'npcink-openclaw-adapter' ); ?></span>
+					<span class="maa-value"><?php echo ! empty( $health['abilities_toolkit'] ) ? esc_html__( 'Available', 'npcink-openclaw-adapter' ) : esc_html__( 'Missing', 'npcink-openclaw-adapter' ); ?></span>
+				</div>
+				<div class="maa-summary-item">
 					<span class="maa-label"><?php echo esc_html__( 'Write execution', 'npcink-openclaw-adapter' ); ?></span>
 					<span class="maa-value"><?php echo esc_html__( 'Proposal required', 'npcink-openclaw-adapter' ); ?></span>
 				</div>
 			</div>
+			<?php if ( empty( $health['dependencies_ready'] ) && ! empty( $health['missing_dependencies'] ) && is_array( $health['missing_dependencies'] ) ) : ?>
+				<div class="notice notice-warning">
+					<p>
+						<strong><?php echo esc_html__( 'Suite dependencies need attention.', 'npcink-openclaw-adapter' ); ?></strong>
+						<?php echo esc_html( implode( ', ', array_map( 'sanitize_text_field', $health['missing_dependencies'] ) ) ); ?>
+					</p>
+				</div>
+			<?php endif; ?>
 
 			<div class="maa-workspace">
 				<div class="maa-section maa-section-highlight">

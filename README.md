@@ -57,6 +57,25 @@ Layer ownership:
 | Governance layer | `npcink-governance-core` | Discovers abilities, classifies risk, stores proposals, handles approval/preflight, and audits governance decisions. |
 | Channel layer | `npcink-openclaw-adapter` | Gives OpenClaw a small REST adapter that calls Core and WordPress Abilities API. |
 
+## Suite Distribution
+
+Npcink OpenClaw Adapter is the productized entry plugin for the Npcink AI suite,
+but distribution does not merge runtime ownership. The suite package ships
+Adapter, Core, and the Abilities Toolkit as separate WordPress plugin zips and
+keeps their REST namespaces, plugin headers, data stores, and tests separate.
+
+The current Adapter plugin header declares `Requires Plugins:
+npcink-abilities-toolkit` because `npcink-abilities-toolkit` is the confirmed
+WordPress.org dependency slug. Core and Adapter slugs are still treated as
+distribution contract values until their public slugs are finalized; runtime
+readiness is detected through REST routes and public functions instead of
+display names.
+
+Adapter `/health` and `/help` remain available when dependencies are missing.
+Routes that require Core or WordPress Abilities API fail closed with
+`npcink_openclaw_adapter_missing_dependency`. See
+[Npcink AI Suite Distribution Contract](docs/distribution-contract.md).
+
 ## REST Surface
 
 All routes require `manage_options` through normal WordPress REST
