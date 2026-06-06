@@ -131,8 +131,8 @@ For local validation, run the npm CLI on the same machine or execution
 environment as OpenClaw:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
@@ -151,30 +151,28 @@ After pairing, OpenClaw-style local clients should call Adapter through the
 local request wrapper instead of reading the profile file:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
 ```
 
 For POST requests, write the non-secret request JSON to a temporary file and
 pass it with `--body-file`, or pass non-secret JSON through stdin:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
-printf '%s' '{"plan":{}}' | (cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin)
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+printf '%s' '{"plan":{}}' | (cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin)
 ```
 
 The wrapper rejects absolute URLs, signs the Adapter-relative route locally, and
 prints only the Adapter JSON response. Do not ask OpenClaw to read or summarize
 `~/.npcink-openclaw-adapter/keypair-profiles/*.json`.
-The repository keeps `tools/npcink-openclaw-adapter.mjs`,
-`tools/keypair-device-pairing.mjs`, and `tools/keypair-adapter-request.mjs` as
-development compatibility wrappers. The user-facing local client entrypoint is
-the published npm CLI.
+The user-facing local client entrypoint is the published npm CLI. The repository
+does not keep root-level `tools/` compatibility wrappers.
 
-For repo-local package testing, use:
+Use the package directly:
 
 ```bash
-npx --yes --package /Users/muze/gitee/npcink-openclaw-adapter/packages/adapter-cli npcink-openclaw-adapter status --profile=local --insecure-local-tls
+npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 Administrators manage authorized public keys from `Npcink -> Adapter` in the

@@ -1556,7 +1556,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function local_cli_prefix(): string {
-		return 'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter';
+		return 'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter';
 	}
 
 	/**

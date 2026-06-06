@@ -9,20 +9,20 @@ tool commands, logs, proposal payloads, or copied handoff text.
 Connect from the user's local machine:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter connect --site=https://example.com --profile=example
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter connect --site=https://example.com --profile=example
 ```
 
 Check the local profile and signed Adapter health:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter status --profile=example
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=example
 ```
 
 Call Adapter through the signed local wrapper:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=example GET /health
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=example GET /capabilities
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=example GET /health
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=example GET /capabilities
 ```
 
 Final Adapter write routes are guarded by client intent. Use
@@ -31,8 +31,8 @@ Use `--intent=commit` only when the operator explicitly confirmed final write
 execution:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=example POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter request --profile=example POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=example POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=example POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
 ```
 
 The CLI refuses final execute routes when `--intent=commit` is missing, or when
@@ -41,12 +41,6 @@ the request body still contains preview markers such as `dry_run=true`,
 
 For local WordPress development sites with self-signed `.local` HTTPS, add
 `--insecure-local-tls`.
-
-For repo-local package testing, use:
-
-```bash
-npx --yes --package /path/to/npcink-openclaw-adapter/packages/adapter-cli npcink-openclaw-adapter status --profile=example
-```
 
 ## Security Boundary
 

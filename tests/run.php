@@ -611,7 +611,7 @@ foreach (
 		'render_key_pair_clients_table',
 		'local_cli_connect_command',
 		'local_cli_status_command',
-		'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter',
+		'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter',
 		'--intent=preflight',
 		'--intent=commit',
 		'final execute routes require --intent=commit',
@@ -731,11 +731,8 @@ foreach (
 			'copyable WorkBuddy setup block',
 			'key-pair device pairing MVP',
 			'docs/keypair-device-pairing-contract.md',
-			'tools/keypair-device-pairing.mjs',
-			'tools/keypair-adapter-request.mjs',
-			'tools/npcink-openclaw-adapter.mjs',
+			'does not keep root-level `tools/` compatibility',
 			'@npcink/openclaw-adapter-cli',
-			'packages/adapter-cli',
 			'Final Adapter write routes',
 			'--intent=preflight',
 			'--intent=commit',
@@ -883,18 +880,9 @@ foreach (
 	maa_adapter_assert( false !== strpos( $adapter_cli_package, $required ), 'Adapter CLI package contains required text: ' . $required );
 }
 
-$legacy_magick_adapter_tool = maa_adapter_read( $root . '/tools/npcink-openclaw-adapter.mjs' );
-foreach (
-	array(
-		'packages',
-		'adapter-cli',
-		'bin',
-		'npcink-openclaw-adapter.mjs',
-		'spawn(process.execPath',
-	) as $required
-) {
-	maa_adapter_assert( false !== strpos( $legacy_magick_adapter_tool, $required ), 'Legacy unified CLI wrapper delegates to package CLI: ' . $required );
-}
+maa_adapter_assert( ! file_exists( $root . '/tools/npcink-openclaw-adapter.mjs' ), 'Root unified CLI wrapper is absent; use the npm CLI package.' );
+maa_adapter_assert( ! file_exists( $root . '/tools/keypair-device-pairing.mjs' ), 'Root device-pairing wrapper is absent; use the npm CLI package.' );
+maa_adapter_assert( ! file_exists( $root . '/tools/keypair-adapter-request.mjs' ), 'Root request wrapper is absent; use the npm CLI package.' );
 
 $keypair_tool = maa_adapter_read( $root . '/packages/adapter-cli/bin/keypair-device-pairing.mjs' );
 foreach (
@@ -1035,9 +1023,8 @@ foreach (
 		'GET /help',
 		'GET /capabilities',
 		'Public Key Device Pairing',
-		'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli -- npcink-openclaw-adapter',
-		'tools/keypair-device-pairing.mjs',
-		'packages/adapter-cli',
+		'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter',
+		'does not keep root-level `tools/` compatibility',
 		'connect/device/start',
 		'POST /proposals/from-plan',
 		'/proposals?limit=10',
