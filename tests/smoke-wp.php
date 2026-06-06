@@ -956,6 +956,7 @@ maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_gui
 maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes proposal status routes' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/from-plan', (array) ( $health['plan_proposal_routes'] ?? array() ), true ), 'adapter health exposes plan-to-proposal route' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article batch plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes Site Knowledge review plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-optimization-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media optimization plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-rename-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media rename plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approved proposal execution route' );
@@ -993,6 +994,7 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plug
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/article-writing-pack' ), 'adapter help exposes AI article writing pack shortcut' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article batch plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes Site Knowledge review plan allowlist' );
 maa_adapter_smoke_assert( 'npcink-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );

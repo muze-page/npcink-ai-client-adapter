@@ -59,6 +59,7 @@ final class Controller {
 		'npcink-toolbox/build-article-batch-write-plan'     => true,
 		'npcink-toolbox/build-article-media-batch-write-plan' => true,
 		'npcink-toolbox/build-image-candidate-adoption-plan' => true,
+		'npcink-toolbox/build-site-knowledge-review-plan'  => true,
 	);
 
 	/**

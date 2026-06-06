@@ -138,6 +138,7 @@ direct reads:
 - `npcink-toolbox/build-article-batch-write-plan`
 - `npcink-toolbox/build-article-media-batch-write-plan`
 - `npcink-toolbox/build-image-candidate-adoption-plan`
+- `npcink-toolbox/build-site-knowledge-review-plan`
 
 OpenClaw may also use direct read execution for media format inspection:
 
@@ -180,6 +181,14 @@ such as `npcink-abilities-toolkit/upload-media-from-url`,
 `npcink-abilities-toolkit/update-media-details`, or
 `npcink-abilities-toolkit/set-post-featured-image`, and pass Core approval plus
 commit-preflight before Adapter execution.
+
+For Toolbox Site Knowledge review,
+`npcink-toolbox/build-site-knowledge-review-plan` returns a blocked
+`site_knowledge_review_plan` from evidence-backed Cloud Site Knowledge agent
+handoff data. Adapter may forward that plan to Core only as a review proposal
+handoff. It must remain `proposal_ready=false`, require human `title` and
+`content` input, and must not approve, preflight, execute, or write WordPress
+content.
 
 ## OpenClaw Recipe Discovery
 

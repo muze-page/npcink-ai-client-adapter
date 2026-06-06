@@ -535,7 +535,9 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/build-media-rename-plan`, or
 	   `npcink-toolbox/build-article-write-plan`, or
 	   `npcink-toolbox/build-article-batch-write-plan`, or
-	   `npcink-toolbox/build-article-media-batch-write-plan`.
+	   `npcink-toolbox/build-article-media-batch-write-plan`, or
+	   `npcink-toolbox/build-image-candidate-adoption-plan`, or
+	   `npcink-toolbox/build-site-knowledge-review-plan`.
 2. The adapter preserves plan fields including `batch_id`, `issue_types`,
    `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
    `requires_approval`, `commit_execution`, `dry_run`, `manual_review`,
@@ -573,6 +575,11 @@ Plan-to-proposal flow:
 	   machine-readable playbook is exposed as
 	   `openclaw_recipes.image_candidate_adoption_plan` from `GET /help`. See
 	   [OpenClaw Image Candidate Adoption Plan Recipe](docs/openclaw-image-candidate-adoption-plan-recipe.md).
+	   For Site Knowledge agent evidence review, call
+	   `npcink-toolbox/build-site-knowledge-review-plan`; Core creates a
+	   blocked review proposal that still requires human `title` and `content`
+	   input. Adapter must not approve, preflight, execute, or write WordPress
+	   content from this handoff.
 
 Proposal-required write flow:
 
