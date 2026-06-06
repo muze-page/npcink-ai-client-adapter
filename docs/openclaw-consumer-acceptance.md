@@ -230,8 +230,10 @@ Run this order for a local acceptance pass:
     `npcink-abilities-toolkit/adopt-cloud-media-derivative`. If reviewed `media_details_input`
     is missing, collect it first and retry the payload route; do not create a
     Core proposal yet. If Core reports the plan ability is unavailable, surface
-    the capability/version guard and update the local stack; do not split this
-    same user intent into two proposals. Use the
+    the capability/version guard and update the local stack. Inline media
+    reference repair preview evidence stays inside derivative adoption with
+    reviewed post/count expectations; do not split this same user intent into
+    two proposals or a separate `patch-post-content` action. Use the
     legacy single derivative proposal only for lower-level derivative-only
     review.
 12. Query status through Adapter:

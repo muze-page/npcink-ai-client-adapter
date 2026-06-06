@@ -159,8 +159,9 @@ if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payl
 		$source_asset = is_array( $contract['cloud_job_payload']['source_asset'] ?? null ) ? $contract['cloud_job_payload']['source_asset'] : array();
 		$cloud_data = is_array( $cloud_result['data'] ?? null ) ? $cloud_result['data'] : $cloud_result;
 		$derivative = is_array( $cloud_data['derivative'] ?? null ) ? $cloud_data['derivative'] : array();
+		$content_reference_repairs_preview = is_array( $contract['content_reference_repairs_preview'] ?? null ) ? $contract['content_reference_repairs_preview'] : array();
 
-		return array(
+		$payload = array(
 			'attachment_id' => $attachment_id,
 			'artifact'      => $artifact,
 			'original'      => array(
@@ -176,6 +177,11 @@ if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payl
 				'filesize_bytes' => absint( $derivative['filesize_bytes'] ?? ( $artifact['filesize_bytes'] ?? 196608 ) ),
 			),
 		);
+		if ( ! empty( $content_reference_repairs_preview ) ) {
+			$payload['content_reference_repairs_preview'] = $content_reference_repairs_preview;
+		}
+
+		return $payload;
 	}
 }
 
@@ -724,9 +730,10 @@ function maa_adapter_smoke_create_real_media_attachment(): int {
  * @param string $artifact_id Artifact id.
  * @param string $artifact_contents Downloaded artifact bytes.
  * @param bool   $with_media_details Whether to include reviewed metadata input.
+ * @param bool   $with_content_reference_repairs Whether to include content reference repair preview.
  * @return array<string,mixed>
  */
-function maa_adapter_smoke_media_optimization_payload_params( int $attachment_id, string $artifact_id, string $artifact_contents, bool $with_media_details = true ): array {
+function maa_adapter_smoke_media_optimization_payload_params( int $attachment_id, string $artifact_id, string $artifact_contents, bool $with_media_details = true, bool $with_content_reference_repairs = false ): array {
 	$sha256       = hash( 'sha256', $artifact_contents );
 	$expires_at   = gmdate( 'c', time() + 600 );
 	$current_mime = (string) get_post_mime_type( $attachment_id );
@@ -816,6 +823,33 @@ function maa_adapter_smoke_media_optimization_payload_params( int $attachment_id
 			'caption'     => 'Adapter media optimization smoke image.',
 			'description' => 'Reviewed metadata for the adapter media optimization smoke.',
 			'source_type' => 'ai_generated',
+		);
+	}
+	if ( $with_content_reference_repairs ) {
+		$params['ability_response']['data']['content_reference_repairs_preview'] = array(
+			'attachment_id'      => $attachment_id,
+			'applied'            => false,
+			'scanned_count'      => 1,
+			'post_count'         => 1,
+			'replacement_count'  => 1,
+			'reference_strategy' => 'replace_old_main_and_sized_upload_urls_with_new_main_file_url',
+			'repairs'            => array(
+				array(
+					'post_id'         => 4312,
+					'post_type'       => 'post',
+					'post_status'     => 'publish',
+					'title'           => 'Adapter smoke reference repair',
+					'operation_count' => 1,
+					'operations'      => array(
+						array(
+							'op'      => 'replace',
+							'find'    => 'https://example.test/wp-content/uploads/2026/06/original.jpg',
+							'replace' => 'https://example.test/wp-content/uploads/2026/06/optimized.webp',
+							'limit'   => 1,
+						),
+					),
+				),
+			),
 		);
 	}
 
@@ -1632,6 +1666,45 @@ maa_adapter_smoke_assert( true === (bool) ( $media_optimization_plan['batch_appr
 maa_adapter_smoke_assert( 2 === count( (array) ( $media_optimization_plan['write_actions'] ?? array() ) ), 'adapter media optimization plan includes two write actions' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-media-details' === (string) ( $media_optimization_plan['write_actions'][0]['target_ability_id'] ?? '' ), 'adapter media optimization plan starts with metadata update' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/adopt-cloud-media-derivative' === (string) ( $media_optimization_plan['write_actions'][1]['target_ability_id'] ?? '' ), 'adapter media optimization plan includes derivative adoption' );
+$media_optimization_repairs_payload = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
+	maa_adapter_smoke_media_optimization_payload_params( $media_optimization_attachment_id, $media_optimization_artifact_id . '-repairs', $media_optimization_artifact_contents, true, true )
+);
+$media_optimization_repairs_from_plan = is_array( $media_optimization_repairs_payload['from_plan_request'] ?? null ) ? $media_optimization_repairs_payload['from_plan_request'] : array();
+$media_optimization_repairs_plan = is_array( $media_optimization_repairs_from_plan['plan'] ?? null ) ? $media_optimization_repairs_from_plan['plan'] : array();
+maa_adapter_smoke_assert( 2 === count( (array) ( $media_optimization_repairs_plan['write_actions'] ?? array() ) ), 'adapter media optimization plan keeps content reference repairs inside derivative adoption' );
+maa_adapter_smoke_assert( array( 4312 ) === (array) ( $media_optimization_repairs_plan['write_actions'][1]['input']['expected_content_reference_post_ids'] ?? array() ), 'adapter media optimization adoption input carries reviewed reference repair post ids' );
+maa_adapter_smoke_assert( 1 === (int) ( $media_optimization_repairs_plan['write_actions'][1]['input']['expected_content_reference_post_count'] ?? -1 ), 'adapter media optimization adoption input carries reviewed reference repair post count' );
+maa_adapter_smoke_assert( 1 === (int) ( $media_optimization_repairs_plan['write_actions'][1]['input']['expected_content_reference_replacement_count'] ?? -1 ), 'adapter media optimization adoption input carries reviewed reference repair replacement count' );
+maa_adapter_smoke_assert( ! in_array( 'npcink-abilities-toolkit/patch-post-content', (array) ( $media_optimization_repairs_plan['target_ability_ids'] ?? array() ), true ), 'adapter media optimization target ability ids do not split patch-post-content repair action' );
+$media_optimization_repairs_bridge_result = maa_adapter_smoke_rest_result(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
+	array_merge(
+		$media_optimization_repairs_from_plan,
+		array(
+			'plan_input'         => array(
+				'attachment_id' => $media_optimization_attachment_id,
+				'source_type'   => 'ai_generated',
+			),
+			'adapter_request_id' => 'adapter-media-optimization-repairs-request',
+			'correlation_id'     => 'adapter-media-optimization-repairs-correlation',
+			'caller'             => array(
+				'external_thread_id' => 'adapter-media-optimization-repairs-smoke',
+			),
+		)
+	)
+);
+$media_optimization_repairs_bridge = is_array( $media_optimization_repairs_bridge_result['data'] ) ? $media_optimization_repairs_bridge_result['data'] : array();
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_plan_action_input_invalid' !== (string) ( $media_optimization_repairs_bridge['code'] ?? '' ), 'adapter accepts content reference expectation fields in media optimization plan actions' );
+if ( $media_optimization_repairs_bridge_result['status'] >= 200 && $media_optimization_repairs_bridge_result['status'] < 300 ) {
+	$media_optimization_repairs_proposal = is_array( $media_optimization_repairs_bridge['proposals'][0] ?? null ) ? $media_optimization_repairs_bridge['proposals'][0] : array();
+	$media_optimization_repairs_proposal_id = (string) ( $media_optimization_repairs_proposal['proposal_id'] ?? '' );
+	if ( '' !== $media_optimization_repairs_proposal_id ) {
+		$maa_adapter_smoke_cleanup_proposal_ids[] = $media_optimization_repairs_proposal_id;
+	}
+}
 
 $media_optimization_bridge_result = maa_adapter_smoke_rest_result(
 	'POST',

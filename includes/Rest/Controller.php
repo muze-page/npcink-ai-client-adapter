@@ -299,7 +299,7 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/adopt-cloud-media-derivative' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'expected_content_reference_post_ids', 'expected_content_reference_post_count', 'expected_content_reference_replacement_count', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
@@ -2899,6 +2899,17 @@ final class Controller {
 				'filesize_bytes' => absint( $derivative['filesize_bytes'] ?? ( $artifact['filesize_bytes'] ?? 0 ) ),
 			),
 		);
+		$content_reference_repairs_preview = array();
+		if ( is_array( $proposal_payload['content_reference_repairs_preview'] ?? null ) ) {
+			$content_reference_repairs_preview = $proposal_payload['content_reference_repairs_preview'];
+		} elseif ( is_array( $proposal_payload['derivative_preview']['content_reference_repairs'] ?? null ) ) {
+			$content_reference_repairs_preview = $proposal_payload['derivative_preview']['content_reference_repairs'];
+		} elseif ( is_array( $derivative['content_reference_repairs'] ?? null ) ) {
+			$content_reference_repairs_preview = $derivative['content_reference_repairs'];
+		}
+		if ( ! empty( $content_reference_repairs_preview ) ) {
+			$derivative_preview['content_reference_repairs'] = $content_reference_repairs_preview;
+		}
 
 		$plan = array(
 			'artifact_type'      => 'media_optimization_plan',
@@ -2912,8 +2923,11 @@ final class Controller {
 			'proposal_mode'      => 'batch',
 			'batch_approval'     => true,
 			'action_count'       => 0,
+			'action_ids'         => array(),
+			'target_ability_ids' => array(),
 			'metadata_preview'   => $metadata_preview,
 			'derivative_preview' => $derivative_preview,
+			'content_reference_repairs_preview' => $content_reference_repairs_preview,
 			'preview'            => array(),
 			'write_actions'      => array(),
 			'requires_input'     => array(),
@@ -2946,14 +2960,57 @@ final class Controller {
 		if ( '' !== $derivative_mime ) {
 			$derivative_input['expected_derivative_mime_type'] = $derivative_mime;
 		}
+		if ( ! empty( $content_reference_repairs_preview ) ) {
+			$derivative_input['expected_content_reference_post_ids'] = array_slice(
+				array_values(
+					array_unique(
+						array_filter(
+							array_map(
+								static function ( $repair ) {
+									return absint( is_array( $repair ) ? ( $repair['post_id'] ?? 0 ) : 0 );
+								},
+								(array) ( $content_reference_repairs_preview['repairs'] ?? array() )
+							)
+						)
+					)
+				),
+				0,
+				50
+			);
+			$derivative_input['expected_content_reference_post_count'] = absint( $content_reference_repairs_preview['post_count'] ?? 0 );
+			$derivative_input['expected_content_reference_replacement_count'] = absint( $content_reference_repairs_preview['replacement_count'] ?? 0 );
+		}
 
-		$plan['write_actions']  = array(
+		$write_actions = array(
 			$this->adapter_plan_action( 'update_media_details_' . $attachment_id, 'npcink-abilities-toolkit/update-media-details', $metadata_input, 'medium', 'Apply reviewed media SEO and source metadata as part of one media optimization approval.' ),
 			$this->adapter_plan_action( 'adopt_cloud_media_derivative_' . $attachment_id, 'npcink-abilities-toolkit/adopt-cloud-media-derivative', $derivative_input, 'medium', 'Adopt the reviewed Cloud derivative artifact as the attachment main file after Core approval.' ),
 		);
-		$plan['action_count']   = count( $plan['write_actions'] );
-		$plan['proposal_ready'] = true;
-		$plan['preview'][]      = array(
+		$action_ids = array_values(
+			array_map(
+				static function ( $action ) {
+					return is_array( $action ) ? sanitize_key( (string) ( $action['action_id'] ?? '' ) ) : '';
+				},
+				$write_actions
+			)
+		);
+		$target_ability_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map(
+						static function ( $action ) {
+							return is_array( $action ) ? sanitize_text_field( (string) ( $action['target_ability_id'] ?? '' ) ) : '';
+						},
+						$write_actions
+					)
+				)
+			)
+		);
+		$plan['write_actions']      = $write_actions;
+		$plan['action_count']       = count( $plan['write_actions'] );
+		$plan['action_ids']         = $action_ids;
+		$plan['target_ability_ids'] = $target_ability_ids;
+		$plan['proposal_ready']     = true;
+		$plan['preview'][]          = array(
 			'attachment_id'    => $attachment_id,
 			'before'           => array(
 				'metadata'   => array(),
@@ -2963,6 +3020,8 @@ final class Controller {
 				'metadata'   => $metadata_preview['after'],
 				'derivative' => $derivative_preview['after'],
 			),
+			'action_ids'         => $action_ids,
+			'target_ability_ids' => $target_ability_ids,
 		);
 
 		return $plan;

@@ -349,8 +349,9 @@ format, width, quality, and suffix inputs, and must preserve the original file;
 mode, and records backup/rollback metadata;
 `adopt-cloud-media-derivative` requires `attachment_id` and
 `derivative_artifact` evidence, may accept a reviewed `file_name` for the
-adopted derivative, then delegates any approved local download, backup,
-attachment pointer, and metadata writes to the WordPress ability;
+adopted derivative, may carry reviewed inline media reference repair post/count
+expectations, then delegates any approved local download, backup, attachment
+pointer, metadata writes, and inline reference repair to the WordPress ability;
 `rename-media-file` requires an existing attachment `attachment_id` and a
 reviewed `target_file_name`, may accept expected current relative path, MIME
 type, MD5, SHA256, conflict mode, and backup suffix guards, then delegates the

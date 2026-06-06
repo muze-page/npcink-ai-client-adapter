@@ -129,6 +129,11 @@ Cloud runtime calls:
 
    Core will create one batch proposal containing `npcink-abilities-toolkit/update-media-details`
    and `npcink-abilities-toolkit/adopt-cloud-media-derivative`.
+   If the payload includes inline media reference repair preview evidence,
+   Adapter keeps that evidence in the derivative preview and passes reviewed
+   post/count expectations into the adoption input; it must not add a separate
+   `npcink-abilities-toolkit/patch-post-content` action for the same media
+   optimization intent.
    If `media_details_input` is missing, collect reviewed title/alt/caption/
    description/source metadata first and retry `POST /media-derivative-proposal-payload`;
    do not create a derivative-only Core proposal for the same optimization
