@@ -128,7 +128,7 @@ The adapter may execute these planning abilities only when Core reports them as
 direct reads:
 
 - `npcink-abilities-toolkit/build-content-inventory-fix-plan`
-- `npcink-abilities-toolkit/build-test-content-cleanup-plan`
+- `npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan`
 - `npcink-abilities-toolkit/build-media-inventory-fix-plan`
 - `npcink-abilities-toolkit/build-media-reference-repair-plan`
 - `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`
@@ -664,7 +664,7 @@ Read shortcuts:
 - `GET /wp-json/npcink-openclaw-adapter/v1/pages-tree`
 - `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-health`
 - `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-fix-plan`
-- `GET /wp-json/npcink-openclaw-adapter/v1/test-content-cleanup-plan`
+- `GET /wp-json/npcink-openclaw-adapter/v1/nonproduction-content-cleanup-plan`
 - `GET /wp-json/npcink-openclaw-adapter/v1/site-operations-dashboard`
 - `GET /wp-json/npcink-openclaw-adapter/v1/publishing-calendar-context`
 - `GET /wp-json/npcink-openclaw-adapter/v1/media-inventory-health`

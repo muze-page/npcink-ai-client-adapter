@@ -84,6 +84,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/npcink-openclaw-adapter/v1/health`
 - `GET /wp-json/npcink-openclaw-adapter/v1/help`
 - `GET /wp-json/npcink-openclaw-adapter/v1/capabilities`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
 - `POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`
 - `POST /wp-json/npcink-openclaw-adapter/v1/media-metadata-optimization`
 - `POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs`
@@ -141,7 +142,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/npcink-openclaw-adapter/v1/pages-tree`
 - `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-health`
 - `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-fix-plan`
-- `GET /wp-json/npcink-openclaw-adapter/v1/test-content-cleanup-plan`
+- `GET /wp-json/npcink-openclaw-adapter/v1/nonproduction-content-cleanup-plan`
 - `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context`
 - `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation`
 - `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief`
@@ -297,6 +298,14 @@ attachment main file to an already recorded local derivative, create a governed
 Core proposal for `npcink-abilities-toolkit/replace-media-file`; both write abilities record
 backup and rollback metadata. Adapter does not accept arbitrary replacement
 URLs or replace files outside Core-approved execution.
+
+`GET /proposals/{proposal_id}` proxies the Core proposal detail and appends
+Adapter-owned derived fields: `adapter_status`, `execution_status`,
+`executable`, `non_executable_reason`, `preflight_status`, and, for media
+optimization batches, `media_optimization_readiness`. The readiness checks are
+diagnostic only and do not download Cloud artifacts; they report local helper
+availability, artifact presence/expiry, Adapter execution-profile validation,
+and whether post-content reference scan evidence is present.
 
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
@@ -528,7 +537,7 @@ Plan-to-proposal flow:
 
 1. OpenClaw runs one of the direct-read planning abilities:
    `npcink-abilities-toolkit/build-content-inventory-fix-plan`,
-   `npcink-abilities-toolkit/build-test-content-cleanup-plan`,
+   `npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan`,
 	   `npcink-abilities-toolkit/build-media-inventory-fix-plan`,
 	   `npcink-abilities-toolkit/build-media-reference-repair-plan`, or
 	   `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`, or

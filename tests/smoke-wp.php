@@ -1053,18 +1053,18 @@ maa_adapter_smoke_assert( 404 === (int) ( $core_request_error_event['status_code
 maa_adapter_smoke_assert( '' !== (string) ( $core_request_error_event['error_code'] ?? '' ), 'adapter Core relay failure event carries stable error code' );
 maa_adapter_smoke_assert_observability_safe( $core_request_error_event, 'adapter Core relay failure event' );
 $by_id        = maa_adapter_smoke_capabilities_by_id( $capabilities );
-maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/site-summary'] ), 'adapter exposes site-summary capability through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/site-info'] ), 'adapter exposes site-info capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/wp-diagnostics-summary'] ), 'adapter exposes diagnostics capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/wp-ops-diagnostics-detail'] ), 'adapter exposes ops diagnostics capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/list-workflow-recipes'] ), 'adapter exposes workflow recipe list capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/get-workflow-recipe'] ), 'adapter exposes workflow recipe detail capability through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-content-inventory-fix-plan'] ), 'adapter capabilities expose content inventory fix plan through Core' );
-maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-test-content-cleanup-plan'] ), 'adapter capabilities expose test content cleanup plan through Core' );
+maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan'] ), 'adapter capabilities expose nonproduction content cleanup plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-media-inventory-fix-plan'] ), 'adapter capabilities expose media inventory fix plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-media-reference-repair-plan'] ), 'adapter capabilities expose media reference repair plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/build-media-settings-reference-repair-plan'] ), 'adapter capabilities expose media settings reference repair plan through Core' );
 maa_adapter_smoke_assert( isset( $by_id['npcink-abilities-toolkit/optimize-media-metadata'] ), 'adapter capabilities expose media metadata optimization through Core' );
-maa_adapter_smoke_assert( 'direct_read' === (string) ( $by_id['npcink-abilities-toolkit/site-summary']['governance_mode'] ?? '' ), 'site-summary is direct read' );
+maa_adapter_smoke_assert( 'direct_read' === (string) ( $by_id['npcink-abilities-toolkit/site-info']['governance_mode'] ?? '' ), 'site-info is direct read' );
 
 $content_plan_response = maa_adapter_smoke_rest(
 	'POST',
@@ -1115,14 +1115,14 @@ $media_plan_shortcut = maa_adapter_smoke_rest(
 		'max_actions'               => 1,
 		'include_delete_candidates'  => 'false',
 		'include_trash_parent_media' => 'false',
-		'include_unattached_test_media' => 'false',
+		'include_unattached_nonproduction_media' => 'false',
 	)
 );
 $media_shortcut_plan = is_array( $media_plan_shortcut['result']['data'] ?? null ) ? $media_plan_shortcut['result']['data'] : array();
 foreach ( (array) ( $media_shortcut_plan['write_actions'] ?? array() ) as $media_shortcut_action ) {
 	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_delete_candidates=false as false' );
 	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_trash_parent_media=false as false' );
-	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_unattached_test_media=false as false' );
+	maa_adapter_smoke_assert( ! is_array( $media_shortcut_action ) || 'npcink-abilities-toolkit/delete-media-permanently' !== (string) ( $media_shortcut_action['target_ability_id'] ?? '' ), 'adapter media plan shortcut treats include_unattached_nonproduction_media=false as false' );
 }
 
 $unallowed_plan_bridge = maa_adapter_smoke_rest_result(
@@ -1766,7 +1766,7 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_govern
 }
 
 $site_summary = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/site-summary' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-summary' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-summary read ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-info' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-info read ability' );
 maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-summary returns a result object' );
 maa_adapter_smoke_assert( 'direct_read_public' === (string) ( $site_summary['read_policy'] ?? '' ), 'adapter site-summary read carries public read policy' );
 maa_adapter_smoke_assert( '' !== (string) ( $site_summary['correlation_id'] ?? '' ), 'adapter read response carries generated correlation id' );
@@ -2189,7 +2189,7 @@ $batch_proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan',
 		'title'      => 'Adapter batch approve execute smoke',
 		'summary'    => 'Adapter approves through Core and executes a bounded write_actions trash-post batch.',
 		'input'      => array(
@@ -2248,7 +2248,7 @@ $referenced_batch_proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan',
 		'title'      => 'Adapter output reference batch smoke',
 		'summary'    => 'Adapter resolves prior action outputs inside one approved write_actions batch.',
 		'input'      => array(
@@ -2324,7 +2324,7 @@ $embedded_reference_batch_proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan',
 		'title'      => 'Adapter embedded output reference batch smoke',
 		'summary'    => 'Adapter must reject embedded output reference tokens before batch execution.',
 		'input'      => array(
@@ -2365,7 +2365,7 @@ $bad_batch_proposal = maa_adapter_smoke_rest(
 	'POST',
 	'/npcink-openclaw-adapter/v1/proposals',
 	array(
-		'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan',
+		'ability_id' => 'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan',
 		'title'      => 'Adapter bad batch approve execute smoke',
 		'summary'    => 'Adapter must fail closed when write_actions contains a non-allowlisted target.',
 		'input'      => array(

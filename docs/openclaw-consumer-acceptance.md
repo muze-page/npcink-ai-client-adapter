@@ -160,7 +160,7 @@ Run this order for a local acceptance pass:
 9. Create a governed write proposal with `POST /proposals`.
 10. Run a planning ability such as
    `npcink-abilities-toolkit/build-content-inventory-fix-plan`,
-   `npcink-abilities-toolkit/build-test-content-cleanup-plan`,
+   `npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan`,
    `npcink-abilities-toolkit/build-media-inventory-fix-plan`,
    `npcink-abilities-toolkit/build-media-reference-repair-plan`, or
    `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`, or

@@ -49,7 +49,7 @@ final class Controller {
 	 */
 	private static $allowed_plan_ability_ids = array(
 		'npcink-abilities-toolkit/build-content-inventory-fix-plan'           => true,
-		'npcink-abilities-toolkit/build-test-content-cleanup-plan'            => true,
+		'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan'            => true,
 		'npcink-abilities-toolkit/build-media-inventory-fix-plan'             => true,
 		'npcink-abilities-toolkit/build-media-reference-repair-plan'          => true,
 		'npcink-abilities-toolkit/build-media-settings-reference-repair-plan' => true,
@@ -2843,6 +2843,10 @@ final class Controller {
 		if ( is_wp_error( $payload ) ) {
 			return $payload;
 		}
+		$ability_data = is_array( $ability_response['data'] ?? null ) ? $ability_response['data'] : array();
+		if ( is_array( $ability_data['content_reference_repairs_preview'] ?? null ) && ! is_array( $payload['content_reference_repairs_preview'] ?? null ) ) {
+			$payload['content_reference_repairs_preview'] = $ability_data['content_reference_repairs_preview'];
+		}
 		$optimization_plan = $this->media_optimization_plan_from_derivative_payload( $payload, $media_details_input );
 		$response_payload  = array(
 			'contract_version'       => 'media_derivative_adapter_proposal_payload.v1',
@@ -3261,7 +3265,358 @@ final class Controller {
 	public function get_proposal( WP_REST_Request $request ) {
 		$proposal_id = (string) $request->get_param( 'proposal_id' );
 
-		return $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) );
+		$response = $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) );
+		if ( $response instanceof WP_REST_Response ) {
+			$data = $response->get_data();
+			if ( is_array( $data ) ) {
+				$response->set_data( $this->augment_proposal_status_response( $proposal_id, $data ) );
+			}
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Adds Adapter-owned execution/readiness status to a Core proposal payload.
+	 *
+	 * Core remains the proposal, approval, and preflight audit truth. Adapter
+	 * owns only the derived execution view because final writes happen outside
+	 * Core through the local Abilities API.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return array<string,mixed>
+	 */
+	private function augment_proposal_status_response( string $proposal_id, array $proposal ): array {
+		$proposal_id = sanitize_text_field( '' !== $proposal_id ? $proposal_id : (string) ( $proposal['proposal_id'] ?? '' ) );
+		$readiness   = $this->media_optimization_readiness( $proposal );
+		$status      = $this->proposal_derived_execution_status( $proposal_id, $proposal, $readiness );
+
+		$proposal['adapter_status']        = $status;
+		$proposal['execution_status']      = $status['execution_status'];
+		$proposal['executable']            = $status['executable'];
+		$proposal['non_executable_reason'] = $status['non_executable_reason'];
+		$proposal['preflight_status']      = $status['preflight_status'];
+
+		if ( is_array( $readiness ) ) {
+			$proposal['media_optimization_readiness'] = $readiness;
+		}
+
+		return $proposal;
+	}
+
+	/**
+	 * Builds the derived executable state shown by Adapter proposal detail.
+	 *
+	 * @param string                   $proposal_id Proposal id.
+	 * @param array<string,mixed>      $proposal Core proposal payload.
+	 * @param array<string,mixed>|null $readiness Media optimization readiness.
+	 * @return array<string,mixed>
+	 */
+	private function proposal_derived_execution_status( string $proposal_id, array $proposal, ?array $readiness ): array {
+		$core_status      = sanitize_key( (string) ( $proposal['status'] ?? '' ) );
+		$execution_record = $this->execution_record_for_proposal( $proposal_id );
+		$public_record    = is_array( $execution_record ) ? $this->public_execution_record( $execution_record ) : null;
+		$cached_handoff   = $this->cached_preflight_handoff_for_status( $proposal_id, $proposal );
+		$audit_preflight  = $this->latest_preflight_audit_event( $proposal );
+
+		$execution_status = 'not_started';
+		if ( is_array( $execution_record ) ) {
+			$record_status    = sanitize_key( (string) ( $execution_record['status'] ?? '' ) );
+			$execution_status = 'succeeded' === $record_status ? 'succeeded' : ( 'failed' === $record_status ? 'failed' : $record_status );
+		}
+
+		$preflight_status = 'not_issued';
+		if ( is_array( $cached_handoff ) ) {
+			$preflight_status = 'issued_adapter_cached';
+		} elseif ( is_array( $audit_preflight ) ) {
+			$preflight_status = 'issued_core_audit_only';
+		}
+
+		$executable            = true;
+		$non_executable_reason = '';
+		if ( 'succeeded' === $execution_status ) {
+			$executable            = false;
+			$non_executable_reason = 'already_executed';
+		} elseif ( 'failed' === $execution_status ) {
+			$executable            = false;
+			$non_executable_reason = 'execution_failed';
+		} elseif ( 'approved' !== $core_status ) {
+			$executable            = false;
+			$non_executable_reason = '' !== $core_status ? 'proposal_' . $core_status : 'proposal_status_unknown';
+		} elseif ( ! is_array( $cached_handoff ) && is_array( $audit_preflight ) ) {
+			$executable            = false;
+			$non_executable_reason = 'preflight_already_issued';
+		} elseif ( is_array( $readiness ) && false === (bool) ( $readiness['ready'] ?? true ) ) {
+			$executable            = false;
+			$non_executable_reason = sanitize_key( (string) ( $readiness['first_failed_check'] ?? 'media_optimization_not_ready' ) );
+		} elseif ( false === $this->proposal_preview_marks_executable( $proposal ) ) {
+			$executable            = false;
+			$non_executable_reason = 'proposal_preview_not_ready';
+		}
+
+		return array(
+			'core_status'           => $core_status,
+			'execution_status'      => $execution_status,
+			'executable'            => $executable,
+			'non_executable_reason' => $non_executable_reason,
+			'preflight_status'      => $preflight_status,
+			'preflight_issued'      => 'not_issued' !== $preflight_status,
+			'commit_execution'      => false,
+			'execution_record'      => $public_record,
+			'cached_preflight'      => is_array( $cached_handoff ) ? array(
+				'status'         => sanitize_key( (string) ( $cached_handoff['status'] ?? '' ) ),
+				'correlation_id' => sanitize_text_field( (string) ( $cached_handoff['correlation_id'] ?? '' ) ),
+				'issued_at'      => sanitize_text_field( (string) ( $cached_handoff['issued_at'] ?? '' ) ),
+			) : null,
+			'preflight_audit'       => is_array( $audit_preflight ) ? $audit_preflight : null,
+		);
+	}
+
+	/**
+	 * Checks generic Core preview readiness flags that Adapter can understand.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return bool
+	 */
+	private function proposal_preview_marks_executable( array $proposal ): bool {
+		$preview = is_array( $proposal['preview'] ?? null ) ? $proposal['preview'] : array();
+		if ( array_key_exists( 'proposal_ready', $preview ) && false === (bool) $preview['proposal_ready'] ) {
+			return false;
+		}
+		if ( ! empty( $preview['needs_input'] ?? array() ) || ! empty( $preview['preflight_blockers'] ?? array() ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Builds media optimization readiness checks without downloading artifacts.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return array<string,mixed>|null
+	 */
+	private function media_optimization_readiness( array $proposal ): ?array {
+		if ( ! $this->proposal_is_media_optimization( $proposal ) ) {
+			return null;
+		}
+
+		$artifact       = $this->media_optimization_derivative_artifact( $proposal );
+		$repairs        = $this->media_optimization_reference_repairs( $proposal );
+		$valid_actions  = $this->validate_plan_write_action_inputs( is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array() );
+		$artifact_check = $this->media_optimization_artifact_expiry_check( $artifact );
+		$checks         = array(
+			'cloud_artifact_download_available' => array(
+				'ready'  => function_exists( 'npcink_cloud_addon_download_media_derivative_artifact' ),
+				'status' => function_exists( 'npcink_cloud_addon_download_media_derivative_artifact' ) ? 'available' : 'missing',
+			),
+			'cloud_addon_configured'            => array(
+				'ready'  => ! function_exists( 'npcink_cloud_addon_is_configured' ) || (bool) npcink_cloud_addon_is_configured(),
+				'status' => function_exists( 'npcink_cloud_addon_is_configured' ) ? ( (bool) npcink_cloud_addon_is_configured() ? 'configured' : 'not_configured' ) : 'unknown',
+			),
+			'artifact_present'                  => array(
+				'ready'       => ! empty( $artifact ),
+				'status'      => empty( $artifact ) ? 'missing' : 'present',
+				'artifact_id' => sanitize_text_field( (string) ( $artifact['artifact_id'] ?? ( $artifact['id'] ?? '' ) ) ),
+			),
+			'artifact_not_expired'              => $artifact_check,
+			'adapter_validator_aligned'         => array(
+				'ready'  => ! is_wp_error( $valid_actions ),
+				'status' => is_wp_error( $valid_actions ) ? 'invalid' : 'valid',
+				'code'   => is_wp_error( $valid_actions ) ? $valid_actions->get_error_code() : '',
+			),
+			'content_reference_scan_completed'  => array(
+				'ready'                     => is_array( $repairs ) && array_key_exists( 'scanned_count', $repairs ),
+				'status'                    => is_array( $repairs ) && array_key_exists( 'scanned_count', $repairs ) ? 'completed' : 'missing',
+				'scanned_count'             => absint( $repairs['scanned_count'] ?? 0 ),
+				'post_count'                => absint( $repairs['post_count'] ?? 0 ),
+				'replacement_rule_count'    => absint( $repairs['replacement_rule_count'] ?? ( $repairs['replacement_count'] ?? 0 ) ),
+				'actual_replacement_count'  => absint( $repairs['actual_replacement_count'] ?? ( $repairs['replacement_count'] ?? 0 ) ),
+			),
+		);
+
+		$ready              = true;
+		$first_failed_check = '';
+		foreach ( $checks as $check_name => $check ) {
+			if ( false === (bool) ( $check['ready'] ?? false ) ) {
+				$ready = false;
+				if ( '' === $first_failed_check ) {
+					$first_failed_check = sanitize_key( $check_name );
+				}
+			}
+		}
+
+		return array(
+			'ready'              => $ready,
+			'status'             => $ready ? 'ready' : 'blocked',
+			'first_failed_check' => $first_failed_check,
+			'checks'             => $checks,
+			'artifact'           => empty( $artifact ) ? null : array(
+				'artifact_id' => sanitize_text_field( (string) ( $artifact['artifact_id'] ?? ( $artifact['id'] ?? '' ) ) ),
+				'mime_type'   => sanitize_text_field( (string) ( $artifact['mime_type'] ?? '' ) ),
+				'expires_at'  => sanitize_text_field( (string) ( $artifact['expires_at'] ?? '' ) ),
+			),
+		);
+	}
+
+	/**
+	 * Returns whether the proposal is the bounded media optimization batch.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return bool
+	 */
+	private function proposal_is_media_optimization( array $proposal ): bool {
+		$preview = is_array( $proposal['preview'] ?? null ) ? $proposal['preview'] : array();
+		$source  = is_array( $preview['source'] ?? null ) ? $preview['source'] : array();
+		if ( 'npcink-abilities-toolkit/build-media-optimization-plan' === (string) ( $source['plan_ability_id'] ?? '' ) ) {
+			return true;
+		}
+		if ( is_array( $preview['media_optimization'] ?? null ) ) {
+			return true;
+		}
+
+		$input = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		foreach ( (array) ( $input['write_actions'] ?? array() ) as $action ) {
+			if ( is_array( $action ) && 'npcink-abilities-toolkit/adopt-cloud-media-derivative' === (string) ( $action['target_ability_id'] ?? '' ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returns the derivative artifact descriptor from proposal input.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return array<string,mixed>
+	 */
+	private function media_optimization_derivative_artifact( array $proposal ): array {
+		$input = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		foreach ( (array) ( $input['write_actions'] ?? array() ) as $action ) {
+			if ( ! is_array( $action ) || 'npcink-abilities-toolkit/adopt-cloud-media-derivative' !== (string) ( $action['target_ability_id'] ?? '' ) ) {
+				continue;
+			}
+			$action_input = is_array( $action['input'] ?? null ) ? $action['input'] : array();
+			return is_array( $action_input['derivative_artifact'] ?? null ) ? $action_input['derivative_artifact'] : array();
+		}
+
+		return is_array( $input['derivative_artifact'] ?? null ) ? $input['derivative_artifact'] : array();
+	}
+
+	/**
+	 * Returns content reference repair evidence from preview or input.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return array<string,mixed>|null
+	 */
+	private function media_optimization_reference_repairs( array $proposal ): ?array {
+		$preview = is_array( $proposal['preview'] ?? null ) ? $proposal['preview'] : array();
+		$media   = is_array( $preview['media_optimization'] ?? null ) ? $preview['media_optimization'] : array();
+		if ( is_array( $media['derivative_preview']['content_reference_repairs'] ?? null ) ) {
+			return $media['derivative_preview']['content_reference_repairs'];
+		}
+		if ( is_array( $media['content_reference_repairs'] ?? null ) ) {
+			return $media['content_reference_repairs'];
+		}
+
+		$input = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		foreach ( (array) ( $input['write_actions'] ?? array() ) as $action ) {
+			if ( ! is_array( $action ) || 'npcink-abilities-toolkit/adopt-cloud-media-derivative' !== (string) ( $action['target_ability_id'] ?? '' ) ) {
+				continue;
+			}
+			$action_input = is_array( $action['input'] ?? null ) ? $action['input'] : array();
+			if ( is_array( $action_input['content_reference_repairs'] ?? null ) ) {
+				return $action_input['content_reference_repairs'];
+			}
+			if ( isset( $action_input['expected_content_reference_replacement_count'] ) ) {
+				return array(
+					'scanned_count'      => 0,
+					'post_count'         => absint( $action_input['expected_content_reference_post_count'] ?? 0 ),
+					'replacement_count'  => absint( $action_input['expected_content_reference_replacement_count'] ?? 0 ),
+				);
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Returns a readiness check for artifact expiration.
+	 *
+	 * @param array<string,mixed> $artifact Artifact descriptor.
+	 * @return array<string,mixed>
+	 */
+	private function media_optimization_artifact_expiry_check( array $artifact ): array {
+		$expires_at = sanitize_text_field( (string) ( $artifact['expires_at'] ?? '' ) );
+		if ( '' === $expires_at ) {
+			return array(
+				'ready'      => false,
+				'status'     => 'missing_expires_at',
+				'expires_at' => '',
+			);
+		}
+
+		$expires = strtotime( $expires_at );
+		if ( false === $expires ) {
+			return array(
+				'ready'      => false,
+				'status'     => 'invalid_expires_at',
+				'expires_at' => $expires_at,
+			);
+		}
+
+		return array(
+			'ready'      => $expires > time(),
+			'status'     => $expires > time() ? 'valid' : 'expired',
+			'expires_at' => $expires_at,
+		);
+	}
+
+	/**
+	 * Returns the latest Core preflight audit event, when visible in detail.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return array<string,mixed>|null
+	 */
+	private function latest_preflight_audit_event( array $proposal ): ?array {
+		$latest = null;
+		foreach ( (array) ( $proposal['audit_timeline'] ?? array() ) as $event ) {
+			if ( ! is_array( $event ) || 'commit.preflighted' !== (string) ( $event['event_name'] ?? '' ) ) {
+				continue;
+			}
+			$metadata = is_array( $event['metadata'] ?? null ) ? $event['metadata'] : array();
+			$latest   = array(
+				'event_name'     => 'commit.preflighted',
+				'correlation_id' => sanitize_text_field( (string) ( $metadata['correlation_id'] ?? ( $event['correlation_id'] ?? '' ) ) ),
+				'created_at'     => sanitize_text_field( (string) ( $event['created_at'] ?? '' ) ),
+			);
+		}
+
+		return $latest;
+	}
+
+	/**
+	 * Returns a cached Adapter preflight handoff without consuming it.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return array<string,mixed>|null
+	 */
+	private function cached_preflight_handoff_for_status( string $proposal_id, array $proposal ): ?array {
+		$records = $this->preflight_handoffs();
+		$record  = is_array( $records[ $this->execution_record_key( $proposal_id ) ] ?? null ) ? $records[ $this->execution_record_key( $proposal_id ) ] : array();
+		if ( empty( $record ) || 'issued' !== (string) ( $record['status'] ?? '' ) ) {
+			return null;
+		}
+
+		$approved_hash = sanitize_text_field( (string) ( $record['approved_input_hash'] ?? '' ) );
+		if ( '' === $approved_hash || $approved_hash !== $this->proposal_input_hash( $proposal ) ) {
+			return null;
+		}
+
+		return $record;
 	}
 
 	/**
@@ -5234,15 +5589,27 @@ final class Controller {
 	 * @return array<string,mixed>|null
 	 */
 	private function completed_execution_record( string $proposal_id ): ?array {
-		$records = $this->execution_records();
-		$key     = $this->execution_record_key( $proposal_id );
-		$record  = is_array( $records[ $key ] ?? null ) ? $records[ $key ] : array();
+		$record = $this->execution_record_for_proposal( $proposal_id );
 
 		if ( empty( $record ) || 'succeeded' !== (string) ( $record['status'] ?? '' ) ) {
 			return null;
 		}
 
 		return $record;
+	}
+
+	/**
+	 * Returns any stored execution record for a proposal.
+	 *
+	 * @param string $proposal_id Proposal id.
+	 * @return array<string,mixed>|null
+	 */
+	private function execution_record_for_proposal( string $proposal_id ): ?array {
+		$records = $this->execution_records();
+		$key     = $this->execution_record_key( $proposal_id );
+		$record  = is_array( $records[ $key ] ?? null ) ? $records[ $key ] : array();
+
+		return empty( $record ) ? null : $record;
 	}
 
 	/**
@@ -6015,7 +6382,7 @@ final class Controller {
 
 		return array(
 			'site-info'              => array( 'ability_id' => 'npcink-abilities-toolkit/site-info' ),
-			'site-summary'           => array( 'ability_id' => 'npcink-abilities-toolkit/site-summary' ),
+			'site-summary'           => array( 'ability_id' => 'npcink-abilities-toolkit/site-info' ),
 			'wp-diagnostics-summary' => array( 'ability_id' => $summary_ability ),
 			'active-plugins-detail'  => array(
 				'ability_id'     => $ops_ability,
@@ -6127,7 +6494,7 @@ final class Controller {
 			'pages-tree'             => array( 'ability_id' => 'npcink-abilities-toolkit/list-pages-tree' ),
 			'content-inventory-health' => array( 'ability_id' => 'npcink-abilities-toolkit/get-content-inventory-health' ),
 			'content-inventory-fix-plan' => array( 'ability_id' => 'npcink-abilities-toolkit/build-content-inventory-fix-plan' ),
-			'test-content-cleanup-plan' => array( 'ability_id' => 'npcink-abilities-toolkit/build-test-content-cleanup-plan' ),
+			'nonproduction-content-cleanup-plan' => array( 'ability_id' => 'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan' ),
 			'content-discoverability-context' => array( 'ability_id' => 'npcink-toolbox/get-content-discoverability-context' ),
 			'content-discoverability-validation' => array( 'ability_id' => 'npcink-toolbox/validate-content-discoverability-context' ),
 			'content-discoverability-brief' => array( 'ability_id' => 'npcink-toolbox/build-content-discoverability-brief' ),
@@ -6844,7 +7211,7 @@ final class Controller {
 	 */
 	private function normalize_shortcut_input( string $route, array $input ): array {
 		if ( 'media-inventory-fix-plan' === $route ) {
-			foreach ( array( 'include_delete_candidates', 'include_trash_parent_media', 'include_unattached_test_media' ) as $boolean_key ) {
+			foreach ( array( 'include_delete_candidates', 'include_trash_parent_media', 'include_unattached_nonproduction_media' ) as $boolean_key ) {
 				if ( array_key_exists( $boolean_key, $input ) ) {
 					$input[ $boolean_key ] = $this->boolean_input_value( $input[ $boolean_key ] );
 				}
