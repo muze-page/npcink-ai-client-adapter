@@ -301,11 +301,19 @@ URLs or replace files outside Core-approved execution.
 
 `GET /proposals/{proposal_id}` proxies the Core proposal detail and appends
 Adapter-owned derived fields: `adapter_status`, `execution_status`,
-`executable`, `non_executable_reason`, `preflight_status`, and, for media
-optimization batches, `media_optimization_readiness`. The readiness checks are
-diagnostic only and do not download Cloud artifacts; they report local helper
-availability, artifact presence/expiry, Adapter execution-profile validation,
-and whether post-content reference scan evidence is present.
+`effective_status`, `executable`, `non_executable_reason`, `preflight_status`,
+`review_summary`, and, for media optimization batches,
+`media_optimization_readiness`. `status` remains the raw Core governance
+status, while `effective_status` folds Adapter execution evidence into values
+such as `executed` without changing Core's approval truth. The same media
+readiness object is available through
+`GET /proposals/{proposal_id}/media-optimization-readiness`. The readiness
+checks are diagnostic only and do not download Cloud artifacts; they report
+local helper availability, artifact presence/expiry, Adapter execution-profile
+validation, and whether post-content reference scan evidence is present. For
+older proposal previews, Adapter derives actual replacement counts from
+`patch_preview[].applied` when the newer
+`actual_replacement_count`/`unmatched_rules` fields are absent.
 
 Reserved governance correlation query parameters are not forwarded as ability
 input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,

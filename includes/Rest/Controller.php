@@ -300,7 +300,7 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/adopt-cloud-media-derivative' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'expected_content_reference_post_ids', 'expected_content_reference_post_count', 'expected_content_reference_replacement_count', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'expected_content_reference_post_ids', 'expected_content_reference_post_count', 'expected_content_reference_replacement_count', 'content_reference_repairs', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
@@ -938,6 +938,25 @@ final class Controller {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'execute_approved_proposal_route' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'proposal_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/media-optimization-readiness',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_proposal_media_optimization_readiness' ),
 					'permission_callback' => array( $this, 'can_use_adapter' ),
 					'args'                => array(
 						'proposal_id' => array(
@@ -1866,6 +1885,7 @@ final class Controller {
 				'dependencies'           => $dependencies['items'],
 				'dependency_count'       => count( $dependencies['items'] ),
 				'missing_dependencies'   => $dependencies['missing'],
+				'cloud_addon'            => $this->cloud_addon_health(),
 				'core_proxy_execute'     => false,
 				'commit_execution'       => false,
 				'approval_proxy_enabled' => false,
@@ -1912,6 +1932,7 @@ final class Controller {
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
+					'GET /proposals/{proposal_id}/media-optimization-readiness',
 				),
 				'diagnostics'             => $this->diagnostics_contract(),
 				'supported_guidance'     => array(
@@ -1936,6 +1957,7 @@ final class Controller {
 						'proposal_status_routes' => array(
 							'GET /proposals',
 							'GET /proposals/{proposal_id}',
+							'GET /proposals/{proposal_id}/media-optimization-readiness',
 						),
 					),
 					'write' => array(
@@ -2013,6 +2035,32 @@ final class Controller {
 				'read_shortcuts'          => self::read_shortcuts(),
 			),
 			200
+		);
+	}
+
+	/**
+	 * Returns Cloud Addon status that can be known without fetching artifacts.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function cloud_addon_health(): array {
+		$dispatch_available = function_exists( 'npcink_cloud_addon_dispatch_media_derivative_cloud_request' );
+		$result_available   = function_exists( 'npcink_cloud_addon_get_media_derivative_run_result' ) || function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payload' );
+		$download_available = function_exists( 'npcink_cloud_addon_download_media_derivative_artifact' );
+		$configured         = function_exists( 'npcink_cloud_addon_is_configured' ) ? (bool) npcink_cloud_addon_is_configured() : null;
+
+		return array(
+			'available'                         => $dispatch_available || $result_available || $download_available,
+			'configured'                        => null === $configured ? 'unknown' : $configured,
+			'dispatch_route_available'          => $dispatch_available,
+			'proposal_payload_helper_available' => function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payload' ),
+			'download_route_available'          => $download_available,
+			'artifact_fetch_test'               => array(
+				'status' => 'not_run',
+				'reason' => 'artifact_fetch_requires_a_specific_non_expired_proposal_artifact',
+			),
+			'proposal_readiness_route'          => 'GET /proposals/{proposal_id}/media-optimization-readiness',
+			'detail_readiness_field'            => 'media_optimization_readiness',
 		);
 	}
 
@@ -2095,6 +2143,7 @@ final class Controller {
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
+					'GET /proposals/{proposal_id}/media-optimization-readiness',
 				),
 				'diagnostics'    => $this->diagnostics_contract(),
 				'non_goals'     => array(
@@ -2144,6 +2193,7 @@ final class Controller {
 			'proposal_status' => array(
 				'GET /proposals',
 				'GET /proposals/{proposal_id}',
+				'GET /proposals/{proposal_id}/media-optimization-readiness',
 			),
 			'governance'      => array(
 				'POST /proposals',
@@ -2610,6 +2660,7 @@ final class Controller {
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
+			'GET /proposals/{proposal_id}/media-optimization-readiness' => 'Read Adapter-owned execution readiness checks for one media optimization proposal.',
 			'POST /proposals' => 'Create a Core proposal for governed work.',
 			'POST /proposals/from-plan' => 'Forward a read-only plan output to Core plan-to-proposal intake.',
 			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Npcink Governance Core admin.',
@@ -3277,6 +3328,54 @@ final class Controller {
 	}
 
 	/**
+	 * Gets Adapter-owned media optimization readiness for one Core proposal.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_proposal_media_optimization_readiness( WP_REST_Request $request ) {
+		$proposal_id = (string) $request->get_param( 'proposal_id' );
+		$response    = $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data = $response instanceof WP_REST_Response ? $response->get_data() : array();
+		if ( ! is_array( $data ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_invalid_core_proposal',
+				__( 'Core proposal detail response is invalid.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		$readiness = $this->media_optimization_readiness( $data );
+		$status    = $this->proposal_derived_execution_status( $proposal_id, $data, $readiness );
+
+		return new WP_REST_Response(
+			array(
+				'proposal_id'                  => sanitize_text_field( '' !== $proposal_id ? $proposal_id : (string) ( $data['proposal_id'] ?? '' ) ),
+				'media_optimization'           => is_array( $readiness ),
+				'media_optimization_readiness' => is_array( $readiness ) ? $readiness : array(
+					'ready'              => true,
+					'status'             => 'not_applicable',
+					'first_failed_check' => '',
+					'checks'             => array(),
+					'artifact'           => null,
+				),
+				'adapter_status'              => $status,
+				'execution_status'            => $status['execution_status'],
+				'effective_status'            => $status['effective_status'],
+				'executable'                  => $status['executable'],
+				'non_executable_reason'       => $status['non_executable_reason'],
+				'preflight_status'            => $status['preflight_status'],
+				'commit_execution'            => false,
+			),
+			200
+		);
+	}
+
+	/**
 	 * Adds Adapter-owned execution/readiness status to a Core proposal payload.
 	 *
 	 * Core remains the proposal, approval, and preflight audit truth. Adapter
@@ -3294,9 +3393,15 @@ final class Controller {
 
 		$proposal['adapter_status']        = $status;
 		$proposal['execution_status']      = $status['execution_status'];
+		$proposal['effective_status']      = $status['effective_status'];
 		$proposal['executable']            = $status['executable'];
 		$proposal['non_executable_reason'] = $status['non_executable_reason'];
 		$proposal['preflight_status']      = $status['preflight_status'];
+		$review_summary                    = $this->proposal_review_summary( $proposal );
+		if ( ! empty( $review_summary ) ) {
+			$proposal['review_summary']       = implode( "\n", $review_summary );
+			$proposal['review_summary_lines'] = $review_summary;
+		}
 
 		if ( is_array( $readiness ) ) {
 			$proposal['media_optimization_readiness'] = $readiness;
@@ -3335,12 +3440,15 @@ final class Controller {
 
 		$executable            = true;
 		$non_executable_reason = '';
+		$effective_status      = '' !== $core_status ? $core_status : 'unknown';
 		if ( 'succeeded' === $execution_status ) {
 			$executable            = false;
 			$non_executable_reason = 'already_executed';
+			$effective_status      = 'executed';
 		} elseif ( 'failed' === $execution_status ) {
 			$executable            = false;
 			$non_executable_reason = 'execution_failed';
+			$effective_status      = 'execution_failed';
 		} elseif ( 'approved' !== $core_status ) {
 			$executable            = false;
 			$non_executable_reason = '' !== $core_status ? 'proposal_' . $core_status : 'proposal_status_unknown';
@@ -3358,6 +3466,7 @@ final class Controller {
 		return array(
 			'core_status'           => $core_status,
 			'execution_status'      => $execution_status,
+			'effective_status'      => $effective_status,
 			'executable'            => $executable,
 			'non_executable_reason' => $non_executable_reason,
 			'preflight_status'      => $preflight_status,
@@ -3403,7 +3512,7 @@ final class Controller {
 		}
 
 		$artifact       = $this->media_optimization_derivative_artifact( $proposal );
-		$repairs        = $this->media_optimization_reference_repairs( $proposal );
+		$repairs        = $this->normalize_media_optimization_reference_repairs( $this->media_optimization_reference_repairs( $proposal ) );
 		$valid_actions  = $this->validate_plan_write_action_inputs( is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array() );
 		$artifact_check = $this->media_optimization_artifact_expiry_check( $artifact );
 		$checks         = array(
@@ -3431,8 +3540,9 @@ final class Controller {
 				'status'                    => is_array( $repairs ) && array_key_exists( 'scanned_count', $repairs ) ? 'completed' : 'missing',
 				'scanned_count'             => absint( $repairs['scanned_count'] ?? 0 ),
 				'post_count'                => absint( $repairs['post_count'] ?? 0 ),
-				'replacement_rule_count'    => absint( $repairs['replacement_rule_count'] ?? ( $repairs['replacement_count'] ?? 0 ) ),
-				'actual_replacement_count'  => absint( $repairs['actual_replacement_count'] ?? ( $repairs['replacement_count'] ?? 0 ) ),
+				'replacement_rule_count'    => absint( $repairs['replacement_rule_count'] ?? 0 ),
+				'actual_replacement_count'  => absint( $repairs['actual_replacement_count'] ?? 0 ),
+				'unmatched_rules'           => is_array( $repairs['unmatched_rules'] ?? null ) ? $repairs['unmatched_rules'] : array(),
 			),
 		);
 
@@ -3540,6 +3650,187 @@ final class Controller {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Normalizes old and new content reference repair count shapes.
+	 *
+	 * @param array<string,mixed>|null $repairs Repair evidence.
+	 * @return array<string,mixed>|null
+	 */
+	private function normalize_media_optimization_reference_repairs( ?array $repairs ): ?array {
+		if ( ! is_array( $repairs ) ) {
+			return null;
+		}
+
+		$replacement_rule_count   = isset( $repairs['replacement_rule_count'] ) ? absint( $repairs['replacement_rule_count'] ) : null;
+		$actual_replacement_count = isset( $repairs['actual_replacement_count'] ) ? absint( $repairs['actual_replacement_count'] ) : null;
+		$unmatched_rules          = is_array( $repairs['unmatched_rules'] ?? null ) ? $repairs['unmatched_rules'] : array();
+
+		if ( null !== $replacement_rule_count && null !== $actual_replacement_count ) {
+			$repairs['replacement_rule_count']   = $replacement_rule_count;
+			$repairs['actual_replacement_count'] = $actual_replacement_count;
+			$repairs['unmatched_rules']          = $unmatched_rules;
+			return $repairs;
+		}
+
+		$repairs_rows = is_array( $repairs['repairs'] ?? null ) ? $repairs['repairs'] : array();
+		if ( ! empty( $repairs_rows ) ) {
+			$derived_rule_count   = 0;
+			$derived_actual_count = 0;
+			$derived_unmatched    = array();
+
+			foreach ( $repairs_rows as $repair ) {
+				if ( ! is_array( $repair ) ) {
+					continue;
+				}
+				$operations    = is_array( $repair['operations'] ?? null ) ? array_values( $repair['operations'] ) : array();
+				$patch_preview = is_array( $repair['patch_preview'] ?? null ) ? array_values( $repair['patch_preview'] ) : array();
+				$post_id       = absint( $repair['post_id'] ?? 0 );
+
+				if ( ! empty( $operations ) ) {
+					$derived_rule_count += count( $operations );
+				} else {
+					$derived_rule_count += absint( $repair['operation_count'] ?? ( $repair['replacement_count'] ?? 0 ) );
+				}
+
+				if ( ! empty( $patch_preview ) ) {
+					foreach ( $patch_preview as $index => $row ) {
+						if ( ! is_array( $row ) ) {
+							continue;
+						}
+						$applied = absint( $row['applied'] ?? 0 );
+						$derived_actual_count += $applied;
+						if ( 0 === $applied ) {
+							$operation = is_array( $operations[ $index ] ?? null ) ? $operations[ $index ] : array();
+							$derived_unmatched[] = array(
+								'post_id'         => $post_id,
+								'operation_index' => absint( $index ),
+								'find'            => sanitize_text_field( (string) ( $operation['find'] ?? ( $row['find'] ?? '' ) ) ),
+							);
+						}
+					}
+				} else {
+					$derived_actual_count += absint( $repair['actual_replacement_count'] ?? ( $repair['replacement_count'] ?? 0 ) );
+				}
+			}
+
+			$repairs['replacement_rule_count']   = $derived_rule_count;
+			$repairs['actual_replacement_count'] = $derived_actual_count;
+			$repairs['unmatched_rules']          = $derived_unmatched;
+			return $repairs;
+		}
+
+		$fallback_count = absint( $repairs['replacement_count'] ?? 0 );
+		$repairs['replacement_rule_count']   = null === $replacement_rule_count ? $fallback_count : $replacement_rule_count;
+		$repairs['actual_replacement_count'] = null === $actual_replacement_count ? $fallback_count : $actual_replacement_count;
+		$repairs['unmatched_rules']          = $unmatched_rules;
+
+		return $repairs;
+	}
+
+	/**
+	 * Builds a non-mutating human review summary for proposal detail.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal payload.
+	 * @return array<int,string>
+	 */
+	private function proposal_review_summary( array $proposal ): array {
+		if ( ! $this->proposal_is_media_optimization( $proposal ) ) {
+			return array();
+		}
+
+		$input        = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		$preview      = is_array( $proposal['preview'] ?? null ) ? $proposal['preview'] : array();
+		$media        = is_array( $preview['media_optimization'] ?? null ) ? $preview['media_optimization'] : array();
+		$derivative   = is_array( $media['derivative_preview'] ?? null ) ? $media['derivative_preview'] : array();
+		$before       = is_array( $derivative['before'] ?? null ) ? $derivative['before'] : array();
+		$after        = is_array( $derivative['after'] ?? null ) ? $derivative['after'] : array();
+		$artifact     = $this->media_optimization_derivative_artifact( $proposal );
+		$repairs      = $this->normalize_media_optimization_reference_repairs( $this->media_optimization_reference_repairs( $proposal ) );
+		$adopt_input  = array();
+		$metadata_input = array();
+
+		foreach ( (array) ( $input['write_actions'] ?? array() ) as $action ) {
+			if ( ! is_array( $action ) ) {
+				continue;
+			}
+			$action_input = is_array( $action['input'] ?? null ) ? $action['input'] : array();
+			if ( 'npcink-abilities-toolkit/adopt-cloud-media-derivative' === (string) ( $action['target_ability_id'] ?? '' ) ) {
+				$adopt_input = $action_input;
+			}
+			if ( 'npcink-abilities-toolkit/update-media-details' === (string) ( $action['target_ability_id'] ?? '' ) ) {
+				$metadata_input = $action_input;
+			}
+		}
+
+		$attachment_id = absint( $adopt_input['attachment_id'] ?? ( $metadata_input['attachment_id'] ?? ( $before['attachment_id'] ?? 0 ) ) );
+		$lines         = array();
+		if ( $attachment_id > 0 ) {
+			$mime_type = sanitize_text_field( (string) ( $artifact['mime_type'] ?? ( $after['mime_type'] ?? '' ) ) );
+			$format    = false !== strpos( $mime_type, '/' ) ? strtoupper( substr( $mime_type, strrpos( $mime_type, '/' ) + 1 ) ) : strtoupper( $mime_type );
+			$lines[]   = sprintf(
+				/* translators: 1: attachment id, 2: media format. */
+				__( 'Replace attachment %1$d with the reviewed %2$s derivative.', 'npcink-openclaw-adapter' ),
+				$attachment_id,
+				'' !== $format ? $format : __( 'optimized', 'npcink-openclaw-adapter' )
+			);
+		}
+
+		$before_size = $this->media_review_dimensions( $before );
+		$after_size  = $this->media_review_dimensions( $after );
+		if ( '' !== $before_size || '' !== $after_size ) {
+			$lines[] = sprintf(
+				/* translators: 1: before size, 2: after size. */
+				__( 'Dimensions: %1$s -> %2$s.', 'npcink-openclaw-adapter' ),
+				'' !== $before_size ? $before_size : __( 'unknown', 'npcink-openclaw-adapter' ),
+				'' !== $after_size ? $after_size : __( 'unknown', 'npcink-openclaw-adapter' )
+			);
+		}
+
+		$file_name = sanitize_file_name( (string) ( $adopt_input['file_name'] ?? ( $after['file_name'] ?? basename( (string) ( $after['relative_file'] ?? '' ) ) ) ) );
+		if ( '' !== $file_name ) {
+			$lines[] = sprintf(
+				/* translators: %s: file name. */
+				__( 'Local file name: %s.', 'npcink-openclaw-adapter' ),
+				$file_name
+			);
+		}
+
+		if ( is_array( $repairs ) ) {
+			$post_ids = array_values( array_filter( array_map( 'absint', (array) ( $adopt_input['expected_content_reference_post_ids'] ?? array() ) ) ) );
+			$post_count = absint( $repairs['post_count'] ?? ( $adopt_input['expected_content_reference_post_count'] ?? count( $post_ids ) ) );
+			$lines[] = sprintf(
+				/* translators: 1: post count, 2: actual replacement count, 3: rule count. */
+				__( 'Repair post-content media references in %1$d post(s): %2$d actual replacement(s) from %3$d reviewed rule(s).', 'npcink-openclaw-adapter' ),
+				$post_count,
+				absint( $repairs['actual_replacement_count'] ?? 0 ),
+				absint( $repairs['replacement_rule_count'] ?? 0 )
+			);
+		}
+
+		if ( ! empty( $metadata_input ) ) {
+			$lines[] = __( 'Update reviewed media title, alt text, caption, description, or attribution metadata in the same approval.', 'npcink-openclaw-adapter' );
+		}
+		$lines[] = __( 'Keep a local backup so the media file and post references can be rolled back after approval.', 'npcink-openclaw-adapter' );
+
+		return array_values( array_unique( array_filter( $lines ) ) );
+	}
+
+	/**
+	 * Returns width x height text when known.
+	 *
+	 * @param array<string,mixed> $media Media state.
+	 * @return string
+	 */
+	private function media_review_dimensions( array $media ): string {
+		$width  = absint( $media['width'] ?? ( $media['metadata']['width'] ?? 0 ) );
+		$height = absint( $media['height'] ?? ( $media['metadata']['height'] ?? 0 ) );
+		if ( $width <= 0 || $height <= 0 ) {
+			return '';
+		}
+
+		return $width . 'x' . $height;
 	}
 
 	/**
@@ -5672,6 +5963,7 @@ final class Controller {
 			'post_ids'            => array_values( array_map( 'absint', is_array( $execution['post_ids'] ?? null ) ? $execution['post_ids'] : array() ) ),
 			'executed_count'      => absint( $execution['executed_count'] ?? 0 ),
 			'failed_count'        => absint( $execution['failed_count'] ?? 0 ),
+			'verification'        => $this->compact_execution_verification( $execution ),
 			'executed_at'         => gmdate( 'c' ),
 		);
 
@@ -5782,8 +6074,139 @@ final class Controller {
 			'error_code'          => (string) ( $record['error_code'] ?? '' ),
 			'failed_action_id'    => (string) ( $record['failed_action_id'] ?? '' ),
 			'failed_action_index' => absint( $record['failed_action_index'] ?? 0 ),
+			'verification'        => is_array( $record['verification'] ?? null ) ? $record['verification'] : null,
 			'failed_at'           => (string) ( $record['failed_at'] ?? '' ),
 			'executed_at'         => (string) ( $record['executed_at'] ?? '' ),
+		);
+	}
+
+	/**
+	 * Extracts public-safe verification summaries from ability execution output.
+	 *
+	 * @param array<string,mixed> $execution Execution result.
+	 * @return array<string,mixed>|null
+	 */
+	private function compact_execution_verification( array $execution ): ?array {
+		$items = array();
+		foreach ( (array) ( $execution['results'] ?? array() ) as $result ) {
+			if ( ! is_array( $result ) ) {
+				continue;
+			}
+			$ability_result = is_array( $result['result'] ?? null ) ? $result['result'] : array();
+			$verification   = is_array( $ability_result['verification'] ?? null ) ? $ability_result['verification'] : array();
+			if ( empty( $verification ) ) {
+				continue;
+			}
+			$items[] = array(
+				'action_id'         => sanitize_key( (string) ( $result['action_id'] ?? '' ) ),
+				'action_index'      => absint( $result['action_index'] ?? 0 ),
+				'target_ability_id' => sanitize_text_field( (string) ( $result['target_ability_id'] ?? ( $result['ability_id'] ?? '' ) ) ),
+				'verification'      => $this->sanitize_public_verification_summary( $verification ),
+			);
+		}
+
+		if ( empty( $items ) ) {
+			return null;
+		}
+
+		return array(
+			'status'      => 'recorded',
+			'item_count'  => count( $items ),
+			'items'       => $items,
+			'aggregates'  => $this->aggregate_execution_verification( $items ),
+		);
+	}
+
+	/**
+	 * Sanitizes an ability verification summary for Adapter execution records.
+	 *
+	 * @param array<string,mixed> $verification Ability verification payload.
+	 * @return array<string,mixed>
+	 */
+	private function sanitize_public_verification_summary( array $verification ): array {
+		$allowed = array(
+			'media_current_file',
+			'media_mime_type',
+			'post_references_verified',
+			'content_reference_post_count',
+			'content_reference_actual_replacement_count',
+			'content_reference_unmatched_rules',
+			'backup_available',
+			'rollback_available',
+		);
+		$output = array();
+		foreach ( $allowed as $key ) {
+			if ( ! array_key_exists( $key, $verification ) ) {
+				continue;
+			}
+			$value = $verification[ $key ];
+			if ( is_bool( $value ) ) {
+				$output[ $key ] = $value;
+			} elseif ( is_int( $value ) || is_float( $value ) ) {
+				$output[ $key ] = $value;
+			} elseif ( is_array( $value ) ) {
+				$output[ $key ] = $this->sanitize_public_verification_array( $value );
+			} else {
+				$output[ $key ] = sanitize_text_field( (string) $value );
+			}
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Sanitizes nested verification arrays.
+	 *
+	 * @param array<mixed> $value Value.
+	 * @return array<mixed>
+	 */
+	private function sanitize_public_verification_array( array $value ): array {
+		$output = array();
+		foreach ( $value as $key => $item ) {
+			$output_key = is_int( $key ) ? $key : sanitize_key( (string) $key );
+			if ( is_array( $item ) ) {
+				$output[ $output_key ] = $this->sanitize_public_verification_array( $item );
+			} elseif ( is_bool( $item ) || is_int( $item ) || is_float( $item ) ) {
+				$output[ $output_key ] = $item;
+			} else {
+				$output[ $output_key ] = sanitize_text_field( (string) $item );
+			}
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Builds cross-action verification aggregates.
+	 *
+	 * @param array<int,array<string,mixed>> $items Verification items.
+	 * @return array<string,mixed>
+	 */
+	private function aggregate_execution_verification( array $items ): array {
+		$backup_available    = false;
+		$rollback_available  = false;
+		$actual_replacements = 0;
+		$post_ids            = array();
+
+		foreach ( $items as $item ) {
+			$verification = is_array( $item['verification'] ?? null ) ? $item['verification'] : array();
+			$backup_available   = $backup_available || (bool) ( $verification['backup_available'] ?? false );
+			$rollback_available = $rollback_available || (bool) ( $verification['rollback_available'] ?? false );
+			$actual_replacements += absint( $verification['content_reference_actual_replacement_count'] ?? 0 );
+			foreach ( (array) ( $verification['post_references_verified'] ?? array() ) as $post_reference ) {
+				if ( is_array( $post_reference ) ) {
+					$post_ids[] = absint( $post_reference['post_id'] ?? 0 );
+				} else {
+					$post_ids[] = absint( $post_reference );
+				}
+			}
+		}
+
+		return array(
+			'backup_available'                           => $backup_available,
+			'rollback_available'                         => $rollback_available,
+			'content_reference_actual_replacement_count' => $actual_replacements,
+			'post_references_verified'                   => array_values( array_unique( array_filter( $post_ids ) ) ),
 		);
 	}
 

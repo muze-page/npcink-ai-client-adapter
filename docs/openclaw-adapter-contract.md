@@ -442,12 +442,22 @@ one was issued through Adapter, otherwise call Core commit-preflight, require
 `approval_context` to WordPress Abilities API, and return `proposal_id`,
 `correlation_id`, `ability_id`, and `execution_record` with the ability result.
 After a successful execution, Adapter stores only a bounded public-safe
-execution record keyed by proposal id for replay protection. When execution
-fails after Core preflight has been consumed, Adapter stores the same bounded
-public-safe record shape with `status=failed`, `error_code`, failed action
-metadata, executed counts, and Core correlation only; it does not store the full
-proposal or create a retry queue. Core remains the proposal, approval,
-preflight, and audit truth source.
+execution record keyed by proposal id for replay protection. The record may
+include a compact `verification` summary extracted from allowlisted Ability
+verification fields such as current media file, MIME type, post reference
+verification, backup availability, and rollback availability; it must not store
+the full proposal or full Ability response. When execution fails after Core
+preflight has been consumed, Adapter stores the same bounded public-safe record
+shape with `status=failed`, `error_code`, failed action metadata, executed
+counts, and Core correlation only; it does not store the full proposal or
+create a retry queue. Core remains the proposal, approval, preflight, and audit
+truth source.
+
+Adapter proposal detail must preserve Core's raw `status` and expose
+Adapter-derived `effective_status` beside it. For example, a Core-approved
+proposal with a completed successful Adapter execution keeps `status=approved`
+and reports `effective_status=executed`, `execution_status=succeeded`,
+`executable=false`, and `non_executable_reason=already_executed`.
 
 Within one approved `write_actions[]` batch, Adapter may resolve exact output
 references in action input values:
@@ -613,6 +623,7 @@ Connection:
 - WordPress admin: `Npcink -> Adapter`
 - `GET /wp-json/npcink-openclaw-adapter/v1/health`
 - `GET /wp-json/npcink-openclaw-adapter/v1/help`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/media-optimization-readiness`
 
 Read shortcuts:
 

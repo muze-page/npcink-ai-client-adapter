@@ -928,6 +928,9 @@ maa_adapter_smoke_assert( false === (bool) ( $health['commit_execution'] ?? true
 maa_adapter_smoke_assert( false === (bool) ( $health['approval_proxy_enabled'] ?? true ), 'adapter health keeps approval proxy disabled' );
 maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $health['approval_surface'] ?? '' ), 'adapter health exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $health ), 'adapter health exposes Core app token configured state without token value' );
+maa_adapter_smoke_assert( isset( $health['cloud_addon']['download_route_available'] ), 'adapter health exposes Cloud Addon artifact download helper readiness' );
+maa_adapter_smoke_assert( 'not_run' === (string) ( $health['cloud_addon']['artifact_fetch_test']['status'] ?? '' ), 'adapter health does not fetch proposal-specific Cloud artifacts by default' );
+maa_adapter_smoke_assert( 'GET /proposals/{proposal_id}/media-optimization-readiness' === (string) ( $health['cloud_addon']['proposal_readiness_route'] ?? '' ), 'adapter health points to proposal-specific media readiness route' );
 maa_adapter_smoke_assert( isset( $health['read_shortcuts']['media'] ), 'adapter health exposes expanded read shortcuts' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['active-plugins-detail'] ?? '' ), 'adapter active plugins shortcut uses ops diagnostics detail' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['plugin-conflict-diagnostics'] ?? '' ), 'adapter plugin conflict shortcut uses ops diagnostics detail' );
@@ -954,6 +957,7 @@ maa_adapter_smoke_assert( in_array( 'npcink_governance_core.correlation_id', (ar
 maa_adapter_smoke_assert( 'wordpress_rest_application_password' === (string) ( $health['auth']['type'] ?? '' ), 'adapter health exposes Application Password auth handoff' );
 maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_guidance']['proposal_status']['core_required_scope'] ?? '' ), 'adapter health documents proposal status read scope' );
 maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes proposal status routes' );
+maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}/media-optimization-readiness', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health exposes media optimization readiness status route' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/from-plan', (array) ( $health['plan_proposal_routes'] ?? array() ), true ), 'adapter health exposes plan-to-proposal route' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article batch plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes Site Knowledge review plan allowlist' );
@@ -982,6 +986,7 @@ maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/approve-comment', 
 $help = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/help' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals/{proposal_id}' ), 'adapter help exposes proposal detail route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals/{proposal_id}/media-optimization-readiness' ), 'adapter help exposes media optimization readiness route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/from-plan' ), 'adapter help exposes plan-to-proposal route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/execute-approved-proposal' ), 'adapter help exposes execute-approved-proposal route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/execute' ), 'adapter help exposes proposal execute route' );
@@ -1753,6 +1758,11 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_govern
 	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_execute['status'] ?? '' ), 'adapter media optimization execute succeeds after one Core batch approval' );
 	maa_adapter_smoke_assert( 'batch_write_actions' === (string) ( $media_optimization_execute['execution_mode'] ?? '' ), 'adapter media optimization executes as batch write_actions' );
 	maa_adapter_smoke_assert( 2 === (int) ( $media_optimization_execute['executed_count'] ?? 0 ), 'adapter media optimization executes metadata and derivative actions together' );
+	$media_optimization_execution_record = is_array( $media_optimization_execute['execution_record'] ?? null ) ? $media_optimization_execute['execution_record'] : array();
+	$media_optimization_verification = is_array( $media_optimization_execution_record['verification'] ?? null ) ? $media_optimization_execution_record['verification'] : array();
+	maa_adapter_smoke_assert( 'recorded' === (string) ( $media_optimization_verification['status'] ?? '' ), 'adapter media optimization execution record persists compact verification' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_optimization_verification['aggregates']['backup_available'] ?? false ), 'adapter media optimization verification confirms backup availability' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_optimization_verification['aggregates']['rollback_available'] ?? false ), 'adapter media optimization verification confirms rollback availability' );
 	maa_adapter_smoke_assert( 'Adapter media optimization smoke' === (string) get_the_title( $media_optimization_attachment_id ), 'adapter media optimization batch updates media title' );
 	maa_adapter_smoke_assert( 'Adapter media optimization smoke image' === (string) get_post_meta( $media_optimization_attachment_id, '_wp_attachment_image_alt', true ), 'adapter media optimization batch updates media alt text' );
 	maa_adapter_smoke_assert( 'ai_generated' === (string) get_post_meta( $media_optimization_attachment_id, '_npcink_ai_media_source_type', true ), 'adapter media optimization batch updates media source type' );
@@ -1763,6 +1773,10 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_govern
 	maa_adapter_smoke_assert( false !== strpos( $media_optimization_after_relative, '.webp' ), 'adapter media optimization batch points attachment at WebP file' );
 	maa_adapter_smoke_assert( '' !== $media_optimization_after_path && is_readable( $media_optimization_after_path ), 'adapter media optimization batch writes adopted WebP file' );
 	maa_adapter_smoke_assert( $media_optimization_artifact_contents === (string) file_get_contents( $media_optimization_after_path ), 'adapter media optimization batch writes expected Cloud artifact bytes' );
+	$media_optimization_executed_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) );
+	maa_adapter_smoke_assert( 'approved' === (string) ( $media_optimization_executed_detail['status'] ?? '' ), 'adapter media optimization detail preserves Core approved status' );
+	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_executed_detail['effective_status'] ?? '' ), 'adapter media optimization detail exposes executed effective status' );
+	maa_adapter_smoke_assert( 'recorded' === (string) ( $media_optimization_executed_detail['adapter_status']['execution_record']['verification']['status'] ?? '' ), 'adapter media optimization detail exposes persisted verification summary' );
 }
 
 $site_summary = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/site-summary' );
