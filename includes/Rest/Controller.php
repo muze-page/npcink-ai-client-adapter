@@ -4555,18 +4555,18 @@ final class Controller {
 					$has_any_field = true;
 					break;
 				}
-				}
-				if ( ! $has_any_field ) {
-					return new WP_Error(
-						(string) ( $any_fields_rule['code'] ?? 'npcink_openclaw_adapter_required_fields_missing' ),
-						(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'npcink-openclaw-adapter' ) ),
-						$error_data
-					);
-				}
+			}
+			if ( ! $has_any_field ) {
+				return new WP_Error(
+					(string) ( $any_fields_rule['code'] ?? 'npcink_openclaw_adapter_required_fields_missing' ),
+					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'npcink-openclaw-adapter' ) ),
+					$error_data
+				);
+			}
 		}
 
 		foreach ( (array) ( $profile['require_array_fields'] ?? array() ) as $field => $rule ) {
-			$rule = is_array( $rule ) ? $rule : array();
+			$rule  = is_array( $rule ) ? $rule : array();
 			$value = $input[ $field ] ?? null;
 			if ( is_array( $value ) && ! empty( $value ) ) {
 				continue;
