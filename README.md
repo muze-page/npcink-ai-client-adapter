@@ -36,6 +36,7 @@ when every action targets the current execution allowlist
 `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-seo-meta`,
 `npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
 `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
+`npcink-abilities-toolkit/update-post-blocks`,
 `npcink-abilities-toolkit/patch-setting-value`,
 `npcink-abilities-toolkit/update-media-details`,
 `npcink-abilities-toolkit/optimize-media-asset`,
@@ -136,6 +137,7 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/npcink-openclaw-adapter/v1/post-stats`
 - `GET /wp-json/npcink-openclaw-adapter/v1/post-revisions`
 - `GET /wp-json/npcink-openclaw-adapter/v1/post-meta`
+- `GET /wp-json/npcink-openclaw-adapter/v1/post-blocks`
 - `GET /wp-json/npcink-openclaw-adapter/v1/pages`
 - `GET /wp-json/npcink-openclaw-adapter/v1/page`
 - `GET /wp-json/npcink-openclaw-adapter/v1/page-structure`
@@ -627,9 +629,10 @@ Proposal-required write flow:
 9. For the current approved proposal execution path, Adapter may execute only
    `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`,
    `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-seo-meta`,
-	   `npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
-	   `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
-	   `npcink-abilities-toolkit/patch-setting-value`,
+   `npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
+   `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
+   `npcink-abilities-toolkit/update-post-blocks`,
+   `npcink-abilities-toolkit/patch-setting-value`,
 	   `npcink-abilities-toolkit/update-media-details`,
 	   `npcink-abilities-toolkit/optimize-media-asset`,
 	   `npcink-abilities-toolkit/replace-media-file`,
@@ -753,7 +756,8 @@ Write or destructive abilities:
    intends a final write.
 7. For approved proposal execution, only `npcink-abilities-toolkit/trash-post`,
    `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
-   `npcink-abilities-toolkit/patch-post-content`, `npcink-abilities-toolkit/patch-setting-value`,
+   `npcink-abilities-toolkit/patch-post-content`, `npcink-abilities-toolkit/update-post-blocks`,
+   `npcink-abilities-toolkit/patch-setting-value`,
    `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
 	   `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
 	   `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/optimize-media-asset`,

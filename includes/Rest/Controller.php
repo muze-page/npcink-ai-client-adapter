@@ -137,6 +137,27 @@ final class Controller {
 				),
 				'post_id_from_result'   => false,
 			),
+			'npcink-abilities-toolkit/update-post-blocks' => array(
+				'allowed_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'mode' => array(
+						'allowed' => array( 'replace', 'append' ),
+						'code'    => 'npcink_openclaw_adapter_block_mode_invalid',
+						'message' => __( 'update-post-blocks mode must be replace or append.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'require_post_id'       => array(
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'update-post-blocks execution input must include post_id.', 'npcink-openclaw-adapter' ),
+				),
+				'require_array_fields'  => array(
+					'blocks' => array(
+						'code'    => 'npcink_openclaw_adapter_blocks_required',
+						'message' => __( 'update-post-blocks execution input must include at least one block.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
 			'npcink-abilities-toolkit/patch-setting-value' => array(
 				'allowed_input_fields'  => array( 'target_type', 'target_name', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
@@ -4534,14 +4555,33 @@ final class Controller {
 					$has_any_field = true;
 					break;
 				}
+				}
+				if ( ! $has_any_field ) {
+					return new WP_Error(
+						(string) ( $any_fields_rule['code'] ?? 'npcink_openclaw_adapter_required_fields_missing' ),
+						(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'npcink-openclaw-adapter' ) ),
+						$error_data
+					);
+				}
+		}
+
+		foreach ( (array) ( $profile['require_array_fields'] ?? array() ) as $field => $rule ) {
+			$rule = is_array( $rule ) ? $rule : array();
+			$value = $input[ $field ] ?? null;
+			if ( is_array( $value ) && ! empty( $value ) ) {
+				continue;
 			}
-			if ( ! $has_any_field ) {
-				return new WP_Error(
-					(string) ( $any_fields_rule['code'] ?? 'npcink_openclaw_adapter_required_fields_missing' ),
-					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'npcink-openclaw-adapter' ) ),
-					$error_data
-				);
-			}
+
+			return new WP_Error(
+				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_array_missing' ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required array field.', 'npcink-openclaw-adapter' ) ),
+				array_merge(
+					$error_data,
+					array(
+						'field' => (string) $field,
+					)
+				)
+			);
 		}
 
 		foreach ( (array) ( $profile['required_int_fields'] ?? array() ) as $field => $rule ) {
@@ -6911,6 +6951,7 @@ final class Controller {
 			'post-stats'             => array( 'ability_id' => 'npcink-abilities-toolkit/get-post-stats' ),
 			'post-revisions'         => array( 'ability_id' => 'npcink-abilities-toolkit/list-revisions' ),
 			'post-meta'              => array( 'ability_id' => 'npcink-abilities-toolkit/get-post-meta' ),
+			'post-blocks'            => array( 'ability_id' => 'npcink-abilities-toolkit/get-post-blocks' ),
 			'pages'                  => array( 'ability_id' => 'npcink-abilities-toolkit/list-pages' ),
 			'page'                   => array( 'ability_id' => 'npcink-abilities-toolkit/get-page' ),
 			'page-structure'         => array( 'ability_id' => 'npcink-abilities-toolkit/inspect-page-structure' ),

@@ -51,6 +51,7 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=npcink-abilities-toolkit/create-draft`
 - `target_ability_id=npcink-abilities-toolkit/update-post`
 - `target_ability_id=npcink-abilities-toolkit/patch-post-content`
+- `target_ability_id=npcink-abilities-toolkit/update-post-blocks`
 - `target_ability_id=npcink-abilities-toolkit/patch-setting-value`
 - `target_ability_id=npcink-abilities-toolkit/set-post-seo-meta`
 - `target_ability_id=npcink-abilities-toolkit/set-post-slug`

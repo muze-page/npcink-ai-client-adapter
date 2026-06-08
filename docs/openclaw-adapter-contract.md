@@ -323,6 +323,7 @@ For a pending `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/c
 `npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
 `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/update-media-details`,
 `npcink-abilities-toolkit/patch-post-content`,
+`npcink-abilities-toolkit/update-post-blocks`,
 `npcink-abilities-toolkit/patch-setting-value`,
 `npcink-abilities-toolkit/optimize-media-asset`,
 `npcink-abilities-toolkit/replace-media-file`,
@@ -350,7 +351,8 @@ requires a valid `taxonomy` and `term_id`; `update-media-details` requires
 provided, must be one of `owned`, `ai_generated`, `stock`, `external`, or
 `test`; `upload-media-from-url` may accept a reviewed `file_name` for the new
 media object; `patch-post-content` requires `post_id` and bounded exact replacement
-`operations`; `patch-setting-value` requires `target_type`, `target_name`, and
+`operations`; `update-post-blocks` requires `post_id`, `blocks`, and optional
+`mode=replace|append`; `patch-setting-value` requires `target_type`, `target_name`, and
 bounded exact replacement `operations`; `optimize-media-asset` requires `attachment_id`, may accept bounded
 format, width, quality, and suffix inputs, and must preserve the original file;
 `replace-media-file` requires `attachment_id`, uses either a recorded
@@ -398,6 +400,7 @@ The current allowlist is intentionally narrow:
 - `npcink-abilities-toolkit/delete-term`
 - `npcink-abilities-toolkit/update-media-details`
 - `npcink-abilities-toolkit/patch-post-content`
+- `npcink-abilities-toolkit/update-post-blocks`
 - `npcink-abilities-toolkit/patch-setting-value`
 - `npcink-abilities-toolkit/optimize-media-asset`
 - `npcink-abilities-toolkit/replace-media-file`
@@ -669,6 +672,7 @@ Read shortcuts:
 - `GET /wp-json/npcink-openclaw-adapter/v1/post-stats`
 - `GET /wp-json/npcink-openclaw-adapter/v1/post-revisions`
 - `GET /wp-json/npcink-openclaw-adapter/v1/post-meta`
+- `GET /wp-json/npcink-openclaw-adapter/v1/post-blocks`
 - `GET /wp-json/npcink-openclaw-adapter/v1/pages`
 - `GET /wp-json/npcink-openclaw-adapter/v1/page`
 - `GET /wp-json/npcink-openclaw-adapter/v1/page-structure`
@@ -904,6 +908,7 @@ OpenClaw must treat Core as the only proposal and approval truth:
    `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
    `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
    `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/patch-post-content`,
+   `npcink-abilities-toolkit/update-post-blocks`,
    `npcink-abilities-toolkit/patch-setting-value`,
    `npcink-abilities-toolkit/optimize-media-asset`,
    `npcink-abilities-toolkit/replace-media-file`, `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
