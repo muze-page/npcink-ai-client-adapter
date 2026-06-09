@@ -2293,6 +2293,116 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_govern
 	maa_adapter_smoke_assert( $media_optimization_original_contents === (string) file_get_contents( $media_restore_after_path ), 'adapter restore-media-backup restores original media bytes' );
 }
 
+$multi_media_optimization_attachment_ids = array(
+	maa_adapter_smoke_create_real_media_attachment( 'adapter-media-batch-a-' ),
+	maa_adapter_smoke_create_real_media_attachment( 'adapter-media-batch-b-' ),
+);
+$maa_adapter_smoke_cleanup_attachment_ids = array_merge( $maa_adapter_smoke_cleanup_attachment_ids, $multi_media_optimization_attachment_ids );
+$multi_media_optimization_plan = array(
+	'artifact_type'      => 'media_optimization_plan',
+	'version'            => 1,
+	'batch_id'           => 'adapter_multi_media_optimization_' . substr( wp_generate_uuid4(), 0, 8 ),
+	'attachment_ids'     => $multi_media_optimization_attachment_ids,
+	'optimization_goal'  => 'multi_attachment_image_seo_and_derivative_adoption',
+	'requires_approval'  => true,
+	'dry_run'            => true,
+	'commit_execution'   => false,
+	'proposal_mode'      => 'batch',
+	'batch_approval'     => true,
+	'action_count'       => 0,
+	'action_ids'         => array(),
+	'target_ability_ids' => array(),
+	'preview'            => array(),
+	'write_actions'      => array(),
+	'proposal_ready'     => true,
+	'risk'               => array(
+		'level'  => 'medium',
+		'reason' => 'Two reviewed media optimization fixtures share one Core batch approval.',
+	),
+);
+$multi_media_optimization_expected_artifacts = array();
+foreach ( $multi_media_optimization_attachment_ids as $multi_media_optimization_index => $multi_media_optimization_attachment_id ) {
+	$multi_media_optimization_artifact_contents = 'adapter-smoke-multi-webp-derivative-bytes-' . ( $multi_media_optimization_index + 1 );
+	$multi_media_optimization_artifact_id       = 'adapter-smoke-multi-webp-artifact-' . ( $multi_media_optimization_index + 1 ) . '-' . substr( wp_generate_uuid4(), 0, 8 );
+	$multi_media_optimization_payload = maa_adapter_smoke_rest(
+		'POST',
+		'/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
+		maa_adapter_smoke_media_optimization_payload_params( $multi_media_optimization_attachment_id, $multi_media_optimization_artifact_id, $multi_media_optimization_artifact_contents, true )
+	);
+	$multi_media_optimization_from_plan = is_array( $multi_media_optimization_payload['from_plan_request'] ?? null ) ? $multi_media_optimization_payload['from_plan_request'] : array();
+	$single_media_optimization_plan     = is_array( $multi_media_optimization_from_plan['plan'] ?? null ) ? $multi_media_optimization_from_plan['plan'] : array();
+	$single_media_optimization_actions  = array_values( (array) ( $single_media_optimization_plan['write_actions'] ?? array() ) );
+	maa_adapter_smoke_assert( 2 === count( $single_media_optimization_actions ), 'adapter multi media optimization source plan has two write actions per attachment' );
+	foreach ( $single_media_optimization_actions as $single_media_optimization_action ) {
+		$multi_media_optimization_plan['write_actions'][] = $single_media_optimization_action;
+		$multi_media_optimization_plan['action_ids'][] = (string) ( $single_media_optimization_action['action_id'] ?? '' );
+	}
+	$multi_media_optimization_expected_artifacts[ $multi_media_optimization_attachment_id ] = $multi_media_optimization_artifact_contents;
+}
+$multi_media_optimization_plan['action_count'] = count( $multi_media_optimization_plan['write_actions'] );
+$multi_media_optimization_plan['target_ability_ids'] = array_values(
+	array_unique(
+		array_filter(
+			array_map(
+				static function ( $action ) {
+					return is_array( $action ) ? (string) ( $action['target_ability_id'] ?? '' ) : '';
+				},
+				$multi_media_optimization_plan['write_actions']
+			)
+		)
+	)
+);
+maa_adapter_smoke_assert( 4 === (int) $multi_media_optimization_plan['action_count'], 'adapter multi media optimization plan combines four write actions' );
+$multi_media_optimization_bridge_result = maa_adapter_smoke_rest_result(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'npcink-abilities-toolkit/build-media-optimization-plan',
+		'plan'               => $multi_media_optimization_plan,
+		'plan_input'         => array(
+			'attachment_ids' => $multi_media_optimization_attachment_ids,
+			'source_type'    => 'ai_generated',
+		),
+		'adapter_request_id' => 'adapter-multi-media-optimization-request',
+		'correlation_id'     => 'adapter-multi-media-optimization-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-multi-media-optimization-smoke',
+		),
+	)
+);
+$multi_media_optimization_bridge = is_array( $multi_media_optimization_bridge_result['data'] ) ? $multi_media_optimization_bridge_result['data'] : array();
+maa_adapter_smoke_assert( $multi_media_optimization_bridge_result['status'] >= 200 && $multi_media_optimization_bridge_result['status'] < 300, 'POST /npcink-openclaw-adapter/v1/proposals/from-plan accepts multi media optimization plan' );
+maa_adapter_smoke_assert( 1 === (int) ( $multi_media_optimization_bridge['proposal_count'] ?? 0 ), 'adapter multi media optimization creates one Core batch proposal' );
+$multi_media_optimization_proposal = is_array( $multi_media_optimization_bridge['proposals'][0] ?? null ) ? $multi_media_optimization_bridge['proposals'][0] : array();
+$multi_media_optimization_proposal_id = (string) ( $multi_media_optimization_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $multi_media_optimization_proposal_id;
+maa_adapter_smoke_assert( '' !== $multi_media_optimization_proposal_id, 'adapter multi media optimization returned a Core proposal id' );
+maa_adapter_smoke_assert( 4 === count( (array) ( $multi_media_optimization_proposal['input']['write_actions'] ?? array() ) ), 'adapter multi media optimization Core proposal stores four actions' );
+$multi_media_optimization_approved = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $multi_media_optimization_proposal_id ) . '/approve',
+	array(
+		'note' => 'Approve adapter multi media optimization smoke batch execution.',
+	)
+);
+maa_adapter_smoke_assert( 'approved' === (string) ( $multi_media_optimization_approved['status'] ?? '' ), 'Core admin REST approval succeeds for multi media optimization batch proposal' );
+$multi_media_optimization_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $multi_media_optimization_proposal_id ) . '/execute' );
+maa_adapter_smoke_assert( 'executed' === (string) ( $multi_media_optimization_execute['status'] ?? '' ), 'adapter multi media optimization execute succeeds after one Core batch approval' );
+maa_adapter_smoke_assert( 'batch_write_actions' === (string) ( $multi_media_optimization_execute['execution_mode'] ?? '' ), 'adapter multi media optimization executes as batch write_actions' );
+maa_adapter_smoke_assert( 4 === (int) ( $multi_media_optimization_execute['executed_count'] ?? 0 ), 'adapter multi media optimization executes four actions together' );
+$multi_media_optimization_record = is_array( $multi_media_optimization_execute['execution_record'] ?? null ) ? $multi_media_optimization_execute['execution_record'] : array();
+$multi_media_optimization_verification = is_array( $multi_media_optimization_record['verification'] ?? null ) ? $multi_media_optimization_record['verification'] : array();
+maa_adapter_smoke_assert( 'recorded' === (string) ( $multi_media_optimization_verification['status'] ?? '' ), 'adapter multi media optimization persists compact verification' );
+maa_adapter_smoke_assert( 2 === (int) ( $multi_media_optimization_verification['item_count'] ?? 0 ), 'adapter multi media optimization verification records two derivative adoption items' );
+foreach ( $multi_media_optimization_expected_artifacts as $multi_media_optimization_attachment_id => $multi_media_optimization_artifact_contents ) {
+	$multi_media_optimization_after_relative = (string) get_post_meta( (int) $multi_media_optimization_attachment_id, '_wp_attached_file', true );
+	$multi_media_optimization_after_uploads  = wp_upload_dir();
+	$multi_media_optimization_after_path     = is_array( $multi_media_optimization_after_uploads ) ? trailingslashit( (string) ( $multi_media_optimization_after_uploads['basedir'] ?? '' ) ) . ltrim( $multi_media_optimization_after_relative, '/' ) : '';
+	maa_adapter_smoke_assert( 'image/webp' === (string) get_post_mime_type( (int) $multi_media_optimization_attachment_id ), 'adapter multi media optimization adopts WebP mime type for each attachment' );
+	maa_adapter_smoke_assert( '' !== $multi_media_optimization_after_path && is_readable( $multi_media_optimization_after_path ), 'adapter multi media optimization writes each adopted WebP file' );
+	maa_adapter_smoke_assert( $multi_media_optimization_artifact_contents === (string) file_get_contents( $multi_media_optimization_after_path ), 'adapter multi media optimization writes expected artifact bytes for each attachment' );
+}
+
 $site_summary = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/site-summary' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-info' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-info read ability' );
 maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-summary returns a result object' );
