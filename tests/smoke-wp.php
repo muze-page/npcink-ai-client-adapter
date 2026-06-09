@@ -390,6 +390,7 @@ function &maa_adapter_smoke_fixture_registry(): array {
 	if ( ! isset( $GLOBALS['maa_adapter_smoke_fixture_registry'] ) || ! is_array( $GLOBALS['maa_adapter_smoke_fixture_registry'] ) ) {
 		$GLOBALS['maa_adapter_smoke_fixture_registry'] = array(
 			'proposal_ids'     => array(),
+			'read_request_ids' => array(),
 			'attachment_ids'   => array(),
 			'post_ids'         => array(),
 			'comment_ids'      => array(),
@@ -729,6 +730,14 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 		foreach ( $proposal_ids as $cleanup_proposal_id ) {
 			$wpdb->delete( $wpdb->prefix . 'npcink_governance_core_audit_log', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
 			$wpdb->delete( $wpdb->prefix . 'npcink_governance_core_proposals', array( 'proposal_id' => $cleanup_proposal_id ), array( '%s' ) );
+		}
+	}
+
+	$read_request_ids = array_values( array_unique( array_filter( array_map( 'strval', (array) ( $registry['read_request_ids'] ?? array() ) ) ) ) );
+	if ( ! empty( $read_request_ids ) ) {
+		foreach ( $read_request_ids as $cleanup_read_request_id ) {
+			$wpdb->delete( $wpdb->prefix . 'npcink_governance_core_audit_log', array( 'proposal_id' => $cleanup_read_request_id ), array( '%s' ) );
+			$wpdb->delete( $wpdb->prefix . 'npcink_governance_core_read_requests', array( 'request_id' => $cleanup_read_request_id ), array( '%s' ) );
 		}
 	}
 
@@ -1083,6 +1092,7 @@ function maa_adapter_smoke_create_comment_fixture(
 
 $maa_adapter_smoke_fixture_registry =& maa_adapter_smoke_fixture_registry();
 $maa_adapter_smoke_cleanup_proposal_ids =& $maa_adapter_smoke_fixture_registry['proposal_ids'];
+$maa_adapter_smoke_cleanup_read_request_ids =& $maa_adapter_smoke_fixture_registry['read_request_ids'];
 $maa_adapter_smoke_cleanup_attachment_ids =& $maa_adapter_smoke_fixture_registry['attachment_ids'];
 $maa_adapter_smoke_cleanup_post_ids =& $maa_adapter_smoke_fixture_registry['post_ids'];
 $maa_adapter_smoke_cleanup_comment_ids =& $maa_adapter_smoke_fixture_registry['comment_ids'];
@@ -1102,6 +1112,12 @@ maa_adapter_smoke_assert( false === (bool) ( $health['commit_execution'] ?? true
 maa_adapter_smoke_assert( false === (bool) ( $health['approval_proxy_enabled'] ?? true ), 'adapter health keeps approval proxy disabled' );
 maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $health['approval_surface'] ?? '' ), 'adapter health exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $health ), 'adapter health exposes Core app token configured state without token value' );
+maa_adapter_smoke_assert( in_array( 'read_requests:create', (array) ( $health['core_app_token_required_scopes'] ?? array() ), true ), 'adapter health documents Core read request create scope' );
+maa_adapter_smoke_assert( in_array( 'read_requests:read', (array) ( $health['core_app_token_required_scopes'] ?? array() ), true ), 'adapter health documents Core read request status scope' );
+maa_adapter_smoke_assert( in_array( 'read_requests:preflight', (array) ( $health['core_app_token_required_scopes'] ?? array() ), true ), 'adapter health documents Core read request preflight scope' );
+maa_adapter_smoke_assert( 'POST /read-requests' === (string) ( $health['sensitive_read_authorization']['request_route'] ?? '' ), 'adapter health exposes sensitive read request route' );
+maa_adapter_smoke_assert( 'GET /read-requests/{request_id}' === (string) ( $health['sensitive_read_authorization']['status_route'] ?? '' ), 'adapter health exposes sensitive read status route' );
+maa_adapter_smoke_assert( 'POST /run-read-ability with read_request_id' === (string) ( $health['sensitive_read_authorization']['execution_route'] ?? '' ), 'adapter health exposes sensitive read execution route' );
 maa_adapter_smoke_assert( isset( $health['cloud_addon']['download_route_available'] ), 'adapter health exposes Cloud Addon artifact download helper readiness' );
 maa_adapter_smoke_assert( 'not_run' === (string) ( $health['cloud_addon']['artifact_fetch_test']['status'] ?? '' ), 'adapter health does not fetch proposal-specific Cloud artifacts by default' );
 maa_adapter_smoke_assert( 'GET /proposals/{proposal_id}/media-optimization-readiness' === (string) ( $health['cloud_addon']['proposal_readiness_route'] ?? '' ), 'adapter health points to proposal-specific media readiness route' );
@@ -1171,6 +1187,9 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/pro
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/approve' ), 'adapter help exposes approval disabled stub route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/reject' ), 'adapter help exposes rejection disabled stub route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-provider-log-correlation-smoke' ), 'adapter help exposes provider log correlation smoke route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/read-requests' ), 'adapter help exposes sensitive read request route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/read-requests' ), 'adapter help exposes sensitive read request list route' );
+maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/read-requests/{request_id}' ), 'adapter help exposes sensitive read request status route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/media-metadata-optimization' ), 'adapter help exposes media metadata optimization route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
@@ -2549,6 +2568,98 @@ foreach (
 	maa_adapter_smoke_assert( 'fail_closed' === (string) ( $diagnostic_data['adapter_action'] ?? '' ), 'adapter diagnostic fail-closed route reports adapter action: ' . $diagnostic_route );
 	maa_adapter_smoke_assert( is_array( $diagnostic_data['next_steps'] ?? null ) && ! empty( $diagnostic_data['next_steps'] ), 'adapter diagnostic fail-closed route returns next steps: ' . $diagnostic_route );
 }
+
+$sensitive_read_ability_id = 'npcink-abilities-toolkit/wp-ops-diagnostics-detail';
+$sensitive_read_input      = array(
+	'include_error_log'     => true,
+	'tail_lines'            => 5,
+	'max_plugins_per_group' => 5,
+);
+$sensitive_read_request    = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/read-requests',
+	array(
+		'ability_id'              => $sensitive_read_ability_id,
+		'input'                   => $sensitive_read_input,
+		'requested_input_summary' => 'Adapter smoke bounded diagnostics read',
+		'data_classes'            => array( 'diagnostics', 'logs' ),
+		'redaction_level'         => 'strict',
+		'purpose'                 => 'Adapter smoke verifies Core sensitive read grant; authorization header: SHOULD_NOT_LEAK',
+		'caller'                  => array(
+			'via'       => 'npcink-openclaw-adapter',
+			'token'     => 'SHOULD_NOT_LEAK',
+			'ability_id' => $sensitive_read_ability_id,
+		),
+		'bounds'                  => array(
+			'max_rows'      => 10,
+			'tail_lines'    => 5,
+			'denied_fields' => array( 'authorization', 'cookie', 'application_password' ),
+		),
+	)
+);
+$sensitive_read_request_id = (string) ( $sensitive_read_request['request_id'] ?? '' );
+$maa_adapter_smoke_cleanup_read_request_ids[] = $sensitive_read_request_id;
+maa_adapter_smoke_assert( '' !== $sensitive_read_request_id, 'adapter creates Core sensitive read request' );
+maa_adapter_smoke_assert( 'pending' === (string) ( $sensitive_read_request['status'] ?? '' ), 'adapter sensitive read request starts pending' );
+maa_adapter_smoke_assert( false === strpos( (string) wp_json_encode( $sensitive_read_request ), 'SHOULD_NOT_LEAK' ), 'adapter sensitive read request response does not leak secret sentinel' );
+
+$sensitive_read_list = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/read-requests', array( 'status' => 'pending', 'limit' => 10 ) );
+$sensitive_read_listed = false;
+foreach ( (array) ( $sensitive_read_list['items'] ?? array() ) as $sensitive_read_item ) {
+	if ( is_array( $sensitive_read_item ) && $sensitive_read_request_id === (string) ( $sensitive_read_item['request_id'] ?? '' ) ) {
+		$sensitive_read_listed = true;
+		break;
+	}
+}
+maa_adapter_smoke_assert( $sensitive_read_listed, 'adapter lists pending Core sensitive read request' );
+
+$sensitive_read_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/read-requests/' . rawurlencode( $sensitive_read_request_id ) );
+maa_adapter_smoke_assert( $sensitive_read_request_id === (string) ( $sensitive_read_detail['request_id'] ?? '' ), 'adapter reads Core sensitive read request status' );
+maa_adapter_smoke_assert( is_array( $sensitive_read_detail['audit_timeline'] ?? null ), 'adapter sensitive read detail includes Core audit timeline' );
+
+$sensitive_read_approved = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-governance-core/v1/read-requests/' . rawurlencode( $sensitive_read_request_id ) . '/approve',
+	array(
+		'note'            => 'Adapter smoke approval',
+		'redaction_level' => 'strict',
+		'max_rows'        => 10,
+		'tail_lines'      => 5,
+		'denied_fields'   => array( 'authorization', 'cookie', 'application_password' ),
+	)
+);
+maa_adapter_smoke_assert( 'approved' === (string) ( $sensitive_read_approved['status'] ?? '' ), 'Core approves adapter-created sensitive read request' );
+
+$sensitive_read_wrong_input = maa_adapter_smoke_rest_result(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id'       => $sensitive_read_ability_id,
+		'input'            => array_merge( $sensitive_read_input, array( 'tail_lines' => 6 ) ),
+		'read_request_id'  => $sensitive_read_request_id,
+	)
+);
+maa_adapter_smoke_assert( 409 === (int) $sensitive_read_wrong_input['status'], 'adapter rejects sensitive read when input no longer matches Core grant' );
+
+$sensitive_read_granted = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id'      => $sensitive_read_ability_id,
+		'input'           => $sensitive_read_input,
+		'read_request_id' => $sensitive_read_request_id,
+	)
+);
+$sensitive_read_context = is_array( $sensitive_read_granted['read_context']['npcink_governance_core'] ?? null ) ? $sensitive_read_granted['read_context']['npcink_governance_core'] : array();
+maa_adapter_smoke_assert( true === (bool) ( $sensitive_read_granted['read_context']['read_authorization_granted'] ?? false ), 'adapter sensitive read carries granted flag' );
+maa_adapter_smoke_assert( $sensitive_read_request_id === (string) ( $sensitive_read_context['read_request_id'] ?? '' ), 'adapter sensitive read context binds Core request id' );
+maa_adapter_smoke_assert( 'npcink_governance_core' === (string) ( $sensitive_read_context['core_authorization_truth'] ?? '' ), 'adapter sensitive read context names Core as authorization truth' );
+maa_adapter_smoke_assert( false === (bool) ( $sensitive_read_context['commit_execution'] ?? true ), 'adapter sensitive read context disables commit execution' );
+maa_adapter_smoke_assert( false === (bool) ( $sensitive_read_context['write_execution'] ?? true ), 'adapter sensitive read context disables write execution' );
+maa_adapter_smoke_assert( true === (bool) ( $sensitive_read_granted['redaction_applied'] ?? false ), 'adapter applies redaction for Core-authorized sensitive read' );
+maa_adapter_smoke_assert( 5 === (int) ( $sensitive_read_granted['redaction_summary']['tail_lines'] ?? 0 ), 'adapter sensitive read redaction summary carries Core tail_lines bound' );
+maa_adapter_smoke_assert( is_array( $sensitive_read_granted['result'] ?? null ), 'adapter returns sensitive read result after Core grant' );
+maa_adapter_smoke_assert( false === strpos( (string) wp_json_encode( $sensitive_read_granted ), 'SHOULD_NOT_LEAK' ), 'adapter sensitive read response does not leak secret sentinel' );
 
 $workflow_recipes = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/workflow-recipes' );
 maa_adapter_smoke_assert( isset( $workflow_recipes['result']['cases']['article_publish_preflight'] ), 'adapter returns workflow recipe list result' );

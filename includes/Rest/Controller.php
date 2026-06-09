@@ -2049,12 +2049,18 @@ final class Controller {
 					'proposals:read',
 					'proposals:create',
 					'commit:preflight',
+					'read_requests:create',
+					'read_requests:read',
+					'read_requests:preflight',
 				),
 				'sensitive_read_authorization' => array(
 					'core_truth'                    => true,
 					'required_field'                => 'read_authorization_required',
 					'required_policy'               => 'core_read_authorization_required',
 					'error_code'                    => 'npcink_openclaw_adapter_core_read_authorization_required',
+					'request_route'                 => 'POST /read-requests',
+					'status_route'                  => 'GET /read-requests/{request_id}',
+					'execution_route'               => 'POST /run-read-ability with read_request_id',
 					'unsupported_without_core_grant' => 'fail_closed',
 				),
 				'approved_proposal_execution_routes' => array(
@@ -2098,6 +2104,9 @@ final class Controller {
 							'core_truth'                    => true,
 							'required_field'                => 'read_authorization_required',
 							'required_policy'               => 'core_read_authorization_required',
+							'request_route'                 => 'POST /read-requests',
+							'status_route'                  => 'GET /read-requests/{request_id}',
+							'execution_route'               => 'POST /run-read-ability with read_request_id',
 							'unsupported_without_core_grant' => 'fail_closed',
 						),
 					),
@@ -2274,6 +2283,9 @@ final class Controller {
 					'proposals:read',
 					'proposals:create',
 					'commit:preflight',
+					'read_requests:create',
+					'read_requests:read',
+					'read_requests:preflight',
 				),
 				'approved_proposal_execution_routes' => array(
 					'POST /execute-approved-proposal',
@@ -2332,6 +2344,11 @@ final class Controller {
 			'generic_read'    => array(
 				'POST /run-read-ability',
 				'POST /media-metadata-optimization',
+			),
+			'sensitive_read_authorization' => array(
+				'POST /read-requests',
+				'GET /read-requests',
+				'GET /read-requests/{request_id}',
 			),
 			'media_derivative_cloud' => array(
 				'POST /media-derivative-runs',
@@ -3109,6 +3126,9 @@ final class Controller {
 			'GET /connection/key-pairs' => 'List registered key-pair clients for the current user.',
 			'DELETE /connection/key-pairs/{key_id}' => 'Revoke a registered key-pair client.',
 			'POST /run-read-ability' => 'Run a direct-read ability by ability_id.',
+			'GET /read-requests' => 'List Core sensitive read request statuses through Adapter.',
+			'POST /read-requests' => 'Create a Core sensitive read authorization request through Adapter.',
+			'GET /read-requests/{request_id}' => 'Read one Core sensitive read request status through Adapter.',
 			'POST /media-metadata-optimization' => 'Build read-only media title, alt, caption, description, source, and attribution suggestions.',
 			'POST /media-derivative-runs' => 'Build the local media derivative Cloud request ability, upload or reference source artifacts through Cloud Addon, and return a Cloud run projection without writing WordPress media.',
 			'GET /media-derivative-runs/{run_id}' => 'Poll a Cloud media derivative run through Cloud Addon without storing Adapter run truth.',
@@ -6896,6 +6916,8 @@ final class Controller {
 			$npcink_governance_core['read_request_id'] = sanitize_text_field( (string) ( $grant_context['request_id'] ?? '' ) );
 			$npcink_governance_core['approved_input_hash'] = sanitize_text_field( (string) ( $grant_context['approved_input_hash'] ?? '' ) );
 			$npcink_governance_core['core_authorization_truth'] = 'npcink_governance_core';
+			$npcink_governance_core['commit_execution'] = false;
+			$npcink_governance_core['write_execution']  = false;
 		}
 		$log_context['npcink_governance_core']    = $npcink_governance_core;
 

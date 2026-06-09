@@ -88,6 +88,9 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/npcink-openclaw-adapter/v1/capabilities`
 - `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
 - `POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`
+- `POST /wp-json/npcink-openclaw-adapter/v1/read-requests`
+- `GET /wp-json/npcink-openclaw-adapter/v1/read-requests`
+- `GET /wp-json/npcink-openclaw-adapter/v1/read-requests/{request_id}`
 - `POST /wp-json/npcink-openclaw-adapter/v1/media-metadata-optimization`
 - `POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs`
 - `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}`
@@ -542,8 +545,9 @@ Read-only execution:
 
 1. Use a shortcut route when one exists, or call `POST /run-read-ability`.
 2. The adapter re-checks Core for the real `ability_id`.
-3. The adapter runs only rows where
-   `governance_mode=direct_read` and `execution_surface=wp_abilities_rest`.
+3. The adapter runs only rows where `execution_surface=wp_abilities_rest` and
+   `governance_mode=direct_read` or a Core sensitive read grant allows the
+   `core_read_authorization_required` read path.
 4. The adapter calls WordPress Abilities API and returns a read envelope with
    `read_policy`, `sensitivity`, `redaction_required`, `redaction_applied`,
    `redaction_summary`, `read_audit_mode`, `correlation_id`, `read_context`,
@@ -554,11 +558,18 @@ Read-only execution:
 6. If Core marks the row with `read_authorization_required=true`,
    `requires_read_authorization=true`,
    `read_policy=core_read_authorization_required`, or
-   `authorization_mode=core_read_request`, Adapter fails closed with
+   `authorization_mode=core_read_request`, OpenClaw must create a Core read
+   request through Adapter `POST /read-requests`, wait for Core approval, then
+   call `POST /run-read-ability` with the same `ability_id`, same `input`, and
+   the approved `read_request_id`. Adapter calls Core `read-preflight`
+   immediately before execution and verifies `read_authorization_granted=true`,
+   `core_authorization_truth=npcink_governance_core`, `ability_id`,
+   `approved_input_hash`, expiry, and bounds before reading.
+7. Without a valid Core grant, Adapter fails closed with
    `npcink_openclaw_adapter_core_read_authorization_required`. Prompt text,
    chat consent, direct database access, filesystem reads, logs, and custom
    scripts are not substitutes for Core-managed sensitive read authorization.
-7. Planning ability output is returned as plan data. `write_actions`,
+8. Planning ability output is returned as plan data. `write_actions`,
    `preview`, `risk`, `manual_review`, and
    `skipped_destructive_candidates` are not execution results.
 
@@ -791,7 +802,11 @@ Read-only abilities:
 1. OpenClaw calls Adapter `/capabilities`.
 2. Adapter relays Core guidance.
 3. If `governance_mode=direct_read`, OpenClaw calls Adapter read endpoints.
-4. Adapter runs the ability through WordPress Abilities API.
+4. If Core requires sensitive read authorization, OpenClaw calls Adapter
+   `/read-requests`, waits for Core approval, then calls `/run-read-ability`
+   with `read_request_id`.
+5. Adapter runs the ability through WordPress Abilities API only after any
+   required Core read-preflight grant succeeds.
 
 Write or destructive abilities:
 

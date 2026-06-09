@@ -74,8 +74,9 @@ capability guidance source and WordPress Abilities API remains the canonical
 ability execution surface.
 
 If Core marks a capability as requiring explicit sensitive read authorization,
-Adapter must fail closed instead of running the ability. The current Adapter
-recognizes any of these Core capability signals:
+Adapter must fail closed unless the caller supplies an approved Core read
+request id for the same ability and input. The current Adapter recognizes any
+of these Core capability signals:
 
 ```json
 {
@@ -92,10 +93,19 @@ default response code is
 `npcink_openclaw_adapter_core_read_authorization_required` with
 `required_flow=core_read_request`.
 
-This is a fail-closed boundary until Core provides the approved bounded read
-authorization context. Adapter must not treat OpenClaw prompts, chat
-instructions, direct database access, filesystem reads, logs, or custom scripts
-as substitutes for Core read authorization.
+OpenClaw creates the request through Adapter `POST /read-requests`, waits for
+Core approval, and then calls `POST /run-read-ability` with the same `ability_id`,
+same `input`, and `read_request_id`. Adapter calls Core
+`/read-requests/{request_id}/read-preflight` immediately before executing the
+read, verifies `read_authorization_granted=true`,
+`core_authorization_truth=npcink_governance_core`, `ability_id`,
+`approved_input_hash`, expiry, and `commit_execution=false` /
+`write_execution=false`, then applies Core `bounds` and `redaction_level` before
+returning `result`.
+
+This remains a fail-closed boundary without a valid Core grant. Adapter must not
+treat OpenClaw prompts, chat instructions, direct database access, filesystem
+reads, logs, or custom scripts as substitutes for Core read authorization.
 
 ## Media Derivative Cloud Contract
 
