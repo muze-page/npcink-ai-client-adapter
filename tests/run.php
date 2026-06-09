@@ -310,6 +310,7 @@ foreach (
 		'openclaw_recipes',
 		'article_draft_plan',
 		'article_media_batch_plan',
+		'pattern_page_plan',
 		'content_discoverability_suggestions',
 		'ai_article_draft_with_discoverability',
 		'media_derivative_cloud',
@@ -442,6 +443,7 @@ foreach (
 			'npcink-abilities-toolkit/build-media-settings-reference-repair-plan',
 			'npcink-abilities-toolkit/build-media-optimization-plan',
 			'npcink-abilities-toolkit/build-media-rename-plan',
+			'npcink-abilities-toolkit/build-pattern-page-plan',
 			'npcink-toolbox/build-article-write-plan',
 			'npcink-toolbox/build-article-batch-write-plan',
 			'npcink-toolbox/build-article-media-batch-write-plan',
@@ -881,6 +883,7 @@ foreach (
 			'npcink-abilities-toolkit/build-media-settings-reference-repair-plan',
 			'npcink-abilities-toolkit/build-media-optimization-plan',
 			'npcink-abilities-toolkit/build-media-rename-plan',
+			'npcink-abilities-toolkit/build-pattern-page-plan',
 			'npcink-toolbox/build-article-write-plan',
 			'npcink-toolbox/build-article-batch-write-plan',
 			'npcink-toolbox/build-article-media-batch-write-plan',
@@ -890,6 +893,7 @@ foreach (
 			'openclaw_recipes.article_draft_plan',
 			'openclaw_recipes.article_batch_draft_plan',
 			'openclaw_recipes.article_media_batch_plan',
+			'openclaw_recipes.pattern_page_plan',
 			'openclaw_recipes.image_candidate_adoption_plan',
 			'docs/openclaw-ai-article-writing-pack-recipe.md',
 			'The primary SEO/GEO/AEO entrypoint is',
@@ -897,6 +901,7 @@ foreach (
 			'docs/openclaw-article-draft-plan-recipe.md',
 			'docs/openclaw-article-batch-draft-plan-recipe.md',
 			'docs/openclaw-article-media-batch-plan-recipe.md',
+			'docs/openclaw-pattern-page-plan-recipe.md',
 			'docs/openclaw-image-candidate-adoption-plan-recipe.md',
 		'skipped_destructive_candidates',
 		'write_actions',
@@ -1279,6 +1284,7 @@ foreach (
 		'npcink-abilities-toolkit/build-media-inventory-fix-plan',
 		'npcink-abilities-toolkit/build-media-reference-repair-plan',
 		'npcink-abilities-toolkit/build-media-settings-reference-repair-plan',
+		'npcink-abilities-toolkit/build-pattern-page-plan',
 		'npcink-toolbox/build-article-write-plan',
 		'npcink-toolbox/build-article-batch-write-plan',
 		'npcink-toolbox/build-article-media-batch-write-plan',
@@ -1291,6 +1297,7 @@ foreach (
 		'proposal truth, approval surface, or write executor',
 		'article_batch_write_plan',
 		'article_media_batch_write_plan',
+		'pattern_page_plan',
 		'skipped_destructive_candidates',
 		'npcink-abilities-toolkit/delete-media-permanently',
 		'Approved Proposal Execution Contract',
@@ -1407,6 +1414,7 @@ foreach (
 		'npcink-toolbox/build-article-media-batch-write-plan',
 		'openclaw_recipes.article_batch_draft_plan',
 		'openclaw_recipes.article_media_batch_plan',
+		'openclaw_recipes.pattern_page_plan',
 		'npcink-toolbox/build-content-discoverability-brief',
 		'primary_contract=true',
 		'`seo`,',
@@ -1917,6 +1925,26 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $article_media_batch_recipe, $required ), 'Article media batch recipe contains required text: ' . $required );
+}
+
+$pattern_page_recipe = maa_adapter_read( $root . '/docs/openclaw-pattern-page-plan-recipe.md' );
+foreach (
+	array(
+		'OpenClaw Pattern Page Plan Recipe',
+		'npcink-abilities-toolkit/build-pattern-page-plan',
+		'pattern_page_plan',
+		'npcink-abilities-toolkit/create-draft',
+		'npcink-abilities-toolkit/update-post-blocks',
+		'POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan',
+		'POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute',
+		'pattern_renderer_owner=npcink-abilities-toolkit',
+		'core_proxy_execute=false',
+		'commit_execution=false',
+		'direct_wordpress_write=false',
+		'Adapter must not accept arbitrary CSS',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $pattern_page_recipe, $required ), 'Pattern page plan recipe contains required text: ' . $required );
 }
 
 $image_candidate_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-image-candidate-adoption-plan-recipe.md' );

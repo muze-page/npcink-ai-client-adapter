@@ -119,6 +119,7 @@ Run this order for a local acceptance pass:
    - `openclaw_recipes.article_draft_plan`
    - `openclaw_recipes.article_batch_draft_plan`
    - `openclaw_recipes.article_media_batch_plan`
+   - `openclaw_recipes.pattern_page_plan`
    - `openclaw_recipes.content_discoverability_suggestions`
    - `openclaw_recipes.ai_article_draft_with_discoverability`
    - `openclaw_recipes.media_derivative_cloud`

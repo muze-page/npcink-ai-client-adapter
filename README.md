@@ -552,6 +552,7 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/build-media-reference-repair-plan`, or
 	   `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`, or
 	   `npcink-abilities-toolkit/build-media-rename-plan`, or
+	   `npcink-abilities-toolkit/build-pattern-page-plan`, or
 	   `npcink-toolbox/build-article-write-plan`, or
 	   `npcink-toolbox/build-article-batch-write-plan`, or
 	   `npcink-toolbox/build-article-media-batch-write-plan`, or
@@ -586,6 +587,14 @@ Plan-to-proposal flow:
 	   playbook is exposed as `openclaw_recipes.article_media_batch_plan` from
 	   `GET /help`. See
 	   [OpenClaw Article Media Batch Plan Recipe](docs/openclaw-article-media-batch-plan-recipe.md).
+	   For reviewed Gutenberg page pattern drafts, use
+	   `npcink-abilities-toolkit/build-pattern-page-plan`; Core creates one
+	   batch proposal and Adapter later executes only approved
+	   `npcink-abilities-toolkit/create-draft` and
+	   `npcink-abilities-toolkit/update-post-blocks` actions. The machine-readable
+	   playbook is exposed as `openclaw_recipes.pattern_page_plan` from
+	   `GET /help`. See
+	   [OpenClaw Pattern Page Plan Recipe](docs/openclaw-pattern-page-plan-recipe.md).
 	   For adopting one reviewed `image_candidate.v1` into the media library,
 	   call `npcink-toolbox/build-image-candidate-adoption-plan`; Core
 	   creates one batch proposal and Adapter later executes only approved

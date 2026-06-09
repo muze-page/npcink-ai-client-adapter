@@ -134,6 +134,7 @@ direct reads:
 - `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`
 - `npcink-abilities-toolkit/build-media-optimization-plan`
 - `npcink-abilities-toolkit/build-media-rename-plan`
+- `npcink-abilities-toolkit/build-pattern-page-plan`
 - `npcink-toolbox/build-article-write-plan`
 - `npcink-toolbox/build-article-batch-write-plan`
 - `npcink-toolbox/build-article-media-batch-write-plan`
@@ -242,6 +243,23 @@ reviewed article drafts with selected image-source candidates:
 The article media batch recipe must preserve image-source attribution and keep
 `batch_approval=true`, `partial_success=false`, `core_proxy_execute=false`,
 `commit_execution=false`, `draft_only=true`, and `publish_allowed=false`.
+
+`GET /help` also includes `openclaw_recipes.pattern_page_plan` for reviewed
+Gutenberg page pattern drafts:
+
+- entrypoint ability:
+  `npcink-abilities-toolkit/build-pattern-page-plan`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write abilities: `npcink-abilities-toolkit/create-draft` and
+  `npcink-abilities-toolkit/update-post-blocks`
+- artifact type: `pattern_page_plan`
+- proposal mode: `batch`
+
+The Toolkit owns pattern registry, whitelisted classes, and Gutenberg block
+rendering. Adapter must only forward the plan to Core and execute allowlisted
+write actions after Core approval and commit-preflight.
 
 `GET /help` also includes `openclaw_recipes.image_candidate_adoption_plan` for
 reviewed adoption of one image candidate into the media library:
