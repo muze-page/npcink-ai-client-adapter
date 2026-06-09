@@ -2403,6 +2403,98 @@ foreach ( $multi_media_optimization_expected_artifacts as $multi_media_optimizat
 	maa_adapter_smoke_assert( $multi_media_optimization_artifact_contents === (string) file_get_contents( $multi_media_optimization_after_path ), 'adapter multi media optimization writes expected artifact bytes for each attachment' );
 }
 
+$checksum_mismatch_attachment_id = maa_adapter_smoke_create_real_media_attachment( 'adapter-checksum-mismatch-' );
+$maa_adapter_smoke_cleanup_attachment_ids[] = $checksum_mismatch_attachment_id;
+$checksum_mismatch_before_relative = (string) get_post_meta( $checksum_mismatch_attachment_id, '_wp_attached_file', true );
+$checksum_mismatch_payload = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
+	maa_adapter_smoke_media_optimization_payload_params(
+		$checksum_mismatch_attachment_id,
+		'adapter-smoke-checksum-mismatch-' . substr( wp_generate_uuid4(), 0, 8 ),
+		'adapter-smoke-checksum-mismatch-actual-bytes',
+		true
+	)
+);
+$checksum_mismatch_from_plan = is_array( $checksum_mismatch_payload['from_plan_request'] ?? null ) ? $checksum_mismatch_payload['from_plan_request'] : array();
+$checksum_mismatch_plan = is_array( $checksum_mismatch_from_plan['plan'] ?? null ) ? $checksum_mismatch_from_plan['plan'] : array();
+$checksum_mismatch_plan['write_actions'][1]['input']['derivative_artifact']['sha256'] = str_repeat( '0', 64 );
+$checksum_mismatch_plan['write_actions'][1]['input']['derivative_artifact']['checksum'] = 'sha256:' . str_repeat( '0', 64 );
+$checksum_mismatch_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'npcink-abilities-toolkit/build-media-optimization-plan',
+		'plan'               => $checksum_mismatch_plan,
+		'plan_input'         => array(
+			'attachment_id' => $checksum_mismatch_attachment_id,
+			'source_type'   => 'ai_generated',
+		),
+		'adapter_request_id' => 'adapter-media-checksum-mismatch-request',
+		'correlation_id'     => 'adapter-media-checksum-mismatch-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-media-checksum-mismatch-smoke',
+		),
+	)
+);
+$checksum_mismatch_proposal = is_array( $checksum_mismatch_bridge['proposals'][0] ?? null ) ? $checksum_mismatch_bridge['proposals'][0] : array();
+$checksum_mismatch_proposal_id = (string) ( $checksum_mismatch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $checksum_mismatch_proposal_id;
+maa_adapter_smoke_assert( '' !== $checksum_mismatch_proposal_id, 'adapter checksum mismatch media optimization creates a Core batch proposal' );
+maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-governance-core/v1/proposals/' . rawurlencode( $checksum_mismatch_proposal_id ) . '/approve',
+	array(
+		'note' => 'Approve adapter checksum mismatch media optimization smoke.',
+	)
+);
+$checksum_mismatch_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $checksum_mismatch_proposal_id ) . '/execute' );
+maa_adapter_smoke_assert( 409 === (int) $checksum_mismatch_execute['status'], 'adapter media optimization checksum mismatch fails during execution' );
+$checksum_mismatch_error = is_array( $checksum_mismatch_execute['data'] ) ? $checksum_mismatch_execute['data'] : array();
+$checksum_mismatch_error_data = is_array( $checksum_mismatch_error['data'] ?? null ) ? $checksum_mismatch_error['data'] : array();
+maa_adapter_smoke_assert( 'npcink_abilities_toolkit_cloud_artifact_checksum_mismatch' === (string) ( $checksum_mismatch_error['code'] ?? '' ), 'adapter media optimization checksum mismatch returns stable ability error code' );
+maa_adapter_smoke_assert( (string) ( $checksum_mismatch_plan['write_actions'][1]['action_id'] ?? '' ) === (string) ( $checksum_mismatch_error_data['action_id'] ?? '' ), 'adapter media optimization checksum mismatch identifies failed action id' );
+maa_adapter_smoke_assert( 1 === count( (array) ( $checksum_mismatch_error_data['executed_results'] ?? array() ) ), 'adapter media optimization checksum mismatch reports already executed metadata action' );
+maa_adapter_smoke_assert( 'failed' === (string) ( $checksum_mismatch_error_data['execution_record']['status'] ?? '' ), 'adapter media optimization checksum mismatch stores failed execution record' );
+maa_adapter_smoke_assert( 1 === (int) ( $checksum_mismatch_error_data['execution_record']['executed_count'] ?? 0 ), 'adapter media optimization checksum mismatch execution record counts partial success' );
+maa_adapter_smoke_assert( 1 === (int) ( $checksum_mismatch_error_data['execution_record']['failed_count'] ?? 0 ), 'adapter media optimization checksum mismatch execution record counts failure' );
+maa_adapter_smoke_assert( $checksum_mismatch_before_relative === (string) get_post_meta( $checksum_mismatch_attachment_id, '_wp_attached_file', true ), 'adapter media optimization checksum mismatch leaves attachment file pointer unchanged' );
+
+$expected_file_mismatch_attachment_id = maa_adapter_smoke_create_real_media_attachment( 'adapter-current-file-mismatch-' );
+$maa_adapter_smoke_cleanup_attachment_ids[] = $expected_file_mismatch_attachment_id;
+$expected_file_mismatch_before_relative = (string) get_post_meta( $expected_file_mismatch_attachment_id, '_wp_attached_file', true );
+$expected_file_mismatch_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/rename-media-file',
+		'title'      => 'Adapter expected current file mismatch smoke',
+		'summary'    => 'Adapter must surface current file mismatch failures from the media executor.',
+		'input'      => array(
+			'attachment_id'                  => $expected_file_mismatch_attachment_id,
+			'target_file_name'               => 'adapter-current-file-mismatch.webp',
+			'expected_current_relative_file' => '2026/06/definitely-not-current-file.png',
+			'expected_current_mime_type'     => 'image/png',
+			'conflict_mode'                  => 'fail',
+			'dry_run'                        => true,
+			'commit'                         => false,
+		),
+		'preview'    => array(
+			'action' => 'rename_media_file_expected_current_file_mismatch',
+		),
+	)
+);
+$expected_file_mismatch_proposal_id = (string) ( $expected_file_mismatch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $expected_file_mismatch_proposal_id;
+maa_adapter_smoke_assert( '' !== $expected_file_mismatch_proposal_id, 'adapter expected current file mismatch creates a Core proposal' );
+$expected_file_mismatch_execute = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $expected_file_mismatch_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $expected_file_mismatch_execute['status'], 'adapter expected current file mismatch fails during execution' );
+$expected_file_mismatch_error = is_array( $expected_file_mismatch_execute['data'] ) ? $expected_file_mismatch_execute['data'] : array();
+$expected_file_mismatch_error_data = is_array( $expected_file_mismatch_error['data'] ?? null ) ? $expected_file_mismatch_error['data'] : array();
+maa_adapter_smoke_assert( 'npcink_abilities_toolkit_current_file_mismatch' === (string) ( $expected_file_mismatch_error['code'] ?? '' ), 'adapter expected current file mismatch returns stable ability error code' );
+maa_adapter_smoke_assert( 'failed' === (string) ( $expected_file_mismatch_error_data['execution_record']['status'] ?? '' ), 'adapter expected current file mismatch stores failed execution record' );
+maa_adapter_smoke_assert( $expected_file_mismatch_before_relative === (string) get_post_meta( $expected_file_mismatch_attachment_id, '_wp_attached_file', true ), 'adapter expected current file mismatch leaves attachment file pointer unchanged' );
+
 $site_summary = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/site-summary' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-info' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-info read ability' );
 maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-summary returns a result object' );
