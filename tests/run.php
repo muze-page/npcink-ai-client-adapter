@@ -709,6 +709,25 @@ foreach (
 ) {
 	maa_adapter_assert( false !== strpos( $connection_page, $required ), 'Connection page contains required text: ' . $required );
 }
+foreach (
+	array(
+		'Adapter effective status',
+		'Blocked reason',
+		'Media readiness',
+		'Execution verification',
+		'View readiness details',
+		'View verification details',
+		'Review summary',
+		'readiness_summary_text',
+		'verification_summary_text',
+		'json_summary',
+		'content_reference_actual_replacement_count',
+		'backup_available',
+		'rollback_available',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $connection_page, $required ), 'Connection page exposes Adapter proposal lookup field: ' . $required );
+}
 $env_password_key       = 'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD=';
 $php_password_variable  = '$password';
 maa_adapter_assert( false === strpos( $connection_page, $env_password_key . "' . " . $php_password_variable ), 'Connection page env text does not interpolate the real secret.' );

@@ -748,12 +748,25 @@ final class Connection_Page {
 		}
 
 		$proposal = is_array( $result ) ? $result : array();
-		$status   = sanitize_key( (string) ( $proposal['status'] ?? '' ) );
-		$ability  = (string) ( $proposal['ability_id'] ?? '' );
-		$title    = (string) ( $proposal['title'] ?? '' );
-		$created  = (string) ( $proposal['created_at'] ?? '' );
-		$updated  = (string) ( $proposal['updated_at'] ?? '' );
-		$timeline = is_array( $proposal['audit_timeline'] ?? null ) ? $proposal['audit_timeline'] : array();
+		$status                  = sanitize_key( (string) ( $proposal['status'] ?? '' ) );
+		$ability                 = (string) ( $proposal['ability_id'] ?? '' );
+		$title                   = (string) ( $proposal['title'] ?? '' );
+		$created                 = (string) ( $proposal['created_at'] ?? '' );
+		$updated                 = (string) ( $proposal['updated_at'] ?? '' );
+		$timeline                = is_array( $proposal['audit_timeline'] ?? null ) ? $proposal['audit_timeline'] : array();
+		$effective_status        = sanitize_key( (string) ( $proposal['effective_status'] ?? '' ) );
+		$executable              = array_key_exists( 'executable', $proposal ) ? (bool) $proposal['executable'] : null;
+		$non_executable_reason   = sanitize_key( (string) ( $proposal['non_executable_reason'] ?? '' ) );
+		$preflight_status        = sanitize_key( (string) ( $proposal['preflight_status'] ?? '' ) );
+		$review_summary          = is_array( $proposal['review_summary_lines'] ?? null ) ? $proposal['review_summary_lines'] : array();
+		$adapter_status          = is_array( $proposal['adapter_status'] ?? null ) ? $proposal['adapter_status'] : array();
+		$execution_record        = is_array( $adapter_status['execution_record'] ?? null ) ? $adapter_status['execution_record'] : array();
+		$verification            = is_array( $execution_record['verification'] ?? null ) ? $execution_record['verification'] : array();
+		$verification_aggregates = is_array( $verification['aggregates'] ?? null ) ? $verification['aggregates'] : array();
+		$readiness               = is_array( $proposal['media_optimization_readiness'] ?? null ) ? $proposal['media_optimization_readiness'] : array();
+		if ( empty( $review_summary ) && is_array( $proposal['review_summary'] ?? null ) ) {
+			$review_summary = $proposal['review_summary'];
+		}
 		$core_url = add_query_arg(
 			array(
 				'page'        => 'npcink-governance-core',
@@ -775,6 +788,30 @@ final class Connection_Page {
 					<th scope="row"><?php echo esc_html__( 'Status', 'npcink-openclaw-adapter' ); ?></th>
 					<td><span class="maa-status maa-status-<?php echo esc_attr( $this->proposal_status_level( $status ) ); ?>"><?php echo esc_html( '' !== $status ? $status : __( 'unknown', 'npcink-openclaw-adapter' ) ); ?></span></td>
 				</tr>
+				<?php if ( '' !== $effective_status ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Adapter effective status', 'npcink-openclaw-adapter' ); ?></th>
+						<td><span class="maa-status maa-status-<?php echo esc_attr( $this->proposal_status_level( $effective_status ) ); ?>"><?php echo esc_html( $effective_status ); ?></span></td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( null !== $executable ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Executable', 'npcink-openclaw-adapter' ); ?></th>
+						<td><?php echo esc_html( $this->boolean_label( $executable ) ); ?></td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( '' !== $non_executable_reason ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Blocked reason', 'npcink-openclaw-adapter' ); ?></th>
+						<td><code><?php echo esc_html( $non_executable_reason ); ?></code></td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( '' !== $preflight_status ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Preflight', 'npcink-openclaw-adapter' ); ?></th>
+						<td><code><?php echo esc_html( $preflight_status ); ?></code></td>
+					</tr>
+				<?php endif; ?>
 				<?php if ( '' !== $title ) : ?>
 					<tr>
 						<th scope="row"><?php echo esc_html__( 'Title', 'npcink-openclaw-adapter' ); ?></th>
@@ -804,8 +841,44 @@ final class Connection_Page {
 						?>
 					</td>
 				</tr>
+				<?php if ( ! empty( $readiness ) ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Media readiness', 'npcink-openclaw-adapter' ); ?></th>
+						<td>
+							<?php echo esc_html( $this->readiness_summary_text( $readiness ) ); ?>
+							<details class="maa-inline-json">
+								<summary><?php echo esc_html__( 'View readiness details', 'npcink-openclaw-adapter' ); ?></summary>
+								<pre><?php echo esc_html( $this->json_summary( $readiness ) ); ?></pre>
+							</details>
+						</td>
+					</tr>
+				<?php endif; ?>
+				<?php if ( ! empty( $verification ) ) : ?>
+					<tr>
+						<th scope="row"><?php echo esc_html__( 'Execution verification', 'npcink-openclaw-adapter' ); ?></th>
+						<td>
+							<?php echo esc_html( $this->verification_summary_text( $verification, $verification_aggregates ) ); ?>
+							<details class="maa-inline-json">
+								<summary><?php echo esc_html__( 'View verification details', 'npcink-openclaw-adapter' ); ?></summary>
+								<pre><?php echo esc_html( $this->json_summary( $verification ) ); ?></pre>
+							</details>
+						</td>
+					</tr>
+				<?php endif; ?>
 			</tbody>
 		</table>
+		<?php if ( ! empty( $review_summary ) ) : ?>
+			<div class="maa-proposal-summary">
+				<h3><?php echo esc_html__( 'Review summary', 'npcink-openclaw-adapter' ); ?></h3>
+				<ul>
+					<?php foreach ( $review_summary as $line ) : ?>
+						<?php if ( is_scalar( $line ) && '' !== trim( (string) $line ) ) : ?>
+							<li><?php echo esc_html( trim( (string) $line ) ); ?></li>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+		<?php endif; ?>
 		<div class="maa-action-row">
 			<a class="button button-primary" href="<?php echo esc_url( $core_url ); ?>"><?php echo esc_html__( 'Open in Core', 'npcink-openclaw-adapter' ); ?></a>
 			<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-proposal-status-url"><?php echo esc_html__( 'Copy status URL', 'npcink-openclaw-adapter' ); ?></button>
@@ -824,11 +897,11 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function proposal_status_level( string $status ): string {
-		if ( 'approved' === $status ) {
+		if ( in_array( $status, array( 'approved', 'executed' ), true ) ) {
 			return 'ok';
 		}
 
-		if ( in_array( $status, array( 'rejected', 'expired', 'archived' ), true ) ) {
+		if ( in_array( $status, array( 'rejected', 'expired', 'archived', 'execution_failed' ), true ) ) {
 			return 'error';
 		}
 
@@ -859,6 +932,77 @@ final class Connection_Page {
 		}
 
 		return __( 'Next step: use Core as the approval truth and Adapter as the OpenClaw status and execution channel.', 'npcink-openclaw-adapter' );
+	}
+
+	/**
+	 * Formats a yes/no label.
+	 *
+	 * @param bool $value Boolean value.
+	 * @return string
+	 */
+	private function boolean_label( bool $value ): string {
+		return $value ? __( 'Yes', 'npcink-openclaw-adapter' ) : __( 'No', 'npcink-openclaw-adapter' );
+	}
+
+	/**
+	 * Builds a compact readiness summary for the proposal lookup UI.
+	 *
+	 * @param array<string,mixed> $readiness Readiness payload.
+	 * @return string
+	 */
+	private function readiness_summary_text( array $readiness ): string {
+		$ready        = array_key_exists( 'ready', $readiness ) ? (bool) $readiness['ready'] : null;
+		$first_failed = sanitize_key( (string) ( $readiness['first_failed_check'] ?? '' ) );
+		$checks       = is_array( $readiness['checks'] ?? null ) ? count( $readiness['checks'] ) : 0;
+
+		if ( false === $ready && '' !== $first_failed ) {
+			/* translators: 1: failed readiness check, 2: number of checks. */
+			return sprintf( __( 'Blocked at %1$s across %2$d checks.', 'npcink-openclaw-adapter' ), $first_failed, $checks );
+		}
+
+		if ( true === $ready ) {
+			/* translators: %d: number of checks. */
+			return sprintf( __( 'Ready across %d checks.', 'npcink-openclaw-adapter' ), $checks );
+		}
+
+		/* translators: %d: number of checks. */
+		return sprintf( __( 'Readiness details available across %d checks.', 'npcink-openclaw-adapter' ), $checks );
+	}
+
+	/**
+	 * Builds a compact verification summary for the proposal lookup UI.
+	 *
+	 * @param array<string,mixed> $verification Verification payload.
+	 * @param array<string,mixed> $aggregates   Verification aggregates.
+	 * @return string
+	 */
+	private function verification_summary_text( array $verification, array $aggregates ): string {
+		$status              = sanitize_key( (string) ( $verification['status'] ?? '' ) );
+		$item_count          = absint( $verification['item_count'] ?? 0 );
+		$backup_available    = (bool) ( $aggregates['backup_available'] ?? false );
+		$rollback_available  = (bool) ( $aggregates['rollback_available'] ?? false );
+		$actual_replacements = absint( $aggregates['content_reference_actual_replacement_count'] ?? 0 );
+
+		return sprintf(
+			/* translators: 1: verification status, 2: item count, 3: backup yes/no, 4: rollback yes/no, 5: content replacement count. */
+			__( 'Status %1$s, %2$d items, backup %3$s, rollback %4$s, content replacements %5$d.', 'npcink-openclaw-adapter' ),
+			'' !== $status ? $status : __( 'unknown', 'npcink-openclaw-adapter' ),
+			$item_count,
+			$this->boolean_label( $backup_available ),
+			$this->boolean_label( $rollback_available ),
+			$actual_replacements
+		);
+	}
+
+	/**
+	 * Encodes a small public-safe summary as pretty JSON.
+	 *
+	 * @param array<string,mixed> $value Summary value.
+	 * @return string
+	 */
+	private function json_summary( array $value ): string {
+		$json = wp_json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+		return is_string( $json ) ? $json : '{}';
 	}
 
 	/**

@@ -240,6 +240,27 @@
 .npcink-openclaw-adapter-connection .maa-status-table th {
 	width: 160px;
 }
+.npcink-openclaw-adapter-connection .maa-inline-json {
+	margin-top: 8px;
+}
+.npcink-openclaw-adapter-connection .maa-inline-json > summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+.npcink-openclaw-adapter-connection .maa-proposal-summary {
+	margin-top: 14px;
+	padding: 12px;
+	border: 1px solid #dcdcde;
+	background: #f6f7f7;
+}
+.npcink-openclaw-adapter-connection .maa-proposal-summary h3 {
+	margin-top: 0;
+}
+.npcink-openclaw-adapter-connection .maa-proposal-summary ul {
+	margin: 0;
+	padding-left: 18px;
+	list-style: disc;
+}
 .npcink-openclaw-adapter-connection .maa-action-row {
 	display: flex;
 	flex-wrap: wrap;
