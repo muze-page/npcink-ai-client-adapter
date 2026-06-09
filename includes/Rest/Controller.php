@@ -305,18 +305,34 @@ final class Controller {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/replace-media-file' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'mode', 'derivative_relative_file', 'replacement_id', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'allowed_input_fields'  => array( 'attachment_id', 'derivative_relative_file', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'required_int_fields'   => array(
+					'attachment_id' => array(
+						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
+						'message' => __( 'replace-media-file execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
+			'npcink-abilities-toolkit/restore-media-backup' => array(
+				'allowed_input_fields'  => array( 'attachment_id', 'backup_id', 'expected_current_relative_file', 'expected_current_mime_type', 'target_conflict_mode', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
-					'mode' => array(
-						'allowed' => array( 'replace', 'rollback' ),
-						'code'    => 'npcink_openclaw_adapter_media_replace_mode_invalid',
-						'message' => __( 'replace-media-file mode must be replace or rollback.', 'npcink-openclaw-adapter' ),
+					'target_conflict_mode' => array(
+						'allowed' => array( 'fail', 'overwrite' ),
+						'code'    => 'npcink_openclaw_adapter_media_restore_conflict_mode_invalid',
+						'message' => __( 'restore-media-backup target_conflict_mode must be fail or overwrite.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
-						'message' => __( 'replace-media-file execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
+						'message' => __( 'restore-media-backup execution input must include attachment_id.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'required_text_fields'  => array(
+					'backup_id' => array(
+						'code'    => 'npcink_openclaw_adapter_backup_id_required',
+						'message' => __( 'restore-media-backup execution input must include backup_id.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => false,

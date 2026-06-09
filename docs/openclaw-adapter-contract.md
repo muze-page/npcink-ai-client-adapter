@@ -345,6 +345,7 @@ For a pending `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/c
 `npcink-abilities-toolkit/patch-setting-value`,
 `npcink-abilities-toolkit/optimize-media-asset`,
 `npcink-abilities-toolkit/replace-media-file`,
+`npcink-abilities-toolkit/restore-media-backup`,
 `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
 `npcink-abilities-toolkit/rename-media-file`,
 `npcink-abilities-toolkit/delete-media-permanently`,
@@ -373,9 +374,10 @@ media object; `patch-post-content` requires `post_id` and bounded exact replacem
 `mode=replace|append`; `patch-setting-value` requires `target_type`, `target_name`, and
 bounded exact replacement `operations`; `optimize-media-asset` requires `attachment_id`, may accept bounded
 format, width, quality, and suffix inputs, and must preserve the original file;
-`replace-media-file` requires `attachment_id`, uses either a recorded
-`derivative_relative_file` for replace mode or a `replacement_id` for rollback
-mode, and records backup/rollback metadata;
+`replace-media-file` requires `attachment_id`, uses a recorded
+`derivative_relative_file`, and records backup metadata for rollback;
+`restore-media-backup` requires `attachment_id` and `backup_id`, restores a
+recorded backup after Core approval, and records rollback verification;
 `adopt-cloud-media-derivative` requires `attachment_id` and
 `derivative_artifact` evidence, may accept a reviewed `file_name` for the
 adopted derivative, may carry reviewed inline media reference repair post/count
@@ -422,6 +424,7 @@ The current allowlist is intentionally narrow:
 - `npcink-abilities-toolkit/patch-setting-value`
 - `npcink-abilities-toolkit/optimize-media-asset`
 - `npcink-abilities-toolkit/replace-media-file`
+- `npcink-abilities-toolkit/restore-media-backup`
 - `npcink-abilities-toolkit/adopt-cloud-media-derivative`
 - `npcink-abilities-toolkit/rename-media-file`
 - `npcink-abilities-toolkit/delete-media-permanently`
@@ -929,7 +932,8 @@ OpenClaw must treat Core as the only proposal and approval truth:
    `npcink-abilities-toolkit/update-post-blocks`,
    `npcink-abilities-toolkit/patch-setting-value`,
    `npcink-abilities-toolkit/optimize-media-asset`,
-   `npcink-abilities-toolkit/replace-media-file`, `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
+   `npcink-abilities-toolkit/replace-media-file`, `npcink-abilities-toolkit/restore-media-backup`,
+   `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
    `npcink-abilities-toolkit/rename-media-file`,
    `npcink-abilities-toolkit/delete-media-permanently`,
    `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`, and

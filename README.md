@@ -41,6 +41,7 @@ when every action targets the current execution allowlist
 `npcink-abilities-toolkit/update-media-details`,
 `npcink-abilities-toolkit/optimize-media-asset`,
 `npcink-abilities-toolkit/replace-media-file`,
+`npcink-abilities-toolkit/restore-media-backup`,
 `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
 `npcink-abilities-toolkit/rename-media-file`,
 `npcink-abilities-toolkit/delete-media-permanently`,
@@ -298,8 +299,10 @@ governed Core proposal for `npcink-abilities-toolkit/adopt-cloud-media-derivativ
 execute only through Adapter's Core-approved allowlisted path. To switch the
 attachment main file to an already recorded local derivative, create a governed
 Core proposal for `npcink-abilities-toolkit/replace-media-file`; both write abilities record
-backup and rollback metadata. Adapter does not accept arbitrary replacement
-URLs or replace files outside Core-approved execution.
+backup metadata for later restore. To roll back a recorded media replacement,
+create a governed Core proposal for `npcink-abilities-toolkit/restore-media-backup`
+with `attachment_id` and `backup_id`. Adapter does not accept arbitrary
+replacement URLs or replace files outside Core-approved execution.
 
 `GET /proposals/{proposal_id}` proxies the Core proposal detail and appends
 Adapter-owned derived fields: `adapter_status`, `execution_status`,
@@ -645,6 +648,7 @@ Proposal-required write flow:
 	   `npcink-abilities-toolkit/update-media-details`,
 	   `npcink-abilities-toolkit/optimize-media-asset`,
 	   `npcink-abilities-toolkit/replace-media-file`,
+	   `npcink-abilities-toolkit/restore-media-backup`,
 	   `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
 	   `npcink-abilities-toolkit/rename-media-file`,
 	   `npcink-abilities-toolkit/delete-media-permanently`, `npcink-abilities-toolkit/reply-comment`,
@@ -771,6 +775,7 @@ Write or destructive abilities:
 	   `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
 	   `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/optimize-media-asset`,
 	   `npcink-abilities-toolkit/replace-media-file`,
+	   `npcink-abilities-toolkit/restore-media-backup`,
 	   `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
 	   `npcink-abilities-toolkit/rename-media-file`,
 	   `npcink-abilities-toolkit/delete-media-permanently`,

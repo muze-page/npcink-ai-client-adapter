@@ -278,7 +278,8 @@ Run this order for a local acceptance pass:
 	`npcink-abilities-toolkit/patch-post-content`,
 	`npcink-abilities-toolkit/update-post-blocks`,
 	`npcink-abilities-toolkit/patch-setting-value`,
-    `npcink-abilities-toolkit/replace-media-file`, `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
+    `npcink-abilities-toolkit/replace-media-file`, `npcink-abilities-toolkit/restore-media-backup`,
+    `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
     `npcink-abilities-toolkit/rename-media-file`, `npcink-abilities-toolkit/delete-media-permanently`,
     `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`, or
     `npcink-abilities-toolkit/approve-comment` path and call

@@ -459,6 +459,7 @@ foreach (
 		'npcink-abilities-toolkit/inspect-media-asset',
 		'npcink-abilities-toolkit/optimize-media-asset',
 		'npcink-abilities-toolkit/replace-media-file',
+		'npcink-abilities-toolkit/restore-media-backup',
 		'npcink-abilities-toolkit/adopt-cloud-media-derivative',
 		'npcink-abilities-toolkit/rename-media-file',
 		'npcink-abilities-toolkit/patch-post-content',
@@ -474,6 +475,9 @@ foreach (
 		'patch-setting-value target_type must be option or theme_mod.',
 		'npcink_openclaw_adapter_derivative_artifact_required',
 		'derivative_artifact',
+		'npcink_openclaw_adapter_backup_id_required',
+		'restore-media-backup execution input must include backup_id.',
+		'restore-media-backup target_conflict_mode must be fail or overwrite.',
 		"'url', 'title', 'file_name'",
 		"'expected_derivative_mime_type', 'file_name', 'expected_content_reference_post_ids'",
 		'expected_content_reference_post_ids',
@@ -504,9 +508,8 @@ foreach (
 			'upload-media-from-url execution input must include url.',
 			'set-post-featured-image execution input must include post_id.',
 			'set-post-featured-image execution input must include attachment_id or media_url.',
-		'npcink_openclaw_adapter_media_replace_mode_invalid',
 		'derivative_relative_file',
-		'replacement_id',
+		'backup_id',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $controller, $required ), 'Controller contains required text: ' . $required );
@@ -521,6 +524,7 @@ maa_adapter_assert( false === strpos( $controller, 'reject_proposal' ), 'Adapter
 maa_adapter_assert( false === strpos( $controller, 'proposals:approve' ), 'Adapter does not request proposal approval scope.' );
 maa_adapter_assert( false === strpos( $controller, 'proposals:reject' ), 'Adapter does not request proposal rejection scope.' );
 maa_adapter_assert( false === strpos( $controller, "'replace_original'" ), 'Adapter optimize-media-asset profile does not allow original replacement.' );
+maa_adapter_assert( false === strpos( $controller, "'mode', 'derivative_relative_file'" ), 'Adapter replace-media-file profile does not allow legacy restore modes.' );
 maa_adapter_assert( false === strpos( $controller, "'replacement_url'" ), 'Adapter replace-media-file profile does not allow external replacement URLs.' );
 $safe_observability = substr( $controller, (int) strpos( $controller, 'private function safe_observability_context' ) );
 foreach ( array( "'input'", "'plan'", "'preview'", "'response'", "'upstream_data'", "'authorization'", "'token'", "'secret'", "'prompt'", "'content'" ) as $forbidden ) {
@@ -634,7 +638,7 @@ foreach (
 		'GET /proposals/{proposal_id}',
 		'approval_proxy_enabled=false',
 		'approve-and-execute',
-		'Current execution allowlist: npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/update-post-blocks, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, npcink-abilities-toolkit/approve-comment',
+		'Current execution allowlist: npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/update-post-blocks, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/restore-media-backup, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, npcink-abilities-toolkit/approve-comment',
 		'Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true',
 		'for dry-run-only verification, stop at commit-preflight and do not call execute',
 		'Failure code handling',
@@ -849,6 +853,7 @@ foreach (
 		'npcink-abilities-toolkit/delete-term',
 		'npcink-abilities-toolkit/update-media-details',
 		'npcink-abilities-toolkit/optimize-media-asset',
+		'npcink-abilities-toolkit/restore-media-backup',
 		'npcink-abilities-toolkit/replace-media-file',
 		'npcink-abilities-toolkit/adopt-cloud-media-derivative',
 		'npcink-abilities-toolkit/rename-media-file',
@@ -1316,6 +1321,7 @@ foreach (
 		'npcink-abilities-toolkit/delete-term',
 		'npcink-abilities-toolkit/update-media-details',
 		'npcink-abilities-toolkit/optimize-media-asset',
+		'npcink-abilities-toolkit/restore-media-backup',
 		'npcink-abilities-toolkit/replace-media-file',
 		'npcink-abilities-toolkit/adopt-cloud-media-derivative',
 		'npcink-abilities-toolkit/rename-media-file',
@@ -1986,6 +1992,7 @@ foreach (
 		'target_ability_id=npcink-abilities-toolkit/upload-media-from-url',
 		'target_ability_id=npcink-abilities-toolkit/set-post-featured-image',
 		'target_ability_id=npcink-abilities-toolkit/optimize-media-asset',
+		'target_ability_id=npcink-abilities-toolkit/restore-media-backup',
 		'target_ability_id=npcink-abilities-toolkit/replace-media-file',
 		'target_ability_id=npcink-abilities-toolkit/adopt-cloud-media-derivative',
 		'target_ability_id=npcink-abilities-toolkit/rename-media-file',

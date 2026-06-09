@@ -421,6 +421,7 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
    `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
    `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/optimize-media-asset`,
    `npcink-abilities-toolkit/replace-media-file`,
+   `npcink-abilities-toolkit/restore-media-backup`,
    `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
    `npcink-abilities-toolkit/rename-media-file`,
    `npcink-abilities-toolkit/delete-media-permanently`,

@@ -1651,6 +1651,10 @@ maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_propos
 maa_adapter_smoke_assert( 'adapter-plan-e2e-correlation' === (string) ( $plan_proposal_detail['caller']['correlation_id'] ?? '' ), 'adapter e2e proposal detail preserves correlation id in caller' );
 
 $media_optimization_attachment_id = maa_adapter_smoke_create_real_media_attachment();
+$media_optimization_original_relative = (string) get_post_meta( $media_optimization_attachment_id, '_wp_attached_file', true );
+$media_optimization_original_uploads  = wp_upload_dir();
+$media_optimization_original_path     = is_array( $media_optimization_original_uploads ) ? trailingslashit( (string) ( $media_optimization_original_uploads['basedir'] ?? '' ) ) . ltrim( $media_optimization_original_relative, '/' ) : '';
+$media_optimization_original_contents = '' !== $media_optimization_original_path && is_readable( $media_optimization_original_path ) ? (string) file_get_contents( $media_optimization_original_path ) : '';
 $media_optimization_artifact_id = 'adapter-smoke-webp-artifact-' . substr( wp_generate_uuid4(), 0, 8 );
 $media_optimization_artifact_contents = 'adapter-smoke-webp-derivative-bytes';
 $media_optimization_missing_details_payload = maa_adapter_smoke_rest(
@@ -1782,6 +1786,58 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_govern
 	maa_adapter_smoke_assert( 'approved' === (string) ( $media_optimization_executed_detail['status'] ?? '' ), 'adapter media optimization detail preserves Core approved status' );
 	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_executed_detail['effective_status'] ?? '' ), 'adapter media optimization detail exposes executed effective status' );
 	maa_adapter_smoke_assert( 'recorded' === (string) ( $media_optimization_executed_detail['adapter_status']['execution_record']['verification']['status'] ?? '' ), 'adapter media optimization detail exposes persisted verification summary' );
+	$media_optimization_replacement_id = '';
+	foreach ( (array) ( $media_optimization_execute['results'] ?? array() ) as $media_optimization_result ) {
+		$result_payload = is_array( $media_optimization_result['result'] ?? null ) ? $media_optimization_result['result'] : array();
+		if ( 'npcink-abilities-toolkit/adopt-cloud-media-derivative' === (string) ( $media_optimization_result['target_ability_id'] ?? '' ) ) {
+			$media_optimization_replacement_id = (string) ( $result_payload['replacement_id'] ?? '' );
+			break;
+		}
+	}
+	maa_adapter_smoke_assert( '' !== $media_optimization_replacement_id, 'adapter media optimization execution returns replacement id for restore' );
+	$media_restore_proposal = maa_adapter_smoke_rest(
+		'POST',
+		'/npcink-openclaw-adapter/v1/proposals',
+		array(
+			'ability_id' => 'npcink-abilities-toolkit/restore-media-backup',
+			'title'      => 'Adapter restore media backup smoke',
+			'summary'    => 'Restore the media optimization smoke fixture from its recorded backup.',
+			'input'      => array(
+				'attachment_id'                  => $media_optimization_attachment_id,
+				'backup_id'                      => $media_optimization_replacement_id,
+				'expected_current_relative_file' => $media_optimization_after_relative,
+				'expected_current_mime_type'     => 'image/webp',
+				'target_conflict_mode'           => 'overwrite',
+				'dry_run'                        => true,
+				'commit'                         => false,
+			),
+			'preview'    => array(
+				'dry_run' => true,
+				'commit'  => false,
+			),
+		)
+	);
+	$media_restore_proposal_id = (string) ( $media_restore_proposal['proposal_id'] ?? '' );
+	$maa_adapter_smoke_cleanup_proposal_ids[] = $media_restore_proposal_id;
+	maa_adapter_smoke_assert( '' !== $media_restore_proposal_id, 'adapter creates restore-media-backup proposal for media rollback smoke' );
+	$media_restore_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $media_restore_proposal_id ) . '/approve-and-execute' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_restore_execute['success'] ?? false ), 'adapter restore-media-backup approve-and-execute succeeds' );
+	maa_adapter_smoke_assert( 'npcink-abilities-toolkit/restore-media-backup' === (string) ( $media_restore_execute['ability_id'] ?? '' ), 'adapter restore execution response carries restore ability id' );
+	$media_restore_execution = is_array( $media_restore_execute['execution'] ?? null ) ? $media_restore_execute['execution'] : array();
+	$media_restore_result = is_array( $media_restore_execution['result'] ?? null ) ? $media_restore_execution['result'] : array();
+	maa_adapter_smoke_assert( true === (bool) ( $media_restore_result['restored'] ?? false ), 'adapter restore-media-backup ability reports restored' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_restore_result['rolled_back'] ?? false ), 'adapter restore-media-backup ability reports rolled back' );
+	$media_restore_record = is_array( $media_restore_execute['execution_record'] ?? null ) ? $media_restore_execute['execution_record'] : array();
+	$media_restore_verification = is_array( $media_restore_record['verification'] ?? null ) ? $media_restore_record['verification'] : array();
+	maa_adapter_smoke_assert( 'recorded' === (string) ( $media_restore_verification['status'] ?? '' ), 'adapter restore execution record persists compact verification' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_restore_verification['aggregates']['backup_available'] ?? false ), 'adapter restore verification confirms current backup availability' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_restore_verification['aggregates']['rollback_available'] ?? false ), 'adapter restore verification confirms rollback availability' );
+	$media_restore_after_relative = (string) get_post_meta( $media_optimization_attachment_id, '_wp_attached_file', true );
+	$media_restore_after_path = is_array( $media_optimization_original_uploads ) ? trailingslashit( (string) ( $media_optimization_original_uploads['basedir'] ?? '' ) ) . ltrim( $media_restore_after_relative, '/' ) : '';
+	maa_adapter_smoke_assert( $media_optimization_original_relative === $media_restore_after_relative, 'adapter restore-media-backup restores original attached file pointer' );
+	maa_adapter_smoke_assert( 'image/png' === (string) get_post_mime_type( $media_optimization_attachment_id ), 'adapter restore-media-backup restores original mime type' );
+	maa_adapter_smoke_assert( '' !== $media_restore_after_path && is_readable( $media_restore_after_path ), 'adapter restore-media-backup writes restored media file' );
+	maa_adapter_smoke_assert( $media_optimization_original_contents === (string) file_get_contents( $media_restore_after_path ), 'adapter restore-media-backup restores original media bytes' );
 }
 
 $site_summary = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/site-summary' );

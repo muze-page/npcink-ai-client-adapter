@@ -62,6 +62,7 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=npcink-abilities-toolkit/set-post-featured-image`
 - `target_ability_id=npcink-abilities-toolkit/optimize-media-asset`
 - `target_ability_id=npcink-abilities-toolkit/replace-media-file`
+- `target_ability_id=npcink-abilities-toolkit/restore-media-backup`
 - `target_ability_id=npcink-abilities-toolkit/adopt-cloud-media-derivative`
 - `target_ability_id=npcink-abilities-toolkit/rename-media-file`
 - `target_ability_id=npcink-abilities-toolkit/delete-media-permanently`
