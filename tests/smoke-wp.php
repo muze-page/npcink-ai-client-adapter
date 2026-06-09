@@ -404,6 +404,127 @@ function &maa_adapter_smoke_fixture_registry(): array {
 }
 
 /**
+ * Returns visual acceptance fixtures created by Gutenberg plan smoke coverage.
+ *
+ * @return array<string,mixed>
+ */
+function &maa_adapter_smoke_visual_acceptance_registry(): array {
+	if ( ! isset( $GLOBALS['maa_adapter_smoke_visual_acceptance_registry'] ) || ! is_array( $GLOBALS['maa_adapter_smoke_visual_acceptance_registry'] ) ) {
+		$GLOBALS['maa_adapter_smoke_visual_acceptance_registry'] = array(
+			'fixtures'       => array(),
+			'post_ids'       => array(),
+			'attachment_ids' => array(),
+		);
+	}
+
+	return $GLOBALS['maa_adapter_smoke_visual_acceptance_registry'];
+}
+
+/**
+ * Whether local smoke should keep visual acceptance fixtures for browser review.
+ *
+ * @return bool
+ */
+function maa_adapter_smoke_keep_visual_acceptance_fixtures(): bool {
+	$value = strtolower( trim( (string) getenv( 'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES' ) ) );
+	return in_array( $value, array( '1', 'true', 'yes' ), true );
+}
+
+/**
+ * Returns canonical viewport targets for browser visual acceptance.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function maa_adapter_smoke_visual_acceptance_viewports(): array {
+	return array(
+		array(
+			'name'   => 'desktop',
+			'width'  => 1440,
+			'height' => 1000,
+		),
+		array(
+			'name'   => 'tablet',
+			'width'  => 768,
+			'height' => 1024,
+		),
+		array(
+			'name'   => 'mobile',
+			'width'  => 390,
+			'height' => 844,
+		),
+	);
+}
+
+/**
+ * Records a created Gutenberg plan fixture for optional browser acceptance.
+ *
+ * @param string              $fixture_type Fixture type.
+ * @param int                 $post_id Created post id.
+ * @param int[]               $attachment_ids Attachment ids needed by the fixture.
+ * @param array<string,mixed> $structure_signals Machine-checked structure signals.
+ * @return array<string,mixed>
+ */
+function maa_adapter_smoke_record_gutenberg_visual_acceptance_fixture( string $fixture_type, int $post_id, array $attachment_ids, array $structure_signals ): array {
+	$fixture = array(
+		'fixture_type'      => sanitize_key( $fixture_type ),
+		'post_id'           => $post_id,
+		'post_type'         => (string) get_post_type( $post_id ),
+		'post_status'       => (string) get_post_status( $post_id ),
+		'attachment_ids'    => array_values( array_unique( array_filter( array_map( 'absint', $attachment_ids ) ) ) ),
+		'front_end_url'     => (string) get_permalink( $post_id ),
+		'block_editor_url'  => (string) get_edit_post_link( $post_id, 'raw' ),
+		'viewports'         => maa_adapter_smoke_visual_acceptance_viewports(),
+		'manual_checks'     => array(
+			'front_end_has_no_horizontal_overflow',
+			'block_editor_has_no_invalid_block_recovery_prompt',
+			'core_blocks_remain_individually_editable',
+			'mobile_layout_wraps_or_stacks_without_clipping',
+		),
+		'structure_signals' => $structure_signals,
+		'fixtures_retained' => maa_adapter_smoke_keep_visual_acceptance_fixtures(),
+	);
+
+	$registry =& maa_adapter_smoke_visual_acceptance_registry();
+	$registry['fixtures'][] = $fixture;
+	$registry['post_ids'][] = $post_id;
+	foreach ( $attachment_ids as $attachment_id ) {
+		$registry['attachment_ids'][] = absint( $attachment_id );
+	}
+
+	return $fixture;
+}
+
+/**
+ * Writes optional browser acceptance fixture metadata to a JSON file.
+ *
+ * @return void
+ */
+function maa_adapter_smoke_export_visual_acceptance_fixtures(): void {
+	$output_path = trim( (string) getenv( 'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT' ) );
+	if ( '' === $output_path ) {
+		return;
+	}
+
+	$registry = maa_adapter_smoke_visual_acceptance_registry();
+	$payload  = array(
+		'generated_at'             => gmdate( 'c' ),
+		'fixtures_retained'        => maa_adapter_smoke_keep_visual_acceptance_fixtures(),
+		'fixture_retention_env'    => 'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
+		'viewports'                => maa_adapter_smoke_visual_acceptance_viewports(),
+		'fixtures'                 => array_values( (array) ( $registry['fixtures'] ?? array() ) ),
+		'cleanup_note'             => maa_adapter_smoke_keep_visual_acceptance_fixtures() ? 'Visual acceptance fixtures were retained for browser review.' : 'Smoke cleanup deletes fixtures unless MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES=1 is set.',
+		'required_browser_checks'  => array(
+			'front_end_has_no_horizontal_overflow',
+			'block_editor_has_no_invalid_block_recovery_prompt',
+			'core_blocks_remain_individually_editable',
+			'mobile_layout_wraps_or_stacks_without_clipping',
+		),
+	);
+	$encoded = wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+	maa_adapter_smoke_assert( is_string( $encoded ) && false !== file_put_contents( $output_path, $encoded ), 'adapter smoke exported Gutenberg visual acceptance fixture manifest' );
+}
+
+/**
  * Registers an attachment fixture for deletion on every exit path.
  *
  * @param int $attachment_id Attachment post id.
@@ -460,6 +581,7 @@ function maa_adapter_smoke_known_media_fixture_leak_ids(): array {
 		'adapter-rename-smoke-',
 		'adapter-rename-dry-target-',
 		'adapter-rename-commit-target-',
+		'adapter-visual-smoke-',
 		'codex-commit-',
 	);
 
@@ -504,7 +626,7 @@ function maa_adapter_smoke_known_media_fixture_file_paths(): array {
 	}
 
 	$paths = array();
-	foreach ( array( 'adapter-rename-*', 'codex-commit-*' ) as $pattern ) {
+	foreach ( array( 'adapter-rename-*', 'adapter-visual-*', 'codex-commit-*' ) as $pattern ) {
 		$paths = array_merge( $paths, (array) glob( $basedir . '/20[0-9][0-9]/*/' . $pattern ) );
 		$paths = array_merge( $paths, (array) glob( $basedir . '/npcink-abilities-toolkit-backups/20[0-9][0-9]/*/' . $pattern ) );
 	}
@@ -513,11 +635,35 @@ function maa_adapter_smoke_known_media_fixture_file_paths(): array {
 }
 
 /**
+ * Returns file paths for retained visual acceptance attachments.
+ *
+ * @return string[]
+ */
+function maa_adapter_smoke_retained_visual_acceptance_file_paths(): array {
+	if ( ! maa_adapter_smoke_keep_visual_acceptance_fixtures() ) {
+		return array();
+	}
+	$visual_acceptance_registry = maa_adapter_smoke_visual_acceptance_registry();
+	$paths = array();
+	foreach ( array_unique( array_filter( array_map( 'absint', (array) ( $visual_acceptance_registry['attachment_ids'] ?? array() ) ) ) ) as $attachment_id ) {
+		$file = get_attached_file( $attachment_id );
+		if ( is_string( $file ) && '' !== $file ) {
+			$paths[] = $file;
+		}
+	}
+	return array_values( array_unique( $paths ) );
+}
+
+/**
  * Asserts no known smoke media fixture remains in the media library or uploads.
  *
  * @return void
  */
 function maa_adapter_smoke_assert_no_media_fixture_leaks(): void {
+	$visual_acceptance_registry = maa_adapter_smoke_visual_acceptance_registry();
+	$allowed_retained_attachment_ids = maa_adapter_smoke_keep_visual_acceptance_fixtures()
+		? array_values( array_unique( array_filter( array_map( 'absint', (array) ( $visual_acceptance_registry['attachment_ids'] ?? array() ) ) ) ) )
+		: array();
 	$leaks = array_values(
 		array_unique(
 			array_merge(
@@ -526,7 +672,13 @@ function maa_adapter_smoke_assert_no_media_fixture_leaks(): void {
 			)
 		)
 	);
+	if ( ! empty( $allowed_retained_attachment_ids ) ) {
+		$leaks = array_values( array_diff( $leaks, $allowed_retained_attachment_ids ) );
+	}
 	$file_paths = maa_adapter_smoke_known_media_fixture_file_paths();
+	if ( ! empty( $allowed_retained_attachment_ids ) ) {
+		$file_paths = array_values( array_diff( $file_paths, maa_adapter_smoke_retained_visual_acceptance_file_paths() ) );
+	}
 
 	maa_adapter_smoke_assert( empty( $leaks ) && empty( $file_paths ), 'adapter smoke leaves no registered or reserved-prefix media fixtures behind' );
 }
@@ -607,6 +759,14 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 		}
 	}
 
+	$visual_acceptance_registry = maa_adapter_smoke_visual_acceptance_registry();
+	$visual_acceptance_attachment_ids = maa_adapter_smoke_keep_visual_acceptance_fixtures()
+		? array_values( array_unique( array_filter( array_map( 'absint', (array) ( $visual_acceptance_registry['attachment_ids'] ?? array() ) ) ) ) )
+		: array();
+	$visual_acceptance_post_ids = maa_adapter_smoke_keep_visual_acceptance_fixtures()
+		? array_values( array_unique( array_filter( array_map( 'absint', (array) ( $visual_acceptance_registry['post_ids'] ?? array() ) ) ) ) )
+		: array();
+
 	$attachment_ids = array_values(
 		array_unique(
 			array_filter(
@@ -618,16 +778,27 @@ function maa_adapter_smoke_cleanup_registered_fixtures(): void {
 			)
 		)
 	);
+	if ( ! empty( $visual_acceptance_attachment_ids ) ) {
+		$attachment_ids = array_values( array_diff( $attachment_ids, $visual_acceptance_attachment_ids ) );
+	}
 	foreach ( $attachment_ids as $cleanup_attachment_id ) {
 		wp_delete_attachment( (int) $cleanup_attachment_id, true );
 	}
+	$retained_visual_acceptance_file_paths = maa_adapter_smoke_retained_visual_acceptance_file_paths();
 	foreach ( maa_adapter_smoke_known_media_fixture_file_paths() as $fixture_file_path ) {
+		if ( in_array( $fixture_file_path, $retained_visual_acceptance_file_paths, true ) ) {
+			continue;
+		}
 		@unlink( $fixture_file_path );
 	}
 	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['comment_ids'] ?? array() ) ) ) ) ) as $cleanup_comment_id ) {
 		wp_delete_comment( (int) $cleanup_comment_id, true );
 	}
-	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['post_ids'] ?? array() ) ) ) ) ) as $cleanup_post_id ) {
+	$cleanup_post_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $registry['post_ids'] ?? array() ) ) ) ) );
+	if ( ! empty( $visual_acceptance_post_ids ) ) {
+		$cleanup_post_ids = array_values( array_diff( $cleanup_post_ids, $visual_acceptance_post_ids ) );
+	}
+	foreach ( $cleanup_post_ids as $cleanup_post_id ) {
 		wp_delete_post( (int) $cleanup_post_id, true );
 	}
 	foreach ( (array) ( $registry['terms'] ?? array() ) as $cleanup_term ) {
@@ -667,11 +838,12 @@ function maa_adapter_smoke_create_media_plan_attachment(): int {
 }
 
 /**
- * Creates a real uploaded PNG attachment for media file rename smoke.
+ * Creates a real uploaded PNG attachment for media and browser smoke checks.
  *
+ * @param string $file_prefix Reserved fixture file prefix.
  * @return int
  */
-function maa_adapter_smoke_create_real_media_attachment(): int {
+function maa_adapter_smoke_create_real_media_attachment( string $file_prefix = 'adapter-rename-smoke-' ): int {
 	$uploads = wp_upload_dir();
 	$basedir = is_array( $uploads ) ? (string) ( $uploads['basedir'] ?? '' ) : '';
 	$baseurl = is_array( $uploads ) ? (string) ( $uploads['baseurl'] ?? '' ) : '';
@@ -681,7 +853,9 @@ function maa_adapter_smoke_create_real_media_attachment(): int {
 	$target_dir = untrailingslashit( $basedir ) . $subdir;
 	maa_adapter_smoke_assert( wp_mkdir_p( $target_dir ), 'adapter smoke created uploads directory for real media fixture' );
 
-	$file_name = wp_unique_filename( $target_dir, 'adapter-rename-smoke-' . substr( wp_generate_uuid4(), 0, 8 ) . '.png' );
+	$file_prefix = preg_replace( '/[^A-Za-z0-9_-]/', '', $file_prefix );
+	$file_prefix = is_string( $file_prefix ) && '' !== $file_prefix ? $file_prefix : 'adapter-rename-smoke-';
+	$file_name = wp_unique_filename( $target_dir, $file_prefix . substr( wp_generate_uuid4(), 0, 8 ) . '.png' );
 	$file_path = trailingslashit( $target_dir ) . $file_name;
 	$bytes     = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', true );
 	maa_adapter_smoke_assert( is_string( $bytes ) && '' !== $bytes, 'adapter smoke decoded real media fixture bytes' );
@@ -963,6 +1137,7 @@ maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-pl
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes Site Knowledge review plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-optimization-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media optimization plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-rename-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media rename plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-block-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article block plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-pattern-page-plan', (array) ( $health['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes pattern page plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approved proposal execution route' );
 maa_adapter_smoke_assert( in_array( 'POST /proposals/{proposal_id}/approve-and-execute', (array) ( $health['approved_proposal_execution_routes'] ?? array() ), true ), 'adapter health exposes approve-and-execute route' );
@@ -977,8 +1152,8 @@ maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/delete-term', (arr
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/update-media-details', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes update-media-details execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/optimize-media-asset', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes optimize-media-asset execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/replace-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes replace-media-file execute allowlist' );
-maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/adopt-cloud-media-derivative', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes adopt-cloud-media-derivative execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/restore-media-backup', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes restore-media-backup execute allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/adopt-cloud-media-derivative', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes adopt-cloud-media-derivative execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/rename-media-file', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes rename-media-file execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/delete-media-permanently', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes delete-media-permanently execute allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/reply-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes reply-comment execute allowlist' );
@@ -1002,6 +1177,7 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/article-writing-pack' ), 'adapter help exposes AI article writing pack shortcut' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article batch plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes Site Knowledge review plan allowlist' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-block-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article block plan allowlist' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-pattern-page-plan', (array) ( $help['allowed_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes pattern page plan allowlist' );
 maa_adapter_smoke_assert( 'npcink-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
@@ -1011,6 +1187,27 @@ maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_b
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-pattern-page-plan' === (string) ( $help['openclaw_recipes']['pattern_page_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes pattern page plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['pattern_page_plan']['guardrails']['pattern_renderer_owner'] ?? '' ), 'adapter help keeps Toolkit as pattern renderer owner' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks pattern page plan as draft-only' );
+maa_adapter_smoke_assert( 'operator_browser_check' === (string) ( $help['openclaw_recipes']['pattern_page_plan']['visual_acceptance']['mode'] ?? '' ), 'adapter help exposes pattern page browser visual acceptance mode' );
+maa_adapter_smoke_assert( 3 === count( (array) ( $help['openclaw_recipes']['pattern_page_plan']['visual_acceptance']['viewports'] ?? array() ) ), 'adapter help exposes pattern page visual acceptance viewport set' );
+maa_adapter_smoke_assert( in_array( 'block_editor_has_no_invalid_block_recovery_prompt', (array) ( $help['openclaw_recipes']['pattern_page_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help exposes pattern page invalid block browser check' );
+maa_adapter_smoke_assert( 'npcink-toolbox/build-content-discoverability-brief' === (string) ( $help['openclaw_recipes']['pattern_page_research_brief']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes pattern page research brief entrypoint ability' );
+maa_adapter_smoke_assert( 'landing_page_research_brief' === (string) ( $help['openclaw_recipes']['pattern_page_research_brief']['research_projection'] ?? '' ), 'adapter help exposes landing page research brief projection' );
+maa_adapter_smoke_assert( 'competitor_research' === (string) ( $help['openclaw_recipes']['pattern_page_research_brief']['default_input']['external_search_intent'] ?? '' ), 'adapter help uses competitor research intent for pattern page research' );
+maa_adapter_smoke_assert( 5 === (int) ( $help['openclaw_recipes']['pattern_page_research_brief']['default_input']['search_policy']['max_results'] ?? 0 ), 'adapter help bounds pattern page research search results' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_research_brief']['default_input']['search_policy']['enhance_with_reader'] ?? true ), 'adapter help keeps pattern page research reader enhancement off by default' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_research_brief']['guardrails']['reference_copying_allowed'] ?? true ), 'adapter help forbids copying reference sites into Pattern pages' );
+maa_adapter_smoke_assert( 'two_stage' === (string) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['composition_mode'] ?? '' ), 'adapter help exposes two-stage pattern page visual asset recipe' );
+maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['candidate_review_required'] ?? false ), 'adapter help requires visual candidate review before page creation' );
+maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['hosted_generation_candidate_only'] ?? false ), 'adapter help keeps hosted image generation as candidate-only' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['cloud_control_plane'] ?? true ), 'adapter help prevents visual asset recipe Cloud control plane drift' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['generic_write_executor'] ?? true ), 'adapter help prevents visual asset recipe generic write execution' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-article-block-plan' === (string) ( $help['openclaw_recipes']['article_block_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes article block plan entrypoint ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['article_block_plan']['guardrails']['article_renderer_owner'] ?? '' ), 'adapter help keeps Toolkit as article block renderer owner' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_block_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks article block plan as draft-only' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_block_plan']['guardrails']['custom_css_allowed'] ?? true ), 'adapter help rejects custom CSS for article block plan' );
+maa_adapter_smoke_assert( 'operator_browser_check' === (string) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['mode'] ?? '' ), 'adapter help exposes article block browser visual acceptance mode' );
+maa_adapter_smoke_assert( 3 === count( (array) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['viewports'] ?? array() ) ), 'adapter help exposes article block visual acceptance viewport set' );
+maa_adapter_smoke_assert( in_array( 'comparison_columns_stack_on_mobile', (array) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help exposes article block mobile columns browser check' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-optimization-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['optimization_plan_ability_id'] ?? '' ), 'adapter help exposes media optimization plan ability for derivative workflow' );
 maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['preferred_core_route'] ?? '' ), 'adapter help defaults media derivative optimization to Core from-plan' );
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['single_approval_required'] ?? false ), 'adapter help marks media optimization as one approval' );
@@ -1651,6 +1848,261 @@ maa_adapter_smoke_assert( ! empty( $plan_proposal_detail['preview']['blocked_ite
 maa_adapter_smoke_assert( 'adapter-plan-e2e-request' === (string) ( $plan_proposal_detail['caller']['adapter_request_id'] ?? '' ), 'adapter e2e proposal detail preserves adapter request id in caller' );
 maa_adapter_smoke_assert( 'adapter-plan-e2e-correlation' === (string) ( $plan_proposal_detail['caller']['correlation_id'] ?? '' ), 'adapter e2e proposal detail preserves correlation id in caller' );
 
+$pattern_page_media_attachment_id = maa_adapter_smoke_create_real_media_attachment( 'adapter-visual-smoke-' );
+$maa_adapter_smoke_cleanup_attachment_ids[] = $pattern_page_media_attachment_id;
+$pattern_page_media_url = (string) wp_get_attachment_url( $pattern_page_media_attachment_id );
+maa_adapter_smoke_assert( '' !== $pattern_page_media_url, 'adapter pattern page smoke has an existing media URL' );
+$pattern_page_plan_input = array(
+	'post_type'          => 'page',
+	'status'             => 'draft',
+	'title'              => 'Adapter Pattern Page E2E Smoke',
+	'pattern_id'         => 'openai-style-landing',
+	'style_preset'       => 'minimal-dark-light',
+	'responsive_profile' => 'landing_standard',
+	'visual_density'     => 'balanced',
+	'media_strategy'     => 'existing_media_url',
+	'variables'          => array(
+		'eyebrow'          => 'OpenClaw E2E',
+		'hero_title'       => 'Responsive Gutenberg Pattern Smoke',
+		'hero_description' => 'Adapter routes this reviewed pattern page plan through Core proposal governance.',
+		'primary_cta'      => 'Review proposal',
+		'secondary_cta'    => 'Inspect blocks',
+		'hero_media_url'   => $pattern_page_media_url,
+		'hero_media_alt'   => 'Adapter pattern page smoke media',
+		'features'         => array(
+			array(
+				'title'       => 'Responsive blocks',
+				'description' => 'Columns stack on mobile and media-text uses a supplied media URL.',
+			),
+		),
+		'faq'              => array(
+			array(
+				'title'       => 'Does Adapter render this page?',
+				'description' => 'No. Toolkit renders the block plan and Adapter only handles Core proposal handoff and approved execution.',
+			),
+		),
+	),
+);
+$pattern_page_plan_response = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/build-pattern-page-plan',
+		'input'      => $pattern_page_plan_input,
+	)
+);
+$pattern_page_plan = is_array( $pattern_page_plan_response['result']['data'] ?? null ) ? $pattern_page_plan_response['result']['data'] : array();
+maa_adapter_smoke_assert( 'pattern_page_plan' === (string) ( $pattern_page_plan['artifact_type'] ?? '' ), 'adapter pattern page read returns a pattern_page_plan artifact' );
+maa_adapter_smoke_assert( '2.0' === (string) ( $pattern_page_plan['design_quality']['pattern_version'] ?? '' ), 'adapter pattern page plan uses v2 quality metadata' );
+maa_adapter_smoke_assert( true === (bool) ( $pattern_page_plan['responsive_quality']['uses_mobile_stack'] ?? false ), 'adapter pattern page plan reports mobile stacking' );
+maa_adapter_smoke_assert( true === (bool) ( $pattern_page_plan['responsive_quality']['has_media_section'] ?? false ), 'adapter pattern page plan reports media section' );
+maa_adapter_smoke_assert( true === (bool) ( $pattern_page_plan['responsive_quality']['has_faq'] ?? false ), 'adapter pattern page plan reports FAQ section' );
+$pattern_page_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'npcink-abilities-toolkit/build-pattern-page-plan',
+		'plan'               => $pattern_page_plan_response['result'],
+		'plan_input'         => $pattern_page_plan_input,
+		'adapter_request_id' => 'adapter-pattern-page-e2e-request',
+		'correlation_id'     => 'adapter-pattern-page-e2e-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-pattern-page-e2e-smoke',
+		),
+	)
+);
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-pattern-page-plan' === (string) ( $pattern_page_bridge['plan_ability_id'] ?? '' ), 'adapter forwards pattern page plan to Core' );
+maa_adapter_smoke_assert( 1 === (int) ( $pattern_page_bridge['proposal_count'] ?? 0 ), 'adapter pattern page plan creates one batch proposal' );
+$pattern_page_proposal = is_array( $pattern_page_bridge['proposals'][0] ?? null ) ? $pattern_page_bridge['proposals'][0] : array();
+$pattern_page_proposal_id = (string) ( $pattern_page_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $pattern_page_proposal_id;
+maa_adapter_smoke_assert( '' !== $pattern_page_proposal_id, 'adapter pattern page bridge returned proposal id' );
+$pattern_page_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $pattern_page_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $pattern_page_execute['success'] ?? false ), 'adapter pattern page approve-and-execute succeeds' );
+maa_adapter_smoke_assert( 2 === (int) ( $pattern_page_execute['executed_count'] ?? 0 ), 'adapter pattern page batch executes create and update actions' );
+$pattern_page_post_id = 0;
+foreach ( (array) ( $pattern_page_execute['results'] ?? array() ) as $pattern_page_result ) {
+	if ( is_array( $pattern_page_result ) && 'npcink-abilities-toolkit/create-draft' === (string) ( $pattern_page_result['target_ability_id'] ?? '' ) ) {
+		$pattern_page_post_id = absint( $pattern_page_result['post_id'] ?? 0 );
+		break;
+	}
+}
+$maa_adapter_smoke_cleanup_post_ids[] = $pattern_page_post_id;
+maa_adapter_smoke_assert( $pattern_page_post_id > 0, 'adapter pattern page execution returns created draft page id' );
+maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $pattern_page_post_id ), 'adapter pattern page execution leaves page in draft status' );
+$pattern_page_blocks_shortcut = maa_adapter_smoke_rest(
+	'GET',
+	'/npcink-openclaw-adapter/v1/post-blocks',
+	array(
+		'post_id'              => $pattern_page_post_id,
+		'include_inner_blocks' => true,
+	)
+);
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string) ( $pattern_page_blocks_shortcut['ability_id'] ?? '' ), 'adapter pattern page smoke reads blocks through Adapter shortcut' );
+$pattern_page_blocks_result = is_array( $pattern_page_blocks_shortcut['result'] ?? null ) ? $pattern_page_blocks_shortcut['result'] : array();
+maa_adapter_smoke_assert( (int) ( $pattern_page_blocks_result['block_count'] ?? 0 ) >= 7, 'adapter pattern page block read returns expected section count' );
+$pattern_page_content = (string) get_post_field( 'post_content', $pattern_page_post_id );
+$pattern_page_blocks_json = wp_json_encode( parse_blocks( $pattern_page_content ) );
+maa_adapter_smoke_assert( is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/media-text"' ), 'adapter pattern page draft contains media-text block' );
+maa_adapter_smoke_assert( is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/details"' ), 'adapter pattern page draft contains FAQ details block' );
+maa_adapter_smoke_assert( is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"isStackedOnMobile":true' ), 'adapter pattern page draft keeps mobile stacking attrs' );
+maa_adapter_smoke_assert( false !== strpos( $pattern_page_content, '<!-- wp:' ), 'adapter pattern page draft stores Gutenberg block comments' );
+$pattern_page_visual_fixture = maa_adapter_smoke_record_gutenberg_visual_acceptance_fixture(
+	'pattern_page_plan',
+	$pattern_page_post_id,
+	array( $pattern_page_media_attachment_id ),
+	array(
+		'block_count'             => (int) ( $pattern_page_blocks_result['block_count'] ?? 0 ),
+		'has_gutenberg_comments'  => false !== strpos( $pattern_page_content, '<!-- wp:' ),
+		'has_media_text'          => is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/media-text"' ),
+		'has_faq_details'         => is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/details"' ),
+		'has_mobile_stack_attrs'  => is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"isStackedOnMobile":true' ),
+	)
+);
+maa_adapter_smoke_assert( '' !== (string) ( $pattern_page_visual_fixture['front_end_url'] ?? '' ), 'adapter pattern page visual acceptance fixture has front-end URL' );
+maa_adapter_smoke_assert( '' !== (string) ( $pattern_page_visual_fixture['block_editor_url'] ?? '' ), 'adapter pattern page visual acceptance fixture has block editor URL' );
+maa_adapter_smoke_assert( 3 === count( (array) ( $pattern_page_visual_fixture['viewports'] ?? array() ) ), 'adapter pattern page visual acceptance fixture has three viewport targets' );
+
+$article_block_media_attachment_id = maa_adapter_smoke_create_real_media_attachment( 'adapter-visual-smoke-' );
+$maa_adapter_smoke_cleanup_attachment_ids[] = $article_block_media_attachment_id;
+$article_block_media_url = (string) wp_get_attachment_url( $article_block_media_attachment_id );
+maa_adapter_smoke_assert( '' !== $article_block_media_url, 'adapter article block smoke has an existing media URL' );
+$article_block_plan_input = array(
+	'post_type'          => 'post',
+	'status'             => 'draft',
+	'title'              => 'Adapter Article Block E2E Smoke',
+	'article_template'   => 'comparison-review',
+	'responsive_profile' => 'article_standard',
+	'media_strategy'     => 'existing_media_url',
+	'variables'          => array(
+		'dek'            => 'OpenClaw can use Gutenberg-native article blocks without making Adapter a renderer.',
+		'intro'          => 'Adapter routes this reviewed article block plan through Core proposal governance.',
+		'hero_media_url' => $article_block_media_url,
+		'hero_media_alt' => 'Adapter article block smoke media',
+		'takeaways'      => array(
+			'Article plans create draft posts only.',
+			'Block replacement stays behind Core approval and preflight.',
+			'Comparison columns stack on mobile.',
+		),
+		'sections'       => array(
+			array(
+				'title'      => 'Editorial structure',
+				'paragraphs' => array( 'The article is split into headings, paragraphs, lists, image, comparison columns, and FAQ details.' ),
+				'bullets'    => array( 'Readable structure', 'Editable blocks', 'Auditable proposal' ),
+			),
+			array(
+				'title'      => 'Governance boundary',
+				'paragraphs' => array( 'Toolkit builds the plan, Core owns proposal truth, and Adapter executes only approved allowlisted actions.' ),
+			),
+			array(
+				'title'      => 'Responsive behavior',
+				'paragraphs' => array( 'Columns must use Gutenberg mobile stacking and images must remain standard core/image blocks.' ),
+			),
+		),
+		'comparisons'    => array(
+			array(
+				'title'       => 'Inline HTML',
+				'description' => 'Flexible but more likely to become hard to edit.',
+			),
+			array(
+				'title'       => 'Gutenberg blocks',
+				'description' => 'Structured, reviewable, and easier to maintain.',
+			),
+		),
+		'faq'            => array(
+			array(
+				'title'       => 'Does Adapter generate this article?',
+				'description' => 'No. Toolkit builds the block plan; Adapter only handles Core handoff and approved execution.',
+			),
+			array(
+				'title'       => 'Does this publish the post?',
+				'description' => 'No. The created post remains draft.',
+			),
+		),
+	),
+);
+$article_block_plan_response = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/build-article-block-plan',
+		'input'      => $article_block_plan_input,
+	)
+);
+$article_block_plan = is_array( $article_block_plan_response['result']['data'] ?? null ) ? $article_block_plan_response['result']['data'] : array();
+maa_adapter_smoke_assert( 'article_block_plan' === (string) ( $article_block_plan['artifact_type'] ?? '' ), 'adapter article block read returns an article_block_plan artifact' );
+maa_adapter_smoke_assert( '1.0' === (string) ( $article_block_plan['editorial_quality']['pattern_version'] ?? '' ), 'adapter article block plan uses v1 quality metadata' );
+maa_adapter_smoke_assert( true === (bool) ( $article_block_plan['editorial_quality']['uses_native_blocks'] ?? false ), 'adapter article block plan reports native block usage' );
+maa_adapter_smoke_assert( true === (bool) ( $article_block_plan['responsive_quality']['uses_mobile_stack'] ?? false ), 'adapter article block plan reports mobile stacking' );
+maa_adapter_smoke_assert( true === (bool) ( $article_block_plan['responsive_quality']['has_responsive_media'] ?? false ), 'adapter article block plan reports media block' );
+$article_block_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'npcink-abilities-toolkit/build-article-block-plan',
+		'plan'               => $article_block_plan_response['result'],
+		'plan_input'         => $article_block_plan_input,
+		'adapter_request_id' => 'adapter-article-block-e2e-request',
+		'correlation_id'     => 'adapter-article-block-e2e-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-article-block-e2e-smoke',
+		),
+	)
+);
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-article-block-plan' === (string) ( $article_block_bridge['plan_ability_id'] ?? '' ), 'adapter forwards article block plan to Core' );
+maa_adapter_smoke_assert( 1 === (int) ( $article_block_bridge['proposal_count'] ?? 0 ), 'adapter article block plan creates one batch proposal' );
+$article_block_proposal = is_array( $article_block_bridge['proposals'][0] ?? null ) ? $article_block_bridge['proposals'][0] : array();
+$article_block_proposal_id = (string) ( $article_block_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $article_block_proposal_id;
+maa_adapter_smoke_assert( '' !== $article_block_proposal_id, 'adapter article block bridge returned proposal id' );
+$article_block_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $article_block_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $article_block_execute['success'] ?? false ), 'adapter article block approve-and-execute succeeds' );
+maa_adapter_smoke_assert( 2 === (int) ( $article_block_execute['executed_count'] ?? 0 ), 'adapter article block batch executes create and update actions' );
+$article_block_post_id = 0;
+foreach ( (array) ( $article_block_execute['results'] ?? array() ) as $article_block_result ) {
+	if ( is_array( $article_block_result ) && 'npcink-abilities-toolkit/create-draft' === (string) ( $article_block_result['target_ability_id'] ?? '' ) ) {
+		$article_block_post_id = absint( $article_block_result['post_id'] ?? 0 );
+		break;
+	}
+}
+$maa_adapter_smoke_cleanup_post_ids[] = $article_block_post_id;
+maa_adapter_smoke_assert( $article_block_post_id > 0, 'adapter article block execution returns created draft post id' );
+maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $article_block_post_id ), 'adapter article block execution leaves post in draft status' );
+$article_block_blocks_shortcut = maa_adapter_smoke_rest(
+	'GET',
+	'/npcink-openclaw-adapter/v1/post-blocks',
+	array(
+		'post_id'              => $article_block_post_id,
+		'include_inner_blocks' => true,
+	)
+);
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string) ( $article_block_blocks_shortcut['ability_id'] ?? '' ), 'adapter article block smoke reads blocks through Adapter shortcut' );
+$article_block_blocks_result = is_array( $article_block_blocks_shortcut['result'] ?? null ) ? $article_block_blocks_shortcut['result'] : array();
+maa_adapter_smoke_assert( (int) ( $article_block_blocks_result['block_count'] ?? 0 ) >= 10, 'adapter article block read returns expected article block count' );
+$article_block_content = (string) get_post_field( 'post_content', $article_block_post_id );
+$article_block_blocks_json = wp_json_encode( parse_blocks( $article_block_content ) );
+maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/image"' ), 'adapter article block draft contains image block' );
+maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/columns"' ), 'adapter article block draft contains comparison columns' );
+maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/details"' ), 'adapter article block draft contains FAQ details block' );
+maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"isStackedOnMobile":true' ), 'adapter article block draft keeps mobile stacking attrs' );
+maa_adapter_smoke_assert( false !== strpos( $article_block_content, '<!-- wp:' ), 'adapter article block draft stores Gutenberg block comments' );
+$article_block_visual_fixture = maa_adapter_smoke_record_gutenberg_visual_acceptance_fixture(
+	'article_block_plan',
+	$article_block_post_id,
+	array( $article_block_media_attachment_id ),
+	array(
+		'block_count'             => (int) ( $article_block_blocks_result['block_count'] ?? 0 ),
+		'has_gutenberg_comments'  => false !== strpos( $article_block_content, '<!-- wp:' ),
+		'has_image'               => is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/image"' ),
+		'has_comparison_columns'  => is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/columns"' ),
+		'has_faq_details'         => is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/details"' ),
+		'has_mobile_stack_attrs'  => is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"isStackedOnMobile":true' ),
+	)
+);
+maa_adapter_smoke_assert( '' !== (string) ( $article_block_visual_fixture['front_end_url'] ?? '' ), 'adapter article block visual acceptance fixture has front-end URL' );
+maa_adapter_smoke_assert( '' !== (string) ( $article_block_visual_fixture['block_editor_url'] ?? '' ), 'adapter article block visual acceptance fixture has block editor URL' );
+maa_adapter_smoke_assert( 3 === count( (array) ( $article_block_visual_fixture['viewports'] ?? array() ) ), 'adapter article block visual acceptance fixture has three viewport targets' );
+
 $media_optimization_attachment_id = maa_adapter_smoke_create_real_media_attachment();
 $media_optimization_original_relative = (string) get_post_meta( $media_optimization_attachment_id, '_wp_attached_file', true );
 $media_optimization_original_uploads  = wp_upload_dir();
@@ -1869,83 +2321,32 @@ maa_adapter_smoke_assert( is_array( $discoverability_brief['exceptions'] ?? null
 maa_adapter_smoke_assert( is_array( $discoverability_brief['special_cases'] ?? null ), 'content discoverability brief exposes special cases' );
 maa_adapter_smoke_assert( is_array( $discoverability_brief['proposal_allowed_fields'] ?? null ), 'content discoverability brief exposes proposal allowed fields' );
 
-$diagnostics = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/wp-diagnostics-summary' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-diagnostics-summary' === (string) ( $diagnostics['ability_id'] ?? '' ), 'adapter runs diagnostics read ability' );
-maa_adapter_smoke_assert( is_array( $diagnostics['result'] ?? null ), 'diagnostics returns a result object' );
-maa_adapter_smoke_assert( 'direct_read_sensitive' === (string) ( $diagnostics['read_policy'] ?? '' ), 'adapter diagnostics read carries sensitive read policy' );
-maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_required'] ?? false ), 'adapter diagnostics read requires redaction' );
-maa_adapter_smoke_assert( true === (bool) ( $diagnostics['redaction_applied'] ?? false ), 'adapter diagnostics read applies sensitive redaction policy' );
+foreach (
+	array(
+		'/npcink-openclaw-adapter/v1/wp-diagnostics-summary'      => 'npcink-abilities-toolkit/wp-diagnostics-summary',
+		'/npcink-openclaw-adapter/v1/active-plugins-detail'       => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
+		'/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics' => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
+		'/npcink-openclaw-adapter/v1/current-user-permissions'    => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
+		'/npcink-openclaw-adapter/v1/recent-error-log'            => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
+		'/npcink-openclaw-adapter/v1/recent-error-log-tail'       => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
+		'/npcink-openclaw-adapter/v1/database-info'               => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
+		'/npcink-openclaw-adapter/v1/cron-events-detail'          => 'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
+	) as $diagnostic_route => $expected_ability_id
+) {
+	$diagnostic_result = maa_adapter_smoke_rest_result( 'GET', $diagnostic_route );
+	$diagnostic_error  = is_array( $diagnostic_result['data'] ) ? $diagnostic_result['data'] : array();
+	$diagnostic_data   = is_array( $diagnostic_error['data'] ?? null ) ? $diagnostic_error['data'] : array();
 
-$active_plugins = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/active-plugins-detail' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $active_plugins['ability_id'] ?? '' ), 'adapter runs active plugins diagnostic shortcut through ops detail' );
-maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins'] ?? null ), 'active plugins diagnostic returns plugin details object' );
-$plugin_result = (array) ( $active_plugins['result']['plugins'] ?? array() );
-maa_adapter_smoke_assert( is_array( $plugin_result['groups_included'] ?? null ), 'active plugins diagnostic returns plugin group inclusion metadata' );
-maa_adapter_smoke_assert( true === (bool) ( $plugin_result['groups_included']['active'] ?? false ), 'active plugins diagnostic includes active plugin rows by default' );
-maa_adapter_smoke_assert( false === (bool) ( $plugin_result['groups_included']['inactive'] ?? true ), 'active plugins diagnostic does not request inactive plugin rows by default' );
-maa_adapter_smoke_assert( 100 === (int) ( $plugin_result['max_plugins_per_group'] ?? 0 ), 'active plugins diagnostic uses default plugin group limit' );
-foreach ( array( 'available_count', 'active_count', 'inactive_count', 'update_available_count', 'mu_count', 'dropin_count' ) as $plugin_count_field ) {
-	maa_adapter_smoke_assert( array_key_exists( $plugin_count_field, $plugin_result ), 'active plugins diagnostic returns plugin count field: ' . $plugin_count_field );
+	maa_adapter_smoke_assert( 403 === (int) $diagnostic_result['status'], 'adapter fails closed for sensitive diagnostic route: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( 'npcink_openclaw_adapter_core_read_authorization_required' === (string) ( $diagnostic_error['code'] ?? '' ), 'adapter diagnostic fail-closed route uses Core read authorization code: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( $expected_ability_id === (string) ( $diagnostic_data['ability_id'] ?? '' ), 'adapter diagnostic fail-closed route reports ability id: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( 'core_read_authorization_required' === (string) ( $diagnostic_data['read_policy'] ?? '' ), 'adapter diagnostic fail-closed route reports Core read policy: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( true === (bool) ( $diagnostic_data['read_authorization_required'] ?? false ), 'adapter diagnostic fail-closed route marks read authorization required: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( 'core_read_request' === (string) ( $diagnostic_data['required_flow'] ?? '' ), 'adapter diagnostic fail-closed route points to Core read request flow: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( 'npcink_governance_core' === (string) ( $diagnostic_data['core_authorization_truth'] ?? '' ), 'adapter diagnostic fail-closed route keeps Core as read authorization truth: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( 'fail_closed' === (string) ( $diagnostic_data['adapter_action'] ?? '' ), 'adapter diagnostic fail-closed route reports adapter action: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( is_array( $diagnostic_data['next_steps'] ?? null ) && ! empty( $diagnostic_data['next_steps'] ), 'adapter diagnostic fail-closed route returns next steps: ' . $diagnostic_route );
 }
-maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['active'] ?? null ), 'active plugins diagnostic returns active plugin details' );
-maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['inactive'] ?? null ), 'active plugins diagnostic preserves inactive plugin group as an array even when not requested' );
-maa_adapter_smoke_assert( array_key_exists( 'update_available', (array) ( $active_plugins['result']['plugins'] ?? array() ) ), 'active plugins diagnostic returns plugin update details' );
-maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['must_use'] ?? null ), 'active plugins diagnostic returns must-use plugin group' );
-maa_adapter_smoke_assert( is_array( $active_plugins['result']['plugins']['dropins'] ?? null ), 'active plugins diagnostic returns dropin plugin group' );
-if ( isset( $active_plugins['result']['plugins']['active'][0] ) && is_array( $active_plugins['result']['plugins']['active'][0] ) ) {
-	foreach ( array( 'slug', 'plugin_file', 'name', 'version', 'author', 'status', 'network_active', 'must_use', 'requires_wp', 'requires_php', 'dependencies', 'dependency_count', 'is_npcink', 'update_available', 'latest_version' ) as $plugin_row_field ) {
-		maa_adapter_smoke_assert( array_key_exists( $plugin_row_field, $active_plugins['result']['plugins']['active'][0] ), 'active plugin row returns field: ' . $plugin_row_field );
-	}
-}
-
-$plugin_conflict = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $plugin_conflict['ability_id'] ?? '' ), 'adapter runs plugin conflict diagnostic shortcut through ops detail' );
-maa_adapter_smoke_assert( true === (bool) ( $plugin_conflict['result']['plugins']['groups_included']['inactive'] ?? false ), 'plugin conflict diagnostic requests inactive plugin rows' );
-maa_adapter_smoke_assert( 200 === (int) ( $plugin_conflict['result']['plugins']['max_plugins_per_group'] ?? 0 ), 'plugin conflict diagnostic uses deep plugin group limit' );
-maa_adapter_smoke_assert( is_array( $plugin_conflict['result']['plugins']['inactive'] ?? null ), 'plugin conflict diagnostic returns inactive plugin rows array' );
-
-$current_user_permissions = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/current-user-permissions' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $current_user_permissions['ability_id'] ?? '' ), 'adapter runs current user permissions diagnostic shortcut through ops detail' );
-maa_adapter_smoke_assert( is_array( $current_user_permissions['result']['current_user'] ?? null ), 'current user permissions diagnostic returns user capability object' );
-maa_adapter_smoke_assert( array_key_exists( 'capabilities', (array) ( $current_user_permissions['result']['current_user'] ?? array() ) ), 'current user permissions diagnostic returns capability details' );
-
-$recent_error_log = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/recent-error-log' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $recent_error_log['ability_id'] ?? '' ), 'adapter runs default error log diagnostic through ops detail' );
-maa_adapter_smoke_assert( false === (bool) ( $recent_error_log['result']['error_log']['contents_included'] ?? true ), 'default error log diagnostic does not include log contents' );
-maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary'] ?? null ), 'default error log diagnostic exposes severity summary without log contents' );
-foreach ( array( 'returned_lines', 'fatal_count', 'error_count', 'warning_count', 'deprecated_count', 'notice_count', 'info_count', 'unknown_count', 'summary_source' ) as $summary_field ) {
-	maa_adapter_smoke_assert( array_key_exists( $summary_field, $recent_error_log['result']['error_log']['summary'] ), 'default error log summary returns field: ' . $summary_field );
-}
-maa_adapter_smoke_assert( is_array( $recent_error_log['result']['error_log']['summary']['by_severity'] ?? null ), 'default error log diagnostic exposes severity summary' );
-
-$recent_error_log_tail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/recent-error-log-tail' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $recent_error_log_tail['ability_id'] ?? '' ), 'adapter runs explicit error log tail diagnostic through ops detail' );
-maa_adapter_smoke_assert( true === (bool) ( $recent_error_log_tail['result']['error_log']['contents_included'] ?? false ), 'explicit error log tail diagnostic includes log contents' );
-maa_adapter_smoke_assert( is_array( $recent_error_log_tail['result']['error_log']['tail_entries'] ?? null ), 'explicit error log tail diagnostic exposes redacted tail entries' );
-maa_adapter_smoke_assert( is_array( $recent_error_log_tail['result']['error_log']['summary']['by_severity'] ?? null ), 'explicit error log tail diagnostic exposes severity summary' );
-
-$database_info = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/database-info' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $database_info['ability_id'] ?? '' ), 'adapter runs database diagnostic shortcut' );
-maa_adapter_smoke_assert( is_array( $database_info['result']['database'] ?? null ), 'database diagnostic returns database object' );
-maa_adapter_smoke_assert( is_array( $database_info['result']['php']['extensions']['loaded'] ?? null ), 'database diagnostic result preserves PHP extension details' );
-maa_adapter_smoke_assert( is_array( $database_info['result']['object_cache'] ?? null ), 'database diagnostic result preserves object cache details' );
-maa_adapter_smoke_assert( is_array( $database_info['result']['rewrite'] ?? null ), 'database diagnostic result preserves rewrite details' );
-maa_adapter_smoke_assert( is_array( $database_info['result']['server'] ?? null ), 'database diagnostic result preserves server details' );
-maa_adapter_smoke_assert( array_key_exists( 'https', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves HTTPS details' );
-maa_adapter_smoke_assert( array_key_exists( 'content_types', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves content type details' );
-maa_adapter_smoke_assert( array_key_exists( 'roles', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves role details' );
-maa_adapter_smoke_assert( array_key_exists( 'widgets', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves widget details' );
-maa_adapter_smoke_assert( array_key_exists( 'block_theme', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves block theme details' );
-maa_adapter_smoke_assert( array_key_exists( 'search', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves search details' );
-maa_adapter_smoke_assert( array_key_exists( 'integrations', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves integration details' );
-maa_adapter_smoke_assert( array_key_exists( 'seo_summary', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves SEO summary' );
-maa_adapter_smoke_assert( array_key_exists( 'security_summary', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves security summary' );
-maa_adapter_smoke_assert( array_key_exists( 'performance_summary', (array) ( $database_info['result'] ?? array() ) ), 'database diagnostic result preserves performance summary' );
-
-$cron_events_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/cron-events-detail' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $cron_events_detail['ability_id'] ?? '' ), 'adapter runs cron events diagnostic shortcut' );
-maa_adapter_smoke_assert( is_array( $cron_events_detail['result']['cron_events'] ?? null ), 'cron events diagnostic returns cron object' );
-maa_adapter_smoke_assert( array_key_exists( 'events', (array) ( $cron_events_detail['result']['cron_events'] ?? array() ) ), 'cron events diagnostic returns event details' );
 
 $workflow_recipes = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/workflow-recipes' );
 maa_adapter_smoke_assert( isset( $workflow_recipes['result']['cases']['article_publish_preflight'] ), 'adapter returns workflow recipe list result' );
@@ -3742,6 +4143,7 @@ $core_correlation_audit = maa_adapter_smoke_rest(
 maa_adapter_smoke_assert( count( (array) ( $core_correlation_audit['items'] ?? array() ) ) >= 1, 'Core Governance Audit filters by the same provider smoke correlation id' );
 
 $maa_adapter_smoke_cleanup_proposal_ids[] = $proposal_id;
+maa_adapter_smoke_export_visual_acceptance_fixtures();
 maa_adapter_smoke_cleanup_registered_fixtures();
 maa_adapter_smoke_assert( true, 'adapter status smoke cleaned created proposal records' );
 maa_adapter_smoke_assert_no_media_fixture_leaks();

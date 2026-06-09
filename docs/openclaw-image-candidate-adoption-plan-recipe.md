@@ -7,6 +7,9 @@ candidate and needs to ask the local WordPress site to import it, write media
 details, and optionally set it as a post's featured image.
 
 This is a governed handoff, not a direct media write path.
+For Gutenberg landing pages that need this reviewed asset as the hero media,
+compose this recipe with `pattern_page_plan` as described in
+[`openclaw-pattern-page-with-visual-asset-recipe.md`](openclaw-pattern-page-with-visual-asset-recipe.md).
 
 ## Contract
 

@@ -73,6 +73,30 @@ or private keys. This is a product-surface redaction layer; Core remains the
 capability guidance source and WordPress Abilities API remains the canonical
 ability execution surface.
 
+If Core marks a capability as requiring explicit sensitive read authorization,
+Adapter must fail closed instead of running the ability. The current Adapter
+recognizes any of these Core capability signals:
+
+```json
+{
+  "read_authorization_required": true,
+  "requires_read_authorization": true,
+  "read_policy": "core_read_authorization_required",
+  "authorization_mode": "core_read_request"
+}
+```
+
+For nested guidance, Adapter also treats
+`read_authorization.required=true` as a Core-managed sensitive read gate. The
+default response code is
+`npcink_openclaw_adapter_core_read_authorization_required` with
+`required_flow=core_read_request`.
+
+This is a fail-closed boundary until Core provides the approved bounded read
+authorization context. Adapter must not treat OpenClaw prompts, chat
+instructions, direct database access, filesystem reads, logs, or custom scripts
+as substitutes for Core read authorization.
+
 ## Media Derivative Cloud Contract
 
 For optimized media derivative generation, Adapter exposes a bounded Cloud
@@ -260,6 +284,46 @@ Gutenberg page pattern drafts:
 The Toolkit owns pattern registry, whitelisted classes, and Gutenberg block
 rendering. Adapter must only forward the plan to Core and execute allowlisted
 write actions after Core approval and commit-preflight.
+The recipe also exposes `visual_acceptance` so OpenClaw can run browser checks
+against the created draft page without treating Adapter as a browser runner.
+
+`GET /help` also includes `openclaw_recipes.article_block_plan` for reviewed
+Gutenberg article block drafts:
+
+- entrypoint ability:
+  `npcink-abilities-toolkit/build-article-block-plan`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write abilities: `npcink-abilities-toolkit/create-draft` and
+  `npcink-abilities-toolkit/update-post-blocks`
+- artifact type: `article_block_plan`
+- proposal mode: `batch`
+
+The Toolkit owns editorial templates, native Gutenberg article block rendering,
+and responsive quality metadata. Adapter must only forward the plan to Core and
+execute allowlisted write actions after Core approval and commit-preflight.
+The recipe also exposes `visual_acceptance` with the same front-end/editor
+targets and viewport set used by the pattern page flow.
+
+The shared browser checklist lives in
+[`openclaw-gutenberg-visual-acceptance.md`](openclaw-gutenberg-visual-acceptance.md).
+
+`GET /help` also includes `openclaw_recipes.pattern_page_research_brief` for
+research-backed Gutenberg landing pages:
+
+- entrypoint ability:
+  `npcink-toolbox/build-content-discoverability-brief`
+- external search intent: `competitor_research`
+- research projection: `landing_page_research_brief`
+- default max reference sites: `5`
+- artifact posture: `suggestion_only`
+
+Cloud owns search providers, provider keys, usage metering, evidence retrieval,
+reader enhancement, and failure diagnostics. Adapter only exposes the bounded
+search intent and guardrails. The research brief must not copy reference-site
+text, images, CSS, pricing claims, customer claims, rankings, or unsupported
+feature claims into the Pattern page plan.
 
 `GET /help` also includes `openclaw_recipes.image_candidate_adoption_plan` for
 reviewed adoption of one image candidate into the media library:
@@ -281,6 +345,24 @@ The image candidate adoption recipe must preserve source attribution and keep
 `commit_execution=false`, and `cloud_control_plane=false`. Adapter does not
 search stock providers, generate images, upload media, set featured images, or
 create a media registry by itself.
+
+`GET /help` also includes
+`openclaw_recipes.pattern_page_with_visual_asset_plan` for visually richer
+Gutenberg landing pages. This is a composed two-stage playbook that can follow
+`pattern_page_research_brief`:
+
+1. collect and review one `image_candidate.v1`, then use
+   `npcink-toolbox/build-image-candidate-adoption-plan` to ask Core for media
+   adoption;
+2. pass the approved local WordPress media URL into
+   `npcink-abilities-toolkit/build-pattern-page-plan` with
+   `media_strategy=existing_media_url`.
+
+The composed playbook keeps `hosted_generation_candidate_only=true`,
+`candidate_review_required=true`, `core_proxy_execute=false`,
+`commit_execution=false`, `cloud_control_plane=false`, and
+`generic_write_executor=false`. Adapter must not call hosted generation,
+import media, or create the page as one direct mutation.
 
 `commit_execution=false` means no write happened, `dry_run=true` means preview
 only, and `requires_approval=true` means the plan must be handed to Core or the

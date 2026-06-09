@@ -55,6 +55,7 @@ final class Controller {
 		'npcink-abilities-toolkit/build-media-settings-reference-repair-plan' => true,
 		'npcink-abilities-toolkit/build-media-optimization-plan'              => true,
 		'npcink-abilities-toolkit/build-media-rename-plan'                    => true,
+		'npcink-abilities-toolkit/build-article-block-plan'                   => true,
 		'npcink-abilities-toolkit/build-pattern-page-plan'                    => true,
 		'npcink-toolbox/build-article-write-plan'           => true,
 		'npcink-toolbox/build-article-batch-write-plan'     => true,
@@ -1949,6 +1950,13 @@ final class Controller {
 					'proposals:create',
 					'commit:preflight',
 				),
+				'sensitive_read_authorization' => array(
+					'core_truth'                    => true,
+					'required_field'                => 'read_authorization_required',
+					'required_policy'               => 'core_read_authorization_required',
+					'error_code'                    => 'npcink_openclaw_adapter_core_read_authorization_required',
+					'unsupported_without_core_grant' => 'fail_closed',
+				),
 				'approved_proposal_execution_routes' => array(
 					'POST /execute-approved-proposal',
 					'POST /proposals/{proposal_id}/execute',
@@ -1981,10 +1989,17 @@ final class Controller {
 							'direct_read_public',
 							'direct_read_internal',
 							'direct_read_sensitive',
+							'core_read_authorization_required',
 						),
 						'sensitivity_values'        => array( 'public', 'internal', 'sensitive' ),
 						'redaction_required_field' => 'redaction_required',
 						'read_audit_mode'           => 'adapter_read_envelope',
+						'sensitive_read_authorization' => array(
+							'core_truth'                    => true,
+							'required_field'                => 'read_authorization_required',
+							'required_policy'               => 'core_read_authorization_required',
+							'unsupported_without_core_grant' => 'fail_closed',
+						),
 					),
 					'proposal_status' => array(
 						'governance_mode'     => 'core_proposal_read_proxy',
@@ -2394,6 +2409,88 @@ final class Controller {
 				),
 				'docs'         => 'docs/openclaw-article-media-batch-plan-recipe.md',
 			),
+			'article_block_plan' => array(
+				'title'                   => 'Article block plan',
+				'description'             => 'Build a reviewed Toolkit article_block_plan, forward it to Core as one batch proposal, then execute only Core-approved draft creation and Gutenberg block update actions.',
+				'entrypoint_ability_id'   => 'npcink-abilities-toolkit/build-article-block-plan',
+				'plan_ability_id'         => 'npcink-abilities-toolkit/build-article-block-plan',
+				'final_write_ability_ids' => array(
+					'npcink-abilities-toolkit/create-draft',
+					'npcink-abilities-toolkit/update-post-blocks',
+				),
+				'steps'                   => array(
+					array(
+						'order'      => 1,
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'npcink-abilities-toolkit/build-article-block-plan',
+						'purpose'    => 'Build a reviewed article_block_plan with whitelisted article_template, responsive_profile, variables, and Gutenberg blocks without writing WordPress content.',
+					),
+					array(
+						'order'   => 2,
+						'route'   => 'POST /proposals/from-plan',
+						'purpose' => 'Forward the article block plan to Core plan intake with plan_ability_id and caller metadata.',
+					),
+					array(
+						'order'   => 3,
+						'route'   => 'GET /proposals/{proposal_id}',
+						'purpose' => 'Poll the Core-owned batch proposal status through Adapter.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted create-draft and update-post-blocks write_actions.',
+					),
+				),
+				'guardrails'              => array(
+					'artifact_type'          => 'article_block_plan',
+					'proposal_mode'          => 'batch',
+					'batch_approval'         => true,
+					'core_preflight_required' => true,
+					'draft_only'             => true,
+					'publish_allowed'        => false,
+					'article_renderer_owner' => 'npcink-abilities-toolkit',
+					'allowed_article_templates' => array( 'editorial-longform', 'how-to-guide', 'comparison-review' ),
+					'allowed_responsive_profiles' => array( 'article_standard' ),
+					'allowed_media_strategies' => array( 'none', 'existing_media_url' ),
+					'custom_css_allowed'     => false,
+					'core_proxy_execute'     => false,
+					'commit_execution'       => false,
+					'cloud_control_plane'    => false,
+					'generic_write_executor' => false,
+				),
+				'visual_acceptance'       => array(
+					'mode'                  => 'operator_browser_check',
+					'targets'               => array( 'front_end', 'block_editor' ),
+					'viewports'             => array(
+						array(
+							'name'   => 'desktop',
+							'width'  => 1440,
+							'height' => 1000,
+						),
+						array(
+							'name'   => 'tablet',
+							'width'  => 768,
+							'height' => 1024,
+						),
+						array(
+							'name'   => 'mobile',
+							'width'  => 390,
+							'height' => 844,
+						),
+					),
+					'required_checks'      => array(
+						'front_end_has_no_horizontal_overflow',
+						'block_editor_has_no_invalid_block_recovery_prompt',
+						'core_image_remains_editable',
+						'comparison_columns_stack_on_mobile',
+						'faq_details_remain_core_details_blocks',
+					),
+					'smoke_artifact_env'   => 'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
+					'fixture_retention_env' => 'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
+				),
+				'visual_acceptance_docs'  => 'docs/openclaw-gutenberg-visual-acceptance.md',
+				'docs'                     => 'docs/openclaw-article-block-plan-recipe.md',
+			),
 			'pattern_page_plan' => array(
 				'title'                   => 'Pattern page plan',
 				'description'             => 'Build a reviewed Toolkit pattern_page_plan, forward it to Core as one batch proposal, then execute only Core-approved draft creation and Gutenberg block update actions.',
@@ -2441,7 +2538,181 @@ final class Controller {
 					'cloud_control_plane'    => false,
 					'generic_write_executor' => false,
 				),
+				'visual_acceptance'       => array(
+					'mode'                  => 'operator_browser_check',
+					'targets'               => array( 'front_end', 'block_editor' ),
+					'viewports'             => array(
+						array(
+							'name'   => 'desktop',
+							'width'  => 1440,
+							'height' => 1000,
+						),
+						array(
+							'name'   => 'tablet',
+							'width'  => 768,
+							'height' => 1024,
+						),
+						array(
+							'name'   => 'mobile',
+							'width'  => 390,
+							'height' => 844,
+						),
+					),
+					'required_checks'      => array(
+						'front_end_has_no_horizontal_overflow',
+						'block_editor_has_no_invalid_block_recovery_prompt',
+						'hero_media_text_remains_editable',
+						'buttons_wrap_on_mobile',
+						'faq_details_remain_core_details_blocks',
+					),
+					'smoke_artifact_env'   => 'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
+					'fixture_retention_env' => 'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
+				),
+				'visual_acceptance_docs'  => 'docs/openclaw-gutenberg-visual-acceptance.md',
 				'docs'                     => 'docs/openclaw-pattern-page-plan-recipe.md',
+			),
+			'pattern_page_research_brief' => array(
+				'title'       => 'Pattern page research brief',
+				'description' => 'Use Cloud-owned external search through Toolbox to build a suggestion-only landing_page_research_brief before choosing Pattern page variables, section variants, visual assets, and proof angles.',
+				'entrypoint_ability_id' => 'npcink-toolbox/build-content-discoverability-brief',
+				'research_projection' => 'landing_page_research_brief',
+				'default_input' => array(
+					'include_external_search' => true,
+					'external_search_intent'  => 'competitor_research',
+					'search_policy'           => array(
+						'mode'                       => 'auto',
+						'requires_external_evidence' => true,
+						'intent'                     => 'competitor_research',
+						'provider'                   => 'auto',
+						'max_results'                => 5,
+						'recency_days'               => 365,
+						'enhance_with_reader'        => false,
+						'evidence_policy'            => array(
+							'required_sources' => 2,
+							'no_hit_policy'    => 'abstain',
+						),
+					),
+				),
+				'steps'       => array(
+					array(
+						'order'      => 1,
+						'route'      => 'GET /content-discoverability-validation or POST /run-read-ability',
+						'ability_id' => 'npcink-toolbox/validate-content-discoverability-context',
+						'purpose'    => 'Confirm brand voice, allowed claims, and forbidden claims before researching external references.',
+					),
+					array(
+						'order'      => 2,
+						'route'      => 'POST /run-read-ability',
+						'ability_id' => 'npcink-toolbox/build-content-discoverability-brief',
+						'purpose'    => 'Request bounded Cloud-owned competitor_research evidence for the target landing page topic without writing WordPress content.',
+					),
+					array(
+						'order'   => 3,
+						'route'   => 'OpenClaw local research synthesis step',
+						'purpose' => 'Summarize source-backed section patterns, visual asset recommendations, proof points, comparison angles, FAQ seeds, and do-not-copy notes.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'Continue with pattern_page_with_visual_asset_plan or pattern_page_plan',
+						'purpose' => 'Use the reviewed research brief as input for visual candidate selection and Gutenberg Pattern page variables.',
+					),
+				),
+				'guardrails'   => array(
+					'artifact_type'                 => 'landing_page_research_brief',
+					'cloud_search_owner'            => 'npcink-cloud',
+					'write_posture'                 => 'suggestion_only',
+					'direct_wordpress_write'        => false,
+					'provider_keys_exposed'         => false,
+					'source_attribution_required'   => true,
+					'source_diversity_required'     => true,
+					'reference_copying_allowed'     => false,
+					'max_reference_sites'           => 5,
+					'requires_external_evidence'    => true,
+					'enhance_with_reader'           => false,
+					'cloud_control_plane'           => false,
+					'generic_write_executor'        => false,
+					'final_write_path'              => 'core_proposal_required',
+				),
+				'recommended_next_recipe_ids' => array(
+					'pattern_page_with_visual_asset_plan',
+					'pattern_page_plan',
+				),
+				'docs'         => 'docs/openclaw-pattern-page-research-brief-recipe.md',
+			),
+			'pattern_page_with_visual_asset_plan' => array(
+				'title'       => 'Pattern page with visual asset plan',
+				'description' => 'Compose reviewed image candidate adoption with a Gutenberg pattern_page_plan so landing pages can use a local reviewed media URL without making Adapter an image generator, page renderer, or generic write executor.',
+				'composition_mode' => 'two_stage',
+				'candidate_contract' => 'image_candidate.v1',
+				'entrypoint_recipe_ids' => array(
+					'pattern_page_research_brief',
+					'image_candidate_adoption_plan',
+					'pattern_page_plan',
+				),
+				'entrypoint_ability_ids' => array(
+					'npcink-toolbox/search-image-source',
+					'npcink-toolbox/build-image-candidate-adoption-plan',
+					'npcink-abilities-toolkit/build-pattern-page-plan',
+				),
+				'plan_ability_ids' => array(
+					'npcink-toolbox/build-image-candidate-adoption-plan',
+					'npcink-abilities-toolkit/build-pattern-page-plan',
+				),
+				'final_write_ability_ids' => array(
+					'npcink-abilities-toolkit/upload-media-from-url',
+					'npcink-abilities-toolkit/update-media-details',
+					'npcink-abilities-toolkit/set-post-featured-image',
+					'npcink-abilities-toolkit/create-draft',
+					'npcink-abilities-toolkit/update-post-blocks',
+				),
+				'steps'       => array(
+					array(
+						'order'   => 1,
+						'route'   => 'POST /run-read-ability',
+						'ability_id' => 'npcink-toolbox/search-image-source',
+						'purpose' => 'Collect stock, generated, external, or owned image_candidate.v1 candidates from a page visual brief for operator review.',
+					),
+					array(
+						'order'   => 2,
+						'route'   => 'POST /run-read-ability',
+						'ability_id' => 'npcink-toolbox/build-image-candidate-adoption-plan',
+						'purpose' => 'Build a reviewed image_candidate_adoption_plan for the selected candidate without importing media or writing WordPress content.',
+					),
+					array(
+						'order'   => 3,
+						'route'   => 'POST /proposals/from-plan',
+						'purpose' => 'Forward the image adoption plan to Core, then execute only after Core approval and commit-preflight.',
+					),
+					array(
+						'order'   => 4,
+						'route'   => 'POST /run-read-ability',
+						'ability_id' => 'npcink-abilities-toolkit/build-pattern-page-plan',
+						'purpose' => 'Build the pattern_page_plan with media_strategy=existing_media_url and the approved local WordPress media URL.',
+					),
+					array(
+						'order'   => 5,
+						'route'   => 'POST /proposals/from-plan',
+						'purpose' => 'Forward the page pattern plan to Core, then execute only after Core approval and commit-preflight.',
+					),
+				),
+				'guardrails'  => array(
+					'proposal_mode'                      => 'two_stage',
+					'candidate_review_required'          => true,
+					'image_source_attribution_required' => true,
+					'hosted_generation_candidate_only'   => true,
+					'media_strategy'                     => 'existing_media_url',
+					'draft_only'                         => true,
+					'publish_allowed'                    => false,
+					'core_preflight_required'            => true,
+					'core_proxy_execute'                 => false,
+					'commit_execution'                   => false,
+					'cloud_control_plane'                => false,
+					'generic_write_executor'             => false,
+					'direct_wordpress_write'             => false,
+				),
+				'output_dependency_note' => 'Keep this as two Core proposals until Core supports reviewed action output dependencies from media adoption into page pattern variables.',
+				'visual_acceptance_docs' => 'docs/openclaw-gutenberg-visual-acceptance.md',
+				'docs'        => 'docs/openclaw-pattern-page-with-visual-asset-recipe.md',
 			),
 			'image_candidate_adoption_plan' => array(
 				'title'                   => 'Image candidate adoption plan',
@@ -6344,6 +6615,12 @@ final class Controller {
 			return $capability;
 		}
 
+		if ( $this->core_read_authorization_required( $capability ) ) {
+			$error = $this->core_read_authorization_required_error( $capability );
+			$this->emit_operation_event( 'adapter.ability.run_read', $started, $error, array( 'ability_id' => $ability_id ) );
+			return $error;
+		}
+
 		if ( 'direct_read' !== (string) ( $capability['governance_mode'] ?? '' ) || 'wp_abilities_rest' !== (string) ( $capability['execution_surface'] ?? '' ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_proposal_required',
@@ -6446,6 +6723,60 @@ final class Controller {
 		$log_context['npcink_governance_core']    = $npcink_governance_core;
 
 		return $this->sanitize_log_context( $log_context );
+	}
+
+	/**
+	 * Returns whether Core requires an explicit read authorization before Adapter may run a direct-read ability.
+	 *
+	 * @param array<string,mixed> $capability Capability row.
+	 * @return bool
+	 */
+	private function core_read_authorization_required( array $capability ): bool {
+		$read_policy        = sanitize_key( (string) ( $capability['read_policy'] ?? '' ) );
+		$governance_mode    = sanitize_key( (string) ( $capability['governance_mode'] ?? '' ) );
+		$authorization_mode = sanitize_key( (string) ( $capability['authorization_mode'] ?? '' ) );
+		$read_authorization = is_array( $capability['read_authorization'] ?? null ) ? $capability['read_authorization'] : array();
+
+		return true === (bool) ( $capability['read_authorization_required'] ?? false )
+			|| true === (bool) ( $capability['requires_read_authorization'] ?? false )
+			|| true === (bool) ( $read_authorization['required'] ?? false )
+			|| 'core_read_authorization_required' === $read_policy
+			|| 'core_read_authorization_required' === $governance_mode
+			|| 'core_read_request' === $authorization_mode;
+	}
+
+	/**
+	 * Builds the fail-closed response for Core-managed sensitive read authorization.
+	 *
+	 * @param array<string,mixed> $capability Capability row.
+	 * @return WP_Error
+	 */
+	private function core_read_authorization_required_error( array $capability ): WP_Error {
+		$read_policy = sanitize_key( (string) ( $capability['read_policy'] ?? 'core_read_authorization_required' ) );
+		if ( '' === $read_policy ) {
+			$read_policy = 'core_read_authorization_required';
+		}
+
+		return new WP_Error(
+			'npcink_openclaw_adapter_core_read_authorization_required',
+			__( 'Core requires explicit read authorization before Adapter may return this sensitive read result.', 'npcink-openclaw-adapter' ),
+			array(
+				'status'              => 403,
+				'ability_id'          => sanitize_text_field( (string) ( $capability['ability_id'] ?? '' ) ),
+				'sensitivity'         => sanitize_key( (string) ( $capability['sensitivity'] ?? 'sensitive' ) ),
+				'read_policy'         => $read_policy,
+				'read_authorization_required' => true,
+				'required_flow'       => 'core_read_request',
+				'core_authorization_truth' => 'npcink_governance_core',
+				'adapter_action'      => 'fail_closed',
+				'next_steps'          => array(
+					__( 'Create or approve the sensitive read request in Npcink Governance Core.', 'npcink-openclaw-adapter' ),
+					__( 'Retry only after Core exposes a bounded read authorization context for this ability and input.', 'npcink-openclaw-adapter' ),
+					__( 'Do not bypass Adapter through the database, filesystem, logs, custom scripts, or direct WordPress internals.', 'npcink-openclaw-adapter' ),
+				),
+				'capability'          => $this->public_capability_guidance( $capability ),
+			)
+		);
 	}
 
 	/**
@@ -7891,6 +8222,9 @@ final class Controller {
 			'requires_approval' => (bool) ( $capability['requires_approval'] ?? false ),
 			'governance_mode'   => (string) ( $capability['governance_mode'] ?? '' ),
 			'execution_surface' => (string) ( $capability['execution_surface'] ?? '' ),
+			'read_policy'       => (string) ( $capability['read_policy'] ?? '' ),
+			'sensitivity'       => (string) ( $capability['sensitivity'] ?? '' ),
+			'read_authorization_required' => $this->core_read_authorization_required( $capability ),
 			'core_proxy_execute' => (bool) ( $capability['core_proxy_execute'] ?? false ),
 			'commit_execution'  => (bool) ( $capability['commit_execution'] ?? false ),
 		);

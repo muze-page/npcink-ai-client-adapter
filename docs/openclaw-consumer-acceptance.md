@@ -119,10 +119,28 @@ Run this order for a local acceptance pass:
    - `openclaw_recipes.article_draft_plan`
    - `openclaw_recipes.article_batch_draft_plan`
    - `openclaw_recipes.article_media_batch_plan`
+   - `openclaw_recipes.article_block_plan`
    - `openclaw_recipes.pattern_page_plan`
+   - `openclaw_recipes.pattern_page_research_brief`
+   - `openclaw_recipes.pattern_page_with_visual_asset_plan`
    - `openclaw_recipes.content_discoverability_suggestions`
    - `openclaw_recipes.ai_article_draft_with_discoverability`
    - `openclaw_recipes.media_derivative_cloud`
+   Confirm `openclaw_recipes.pattern_page_plan.visual_acceptance` and
+   `openclaw_recipes.article_block_plan.visual_acceptance` expose
+   `operator_browser_check`, front-end and block-editor targets, and desktop,
+   tablet, and mobile viewport rows.
+   Confirm `openclaw_recipes.pattern_page_with_visual_asset_plan.guardrails`
+   keeps `candidate_review_required=true`,
+   `hosted_generation_candidate_only=true`, `cloud_control_plane=false`, and
+   `generic_write_executor=false`; OpenClaw must treat hosted image generation
+   as a reviewed candidate source, not a direct page write step.
+   Confirm `openclaw_recipes.pattern_page_research_brief.default_input`
+   exposes `external_search_intent=competitor_research`,
+   `search_policy.max_results=5`,
+   `search_policy.requires_external_evidence=true`, and
+   `search_policy.enhance_with_reader=false`; Adapter must not expose search
+   provider keys or treat references as copyable page assets.
    Confirm the content discoverability and AI article writing recipes expose a
    `default_input.search_policy` with
    `requires_external_evidence=true`, `max_results=3`, `recency_days=30`, and
@@ -460,6 +478,16 @@ OpenClaw consumer acceptance is complete when:
   AI Request Logs remain the provider request log;
 - AI Request Logs context records the explicit `ai_provider` and explicit
   `ai_model` sent to the provider smoke even if the provider column is blank;
+- Gutenberg page and article recipes expose visual acceptance metadata, and any
+  browser pass uses the shared
+  [`openclaw-gutenberg-visual-acceptance.md`](openclaw-gutenberg-visual-acceptance.md)
+  checklist rather than Adapter-side rendering logic;
+- visually rich Pattern pages use the two-stage visual-asset recipe so reviewed
+  media adoption happens before `pattern_page_plan` receives
+  `variables.hero_media_url`;
+- research-backed Pattern pages use `pattern_page_research_brief` as
+  suggestion-only evidence before choosing page variables, section variants,
+  visual assets, and proof angles;
 - disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
   proposal state;
 - plan `write_actions` are executed only through the accepted allowlisted batch

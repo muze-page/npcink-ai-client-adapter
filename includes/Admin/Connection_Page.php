@@ -29,6 +29,8 @@ final class Connection_Page {
 	const PROPOSAL_LOOKUP_ACTION = 'npcink_openclaw_adapter_proposal_lookup';
 	const PROPOSAL_LOOKUP_NONCE = '_npcink_openclaw_adapter_lookup_nonce';
 	const DATETIME_DISPLAY_FORMAT = 'Y-m-d H:i:s';
+	const LOCAL_CLI_MODE = 'development_local_checkout';
+	const LOCAL_CLI_LOCAL_SCRIPT = '/Users/muze/gitee/magick-ai-adapter/packages/adapter-cli/bin/npcink-openclaw-adapter.mjs';
 
 	/**
 	 * Admin page hook suffixes that should receive Adapter assets.
@@ -243,6 +245,7 @@ final class Connection_Page {
 		$local_cli_setup = $this->local_cli_setup_text( $include_local_tls );
 		$local_cli_connect_command = $this->local_cli_connect_command( $include_local_tls );
 		$local_cli_status_command = $this->local_cli_status_command( $include_local_tls );
+		$local_cli_new_session_opener = $this->local_cli_new_session_opener_text( $include_local_tls );
 		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
 		$lookup_id       = $this->proposal_lookup_id_from_request();
 		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
@@ -367,6 +370,16 @@ final class Connection_Page {
 					</div>
 					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-status-command"><?php echo esc_html__( 'Copy status command', 'npcink-openclaw-adapter' ); ?></button>
 				</div>
+				<details class="maa-inline-disclosure">
+					<summary>
+						<strong><?php echo esc_html__( 'New OpenClaw conversation opener', 'npcink-openclaw-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Copy this into later OpenClaw chats after this machine has already connected once.', 'npcink-openclaw-adapter' ); ?></span>
+					</summary>
+					<textarea id="maa-local-cli-new-session-opener" rows="12" readonly><?php echo esc_textarea( $local_cli_new_session_opener ); ?></textarea>
+					<p class="maa-action-row">
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-new-session-opener"><?php echo esc_html__( 'Copy new conversation opener', 'npcink-openclaw-adapter' ); ?></button>
+					</p>
+				</details>
 				<details class="maa-inline-disclosure">
 					<summary>
 						<strong><?php echo esc_html__( 'Full OpenClaw instructions', 'npcink-openclaw-adapter' ); ?></strong>
@@ -1073,6 +1086,7 @@ final class Connection_Page {
 			. "Start by calling GET /health, GET /help, and GET /capabilities.\n"
 			. "For direct_read abilities, call the matching read shortcut or POST /run-read-ability with the real ability_id and input object.\n"
 			. "For SEO/GEO/AEO suggestions, the primary entrypoint is content-discoverability-brief through openclaw_recipes.content_discoverability_suggestions: validate Toolbox context, read Toolbox context, build one content_discoverability_brief, and return suggestions only.\n"
+			. "For research-backed Gutenberg landing pages, use openclaw_recipes.pattern_page_research_brief first: request bounded competitor_research evidence through Toolbox/Cloud, synthesize a suggestion-only landing_page_research_brief, and do not copy reference site text, images, CSS, claims, or layouts.\n"
 			. "Use article-writing-pack only for broad natural-language article requests such as \"help me write an article\": follow openclaw_recipes.ai_article_draft_with_discoverability, draft from the returned ai_article_writing_pack, then use Core proposals for reviewed final writes.\n"
 			. "For proposal_required abilities, POST /proposals with the real ability_id, input, preview, and caller metadata. For read-only planning outputs, POST /proposals/from-plan to let Core create governed proposals.\n"
 			. "Poll GET /proposals/{proposal_id} for Core status. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute so Adapter calls Core approve, Core commit-preflight, and one allowlisted final write. If status=rejected, stop and show the rejection status. If status=approved and execution is intended, call POST /proposals/{proposal_id}/execute. Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true. Use Adapter commit-preflight only as an advanced diagnostic step; for dry-run-only verification, stop at commit-preflight and do not call execute.\n"
@@ -1168,7 +1182,8 @@ final class Connection_Page {
 			. "4. Call GET /help to discover adapter routes, then GET /capabilities before reads or proposals and use only real ability_id values returned by Core.\n"
 			. "5. For direct_read abilities, call a read shortcut or POST /run-read-ability.\n"
 			. "5b. For SEO/GEO/AEO suggestions, the primary entrypoint is content-discoverability-brief: use content_discoverability_suggestions, call content-discoverability-validation, content-discoverability-context, then content-discoverability-brief for one post_id or supplied topic. Return suggestions only; do not write SEO meta, slug, excerpt, schema, media, or posts.\n"
-			. "5c. Use article-writing-pack only for broad article requests like \"help me write an article\" or \"write an AI topic article\": use ai_article_draft_with_discoverability, draft only from the returned pack, and send any reviewed final write through Core proposal/preflight.\n"
+			. "5c. For research-backed Gutenberg landing pages, use pattern_page_research_brief before page creation: request bounded competitor_research evidence, synthesize landing_page_research_brief as suggestion-only input, and do not copy reference site text, images, CSS, claims, or layouts.\n"
+			. "5d. Use article-writing-pack only for broad article requests like \"help me write an article\" or \"write an AI topic article\": use ai_article_draft_with_discoverability, draft only from the returned pack, and send any reviewed final write through Core proposal/preflight.\n"
 			. "6. For proposal_required abilities, POST /proposals and poll GET /proposals/{proposal_id}. For read-only planning outputs, POST /proposals/from-plan.\n"
 			. "7. For the unified user action, call POST /proposals/{proposal_id}/approve-and-execute. Adapter calls Core approve, Core commit-preflight, and one allowlisted final write. Current execution allowlist: npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/update-post-blocks, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/restore-media-backup, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, npcink-abilities-toolkit/approve-comment.\n"
 			. "7b. If status=rejected, stop and show the rejection status. If status=approved and execution is intended, call POST /proposals/{proposal_id}/execute. Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true. Use Adapter commit-preflight only as an advanced diagnostic step; for dry-run-only verification, stop at commit-preflight and do not call execute.\n"
@@ -1240,6 +1255,24 @@ final class Connection_Page {
 			. "4. Use only Adapter-relative routes such as /health, /capabilities, or /proposals.\n"
 			. "5. WordPress writes must still go through Core proposal, approval, and preflight.\n"
 			. "6. Dry-run or preflight-only verification must stop at commit-preflight; final execute routes require --intent=commit.";
+	}
+
+	/**
+	 * Builds the short prompt for later OpenClaw conversations.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_new_session_opener_text( bool $include_local_tls ): string {
+		$status_command = $this->local_cli_status_command( $include_local_tls );
+		$capabilities_command = $this->local_cli_request_prefix( $include_local_tls ) . ' GET /capabilities';
+
+		return "You are using an already paired local Npcink OpenClaw Adapter profile on this machine. Do not run connect again unless the status check fails.\n\n"
+			. "First, run only this read-only status check and return the JSON result. Do not read, print, summarize, or copy any file under ~/.npcink-openclaw-adapter/keypair-profiles/. Do not show signing headers, private keys, profile JSON, or secrets.\n\n"
+			. $status_command . "\n\n"
+			. "If ok=true, status=ready, and boundary.status=ok, immediately run this second read-only discovery request and summarize the available read and proposal capabilities relevant to my task:\n\n"
+			. $capabilities_command . "\n\n"
+			. "After that, continue only with Adapter-relative request commands I provide or with read-only routes clearly exposed by /capabilities for the task I asked about. Public and internal read-only data checks are allowed. If Core marks a capability with read_authorization_required=true, requires_read_authorization=true, or read_policy=core_read_authorization_required, stop and report that Core sensitive read authorization is required. Do not bypass through the database, filesystem, logs, custom scripts, or direct WordPress internals. Any WordPress write must create or inspect a Core proposal first, and final execution requires my explicit confirmation before using an --intent=commit approve-and-execute command.";
 	}
 
 	/**
@@ -1328,6 +1361,10 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function local_cli_prefix(): string {
+		if ( 'development_local_checkout' === self::LOCAL_CLI_MODE ) {
+			return 'cd ~ && node ' . escapeshellarg( self::LOCAL_CLI_LOCAL_SCRIPT );
+		}
+
 		return 'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter';
 	}
 

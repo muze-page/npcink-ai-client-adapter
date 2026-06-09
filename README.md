@@ -414,6 +414,15 @@ HTTPS polling resets are retried until the pairing code expires.
 After approval, WordPress shows a pairing result page; return to the terminal or
 local AI client and wait for polling to finish.
 
+The `status` command keeps the raw `/health` boundary fields and also prints
+derived `boundary` and `proposal_execution` guidance. In a healthy Adapter
+connection, `approval_proxy_enabled=false`, `core_proxy_execute=false`, and
+`commit_execution=false` are expected boundary controls. They mean Core did not
+execute final writes and standalone approval proxying is disabled; they are not
+an execution-disabled signal. For proposal execution readiness, inspect
+`GET /proposals/{proposal_id}` and use the Adapter approve-and-execute or
+execute routes only after Core approval and commit-preflight.
+
 After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:
 
@@ -542,7 +551,14 @@ Read-only execution:
 5. If Core marks the row `direct_read_sensitive` or
    `redaction_required=true`, Adapter applies bounded read-result redaction
    before returning `result`.
-6. Planning ability output is returned as plan data. `write_actions`,
+6. If Core marks the row with `read_authorization_required=true`,
+   `requires_read_authorization=true`,
+   `read_policy=core_read_authorization_required`, or
+   `authorization_mode=core_read_request`, Adapter fails closed with
+   `npcink_openclaw_adapter_core_read_authorization_required`. Prompt text,
+   chat consent, direct database access, filesystem reads, logs, and custom
+   scripts are not substitutes for Core-managed sensitive read authorization.
+7. Planning ability output is returned as plan data. `write_actions`,
    `preview`, `risk`, `manual_review`, and
    `skipped_destructive_candidates` are not execution results.
 
@@ -596,8 +612,20 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/create-draft` and
 	   `npcink-abilities-toolkit/update-post-blocks` actions. The machine-readable
 	   playbook is exposed as `openclaw_recipes.pattern_page_plan` from
-	   `GET /help`. See
-	   [OpenClaw Pattern Page Plan Recipe](docs/openclaw-pattern-page-plan-recipe.md).
+	   `GET /help`, including a `visual_acceptance` block with front-end/editor
+	   targets, 1440/768/390 viewport checks, and the local smoke artifact envs.
+	   See [OpenClaw Pattern Page Plan Recipe](docs/openclaw-pattern-page-plan-recipe.md)
+	   and [OpenClaw Gutenberg Visual Acceptance](docs/openclaw-gutenberg-visual-acceptance.md).
+	   For reviewed Gutenberg article block drafts, use
+	   `npcink-abilities-toolkit/build-article-block-plan`; Core creates one
+	   batch proposal and Adapter later executes only approved
+	   `npcink-abilities-toolkit/create-draft` and
+	   `npcink-abilities-toolkit/update-post-blocks` actions. The machine-readable
+	   playbook is exposed as `openclaw_recipes.article_block_plan` from
+	   `GET /help`, including the same browser visual acceptance contract for
+	   responsive Gutenberg article drafts. See
+	   [OpenClaw Article Block Plan Recipe](docs/openclaw-article-block-plan-recipe.md)
+	   and [OpenClaw Gutenberg Visual Acceptance](docs/openclaw-gutenberg-visual-acceptance.md).
 	   For adopting one reviewed `image_candidate.v1` into the media library,
 	   call `npcink-toolbox/build-image-candidate-adoption-plan`; Core
 	   creates one batch proposal and Adapter later executes only approved
@@ -606,6 +634,19 @@ Plan-to-proposal flow:
 	   machine-readable playbook is exposed as
 	   `openclaw_recipes.image_candidate_adoption_plan` from `GET /help`. See
 	   [OpenClaw Image Candidate Adoption Plan Recipe](docs/openclaw-image-candidate-adoption-plan-recipe.md).
+	   For research-backed Gutenberg landing pages, first use
+	   `openclaw_recipes.pattern_page_research_brief` to request bounded
+	   Cloud-owned `competitor_research` evidence through Toolbox and produce a
+	   suggestion-only `landing_page_research_brief`. See
+	   [OpenClaw Pattern Page Research Brief Recipe](docs/openclaw-pattern-page-research-brief-recipe.md).
+	   For visually richer Gutenberg landing pages, compose the reviewed image
+	   candidate adoption flow with `pattern_page_plan`: first adopt one
+	   reviewed `image_candidate.v1` into the local media library, then pass the
+	   approved WordPress media URL as `variables.hero_media_url` with
+	   `media_strategy=existing_media_url`. The machine-readable playbook is
+	   exposed as `openclaw_recipes.pattern_page_with_visual_asset_plan` from
+	   `GET /help`. See
+	   [OpenClaw Pattern Page With Visual Asset Recipe](docs/openclaw-pattern-page-with-visual-asset-recipe.md).
 	   For Site Knowledge agent evidence review, call
 	   `npcink-toolbox/build-site-knowledge-review-plan`; Core creates a
 	   blocked review proposal that still requires human `title` and `content`
