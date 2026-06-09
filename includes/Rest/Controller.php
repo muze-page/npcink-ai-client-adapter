@@ -6743,6 +6743,9 @@ final class Controller {
 		$rollback_available  = false;
 		$actual_replacements = 0;
 		$post_ids            = array();
+		$has_post_references = false;
+		$old_urls_absent     = true;
+		$new_urls_present    = true;
 
 		foreach ( $items as $item ) {
 			$verification = is_array( $item['verification'] ?? null ) ? $item['verification'] : array();
@@ -6752,6 +6755,9 @@ final class Controller {
 			foreach ( (array) ( $verification['post_references_verified'] ?? array() ) as $post_reference ) {
 				if ( is_array( $post_reference ) ) {
 					$post_ids[] = absint( $post_reference['post_id'] ?? 0 );
+					$has_post_references = true;
+					$old_urls_absent = $old_urls_absent && (bool) ( $post_reference['old_url_absent'] ?? false );
+					$new_urls_present = $new_urls_present && (bool) ( $post_reference['new_url_present'] ?? false );
 				} else {
 					$post_ids[] = absint( $post_reference );
 				}
@@ -6763,6 +6769,9 @@ final class Controller {
 			'rollback_available'                         => $rollback_available,
 			'content_reference_actual_replacement_count' => $actual_replacements,
 			'post_references_verified'                   => array_values( array_unique( array_filter( $post_ids ) ) ),
+			'post_reference_count'                       => count( array_unique( array_filter( $post_ids ) ) ),
+			'post_reference_old_urls_absent'             => $has_post_references ? $old_urls_absent : null,
+			'post_reference_new_urls_present'            => $has_post_references ? $new_urls_present : null,
 		);
 	}
 

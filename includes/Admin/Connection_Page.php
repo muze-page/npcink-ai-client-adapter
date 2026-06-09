@@ -982,16 +982,36 @@ final class Connection_Page {
 		$backup_available    = (bool) ( $aggregates['backup_available'] ?? false );
 		$rollback_available  = (bool) ( $aggregates['rollback_available'] ?? false );
 		$actual_replacements = absint( $aggregates['content_reference_actual_replacement_count'] ?? 0 );
+		$post_reference_count = absint( $aggregates['post_reference_count'] ?? 0 );
+		$old_urls_absent     = array_key_exists( 'post_reference_old_urls_absent', $aggregates ) ? $aggregates['post_reference_old_urls_absent'] : null;
+		$new_urls_present    = array_key_exists( 'post_reference_new_urls_present', $aggregates ) ? $aggregates['post_reference_new_urls_present'] : null;
 
 		return sprintf(
-			/* translators: 1: verification status, 2: item count, 3: backup yes/no, 4: rollback yes/no, 5: content replacement count. */
-			__( 'Status %1$s, %2$d items, backup %3$s, rollback %4$s, content replacements %5$d.', 'npcink-openclaw-adapter' ),
+			/* translators: 1: verification status, 2: item count, 3: backup yes/no, 4: rollback yes/no, 5: content replacement count, 6: post reference count, 7: old URL absent yes/no/not applicable, 8: new URL present yes/no/not applicable. */
+			__( 'Status %1$s, %2$d items, backup %3$s, rollback %4$s, content replacements %5$d, post references %6$d, old URLs absent %7$s, new URLs present %8$s.', 'npcink-openclaw-adapter' ),
 			'' !== $status ? $status : __( 'unknown', 'npcink-openclaw-adapter' ),
 			$item_count,
 			$this->boolean_label( $backup_available ),
 			$this->boolean_label( $rollback_available ),
-			$actual_replacements
+			$actual_replacements,
+			$post_reference_count,
+			$this->nullable_boolean_label( $old_urls_absent ),
+			$this->nullable_boolean_label( $new_urls_present )
 		);
+	}
+
+	/**
+	 * Formats a nullable yes/no label.
+	 *
+	 * @param mixed $value Nullable boolean.
+	 * @return string
+	 */
+	private function nullable_boolean_label( $value ): string {
+		if ( null === $value ) {
+			return __( 'n/a', 'npcink-openclaw-adapter' );
+		}
+
+		return $this->boolean_label( (bool) $value );
 	}
 
 	/**

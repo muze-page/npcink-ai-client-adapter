@@ -32,10 +32,30 @@ final class Plugin {
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_filter( 'rest_request_before_callbacks', array( $this, 'capture_adapter_dispatch_start' ), 10, 3 );
 		add_filter( 'rest_request_after_callbacks', array( $this, 'emit_adapter_dispatch_event' ), 10, 3 );
+		add_filter( 'plugin_action_links_' . plugin_basename( NPCINK_OPENCLAW_ADAPTER_FILE ), array( $this, 'filter_plugin_action_links' ) );
 		add_action( 'admin_menu', array( $this, 'register_admin_page' ), 20 );
 		add_action( 'admin_post_npcink_openclaw_adapter_create_openclaw_password', array( $this, 'handle_create_openclaw_password' ) );
 		add_action( 'admin_post_npcink_openclaw_adapter_pairing_decision', array( $this, 'handle_pairing_decision' ) );
 		add_action( 'admin_post_npcink_openclaw_adapter_revoke_client_key', array( $this, 'handle_revoke_client_key' ) );
+	}
+
+	/**
+	 * Adds a settings shortcut on the WordPress plugins screen.
+	 *
+	 * @param array<int|string,string> $links Existing plugin action links.
+	 * @return array<int|string,string>
+	 */
+	public function filter_plugin_action_links( array $links ): array {
+		array_unshift(
+			$links,
+			sprintf(
+				'<a href="%1$s">%2$s</a>',
+				esc_url( admin_url( 'admin.php?page=npcink-openclaw-adapter' ) ),
+				esc_html__( 'Settings', 'npcink-openclaw-adapter' )
+			)
+		);
+
+		return $links;
 	}
 
 	/**
