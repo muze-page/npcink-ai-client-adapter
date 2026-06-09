@@ -569,6 +569,106 @@ final class Controller {
 							'type'    => 'object',
 							'default' => array(),
 						),
+						'read_request_id' => array(
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'read_authorization_context' => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/read-requests',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_read_requests' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'limit'  => array(
+							'type'              => 'integer',
+							'default'           => 50,
+							'sanitize_callback' => 'absint',
+						),
+						'status' => array(
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_key',
+						),
+					),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_read_request' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'ability_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'input'      => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'input_hash' => array(
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_text_field',
+						),
+						'requested_input_summary' => array(
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_textarea_field',
+						),
+						'data_classes' => array(
+							'type'    => 'array',
+							'default' => array(),
+						),
+						'purpose'    => array(
+							'type'              => 'string',
+							'default'           => '',
+							'sanitize_callback' => 'sanitize_textarea_field',
+						),
+						'redaction_level' => array(
+							'type'              => 'string',
+							'default'           => 'strict',
+							'sanitize_callback' => 'sanitize_key',
+						),
+						'bounds'     => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+						'caller'     => array(
+							'type'    => 'object',
+							'default' => array(),
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/read-requests/(?P<request_id>[A-Za-z0-9_-]+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_read_request' ),
+					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'args'                => array(
+						'request_id' => array(
+							'type'              => 'string',
+							'required'          => true,
+							'sanitize_callback' => 'sanitize_text_field',
+						),
 					),
 				),
 			)
@@ -3061,8 +3161,67 @@ final class Controller {
 		return $this->run_read_ability(
 			(string) $request->get_param( 'ability_id' ),
 			$this->request_input( $request ),
-			$this->request_log_context( $request, (string) $request->get_param( 'ability_id' ) )
+			$this->request_log_context( $request, (string) $request->get_param( 'ability_id' ) ),
+			$this->read_authorization_params( $request )
 		);
+	}
+
+	/**
+	 * Creates a Core sensitive read request.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_read_request( WP_REST_Request $request ) {
+		$ability_id = sanitize_text_field( (string) $request->get_param( 'ability_id' ) );
+		$payload    = array(
+			'ability_id'               => $ability_id,
+			'input'                    => $this->request_input( $request ),
+			'input_hash'               => sanitize_text_field( (string) $request->get_param( 'input_hash' ) ),
+			'requested_input_summary'  => sanitize_textarea_field( (string) $request->get_param( 'requested_input_summary' ) ),
+			'data_classes'             => $this->sanitize_string_list( is_array( $request->get_param( 'data_classes' ) ) ? (array) $request->get_param( 'data_classes' ) : array() ),
+			'purpose'                  => sanitize_textarea_field( (string) $request->get_param( 'purpose' ) ),
+			'redaction_level'          => sanitize_key( (string) $request->get_param( 'redaction_level' ) ),
+			'bounds'                   => $this->object_param( $request, 'bounds' ),
+			'caller'                   => array_merge(
+				$this->object_param( $request, 'caller' ),
+				array(
+					'via'        => 'npcink-openclaw-adapter',
+					'ability_id' => $ability_id,
+				)
+			),
+		);
+
+		return $this->dispatch_upstream( 'POST', '/npcink-governance-core/v1/read-requests', $payload, false, true );
+	}
+
+	/**
+	 * Lists Core sensitive read requests.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function list_read_requests( WP_REST_Request $request ) {
+		return $this->dispatch_upstream(
+			'GET',
+			'/npcink-governance-core/v1/read-requests',
+			array(
+				'limit'  => absint( $request->get_param( 'limit' ) ),
+				'status' => sanitize_key( (string) $request->get_param( 'status' ) ),
+			),
+			true
+		);
+	}
+
+	/**
+	 * Gets one Core sensitive read request.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_read_request( WP_REST_Request $request ) {
+		$request_id = sanitize_text_field( (string) $request->get_param( 'request_id' ) );
+		return $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/read-requests/' . rawurlencode( $request_id ) );
 	}
 
 	/**
@@ -6603,9 +6762,10 @@ final class Controller {
 	 * @param string              $ability_id Ability id.
 	 * @param array<string,mixed> $input Ability input.
 	 * @param array<string,mixed> $log_context AI request log context.
+	 * @param array<string,mixed> $read_authorization Core read authorization request/context.
 	 * @return WP_REST_Response|WP_Error
 	 */
-	private function run_read_ability( string $ability_id, array $input, array $log_context = array() ) {
+	private function run_read_ability( string $ability_id, array $input, array $log_context = array(), array $read_authorization = array() ) {
 		$started = microtime( true );
 		$ability_id = sanitize_text_field( $ability_id );
 		$capability = $this->find_core_capability( $ability_id );
@@ -6615,13 +6775,18 @@ final class Controller {
 			return $capability;
 		}
 
+		$grant_context = array();
 		if ( $this->core_read_authorization_required( $capability ) ) {
-			$error = $this->core_read_authorization_required_error( $capability );
-			$this->emit_operation_event( 'adapter.ability.run_read', $started, $error, array( 'ability_id' => $ability_id ) );
-			return $error;
+			$grant = $this->core_read_authorization_preflight( $capability, $input, $read_authorization );
+			if ( is_wp_error( $grant ) ) {
+				$this->emit_operation_event( 'adapter.ability.run_read', $started, $grant, array( 'ability_id' => $ability_id ) );
+				return $grant;
+			}
+			$grant_context = $grant;
 		}
 
-		if ( 'direct_read' !== (string) ( $capability['governance_mode'] ?? '' ) || 'wp_abilities_rest' !== (string) ( $capability['execution_surface'] ?? '' ) ) {
+		$governance_mode = (string) ( $capability['governance_mode'] ?? '' );
+		if ( ! in_array( $governance_mode, array( 'direct_read', 'core_read_authorization_required' ), true ) || 'wp_abilities_rest' !== (string) ( $capability['execution_surface'] ?? '' ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_proposal_required',
 				__( 'This ability is not direct-read. Create a Core proposal instead.', 'npcink-openclaw-adapter' ),
@@ -6644,7 +6809,7 @@ final class Controller {
 			return $error;
 		}
 
-		$read_context = $this->read_governance_context( $capability, $log_context );
+		$read_context = $this->read_governance_context( $capability, $log_context, $grant_context );
 		$route        = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
 		$response     = $this->dispatch_upstream_with_request_log_context( $read_context, 'GET', $route, array( 'input' => $input ), true );
 
@@ -6677,6 +6842,7 @@ final class Controller {
 				'execution_surface' => 'wp_abilities_rest',
 				'core_proxy_execute' => false,
 				'commit_execution'  => false,
+				'read_authorization_granted' => ! empty( $grant_context ),
 				'read_policy'       => (string) ( $read_context['read_policy'] ?? '' ),
 				'sensitivity'       => (string) ( $read_context['sensitivity'] ?? '' ),
 				'redaction_required' => (bool) ( $read_context['redaction_required'] ?? false ),
@@ -6697,9 +6863,10 @@ final class Controller {
 	 *
 	 * @param array<string,mixed> $capability Capability row.
 	 * @param array<string,mixed> $log_context Existing log context.
+	 * @param array<string,mixed> $grant_context Core read authorization grant context.
 	 * @return array<string,mixed>
 	 */
-	private function read_governance_context( array $capability, array $log_context ): array {
+	private function read_governance_context( array $capability, array $log_context, array $grant_context = array() ): array {
 		$sensitivity = sanitize_key( (string) ( $capability['sensitivity'] ?? '' ) );
 		if ( ! in_array( $sensitivity, array( 'public', 'internal', 'sensitive' ), true ) ) {
 			$sensitivity = $this->infer_read_sensitivity( sanitize_text_field( (string) ( $capability['ability_id'] ?? '' ) ) );
@@ -6712,7 +6879,8 @@ final class Controller {
 
 		$log_context['read_policy']        = $read_policy;
 		$log_context['sensitivity']        = $sensitivity;
-		$log_context['redaction_required'] = (bool) ( $capability['redaction_required'] ?? ( 'sensitive' === $sensitivity ) );
+		$log_context['redaction_required'] = ! empty( $grant_context )
+			|| (bool) ( $capability['redaction_required'] ?? ( 'sensitive' === $sensitivity ) );
 		$log_context['read_audit_mode']    = sanitize_key( (string) ( $capability['read_audit_mode'] ?? 'adapter_read_envelope' ) );
 		$log_context['correlation_id']     = isset( $log_context['correlation_id'] ) && '' !== (string) $log_context['correlation_id']
 			? sanitize_text_field( (string) $log_context['correlation_id'] )
@@ -6720,6 +6888,15 @@ final class Controller {
 
 		$npcink_governance_core = is_array( $log_context['npcink_governance_core'] ?? null ) ? $log_context['npcink_governance_core'] : array();
 		$npcink_governance_core['correlation_id'] = $log_context['correlation_id'];
+		if ( ! empty( $grant_context ) ) {
+			$log_context['read_authorization_granted'] = true;
+			$log_context['read_authorization_context'] = $grant_context;
+			$log_context['redaction_level']            = sanitize_key( (string) ( $grant_context['redaction_level'] ?? 'strict' ) );
+			$log_context['read_authorization_bounds']  = is_array( $grant_context['bounds'] ?? null ) ? $grant_context['bounds'] : array();
+			$npcink_governance_core['read_request_id'] = sanitize_text_field( (string) ( $grant_context['request_id'] ?? '' ) );
+			$npcink_governance_core['approved_input_hash'] = sanitize_text_field( (string) ( $grant_context['approved_input_hash'] ?? '' ) );
+			$npcink_governance_core['core_authorization_truth'] = 'npcink_governance_core';
+		}
 		$log_context['npcink_governance_core']    = $npcink_governance_core;
 
 		return $this->sanitize_log_context( $log_context );
@@ -6743,6 +6920,162 @@ final class Controller {
 			|| 'core_read_authorization_required' === $read_policy
 			|| 'core_read_authorization_required' === $governance_mode
 			|| 'core_read_request' === $authorization_mode;
+	}
+
+	/**
+	 * Calls Core read-preflight and validates the returned grant.
+	 *
+	 * @param array<string,mixed> $capability Capability row.
+	 * @param array<string,mixed> $input Ability input.
+	 * @param array<string,mixed> $read_authorization Read authorization request/context.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function core_read_authorization_preflight( array $capability, array $input, array $read_authorization ) {
+		$ability_id = sanitize_text_field( (string) ( $capability['ability_id'] ?? '' ) );
+		$request_id = sanitize_text_field( (string) ( $read_authorization['request_id'] ?? '' ) );
+		$expected_context = is_array( $read_authorization['read_authorization_context'] ?? null )
+			? (array) $read_authorization['read_authorization_context']
+			: array();
+		if ( '' === $request_id && is_array( $expected_context ) ) {
+			$request_id = sanitize_text_field( (string) ( $expected_context['request_id'] ?? '' ) );
+		}
+
+		if ( '' === $request_id ) {
+			return $this->core_read_authorization_required_error( $capability );
+		}
+
+		$response = $this->dispatch_upstream(
+			'POST',
+			'/npcink-governance-core/v1/read-requests/' . rawurlencode( $request_id ) . '/read-preflight',
+			array(
+				'ability_id' => $ability_id,
+				'input'      => $input,
+			),
+			false,
+			true
+		);
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data    = $response->get_data();
+		$context = is_array( $data ) && is_array( $data['read_authorization_context'] ?? null ) ? (array) $data['read_authorization_context'] : array();
+		if ( empty( $context ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_core_read_grant_missing',
+				__( 'Core read preflight did not return a read authorization context.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		$validated = $this->validate_core_read_authorization_context( $context, $ability_id, $request_id );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
+		}
+
+		if ( ! empty( $expected_context ) ) {
+			$expected_hash = sanitize_text_field( (string) ( $expected_context['approved_input_hash'] ?? '' ) );
+			$actual_hash   = sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) );
+			if ( '' !== $expected_hash && $expected_hash !== $actual_hash ) {
+				return new WP_Error(
+					'npcink_openclaw_adapter_core_read_grant_hash_mismatch',
+					__( 'Core read authorization context does not match the supplied approved input hash.', 'npcink-openclaw-adapter' ),
+					array( 'status' => 403 )
+				);
+			}
+		}
+
+		return $validated;
+	}
+
+	/**
+	 * Validates a Core read authorization context.
+	 *
+	 * @param array<string,mixed> $context Grant context.
+	 * @param string              $ability_id Ability id.
+	 * @param string              $request_id Request id.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function validate_core_read_authorization_context( array $context, string $ability_id, string $request_id ) {
+		if ( true !== (bool) ( $context['read_authorization_granted'] ?? false ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_core_read_grant_not_granted',
+				__( 'Core read authorization was not granted.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+		if ( 'npcink_governance_core' !== (string) ( $context['core_authorization_truth'] ?? '' ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_core_read_grant_truth_invalid',
+				__( 'Core read authorization truth marker is invalid.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+		if ( $ability_id !== (string) ( $context['ability_id'] ?? '' ) || $request_id !== (string) ( $context['request_id'] ?? '' ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_core_read_grant_target_mismatch',
+				__( 'Core read authorization context does not match the requested ability or read request.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+		if ( '' === sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_core_read_grant_hash_missing',
+				__( 'Core read authorization context is missing the approved input hash.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+		if ( true === (bool) ( $context['commit_execution'] ?? false ) || true === (bool) ( $context['write_execution'] ?? false ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_core_read_grant_execution_invalid',
+				__( 'Core read authorization context must not enable write or commit execution.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
+		if ( false === $expires_at || $expires_at <= time() ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_core_read_grant_expired',
+				__( 'Core read authorization context is expired.', 'npcink-openclaw-adapter' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		return $this->sanitize_core_read_authorization_context( $context );
+	}
+
+	/**
+	 * Sanitizes a Core read authorization context for runtime use and logs.
+	 *
+	 * @param array<string,mixed> $context Grant context.
+	 * @return array<string,mixed>
+	 */
+	private function sanitize_core_read_authorization_context( array $context ): array {
+		$bounds = is_array( $context['bounds'] ?? null ) ? (array) $context['bounds'] : array();
+
+		return array(
+			'request_id'                  => sanitize_text_field( (string) ( $context['request_id'] ?? '' ) ),
+			'ability_id'                  => sanitize_text_field( (string) ( $context['ability_id'] ?? '' ) ),
+			'approved_input_hash'         => sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) ),
+			'correlation_id'              => sanitize_text_field( (string) ( $context['correlation_id'] ?? '' ) ),
+			'policy_version'              => sanitize_text_field( (string) ( $context['policy_version'] ?? '' ) ),
+			'sensitivity'                 => sanitize_key( (string) ( $context['sensitivity'] ?? 'sensitive' ) ),
+			'data_classes'                => $this->sanitize_string_list( is_array( $context['data_classes'] ?? null ) ? (array) $context['data_classes'] : array() ),
+			'redaction_level'             => sanitize_key( (string) ( $context['redaction_level'] ?? 'strict' ) ),
+			'expires_at'                  => sanitize_text_field( (string) ( $context['expires_at'] ?? '' ) ),
+			'bounds'                      => array(
+				'max_rows'       => absint( $bounds['max_rows'] ?? 0 ),
+				'tail_lines'     => absint( $bounds['tail_lines'] ?? 0 ),
+				'allowed_fields' => $this->sanitize_string_list( is_array( $bounds['allowed_fields'] ?? null ) ? (array) $bounds['allowed_fields'] : array() ),
+				'denied_fields'  => $this->sanitize_string_list( is_array( $bounds['denied_fields'] ?? null ) ? (array) $bounds['denied_fields'] : array() ),
+				'one_time'       => ! empty( $bounds['one_time'] ),
+			),
+			'read_authorization_granted'  => true,
+			'core_authorization_truth'    => 'npcink_governance_core',
+			'commit_execution'            => false,
+			'write_execution'             => false,
+		);
 	}
 
 	/**
@@ -6789,9 +7122,11 @@ final class Controller {
 	private function apply_read_redaction( $result, array $read_context ): array {
 		$required = (bool) ( $read_context['redaction_required'] ?? false );
 		$count    = 0;
+		$bounds   = is_array( $read_context['read_authorization_bounds'] ?? null ) ? (array) $read_context['read_authorization_bounds'] : array();
 
 		if ( $required ) {
-			$result = $this->redact_read_value( $result, $count );
+			$result = $this->apply_read_bounds( $result, $bounds, $count );
+			$result = $this->redact_read_value( $result, $count, $this->sanitize_string_list( is_array( $bounds['denied_fields'] ?? null ) ? (array) $bounds['denied_fields'] : array() ) );
 		}
 
 		return array(
@@ -6800,8 +7135,64 @@ final class Controller {
 			'redaction_summary'  => array(
 				'policy_applied'        => $required,
 				'redacted_field_count'  => $count,
+				'max_rows'              => absint( $bounds['max_rows'] ?? 0 ),
+				'tail_lines'            => absint( $bounds['tail_lines'] ?? 0 ),
+				'allowed_fields'        => $this->sanitize_string_list( is_array( $bounds['allowed_fields'] ?? null ) ? (array) $bounds['allowed_fields'] : array() ),
+				'denied_fields'         => $this->sanitize_string_list( is_array( $bounds['denied_fields'] ?? null ) ? (array) $bounds['denied_fields'] : array() ),
 			),
 		);
+	}
+
+	/**
+	 * Applies Core read bounds to a result tree.
+	 *
+	 * @param mixed               $value Value.
+	 * @param array<string,mixed> $bounds Bounds.
+	 * @param int                 $count Redaction count.
+	 * @return mixed
+	 */
+	private function apply_read_bounds( $value, array $bounds, int &$count ) {
+		$max_rows       = absint( $bounds['max_rows'] ?? 0 );
+		$tail_lines     = absint( $bounds['tail_lines'] ?? 0 );
+		$allowed_fields = $this->sanitize_string_list( is_array( $bounds['allowed_fields'] ?? null ) ? (array) $bounds['allowed_fields'] : array() );
+
+		if ( is_string( $value ) && $tail_lines > 0 ) {
+			$lines = preg_split( '/\R/', $value );
+			if ( is_array( $lines ) && count( $lines ) > $tail_lines ) {
+				$value = implode( "\n", array_slice( $lines, - $tail_lines ) );
+				++$count;
+			}
+			return $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		if ( $this->is_list_array( $value ) ) {
+			$items = $max_rows > 0 && count( $value ) > $max_rows ? array_slice( $value, 0, $max_rows ) : $value;
+			if ( count( $items ) !== count( $value ) ) {
+				++$count;
+			}
+			return array_map(
+				function ( $item ) use ( $bounds, &$count ) {
+					return $this->apply_read_bounds( $item, $bounds, $count );
+				},
+				$items
+			);
+		}
+
+		$clean = array();
+		foreach ( $value as $key => $item ) {
+			$key_string = is_string( $key ) ? $key : (string) $key;
+			if ( ! empty( $allowed_fields ) && ! in_array( $key_string, $allowed_fields, true ) && ! $this->is_read_result_structural_key( $key_string ) ) {
+				++$count;
+				continue;
+			}
+			$clean[ $key ] = $this->apply_read_bounds( $item, $bounds, $count );
+		}
+
+		return $clean;
 	}
 
 	/**
@@ -6809,9 +7200,10 @@ final class Controller {
 	 *
 	 * @param mixed $value Value.
 	 * @param int   $count Redacted field count.
+	 * @param array<int,string> $denied_fields Denied fields from Core.
 	 * @return mixed
 	 */
-	private function redact_read_value( $value, int &$count ) {
+	private function redact_read_value( $value, int &$count, array $denied_fields = array() ) {
 		if ( ! is_array( $value ) ) {
 			return $value;
 		}
@@ -6819,16 +7211,44 @@ final class Controller {
 		$clean = array();
 		foreach ( $value as $key => $item ) {
 			$key_string = is_string( $key ) ? $key : (string) $key;
-			if ( $this->is_sensitive_read_key( $key_string ) ) {
+			if ( in_array( $key_string, $denied_fields, true ) || $this->is_sensitive_read_key( $key_string ) ) {
 				$clean[ $key ] = '[REDACTED]';
 				++$count;
 				continue;
 			}
 
-			$clean[ $key ] = $this->redact_read_value( $item, $count );
+			$clean[ $key ] = $this->redact_read_value( $item, $count, $denied_fields );
 		}
 
 		return $clean;
+	}
+
+	/**
+	 * Returns whether an array is a list.
+	 *
+	 * @param array<mixed> $value Value.
+	 * @return bool
+	 */
+	private function is_list_array( array $value ): bool {
+		if ( function_exists( 'array_is_list' ) ) {
+			return array_is_list( $value );
+		}
+
+		return array_keys( $value ) === range( 0, count( $value ) - 1 );
+	}
+
+	/**
+	 * Returns whether a key is structural and should survive allowed-field filtering.
+	 *
+	 * @param string $key Key.
+	 * @return bool
+	 */
+	private function is_read_result_structural_key( string $key ): bool {
+		return in_array(
+			$key,
+			array( 'ok', 'status', 'data', 'result', 'results', 'items', 'rows', 'entries', 'summary', 'meta', 'metadata', 'counts', 'count', 'total' ),
+			true
+		);
 	}
 
 	/**
@@ -7520,6 +7940,25 @@ final class Controller {
 	}
 
 	/**
+	 * Returns Core read authorization parameters from a request.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return array<string,mixed>
+	 */
+	private function read_authorization_params( WP_REST_Request $request ): array {
+		$context    = $this->object_param( $request, 'read_authorization_context' );
+		$request_id = sanitize_text_field( (string) $request->get_param( 'read_request_id' ) );
+		if ( '' === $request_id && is_array( $context ) ) {
+			$request_id = sanitize_text_field( (string) ( $context['request_id'] ?? '' ) );
+		}
+
+		return array(
+			'request_id'                 => $request_id,
+			'read_authorization_context' => $context,
+		);
+	}
+
+	/**
 	 * Returns input for the local media derivative request ability.
 	 *
 	 * @param WP_REST_Request $request Request.
@@ -7556,7 +7995,12 @@ final class Controller {
 			return $ability_input;
 		}
 
-		return $overrides;
+		$ability_input = $overrides;
+		unset( $ability_input['target_format'], $ability_input['max_width'], $ability_input['watermark_enabled'] );
+		if ( empty( $overrides['watermark_enabled'] ) && array_key_exists( 'watermark_enabled', $overrides ) ) {
+			unset( $ability_input['watermark'] );
+		}
+		return $ability_input;
 	}
 
 	/**
@@ -8111,6 +8555,24 @@ final class Controller {
 	private function object_param( WP_REST_Request $request, string $key ): array {
 		$value = $request->get_param( $key );
 		return is_array( $value ) ? $value : array();
+	}
+
+	/**
+	 * Sanitizes a list of strings.
+	 *
+	 * @param array<mixed> $values Values.
+	 * @return array<int,string>
+	 */
+	private function sanitize_string_list( array $values ): array {
+		$clean = array();
+		foreach ( $values as $value ) {
+			$value = sanitize_text_field( (string) $value );
+			if ( '' !== $value ) {
+				$clean[] = $value;
+			}
+		}
+
+		return array_values( array_unique( $clean ) );
 	}
 
 	/**
