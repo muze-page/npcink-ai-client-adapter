@@ -489,6 +489,7 @@ foreach (
 			'docs/openclaw-gutenberg-visual-acceptance.md',
 			'docs/openclaw-pattern-page-with-visual-asset-recipe.md',
 			'docs/openclaw-image-candidate-adoption-plan-recipe.md',
+			'docs/openclaw-media-adoption-enhancement-plan-recipe.md',
 			'npcink-toolbox/build-content-discoverability-brief',
 		'npcink-abilities-toolkit/upload-media-from-url',
 		'npcink-abilities-toolkit/set-post-featured-image',
@@ -991,6 +992,7 @@ foreach (
 			'docs/openclaw-pattern-page-research-brief-recipe.md',
 			'docs/openclaw-pattern-page-with-visual-asset-recipe.md',
 			'docs/openclaw-image-candidate-adoption-plan-recipe.md',
+			'docs/openclaw-media-adoption-enhancement-plan-recipe.md',
 		'skipped_destructive_candidates',
 		'write_actions',
 		'Plan-to-proposal flow',
@@ -2169,6 +2171,27 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $image_candidate_adoption_recipe, $required ), 'Image candidate adoption recipe contains required text: ' . $required );
+}
+
+$media_adoption_enhancement_recipe = maa_adapter_read( $root . '/docs/openclaw-media-adoption-enhancement-plan-recipe.md' );
+foreach (
+	array(
+		'OpenClaw Media Adoption Enhancement Plan Recipe',
+		'npcink-abilities-toolkit/build-media-adoption-enhancement-plan',
+		'media_adoption_enhancement_plan',
+		'npcink-abilities-toolkit/upload-media-from-url',
+		'npcink-abilities-toolkit/optimize-media-asset',
+		'npcink-abilities-toolkit/patch-post-content',
+		'POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan',
+		'POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute',
+		'core_proxy_execute=false',
+		'commit_execution=false',
+		'cloud_control_plane=false',
+		'generic_write_executor=false',
+		'Adapter does not search image providers, generate images, import media',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $media_adoption_enhancement_recipe, $required ), 'Media adoption enhancement recipe contains required text: ' . $required );
 }
 
 $pattern_page_visual_asset_recipe = maa_adapter_read( $root . '/docs/openclaw-pattern-page-with-visual-asset-recipe.md' );

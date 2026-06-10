@@ -2883,7 +2883,7 @@ final class Controller {
 					'cloud_control_plane'                => false,
 					'generic_write_executor'             => false,
 				),
-				'docs'                    => 'docs/openclaw-media-adoption-enhancement-plan-recipe.md',
+				'docs'                    => 'docs/openclaw-image-candidate-adoption-plan-recipe.md',
 			),
 			'media_adoption_enhancement_plan' => array(
 				'title'                   => 'Media adoption enhancement plan',
@@ -2925,7 +2925,7 @@ final class Controller {
 					'generic_write_executor'  => false,
 					'direct_wordpress_write'  => false,
 				),
-				'docs'                    => 'docs/openclaw-image-candidate-adoption-plan-recipe.md',
+				'docs'                    => 'docs/openclaw-media-adoption-enhancement-plan-recipe.md',
 			),
 			'content_discoverability_suggestions' => array(
 				'title'       => 'Content discoverability suggestions',
