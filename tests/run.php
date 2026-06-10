@@ -40,10 +40,14 @@ maa_adapter_assert( false !== strpos( $main, 'plugins_loaded' ), 'Main plugin bo
 
 $controller = maa_adapter_read( $root . '/includes/Rest/Controller.php' );
 $plan_ability_allowlist = maa_adapter_read( $root . '/includes/Rest/Plan_Ability_Allowlist.php' );
-$controller_contract = $controller . "\n" . $plan_ability_allowlist;
+$execution_profile_registry = maa_adapter_read( $root . '/includes/Rest/Execution_Profile_Registry.php' );
+$controller_contract = $controller . "\n" . $plan_ability_allowlist . "\n" . $execution_profile_registry;
 maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'final class Plan_Ability_Allowlist' ), 'Plan ability allowlist registry exists.' );
 maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'public static function ids' ), 'Plan ability allowlist exposes ids.' );
 maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'public static function contains' ), 'Plan ability allowlist exposes membership checks.' );
+maa_adapter_assert( false !== strpos( $execution_profile_registry, 'final class Execution_Profile_Registry' ), 'Execution profile registry exists.' );
+maa_adapter_assert( false !== strpos( $execution_profile_registry, 'public static function profiles' ), 'Execution profile registry exposes profiles.' );
+maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abilities-toolkit/update-post-blocks' ), 'Execution profile registry keeps governed block writes allowlisted.' );
 foreach (
 	array(
 		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
