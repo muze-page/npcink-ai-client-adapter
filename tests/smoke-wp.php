@@ -1,6 +1,6 @@
 <?php
 /**
- * Real WordPress smoke test for Npcink OpenClaw Adapter.
+ * Real WordPress smoke test for Npcink AI Client Adapter.
  *
  * @package NpcinkOpenClawAdapter
  */
@@ -223,7 +223,7 @@ $GLOBALS['maa_adapter_smoke_observability_events'] = array();
  * @return void
  */
 function maa_adapter_smoke_capture_observability_event( $event ): void {
-	if ( ! is_array( $event ) || 'npcink-openclaw-adapter' !== (string) ( $event['plugin_slug'] ?? '' ) ) {
+	if ( ! is_array( $event ) || ! in_array( (string) ( $event['plugin_slug'] ?? '' ), array( 'npcink-openclaw-adapter', 'npcink-ai-client-adapter' ), true ) ) {
 		return;
 	}
 
@@ -1226,6 +1226,7 @@ maa_adapter_smoke_assert( 'npcink-toolbox/build-article-batch-write-plan' === (s
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_batch_draft_plan']['guardrails']['batch_approval'] ?? false ), 'adapter help marks OpenClaw article batch draft plan as batch approval' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-block-theme-site-plan' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes block theme site plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['template_write_owner'] ?? '' ), 'adapter help keeps Toolkit as block theme template writer owner' );
+maa_adapter_smoke_assert( 'create_wp_template_override' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['file_template_write_mode'] ?? '' ), 'adapter help exposes file-backed template override write mode' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['navigation_write_allowed'] ?? true ), 'adapter help keeps navigation writes disabled for block theme plan' );
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['global_styles_write_allowed'] ?? true ), 'adapter help keeps global styles writes disabled for block theme plan' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-pattern-page-plan' === (string) ( $help['openclaw_recipes']['pattern_page_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes pattern page plan entrypoint ability' );
@@ -1945,7 +1946,7 @@ $pattern_page_plan_response = maa_adapter_smoke_rest(
 );
 $pattern_page_plan = is_array( $pattern_page_plan_response['result']['data'] ?? null ) ? $pattern_page_plan_response['result']['data'] : array();
 maa_adapter_smoke_assert( 'pattern_page_plan' === (string) ( $pattern_page_plan['artifact_type'] ?? '' ), 'adapter pattern page read returns a pattern_page_plan artifact' );
-maa_adapter_smoke_assert( '2.0' === (string) ( $pattern_page_plan['design_quality']['pattern_version'] ?? '' ), 'adapter pattern page plan uses v2 quality metadata' );
+maa_adapter_smoke_assert( '3.0' === (string) ( $pattern_page_plan['design_quality']['pattern_version'] ?? '' ), 'adapter pattern page plan uses v3 quality metadata' );
 maa_adapter_smoke_assert( true === (bool) ( $pattern_page_plan['responsive_quality']['uses_mobile_stack'] ?? false ), 'adapter pattern page plan reports mobile stacking' );
 maa_adapter_smoke_assert( true === (bool) ( $pattern_page_plan['responsive_quality']['has_media_section'] ?? false ), 'adapter pattern page plan reports media section' );
 maa_adapter_smoke_assert( true === (bool) ( $pattern_page_plan['responsive_quality']['has_faq'] ?? false ), 'adapter pattern page plan reports FAQ section' );
@@ -4250,7 +4251,7 @@ $proposal_id = (string) ( $proposal['proposal_id'] ?? '' );
 maa_adapter_smoke_assert( '' !== $proposal_id, 'adapter creates Core proposal for status smoke' );
 maa_adapter_smoke_assert( 'pending' === (string) ( $proposal['status'] ?? '' ), 'adapter created proposal starts pending' );
 maa_adapter_smoke_assert( 'openclaw_adapter' === (string) ( $proposal['caller']['caller_type'] ?? '' ), 'adapter proposal caller marks OpenClaw adapter' );
-maa_adapter_smoke_assert( 'npcink-openclaw-adapter' === (string) ( $proposal['caller']['via'] ?? '' ), 'adapter proposal caller preserves adapter source' );
+maa_adapter_smoke_assert( 'npcink-ai-client-adapter' === (string) ( $proposal['caller']['via'] ?? '' ), 'adapter proposal caller preserves adapter source' );
 
 $proposal_list = maa_adapter_smoke_rest(
 	'GET',

@@ -1,6 +1,6 @@
 <?php
 /**
- * Static contracts for Npcink OpenClaw Adapter.
+ * Static contracts for Npcink AI Client Adapter.
  *
  * @package NpcinkOpenClawAdapter
  */
@@ -32,11 +32,17 @@ function maa_adapter_read( string $path ): string {
 	return is_string( $contents ) ? $contents : '';
 }
 
-$main = maa_adapter_read( $root . '/npcink-openclaw-adapter.php' );
-maa_adapter_assert( false !== strpos( $main, 'Plugin Name: Npcink OpenClaw Adapter' ), 'Main plugin has WordPress plugin header.' );
+$main = maa_adapter_read( $root . '/npcink-ai-client-adapter.php' );
+maa_adapter_assert( false !== strpos( $main, 'Plugin Name: Npcink AI Client Adapter' ), 'Main plugin has WordPress plugin header.' );
 maa_adapter_assert( false !== strpos( $main, 'License: GPL-2.0-or-later' ), 'Main plugin declares GPL-compatible license.' );
 maa_adapter_assert( false !== strpos( $main, 'Requires Plugins: npcink-abilities-toolkit' ), 'Main plugin declares confirmed Toolkit dependency slug.' );
 maa_adapter_assert( false !== strpos( $main, 'plugins_loaded' ), 'Main plugin boots on plugins_loaded.' );
+maa_adapter_assert( false !== strpos( $main, "defined( 'NPCINK_OPENCLAW_ADAPTER_FILE' )" ), 'Main plugin is guarded against duplicate legacy bootstrap loading.' );
+
+$legacy_main = maa_adapter_read( $root . '/npcink-openclaw-adapter.php' );
+maa_adapter_assert( false !== strpos( $legacy_main, 'Legacy bootstrap' ), 'Legacy bootstrap remains available for stale active_plugins entries.' );
+maa_adapter_assert( false === strpos( $legacy_main, 'Plugin Name:' ), 'Legacy bootstrap intentionally has no second WordPress plugin header.' );
+maa_adapter_assert( false !== strpos( $legacy_main, 'npcink-ai-client-adapter.php' ), 'Legacy bootstrap delegates to the renamed main plugin file.' );
 
 $controller = maa_adapter_read( $root . '/includes/Rest/Controller.php' );
 $plan_ability_allowlist = maa_adapter_read( $root . '/includes/Rest/Plan_Ability_Allowlist.php' );
@@ -394,7 +400,7 @@ foreach (
 		'/npcink-governance-core/v1/capabilities',
 		'/npcink-governance-core/v1/proposals',
 		"caller_type' => 'openclaw_adapter'",
-		"'via'         => 'npcink-openclaw-adapter'",
+		"'via'         => 'npcink-ai-client-adapter'",
 		'/wp-abilities/v1/abilities/',
 		'governance_mode',
 		'direct_read',
@@ -628,7 +634,7 @@ foreach (
 		'admin_menu',
 		'plugin_action_links_',
 		'filter_plugin_action_links',
-		'admin.php?page=npcink-openclaw-adapter',
+		'admin.php?page=npcink-ai-client-adapter',
 		'admin_post_npcink_openclaw_adapter_create_openclaw_password',
 		'register_admin_page',
 		'handle_create_openclaw_password',
@@ -642,9 +648,9 @@ $connection_page = maa_adapter_read( $root . '/includes/Admin/Connection_Page.ph
 maa_adapter_assert( false !== strpos( $connection_page, "const PARENT_MENU_SLUG = 'npcink-ai';" ), 'Connection page targets the shared Npcink AI parent menu slug.' );
 foreach (
 	array(
-		'Npcink OpenClaw Adapter',
+		'Npcink AI Client Adapter',
 		'Adapter',
-		'OpenClaw Handoff Created',
+		'AI Client Handoff Created',
 		'Simple connection',
 		'Higher security: signed key-pair',
 		'Create Application Password connection',
@@ -694,13 +700,13 @@ foreach (
 		'WorkBuddy setup',
 		'Copy WorkBuddy setup',
 		'workbuddy_handoff_text',
-		'Npcink OpenClaw Adapter WorkBuddy connection',
+		'Npcink AI Client Adapter WorkBuddy connection',
 		'wordpress_application_password',
 		'connection_id',
 		'local-wordpress',
 		'wordpress_application_password',
 		'password_uuid',
-		'Secret must be stored through OpenClaw credential store or dedicated secret field',
+		'Secret must be stored through the AI client credential store or dedicated secret field',
 		'Diagnostics URLs',
 		'Route catalog',
 		'details class="maa-section"',
@@ -717,7 +723,7 @@ foreach (
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD',
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 		'Copy this Application Password now.',
-		'Paste it only into OpenClaw dedicated secret field',
+		'Paste it only into the AI client dedicated secret field',
 		'GET /help',
 		'GET /proposals/{proposal_id}',
 		'approval_proxy_enabled=false',
@@ -734,14 +740,14 @@ foreach (
 		'correlation_id',
 		'core_proxy_execute=false',
 		'commit_execution=false',
-		'<openclaw-secret-field-value>',
+		'<client-secret-field-value>',
 		'Key pair clients',
 		'Device-paired clients',
 		'Copy connect command',
 		'Local AI client session opener',
 		'Copy new conversation opener',
 		'local_cli_new_session_opener_text',
-		'already paired local Npcink OpenClaw Adapter profile',
+		'already paired local Npcink AI Client Adapter profile',
 		'Read client_policy from /help and treat it as machine-readable policy',
 		'read_policy=core_read_authorization_required',
 		'read-request create --profile=local',
@@ -814,11 +820,11 @@ maa_adapter_assert( false === strpos( $connection_page, "echo esc_html( (string)
 maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_connection_manifest_text( string $username, string $password_uuid )' ), 'Connection manifest receives only username and password UUID.' );
 maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_created_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'Created handoff text receives only username, password UUID, and TLS placeholder flag.' );
 maa_adapter_assert( false !== strpos( $connection_page, 'workbuddy_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'WorkBuddy setup text receives only username, password UUID, and TLS placeholder flag.' );
-maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'npcink-openclaw-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
-maa_adapter_assert( false !== strpos( $connection_page, "__( 'Npcink OpenClaw Adapter', 'npcink-openclaw-adapter' ),\n\t\t\t__( 'Adapter', 'npcink-openclaw-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
+maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'npcink-ai-client-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
+maa_adapter_assert( false !== strpos( $connection_page, "__( 'Npcink AI Client Adapter', 'npcink-ai-client-adapter' ),\n\t\t\t__( 'Adapter', 'npcink-ai-client-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
 maa_adapter_assert( false === strpos( $connection_page, 'npcink-openclaw-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "'npcink-cloud-addon'" ), 'Connection page overview links to the canonical Cloud Addon slug.' );
-maa_adapter_assert( false !== strpos( $connection_page, "__( 'Cloud Addon', 'npcink-openclaw-adapter' )" ), 'Connection page overview labels the Cloud Addon surface.' );
+maa_adapter_assert( false !== strpos( $connection_page, "__( 'Cloud Addon', 'npcink-ai-client-adapter' )" ), 'Connection page overview labels the Cloud Addon surface.' );
 
 $admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standard.md' );
 foreach (
@@ -865,7 +871,7 @@ maa_adapter_assert( false === strpos( $cloud_boundary, 'Adapter is the WordPress
 $readme = maa_adapter_read( $root . '/README.md' );
 foreach (
 	array(
-		'thin OpenClaw channel plugin',
+		'thin AI client channel plugin',
 		'read Npcink Governance Core capability guidance',
 		'run approved direct-read abilities through WordPress Abilities API',
 		'create Core proposals',
@@ -913,7 +919,7 @@ foreach (
 			'commit=false',
 			'commit_execution=false',
 			'Public Key Device Pairing',
-			'OpenClaw-compatible clients should connect through Adapter',
+			'AI clients should connect through Adapter',
 			'does not rely on controlling any specific external AI client',
 			'docs/local-ai-client-policy.md',
 			'GET /wp-json/npcink-openclaw-adapter/v1/help',
@@ -1201,7 +1207,7 @@ maa_adapter_assert( false === strpos( $magick_adapter_tool, "copyParsedValue(par
 $wporg_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (
 	array(
-		'=== Npcink OpenClaw Adapter ===',
+		'=== Npcink AI Client Adapter ===',
 		'Requires at least: 7.0',
 		'Tested up to: 7.0',
 		'Requires PHP: 8.0',
@@ -1271,7 +1277,7 @@ foreach (
 		'NPCINK_GOVERNANCE_CORE_DIR',
 		'NPCINK_ABILITIES_TOOLKIT_DIR',
 		'npcink-ai-suite',
-		'npcink-openclaw-adapter.zip',
+		'npcink-ai-client-adapter.zip',
 		'npcink-governance-core.zip',
 		'npcink-abilities-toolkit.zip',
 		'VERSION_MATRIX.md',

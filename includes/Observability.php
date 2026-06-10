@@ -33,7 +33,7 @@ final class Observability {
 				self::sanitize_payload( $payload ),
 				array(
 					'schema_version' => '2026-06-01',
-					'plugin_slug'    => 'npcink-openclaw-adapter',
+					'plugin_slug'    => 'npcink-ai-client-adapter',
 					'plugin_version' => defined( 'NPCINK_OPENCLAW_ADAPTER_VERSION' ) ? NPCINK_OPENCLAW_ADAPTER_VERSION : '',
 					'source'         => 'local',
 					'event_kind'     => $event_kind,

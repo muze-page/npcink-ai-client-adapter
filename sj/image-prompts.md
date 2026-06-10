@@ -15,9 +15,9 @@ Use a consistent Npcink plugin-family visual language across future assets:
 ## Icon Prompt
 
 ```text
-Create a square WordPress.org plugin icon for "Npcink OpenClaw Adapter", one plugin in the Npcink plugin family.
+Create a square WordPress.org plugin icon for "Npcink AI Client Adapter", one plugin in the Npcink plugin family.
 
-This specific plugin represents a thin OpenClaw channel adapter for WordPress: one REST entry point that connects OpenClaw to Npcink Governance Core and the WordPress Abilities API. It is not the ability content package, not the governance core, not a cloud connector, not an MCP server, and not a model client.
+This specific plugin represents a thin AI client channel adapter for WordPress: one REST entry point that connects OpenClaw to Npcink Governance Core and the WordPress Abilities API. It is not the ability content package, not the governance core, not a cloud connector, not an MCP server, and not a model client.
 
 Visual metaphor: a precise protocol bridge or channel gateway between an external client node and a WordPress control-plane node, with two clean lanes: one lane to Core governance and one lane to Abilities API execution contracts. The bridge should look thin, controlled, and bounded, not like a large cloud platform.
 
@@ -33,9 +33,9 @@ Avoid: robot faces, chat bubbles, cloud product imagery, governance dashboards a
 ## Banner Prompt
 
 ```text
-Create a WordPress.org plugin banner for "Npcink OpenClaw Adapter", size 1544x500, with a layout that also works when scaled down to 772x250.
+Create a WordPress.org plugin banner for "Npcink AI Client Adapter", size 1544x500, with a layout that also works when scaled down to 772x250.
 
-This plugin is part of the Npcink plugin family. Its role is the OpenClaw channel adapter: one WordPress REST namespace for reading Npcink Governance Core capability guidance, running approved direct-read abilities through the WordPress Abilities API, creating Core proposals, and orchestrating one user-triggered approve-and-execute path through Core.
+This plugin is part of the Npcink plugin family. Its role is the AI client channel adapter: one WordPress REST namespace for reading Npcink Governance Core capability guidance, running approved direct-read abilities through the WordPress Abilities API, creating Core proposals, and orchestrating one user-triggered approve-and-execute path through Core.
 
 It complements the other Npcink plugins:
 - Npcink Abilities Toolkit handles ability definitions and ability callbacks.
@@ -45,8 +45,8 @@ This banner should clearly represent Adapter routing, not Abilities, Core, or Cl
 
 Visual concept: a clean channel gateway between OpenClaw and WordPress. Show an external client endpoint entering a thin Adapter layer, then branching into two controlled paths: Core governance and Abilities API execution contracts. Emphasize connection, REST routing, bounded handoff, and controlled pass-through.
 
-Text: "Npcink OpenClaw Adapter"
-Optional subtitle: "OpenClaw channel adapter for Core governance and WordPress Abilities"
+Text: "Npcink AI Client Adapter"
+Optional subtitle: "AI client channel adapter for Core governance and WordPress Abilities"
 
 Tone: precise channel infrastructure, secure connection, controlled routing, calm and professional developer tooling.
 

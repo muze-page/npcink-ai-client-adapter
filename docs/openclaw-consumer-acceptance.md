@@ -303,7 +303,7 @@ Run this order for a local acceptance pass:
     `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-seo-meta`,
 	`npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
 	`npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/update-media-details`,
-		`npcink-abilities-toolkit/patch-post-content`,
+	`npcink-abilities-toolkit/patch-post-content`,
 		`npcink-abilities-toolkit/update-post-blocks`,
 		`npcink-abilities-toolkit/update-template-blocks`,
 		`npcink-abilities-toolkit/upsert-template-blocks`,

@@ -4,8 +4,8 @@
 
 These notes cover the WordPress.org listing assets for:
 
-- Plugin: Npcink OpenClaw Adapter
-- Slug: `npcink-openclaw-adapter`
+- Plugin: Npcink AI Client Adapter
+- Slug: `npcink-ai-client-adapter`
 - Asset folder: `sj/`
 - WordPress.org export folder: `sj/exports/wordpress-org/`
 

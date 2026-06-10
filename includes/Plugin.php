@@ -50,8 +50,8 @@ final class Plugin {
 			$links,
 			sprintf(
 				'<a href="%1$s">%2$s</a>',
-				esc_url( admin_url( 'admin.php?page=npcink-openclaw-adapter' ) ),
-				esc_html__( 'Settings', 'npcink-openclaw-adapter' )
+				esc_url( admin_url( 'admin.php?page=npcink-ai-client-adapter' ) ),
+				esc_html__( 'Settings', 'npcink-ai-client-adapter' )
 			)
 		);
 
@@ -70,9 +70,9 @@ final class Plugin {
 			return;
 		}
 
-		$language_file = NPCINK_OPENCLAW_ADAPTER_DIR . 'languages/npcink-openclaw-adapter-' . $locale . '.mo';
+		$language_file = NPCINK_OPENCLAW_ADAPTER_DIR . 'languages/npcink-ai-client-adapter-' . $locale . '.mo';
 		if ( is_readable( $language_file ) ) {
-			load_textdomain( 'npcink-openclaw-adapter', $language_file );
+			load_textdomain( 'npcink-ai-client-adapter', $language_file );
 		}
 	}
 

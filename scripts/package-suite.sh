@@ -63,7 +63,7 @@ require_dir "${toolkit_dir}" "Abilities Toolkit"
 rm -rf "${suite_build_dir}" "${suite_zip}"
 mkdir -p "${suite_build_dir}/packages"
 
-composer_package_release "${adapter_dir}" "npcink-openclaw-adapter"
+composer_package_release "${adapter_dir}" "npcink-ai-client-adapter"
 composer_package_release "${core_dir}" "npcink-governance-core"
 fallback_package_release "${toolkit_dir}" "npcink-abilities-toolkit"
 
@@ -71,7 +71,7 @@ cat > "${suite_build_dir}/VERSION_MATRIX.md" <<EOF
 # Npcink AI Suite Version Matrix
 
 - suite: ${suite_slug}
-- adapter: npcink-openclaw-adapter ${NPCINK_OPENCLAW_ADAPTER_VERSION:-0.1.0}
+- adapter: npcink-ai-client-adapter ${NPCINK_OPENCLAW_ADAPTER_VERSION:-0.1.0}
 - core: npcink-governance-core ${NPCINK_GOVERNANCE_CORE_VERSION:-0.1.0}
 - abilities toolkit: npcink-abilities-toolkit ${NPCINK_ABILITIES_TOOLKIT_VERSION:-0.4.x}
 - WordPress: 7.0+
@@ -81,7 +81,7 @@ cat > "${suite_build_dir}/VERSION_MATRIX.md" <<EOF
 
 1. Install and activate npcink-abilities-toolkit.
 2. Install and activate npcink-governance-core.
-3. Install and activate npcink-openclaw-adapter.
+3. Install and activate npcink-ai-client-adapter.
 
 Adapter is the productized entry plugin. Core and Toolkit remain separate
 plugins with separate ownership boundaries.
@@ -95,7 +95,7 @@ the plugin zips from the packages directory.
 
 - packages/npcink-abilities-toolkit.zip
 - packages/npcink-governance-core.zip
-- packages/npcink-openclaw-adapter.zip
+- packages/npcink-ai-client-adapter.zip
 
 See VERSION_MATRIX.md for install order and supported versions.
 EOF

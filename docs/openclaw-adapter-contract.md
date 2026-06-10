@@ -234,7 +234,7 @@ action must still target `npcink-abilities-toolkit/update-template-blocks`,
 `npcink-abilities-toolkit/upsert-template-blocks`, or
 `npcink-abilities-toolkit/update-template-part-blocks`, and pass Core approval
 plus commit-preflight before Adapter execution. Global styles, navigation,
-theme-file edits, and arbitrary Site Editor writes are not part of this MVP.
+template creation, and arbitrary Site Editor writes are not part of this MVP.
 
 ## OpenClaw Recipe Discovery
 

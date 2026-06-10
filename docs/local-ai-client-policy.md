@@ -2,7 +2,7 @@
 
 Status: accepted Adapter client contract.
 
-Npcink OpenClaw Adapter can support OpenClaw-compatible local AI clients, but it
+Npcink AI Client Adapter can support OpenClaw-compatible local AI clients, but it
 does not control which AI client a customer chooses or how that client reasons
 internally. Adapter-owned safety must therefore be expressed as enforceable
 interfaces and fail-closed server behavior, not as prompt-only instructions.

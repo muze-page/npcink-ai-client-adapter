@@ -1,4 +1,4 @@
-=== Npcink OpenClaw Adapter ===
+=== Npcink AI Client Adapter ===
 Contributors: muze233
 Tags: ai, governance, automation, rest-api
 Requires at least: 7.0
@@ -9,25 +9,25 @@ Stable tag: 0.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Thin OpenClaw-compatible channel plugin for Npcink Governance Core and WordPress Abilities execution.
+Thin AI client channel plugin for Npcink Governance Core and WordPress Abilities execution.
 
 == Description ==
 
-Npcink OpenClaw Adapter gives OpenClaw-compatible clients one WordPress REST namespace for reading Npcink Governance Core capability guidance, routing approved read abilities through the WordPress Abilities API, and forwarding governed write requests to Npcink Governance Core proposal and commit-preflight endpoints.
+Npcink AI Client Adapter gives OpenClaw-compatible and similar AI clients one WordPress REST namespace for reading Npcink Governance Core capability guidance, routing approved read abilities through the WordPress Abilities API, and forwarding governed write requests to Npcink Governance Core proposal and commit-preflight endpoints.
 
 Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, expose generic approve/reject proxying, or execute final write mutations without Core approval and commit-preflight.
 
 Adapter can be distributed as the Npcink AI suite entry plugin while Core and Toolkit remain separate plugins. Adapter health reports missing dependencies and dependency-sensitive routes fail closed with a structured missing dependency error.
 
-Adapter exposes a machine-readable `client_policy` on health, help, and the connection manifest so OpenClaw-compatible or other local AI clients can consume explicit route, output, sensitive-read, and write-flow boundaries. The local CLI also redacts profile paths, key ids, signing headers, tokens, passwords, and secrets from output.
+Adapter exposes a machine-readable `client_policy` on health, help, and the connection manifest so OpenClaw-compatible clients, Qclaw-style clients, WorkBuddy-style clients, or other local AI clients can consume explicit route, output, sensitive-read, and write-flow boundaries. The local CLI also redacts profile paths, key ids, signing headers, tokens, passwords, and secrets from output.
 
-Current governed execution support is deliberately limited to individually approved proposal execution for explicit Adapter profiles, including `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/update-template-blocks`, `npcink-abilities-toolkit/update-template-part-blocks`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
+Current governed execution support is deliberately limited to individually approved proposal execution for explicit Adapter profiles, including `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/update-template-blocks`, `npcink-abilities-toolkit/upsert-template-blocks`, `npcink-abilities-toolkit/update-template-part-blocks`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
 
 == Installation ==
 
 1. Install and activate `npcink-abilities-toolkit`.
 2. Install and activate Npcink Governance Core.
-3. Install and activate Npcink OpenClaw Adapter.
+3. Install and activate Npcink AI Client Adapter.
 4. Open Npcink > Adapter to create the local AI client handoff.
 
 == Frequently Asked Questions ==
@@ -48,4 +48,4 @@ No. Adapter only executes abilities that are explicitly allowlisted. The current
 
 = 0.1.0 =
 
-* Initial thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities API routing.
+* Initial thin AI client adapter for Npcink Governance Core and WordPress Abilities API routing.

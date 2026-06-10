@@ -1,15 +1,15 @@
-# Npcink OpenClaw Adapter
+# Npcink AI Client Adapter
 
-Npcink OpenClaw Adapter is a thin OpenClaw channel plugin for WordPress.
+Npcink AI Client Adapter is a thin AI client channel plugin for WordPress.
 
-It gives OpenClaw one WordPress REST namespace that can:
+It gives OpenClaw-compatible and similar AI clients one WordPress REST namespace that can:
 
 - read Npcink Governance Core capability guidance;
 - run approved direct-read abilities through WordPress Abilities API;
 - create Core proposals for write or destructive operations;
 - orchestrate one user-triggered approve-and-execute action through Core.
 
-OpenClaw-compatible clients should connect through Adapter. Npcink Governance
+AI clients should connect through Adapter. Npcink Governance
 Core is the governance service behind Adapter. Core remains the approval,
 preflight, and audit truth source; Adapter exposes the productized channel
 actions and does not rely on controlling any specific external AI client.
@@ -24,7 +24,7 @@ display that object to the operator and create a revised new proposal instead
 of retrying execution against the blocked proposal id. Core remains the
 governance truth.
 
-OpenClaw Adapter consumer readiness is complete as of Adapter governance commit
+AI Client Adapter consumer readiness is complete as of Adapter governance commit
 `b81dc2a`. Productized clients should use Adapter as the only entry point.
 See [OpenClaw Adapter Consumer Readiness](docs/openclaw-adapter-consumer-readiness.md)
 for the dependency snapshot, verified routes, closed loop, and next-stage
@@ -58,11 +58,11 @@ Layer ownership:
 | --- | --- | --- |
 | Ability layer | `npcink-abilities-toolkit` | Registers canonical abilities, schemas, callbacks, permissions, and dry-run previews. |
 | Governance layer | `npcink-governance-core` | Discovers abilities, classifies risk, stores proposals, handles approval/preflight, and audits governance decisions. |
-| Channel layer | `npcink-openclaw-adapter` | Gives OpenClaw a small REST adapter that calls Core and WordPress Abilities API. |
+| Channel layer | `npcink-ai-client-adapter` | Gives AI clients a small REST adapter that calls Core and WordPress Abilities API. |
 
 ## Suite Distribution
 
-Npcink OpenClaw Adapter is the productized entry plugin for the Npcink AI suite,
+Npcink AI Client Adapter is the productized entry plugin for the Npcink AI suite,
 but distribution does not merge runtime ownership. The suite package ships
 Adapter, Core, and the Abilities Toolkit as separate WordPress plugin zips and
 keeps their REST namespaces, plugin headers, data stores, and tests separate.
@@ -346,7 +346,7 @@ does not put provider credentials, prompts, responses, token details, or AI
 Request Logs into Core.
 AI Request Logs are the provider request log.
 
-## Npcink OpenClaw Adapter UI
+## Npcink AI Client Adapter UI
 
 WordPress administrators can open:
 
@@ -674,7 +674,8 @@ Plan-to-proposal flow:
 		   For reviewed conversational block theme Site Editor changes, use
 		   `npcink-abilities-toolkit/build-block-theme-site-plan`; Core creates one
 		   batch proposal and Adapter later executes only approved
-		   `npcink-abilities-toolkit/update-template-blocks` and
+		   `npcink-abilities-toolkit/update-template-blocks`,
+		   `npcink-abilities-toolkit/upsert-template-blocks`, and
 		   `npcink-abilities-toolkit/update-template-part-blocks` actions. The
 		   machine-readable playbook is exposed as
 		   `openclaw_recipes.block_theme_site_plan` from `GET /help`. The MVP
@@ -770,6 +771,7 @@ Proposal-required write flow:
 	   `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
 	   `npcink-abilities-toolkit/update-post-blocks`,
 	   `npcink-abilities-toolkit/update-template-blocks`,
+	   `npcink-abilities-toolkit/upsert-template-blocks`,
 	   `npcink-abilities-toolkit/update-template-part-blocks`,
 	   `npcink-abilities-toolkit/patch-setting-value`,
 	   `npcink-abilities-toolkit/update-media-details`,
@@ -902,6 +904,7 @@ Write or destructive abilities:
 	   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
 	   `npcink-abilities-toolkit/patch-post-content`, `npcink-abilities-toolkit/update-post-blocks`,
 	   `npcink-abilities-toolkit/update-template-blocks`,
+	   `npcink-abilities-toolkit/upsert-template-blocks`,
 	   `npcink-abilities-toolkit/update-template-part-blocks`,
 	   `npcink-abilities-toolkit/patch-setting-value`,
    `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,

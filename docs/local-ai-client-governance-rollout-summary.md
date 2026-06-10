@@ -157,7 +157,7 @@ Important observations:
 - `composer smoke:wp` passes with no PHP deprecated noise after the PHP 8.2
   toolchain default change. The remaining `Plugin already active` warning is
   expected local WP-CLI behavior.
-- `build/npcink-openclaw-adapter.zip` contains the release surface allowed by
+- `build/npcink-ai-client-adapter.zip` contains the release surface allowed by
   `.distignore`: plugin PHP, assets, languages, and `readme.txt`; it excludes
   development docs, packages, tests, and Composer metadata.
 
@@ -167,7 +167,7 @@ The code is ready for the next release step:
 
 1. Push Adapter `master`.
 2. Publish `@npcink/openclaw-adapter-cli@0.1.1` if npm distribution is desired.
-3. Use `build/npcink-openclaw-adapter.zip` for the WordPress package surface.
+3. Use `build/npcink-ai-client-adapter.zip` for the WordPress package surface.
 4. Run one real local AI client / OpenClaw-compatible acceptance conversation
    against the new opener and CLI helper commands.
 

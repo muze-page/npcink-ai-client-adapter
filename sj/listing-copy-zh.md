@@ -2,7 +2,7 @@
 
 ## 插件名称
 
-Npcink OpenClaw Adapter
+Npcink AI Client Adapter
 
 ## 简短描述
 
@@ -14,7 +14,7 @@ ai, governance, automation, rest-api, abilities
 
 ## 插件介绍
 
-Npcink OpenClaw Adapter 为 OpenClaw 提供一个 WordPress REST namespace，用于连接
+Npcink AI Client Adapter 为 OpenClaw 兼容及类似 AI 客户端提供一个 WordPress REST namespace，用于连接
 Npcink Governance Core 治理层和 WordPress Abilities API 路由。
 
 它读取 Core capability guidance，通过 WordPress Abilities API 运行已批准的
@@ -61,7 +61,7 @@ permissions。
 
 - Npcink Abilities Toolkit 负责能力定义和 ability callback。
 - Npcink Governance Core 负责治理、审批、preflight、audit。
-- Npcink OpenClaw Adapter 负责 OpenClaw 通道适配。
+- Npcink AI Client Adapter 负责 AI 客户端通道适配。
 - Npcink Cloud Addon 负责链接云端服务。
 
 这个分层让 Adapter 专注于连接和路由，让 Core 保持治理真相来源，让 Abilities

@@ -2,7 +2,7 @@
 
 Status: active packaging contract.
 
-Npcink OpenClaw Adapter is the productized entry plugin for OpenClaw. The
+Npcink AI Client Adapter is the productized entry plugin for OpenClaw-compatible and similar AI clients. The
 suite distribution makes installation feel unified while preserving separate
 plugin ownership.
 
@@ -10,7 +10,7 @@ plugin ownership.
 
 The suite ships separate WordPress plugin zips:
 
-- `npcink-openclaw-adapter.zip`
+- `npcink-ai-client-adapter.zip`
 - `npcink-governance-core.zip`
 - `npcink-abilities-toolkit.zip`
 

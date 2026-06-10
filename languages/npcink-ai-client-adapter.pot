@@ -2,8 +2,8 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Npcink OpenClaw Adapter 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/npcink-openclaw-adapter\n"
+"Project-Id-Version: Npcink AI Client Adapter 0.1.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/npcink-ai-client-adapter\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -12,22 +12,22 @@ msgstr ""
 "POT-Creation-Date: 2026-06-06T07:51:48+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
-"X-Domain: npcink-openclaw-adapter\n"
+"X-Domain: npcink-ai-client-adapter\n"
 
 #. Plugin Name of the plugin
-#: npcink-openclaw-adapter.php
+#: npcink-ai-client-adapter.php
 #: includes/Admin/Connection_Page.php:50
 #: includes/Admin/Connection_Page.php:251
-msgid "Npcink OpenClaw Adapter"
+msgid "Npcink AI Client Adapter"
 msgstr ""
 
 #. Description of the plugin
-#: npcink-openclaw-adapter.php
-msgid "Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities execution."
+#: npcink-ai-client-adapter.php
+msgid "Thin AI client adapter for Npcink Governance Core and WordPress Abilities execution."
 msgstr ""
 
 #. Author of the plugin
-#: npcink-openclaw-adapter.php
+#: npcink-ai-client-adapter.php
 #: includes/Admin/Connection_Page.php:108
 #: includes/Admin/Connection_Page.php:109
 #: includes/Admin/Connection_Page.php:156
@@ -75,7 +75,7 @@ msgid "Review proposals, approval decisions, commit preflight, audit, and Core a
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:163
-msgid "Connect OpenClaw through the Adapter surface."
+msgid "Connect AI clients through the Adapter surface."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:164
@@ -229,7 +229,7 @@ msgid "Recommended when the client should not receive an Application Password."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:343
-msgid "Run this in the same environment as OpenClaw. The private key stays local and Adapter stores only the approved public key."
+msgid "Run this in the same environment as the AI client. The private key stays local and Adapter stores only the approved public key."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:346
@@ -269,11 +269,11 @@ msgid "Proposal lookup"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:374
-msgid "Check a proposal after OpenClaw creates one."
+msgid "Check a proposal after an AI client creates one."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:376
-msgid "Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval."
+msgid "Use the Proposal ID returned to the AI client to check Core status, open the Core approval screen, and continue execution from Adapter after approval."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:381
@@ -382,7 +382,7 @@ msgid "Example requests"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:435
-msgid "Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals."
+msgid "Use a dedicated administrator Application Password. Paste the password only into the AI client dedicated secret field, never into chat, tools, files, logs, or proposals."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:442
@@ -394,7 +394,7 @@ msgid "Boundary"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:448
-msgid "OpenClaw only connects to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight."
+msgid "AI clients connect to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:465
@@ -474,7 +474,7 @@ msgid "You do not have permission to revoke client keys."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:589
-msgid "You do not have permission to create OpenClaw handoff credentials."
+msgid "You do not have permission to create AI client handoff credentials."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:644
@@ -494,7 +494,7 @@ msgid "Adapter could not read this Core proposal status."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:700
-msgid "After OpenClaw creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes."
+msgid "After an AI client creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:710
@@ -573,7 +573,7 @@ msgstr ""
 
 #: includes/Admin/Connection_Page.php:951
 #: includes/Admin/Connection_Page.php:956
-msgid "OpenClaw Handoff Created"
+msgid "AI Client Handoff Created"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:958
@@ -585,7 +585,7 @@ msgid "Paste it only into OpenClaw dedicated secret field. Do not paste it into 
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:960
-msgid "Use this only for OpenClaw access through Npcink OpenClaw Adapter. Revoke it from the WordPress user profile when the client is retired."
+msgid "Use this only for AI client access through Npcink AI Client Adapter. Revoke it from the WordPress user profile when the client is retired."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:965
@@ -621,7 +621,7 @@ msgid "OpenClaw handoff"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:1004
-msgid "Back to Npcink OpenClaw Adapter"
+msgid "Back to Npcink AI Client Adapter"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:1242
@@ -889,7 +889,7 @@ msgid "proposal_id is required."
 msgstr ""
 
 #: includes/Rest/Controller.php:3634
-msgid "Approved by Npcink OpenClaw Adapter approve-and-execute."
+msgid "Approved by Npcink AI Client Adapter approve-and-execute."
 msgstr ""
 
 #: includes/Rest/Controller.php:3654

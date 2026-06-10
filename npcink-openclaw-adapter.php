@@ -1,16 +1,10 @@
 <?php
 /**
- * Plugin Name: Npcink OpenClaw Adapter
- * Description: Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities execution.
- * Version: 0.1.1
- * Requires PHP: 8.0
- * Requires at least: 7.0
- * Requires Plugins: npcink-abilities-toolkit
- * Author: Npcink
- * License: GPL-2.0-or-later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: npcink-openclaw-adapter
- * Domain Path: /languages
+ * Legacy bootstrap for installs that still reference the old main file path.
+ *
+ * This file intentionally has no WordPress plugin header. It prevents stale
+ * active_plugins entries from breaking the Adapter during the package rename
+ * to npcink-ai-client-adapter.
  *
  * @package NpcinkOpenClawAdapter
  */
@@ -19,30 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NPCINK_OPENCLAW_ADAPTER_VERSION', '0.1.1' );
-define( 'NPCINK_OPENCLAW_ADAPTER_FILE', __FILE__ );
-define( 'NPCINK_OPENCLAW_ADAPTER_DIR', plugin_dir_path( __FILE__ ) );
-
-spl_autoload_register(
-	static function ( string $class ): void {
-		$prefix = 'Npcink\\OpenClawAdapter\\';
-		if ( 0 !== strpos( $class, $prefix ) ) {
-			return;
-		}
-
-		$relative = substr( $class, strlen( $prefix ) );
-		$path     = NPCINK_OPENCLAW_ADAPTER_DIR . 'includes/' . str_replace( '\\', '/', $relative ) . '.php';
-
-		if ( is_readable( $path ) ) {
-			require_once $path;
-		}
-	}
-);
-
-add_action(
-	'plugins_loaded',
-	static function (): void {
-		$plugin = new Npcink\OpenClawAdapter\Plugin();
-		$plugin->boot();
-	}
-);
+$npcink_ai_client_adapter_main = __DIR__ . '/npcink-ai-client-adapter.php';
+if ( is_readable( $npcink_ai_client_adapter_main ) ) {
+	require_once $npcink_ai_client_adapter_main;
+}

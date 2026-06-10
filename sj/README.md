@@ -1,4 +1,4 @@
-# Npcink OpenClaw Adapter Listing Assets
+# Npcink AI Client Adapter Listing Assets
 
 This folder is the working area for WordPress.org listing copy and visual
 assets. It is intentionally excluded from release archives through
@@ -30,7 +30,7 @@ Do not copy this whole `sj` folder into the plugin zip.
 
 ## Bilingual Release Notes
 
-The plugin code uses the `npcink-openclaw-adapter` text domain for translatable
+The plugin code uses the `npcink-ai-client-adapter` text domain for translatable
 runtime strings. The WordPress.org listing should use English as the primary
 directory copy, while `listing-copy-zh.md` can be reused for Chinese launch
 posts, documentation, and marketplace-adjacent pages.

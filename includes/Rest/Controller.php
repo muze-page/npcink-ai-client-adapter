@@ -885,7 +885,7 @@ final class Controller {
 		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_sodium_unavailable',
-				__( 'Ed25519 device pairing requires the PHP sodium extension.', 'npcink-openclaw-adapter' ),
+				__( 'Ed25519 device pairing requires the PHP sodium extension.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 501 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $error );
@@ -901,7 +901,7 @@ final class Controller {
 		if ( '' === $name || 'Ed25519' !== (string) ( $key['alg'] ?? '' ) || 32 !== strlen( $this->base64url_decode( $public_key ) ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_device_pairing_invalid',
-				__( 'Device pairing requires client metadata and a base64url Ed25519 public key.', 'npcink-openclaw-adapter' ),
+				__( 'Device pairing requires client metadata and a base64url Ed25519 public key.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 400 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $error );
@@ -971,7 +971,7 @@ final class Controller {
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_device_pairing_expired',
-				__( 'Device pairing is expired or invalid.', 'npcink-openclaw-adapter' ),
+				__( 'Device pairing is expired or invalid.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 401 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $error );
@@ -981,7 +981,7 @@ final class Controller {
 		if ( 'rejected' === (string) ( $pairing['status'] ?? '' ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_device_pairing_rejected',
-				__( 'Device pairing was rejected.', 'npcink-openclaw-adapter' ),
+				__( 'Device pairing was rejected.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $error, array( 'status_detail' => 'rejected' ) );
@@ -994,7 +994,7 @@ final class Controller {
 				array(
 					'ok'      => false,
 					'status'  => 'pending',
-					'message' => __( 'Device pairing is still pending approval.', 'npcink-openclaw-adapter' ),
+					'message' => __( 'Device pairing is still pending approval.', 'npcink-ai-client-adapter' ),
 				),
 				202
 			);
@@ -1064,7 +1064,7 @@ final class Controller {
 		if ( empty( $record ) || $user_id !== (int) ( $record['user_id'] ?? 0 ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_client_key_not_found',
-				__( 'Client key was not found for the current user.', 'npcink-openclaw-adapter' ),
+				__( 'Client key was not found for the current user.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 404 )
 			);
 		}
@@ -1105,7 +1105,7 @@ final class Controller {
 		$pairings  = $this->device_pairings();
 		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
-			$error = new WP_Error( 'npcink_openclaw_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'npcink-openclaw-adapter' ) );
+			$error = new WP_Error( 'npcink_openclaw_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'npcink-ai-client-adapter' ) );
 			$this->emit_operation_event( 'adapter.device_pairing.approve', $started, $error );
 			return $error;
 		}
@@ -1165,7 +1165,7 @@ final class Controller {
 			$this->emit_operation_event(
 				'adapter.device_pairing.reject',
 				$started,
-				new WP_Error( 'npcink_openclaw_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'npcink-openclaw-adapter' ) )
+				new WP_Error( 'npcink_openclaw_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'npcink-ai-client-adapter' ) )
 			);
 			return false;
 		}
@@ -1210,7 +1210,7 @@ final class Controller {
 
 		return new WP_Error(
 			'npcink_openclaw_adapter_json_body_required',
-			__( 'A JSON request body is required.', 'npcink-openclaw-adapter' ),
+			__( 'A JSON request body is required.', 'npcink-ai-client-adapter' ),
 			array( 'status' => 400 )
 		);
 	}
@@ -1235,7 +1235,7 @@ final class Controller {
 				'adapter_base_url' => rest_url( self::NAMESPACE ),
 				'admin_origin'     => $this->url_origin( admin_url() ),
 				'plugin'           => array(
-					'slug'    => 'npcink-openclaw-adapter',
+					'slug'    => 'npcink-ai-client-adapter',
 					'version' => NPCINK_OPENCLAW_ADAPTER_VERSION,
 				),
 			),
@@ -1297,7 +1297,7 @@ final class Controller {
 	private function client_policy(): array {
 		return array(
 			'schema_version' => 'npcink_openclaw_adapter_client_policy.v1',
-			'policy_owner'   => 'npcink-openclaw-adapter',
+			'policy_owner'   => 'npcink-ai-client-adapter',
 			'client_posture' => 'adapter_only_fail_closed',
 			'forbidden_outputs' => array(
 				'profile_path',
@@ -1710,7 +1710,7 @@ final class Controller {
 
 		return new WP_REST_Response(
 			array(
-				'adapter'                => 'npcink-openclaw-adapter',
+				'adapter'                => 'npcink-ai-client-adapter',
 				'version'                => NPCINK_OPENCLAW_ADAPTER_VERSION,
 				'distribution_mode'      => 'adapter_entry_with_separate_governance_and_ability_plugins',
 				'core_capabilities'      => (bool) ( $dependencies['items']['npcink-governance-core']['available'] ?? false ),
@@ -1933,7 +1933,7 @@ final class Controller {
 
 		return new WP_REST_Response(
 			array(
-				'adapter'       => 'npcink-openclaw-adapter',
+				'adapter'       => 'npcink-ai-client-adapter',
 				'namespace'     => self::NAMESPACE,
 				'base_url'      => rest_url( self::NAMESPACE ),
 				'auth'          => array(
@@ -2440,8 +2440,8 @@ final class Controller {
 						'proposal_mode'          => 'batch',
 						'batch_approval'         => true,
 						'core_preflight_required' => true,
-						'template_write_owner'   => 'npcink-abilities-toolkit',
-						'file_template_write_mode' => 'create_wp_template_override',
+							'template_write_owner'   => 'npcink-abilities-toolkit',
+							'file_template_write_mode' => 'create_wp_template_override',
 						'allowed_intents'        => array( 'add_breadcrumbs' ),
 						'allowed_template_targets' => array( 'single', 'page', 'archive', 'index' ),
 						'global_styles_write_allowed' => false,
@@ -3111,7 +3111,7 @@ final class Controller {
 			'caller'                   => array_merge(
 				$this->object_param( $request, 'caller' ),
 				array(
-					'via'        => 'npcink-openclaw-adapter',
+					'via'        => 'npcink-ai-client-adapter',
 					'ability_id' => $ability_id,
 				)
 			),
@@ -3189,7 +3189,7 @@ final class Controller {
 		if ( empty( $ability_response ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_media_derivative_ability_response_invalid',
-				__( 'Media derivative ability response is invalid.', 'npcink-openclaw-adapter' ),
+				__( 'Media derivative ability response is invalid.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 502 )
 			);
 		}
@@ -3661,7 +3661,7 @@ final class Controller {
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_ai_client_unavailable',
-				__( 'WordPress AI Client is not available.', 'npcink-openclaw-adapter' ),
+				__( 'WordPress AI Client is not available.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 501 )
 			);
 		}
@@ -3674,7 +3674,7 @@ final class Controller {
 		if ( '' === $ai_provider || '' === $ai_model ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_ai_provider_model_required',
-				__( 'AI provider and model are required for provider log correlation smoke.', 'npcink-openclaw-adapter' ),
+				__( 'AI provider and model are required for provider log correlation smoke.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -3786,7 +3786,7 @@ final class Controller {
 		if ( ! is_array( $data ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_invalid_core_proposal',
-				__( 'Core proposal detail response is invalid.', 'npcink-openclaw-adapter' ),
+				__( 'Core proposal detail response is invalid.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 502 )
 			);
 		}
@@ -4213,9 +4213,9 @@ final class Controller {
 			$format    = false !== strpos( $mime_type, '/' ) ? strtoupper( substr( $mime_type, strrpos( $mime_type, '/' ) + 1 ) ) : strtoupper( $mime_type );
 			$lines[]   = sprintf(
 				/* translators: 1: attachment id, 2: media format. */
-				__( 'Replace attachment %1$d with the reviewed %2$s derivative.', 'npcink-openclaw-adapter' ),
+				__( 'Replace attachment %1$d with the reviewed %2$s derivative.', 'npcink-ai-client-adapter' ),
 				$attachment_id,
-				'' !== $format ? $format : __( 'optimized', 'npcink-openclaw-adapter' )
+				'' !== $format ? $format : __( 'optimized', 'npcink-ai-client-adapter' )
 			);
 		}
 
@@ -4224,9 +4224,9 @@ final class Controller {
 		if ( '' !== $before_size || '' !== $after_size ) {
 			$lines[] = sprintf(
 				/* translators: 1: before size, 2: after size. */
-				__( 'Dimensions: %1$s -> %2$s.', 'npcink-openclaw-adapter' ),
-				'' !== $before_size ? $before_size : __( 'unknown', 'npcink-openclaw-adapter' ),
-				'' !== $after_size ? $after_size : __( 'unknown', 'npcink-openclaw-adapter' )
+				__( 'Dimensions: %1$s -> %2$s.', 'npcink-ai-client-adapter' ),
+				'' !== $before_size ? $before_size : __( 'unknown', 'npcink-ai-client-adapter' ),
+				'' !== $after_size ? $after_size : __( 'unknown', 'npcink-ai-client-adapter' )
 			);
 		}
 
@@ -4234,7 +4234,7 @@ final class Controller {
 		if ( '' !== $file_name ) {
 			$lines[] = sprintf(
 				/* translators: %s: file name. */
-				__( 'Local file name: %s.', 'npcink-openclaw-adapter' ),
+				__( 'Local file name: %s.', 'npcink-ai-client-adapter' ),
 				$file_name
 			);
 		}
@@ -4244,7 +4244,7 @@ final class Controller {
 			$post_count = absint( $repairs['post_count'] ?? ( $adopt_input['expected_content_reference_post_count'] ?? count( $post_ids ) ) );
 			$lines[] = sprintf(
 				/* translators: 1: post count, 2: actual replacement count, 3: rule count. */
-				__( 'Repair post-content media references in %1$d post(s): %2$d actual replacement(s) from %3$d reviewed rule(s).', 'npcink-openclaw-adapter' ),
+				__( 'Repair post-content media references in %1$d post(s): %2$d actual replacement(s) from %3$d reviewed rule(s).', 'npcink-ai-client-adapter' ),
 				$post_count,
 				absint( $repairs['actual_replacement_count'] ?? 0 ),
 				absint( $repairs['replacement_rule_count'] ?? 0 )
@@ -4252,9 +4252,9 @@ final class Controller {
 		}
 
 		if ( ! empty( $metadata_input ) ) {
-			$lines[] = __( 'Update reviewed media title, alt text, caption, description, or attribution metadata in the same approval.', 'npcink-openclaw-adapter' );
+			$lines[] = __( 'Update reviewed media title, alt text, caption, description, or attribution metadata in the same approval.', 'npcink-ai-client-adapter' );
 		}
-		$lines[] = __( 'Keep a local backup so the media file and post references can be rolled back after approval.', 'npcink-openclaw-adapter' );
+		$lines[] = __( 'Keep a local backup so the media file and post references can be rolled back after approval.', 'npcink-ai-client-adapter' );
 
 		return array_values( array_unique( array_filter( $lines ) ) );
 	}
@@ -4361,7 +4361,7 @@ final class Controller {
 		return new WP_REST_Response(
 			array(
 				'code'                   => 'npcink_openclaw_adapter_approval_proxy_disabled',
-				'message'                => __( 'Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions.', 'npcink-openclaw-adapter' ),
+				'message'                => __( 'Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions.', 'npcink-ai-client-adapter' ),
 				'approval_proxy_enabled' => false,
 				'approval_surface'       => 'npcink_governance_core_admin',
 				'unified_action_route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
@@ -4435,7 +4435,7 @@ final class Controller {
 		if ( ! Plan_Ability_Allowlist::contains( $plan_ability_id ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_plan_ability_not_allowed',
-				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'npcink-openclaw-adapter' ),
+				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'                   => 400,
 					'allowed_plan_ability_ids' => Plan_Ability_Allowlist::ids(),
@@ -4509,7 +4509,7 @@ final class Controller {
 					'action_id'         => $action_id,
 					'target_ability_id' => $target_ability_id,
 					'block_code'        => 'npcink_openclaw_adapter_write_action_duplicate_id',
-					'reason'            => __( 'Each write_actions item must have a unique action_id.', 'npcink-openclaw-adapter' ),
+					'reason'            => __( 'Each write_actions item must have a unique action_id.', 'npcink-ai-client-adapter' ),
 				);
 				continue;
 			}
@@ -4547,7 +4547,7 @@ final class Controller {
 
 		return new WP_Error(
 			'npcink_openclaw_adapter_plan_action_input_invalid',
-			__( 'Plan write action input failed Adapter proposal validation.', 'npcink-openclaw-adapter' ),
+			__( 'Plan write action input failed Adapter proposal validation.', 'npcink-ai-client-adapter' ),
 			array(
 				'status'         => 400,
 				'proposal_count' => 0,
@@ -4607,7 +4607,7 @@ final class Controller {
 		if ( '' === $proposal_id ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_proposal_id_required',
-				__( 'proposal_id is required.', 'npcink-openclaw-adapter' ),
+				__( 'proposal_id is required.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 400 )
 			);
 			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
@@ -4680,7 +4680,7 @@ final class Controller {
 		if ( '' === $proposal_id ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_proposal_id_required',
-				__( 'proposal_id is required.', 'npcink-openclaw-adapter' ),
+				__( 'proposal_id is required.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 400 )
 			);
 			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
@@ -4707,7 +4707,7 @@ final class Controller {
 		if ( 'pending' === $status_before ) {
 			$note = sanitize_text_field( (string) $request->get_param( 'note' ) );
 			if ( '' === $note ) {
-				$note = __( 'Approved by Npcink OpenClaw Adapter approve-and-execute.', 'npcink-openclaw-adapter' );
+				$note = __( 'Approved by Npcink AI Client Adapter approve-and-execute.', 'npcink-ai-client-adapter' );
 			}
 
 			$approved_response = $this->dispatch_upstream(
@@ -4727,7 +4727,7 @@ final class Controller {
 			if ( ! is_array( $approved ) || 'approved' !== (string) ( $approved['status'] ?? '' ) ) {
 				$error = new WP_Error(
 					'npcink_openclaw_adapter_core_approve_failed',
-					__( 'Core did not return an approved proposal state.', 'npcink-openclaw-adapter' ),
+					__( 'Core did not return an approved proposal state.', 'npcink-ai-client-adapter' ),
 					array(
 						'status'      => 409,
 						'proposal_id' => $proposal_id,
@@ -4743,7 +4743,7 @@ final class Controller {
 			$code = 'rejected' === $status_before ? 'npcink_openclaw_adapter_proposal_rejected' : 'npcink_openclaw_adapter_proposal_not_executable';
 			$error = new WP_Error(
 				$code,
-				__( 'This proposal cannot be approved and executed from its current status.', 'npcink-openclaw-adapter' ),
+				__( 'This proposal cannot be approved and executed from its current status.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'            => 409,
 					'proposal_id'       => $proposal_id,
@@ -4824,7 +4824,7 @@ final class Controller {
 		if ( ! is_array( $proposal ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_invalid_core_proposal',
-				__( 'Core proposal response is invalid.', 'npcink-openclaw-adapter' ),
+				__( 'Core proposal response is invalid.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 502 )
 			);
 		}
@@ -4845,7 +4845,7 @@ final class Controller {
 
 		return new WP_Error(
 			'npcink_openclaw_adapter_execute_ability_not_allowed',
-			__( 'This proposal ability is not allowed for adapter execution.', 'npcink-openclaw-adapter' ),
+			__( 'This proposal ability is not allowed for adapter execution.', 'npcink-ai-client-adapter' ),
 			array(
 				'status'                      => 403,
 				'proposal_id'                 => $proposal_id,
@@ -4890,7 +4890,7 @@ final class Controller {
 
 				return new WP_Error(
 					'npcink_openclaw_adapter_ability_input_field_not_allowed',
-					__( 'Proposal input includes a field that is not allowed for this ability.', 'npcink-openclaw-adapter' ),
+					__( 'Proposal input includes a field that is not allowed for this ability.', 'npcink-ai-client-adapter' ),
 					array_merge(
 						$error_data,
 						array(
@@ -4911,7 +4911,7 @@ final class Controller {
 		if ( ! empty( $post_id_rule ) && 0 === $post_id ) {
 			return new WP_Error(
 				(string) ( $post_id_rule['code'] ?? 'npcink_openclaw_adapter_post_id_required' ),
-				(string) ( $post_id_rule['message'] ?? __( 'Execution input must include post_id.', 'npcink-openclaw-adapter' ) ),
+				(string) ( $post_id_rule['message'] ?? __( 'Execution input must include post_id.', 'npcink-ai-client-adapter' ) ),
 				$error_data
 			);
 		}
@@ -4924,7 +4924,7 @@ final class Controller {
 
 			return new WP_Error(
 				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_text_missing' ),
-				(string) ( $rule['message'] ?? __( 'Execution input is missing a required text field.', 'npcink-openclaw-adapter' ) ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required text field.', 'npcink-ai-client-adapter' ) ),
 				$error_data
 			);
 		}
@@ -4937,7 +4937,7 @@ final class Controller {
 
 			return new WP_Error(
 				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_slug_missing' ),
-				(string) ( $rule['message'] ?? __( 'Execution input is missing a required slug field.', 'npcink-openclaw-adapter' ) ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required slug field.', 'npcink-ai-client-adapter' ) ),
 				$error_data
 			);
 		}
@@ -4956,7 +4956,7 @@ final class Controller {
 
 			return new WP_Error(
 				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_input_enum_invalid' ),
-				(string) ( $rule['message'] ?? __( 'Proposal input includes an invalid enum value.', 'npcink-openclaw-adapter' ) ),
+				(string) ( $rule['message'] ?? __( 'Proposal input includes an invalid enum value.', 'npcink-ai-client-adapter' ) ),
 				array_merge(
 					$error_data,
 					array(
@@ -4980,7 +4980,7 @@ final class Controller {
 			if ( ! $has_any_field ) {
 				return new WP_Error(
 					(string) ( $any_fields_rule['code'] ?? 'npcink_openclaw_adapter_required_fields_missing' ),
-					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'npcink-openclaw-adapter' ) ),
+					(string) ( $any_fields_rule['message'] ?? __( 'Execution input is missing required fields.', 'npcink-ai-client-adapter' ) ),
 					$error_data
 				);
 			}
@@ -4995,7 +4995,7 @@ final class Controller {
 
 			return new WP_Error(
 				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_array_missing' ),
-				(string) ( $rule['message'] ?? __( 'Execution input is missing a required array field.', 'npcink-openclaw-adapter' ) ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required array field.', 'npcink-ai-client-adapter' ) ),
 				array_merge(
 					$error_data,
 					array(
@@ -5016,7 +5016,7 @@ final class Controller {
 
 			return new WP_Error(
 				(string) ( $rule['code'] ?? 'npcink_openclaw_adapter_required_int_missing' ),
-				(string) ( $rule['message'] ?? __( 'Execution input is missing a required id.', 'npcink-openclaw-adapter' ) ),
+				(string) ( $rule['message'] ?? __( 'Execution input is missing a required id.', 'npcink-ai-client-adapter' ) ),
 				$error_data
 			);
 		}
@@ -5028,7 +5028,7 @@ final class Controller {
 				$attachment_rule = is_array( $profile['validate_attachment_input'] ) ? $profile['validate_attachment_input'] : array();
 				return new WP_Error(
 					'npcink_openclaw_adapter_attachment_required',
-					(string) ( $attachment_rule['message'] ?? __( 'Execution input must target an existing attachment.', 'npcink-openclaw-adapter' ) ),
+					(string) ( $attachment_rule['message'] ?? __( 'Execution input must target an existing attachment.', 'npcink-ai-client-adapter' ) ),
 					array_merge(
 						$error_data,
 						array(
@@ -5044,7 +5044,7 @@ final class Controller {
 			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_taxonomy_required',
-					__( 'set-post-terms execution input must include a valid taxonomy.', 'npcink-openclaw-adapter' ),
+					__( 'set-post-terms execution input must include a valid taxonomy.', 'npcink-ai-client-adapter' ),
 					$error_data
 				);
 			}
@@ -5053,7 +5053,7 @@ final class Controller {
 			if ( ! in_array( $mode, array( 'replace', 'append', 'remove' ), true ) ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_term_mode_invalid',
-					__( 'set-post-terms execution mode must be replace, append, or remove.', 'npcink-openclaw-adapter' ),
+					__( 'set-post-terms execution mode must be replace, append, or remove.', 'npcink-ai-client-adapter' ),
 					$error_data
 				);
 			}
@@ -5070,7 +5070,7 @@ final class Controller {
 			if ( empty( $term_ids ) && empty( $terms ) ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_terms_required',
-					__( 'set-post-terms execution input must include term_ids or terms.', 'npcink-openclaw-adapter' ),
+					__( 'set-post-terms execution input must include term_ids or terms.', 'npcink-ai-client-adapter' ),
 					$error_data
 				);
 			}
@@ -5078,7 +5078,7 @@ final class Controller {
 			if ( ! empty( $input['create_missing'] ) ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_create_missing_terms_not_allowed',
-					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'npcink-openclaw-adapter' ),
+					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'npcink-ai-client-adapter' ),
 					$error_data
 				);
 			}
@@ -5089,7 +5089,7 @@ final class Controller {
 			if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_taxonomy_required',
-					__( 'delete-term execution input must include a valid taxonomy.', 'npcink-openclaw-adapter' ),
+					__( 'delete-term execution input must include a valid taxonomy.', 'npcink-ai-client-adapter' ),
 					$error_data
 				);
 			}
@@ -5101,7 +5101,7 @@ final class Controller {
 			if ( '' === trim( wp_strip_all_tags( $content ) ) ) {
 				return new WP_Error(
 					(string) ( $comment_body_rule['code'] ?? 'npcink_openclaw_adapter_comment_content_required' ),
-					(string) ( $comment_body_rule['message'] ?? __( 'Comment execution input must include content.', 'npcink-openclaw-adapter' ) ),
+					(string) ( $comment_body_rule['message'] ?? __( 'Comment execution input must include content.', 'npcink-ai-client-adapter' ) ),
 					$error_data
 				);
 			}
@@ -5113,7 +5113,7 @@ final class Controller {
 			if ( ! in_array( $content_format, (array) ( $content_format_rule['allowed'] ?? array() ), true ) ) {
 				return new WP_Error(
 					(string) ( $content_format_rule['code'] ?? 'npcink_openclaw_adapter_content_format_invalid' ),
-					(string) ( $content_format_rule['message'] ?? __( 'Comment content_format is invalid.', 'npcink-openclaw-adapter' ) ),
+					(string) ( $content_format_rule['message'] ?? __( 'Comment content_format is invalid.', 'npcink-ai-client-adapter' ) ),
 					$error_data
 				);
 			}
@@ -5210,7 +5210,7 @@ final class Controller {
 		if ( '' !== $invalid_reference ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_output_reference_invalid',
-				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'npcink-openclaw-adapter' ),
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'       => 400,
 					'proposal_id'  => $proposal_id,
@@ -5225,7 +5225,7 @@ final class Controller {
 			if ( null === $parsed || empty( $available_outputs[ $parsed['action_id'] ] ) ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_output_reference_unavailable',
-					__( 'Batch output references must point to an earlier action in the same proposal.', 'npcink-openclaw-adapter' ),
+					__( 'Batch output references must point to an earlier action in the same proposal.', 'npcink-ai-client-adapter' ),
 					array(
 						'status'       => 400,
 						'proposal_id'  => $proposal_id,
@@ -5258,7 +5258,7 @@ final class Controller {
 			) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_output_reference_unresolved',
-					__( 'Batch output reference could not be resolved.', 'npcink-openclaw-adapter' ),
+					__( 'Batch output reference could not be resolved.', 'npcink-ai-client-adapter' ),
 					array(
 						'status'       => 409,
 						'proposal_id'  => $proposal_id,
@@ -5275,7 +5275,7 @@ final class Controller {
 		if ( '' !== $invalid_reference ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_output_reference_invalid',
-				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'npcink-openclaw-adapter' ),
+				__( 'Batch output references must use $outputs.action_id.field as the whole value.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'       => 400,
 					'proposal_id'  => $proposal_id,
@@ -5333,7 +5333,7 @@ final class Controller {
 		if ( $has_write_actions && $top_level_post_id > 0 ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_execution_input_ambiguous',
-				__( 'Proposal input must use either post_id or write_actions, not both.', 'npcink-openclaw-adapter' ),
+				__( 'Proposal input must use either post_id or write_actions, not both.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'      => 400,
 					'proposal_id' => $proposal_id,
@@ -5345,7 +5345,7 @@ final class Controller {
 			if ( count( $write_actions ) > self::MAX_EXECUTION_ACTIONS ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_write_actions_limit_exceeded',
-					__( 'Proposal write_actions exceeds the adapter execution limit.', 'npcink-openclaw-adapter' ),
+					__( 'Proposal write_actions exceeds the adapter execution limit.', 'npcink-ai-client-adapter' ),
 					array(
 						'status'      => 400,
 						'proposal_id' => $proposal_id,
@@ -5360,7 +5360,7 @@ final class Controller {
 				if ( ! is_array( $raw_action ) ) {
 					return new WP_Error(
 						'npcink_openclaw_adapter_write_action_invalid',
-						__( 'Each write_actions item must be an object.', 'npcink-openclaw-adapter' ),
+						__( 'Each write_actions item must be an object.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'       => 400,
 							'proposal_id'  => $proposal_id,
@@ -5373,7 +5373,7 @@ final class Controller {
 				if ( '' === $target_ability_id ) {
 					return new WP_Error(
 						'npcink_openclaw_adapter_write_action_target_required',
-						__( 'Each write_actions item must include target_ability_id.', 'npcink-openclaw-adapter' ),
+						__( 'Each write_actions item must include target_ability_id.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'       => 400,
 							'proposal_id'  => $proposal_id,
@@ -5404,7 +5404,7 @@ final class Controller {
 				if ( isset( $available_outputs[ $action_id ] ) ) {
 					return new WP_Error(
 						'npcink_openclaw_adapter_write_action_duplicate_id',
-						__( 'Each write_actions item must have a unique action_id.', 'npcink-openclaw-adapter' ),
+						__( 'Each write_actions item must have a unique action_id.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'       => 400,
 							'proposal_id'  => $proposal_id,
@@ -5429,7 +5429,7 @@ final class Controller {
 				if ( array_key_exists( 'requires_approval', $raw_action ) && true !== (bool) $raw_action['requires_approval'] ) {
 					return new WP_Error(
 						'npcink_openclaw_adapter_write_action_approval_required',
-						__( 'Each executable write action must require Core approval.', 'npcink-openclaw-adapter' ),
+						__( 'Each executable write action must require Core approval.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'       => 409,
 							'proposal_id'  => $proposal_id,
@@ -5441,7 +5441,7 @@ final class Controller {
 				if ( array_key_exists( 'commit_execution', $raw_action ) && false !== (bool) $raw_action['commit_execution'] ) {
 					return new WP_Error(
 						'npcink_openclaw_adapter_write_action_commit_execution_not_allowed',
-						__( 'Write actions must keep commit_execution=false before Adapter execution.', 'npcink-openclaw-adapter' ),
+						__( 'Write actions must keep commit_execution=false before Adapter execution.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'       => 409,
 							'proposal_id'  => $proposal_id,
@@ -5454,7 +5454,7 @@ final class Controller {
 				if ( ! empty( $requires_input ) ) {
 					return new WP_Error(
 						'npcink_openclaw_adapter_write_action_needs_input',
-						__( 'Write action still requires reviewed input before execution.', 'npcink-openclaw-adapter' ),
+						__( 'Write action still requires reviewed input before execution.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'         => 409,
 							'proposal_id'    => $proposal_id,
@@ -5468,7 +5468,7 @@ final class Controller {
 				if ( ( array_key_exists( 'proposal_ready', $raw_action ) && false === (bool) $raw_action['proposal_ready'] ) || ! empty( $preflight_blockers ) ) {
 					return new WP_Error(
 						'npcink_openclaw_adapter_write_action_not_ready',
-						__( 'Write action is not marked ready for execution.', 'npcink-openclaw-adapter' ),
+						__( 'Write action is not marked ready for execution.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'              => 409,
 							'proposal_id'         => $proposal_id,
@@ -5562,7 +5562,7 @@ final class Controller {
 				'proposal_id'       => $proposal_id,
 				'post_id'           => $post_id,
 				'correlation_id'    => $correlation_id,
-				'via'               => 'npcink-openclaw-adapter',
+				'via'               => 'npcink-ai-client-adapter',
 			)
 		);
 
@@ -5624,7 +5624,7 @@ final class Controller {
 			if ( ! is_array( $preflight ) ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_invalid_core_preflight',
-					__( 'Core commit preflight response is invalid.', 'npcink-openclaw-adapter' ),
+					__( 'Core commit preflight response is invalid.', 'npcink-ai-client-adapter' ),
 					array( 'status' => 502 )
 				);
 			}
@@ -5635,7 +5635,7 @@ final class Controller {
 		if ( true !== (bool) ( $approval_context['approval_commit_authorized'] ?? false ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_not_authorized',
-				__( 'Core commit preflight did not authorize approval commit.', 'npcink-openclaw-adapter' ),
+				__( 'Core commit preflight did not authorize approval commit.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'            => 409,
 					'proposal_id'       => $proposal_id,
@@ -5648,7 +5648,7 @@ final class Controller {
 		if ( false !== (bool) ( $preflight['commit_execution'] ?? true ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_execution_not_allowed',
-				__( 'Core commit preflight must not execute final writes.', 'npcink-openclaw-adapter' ),
+				__( 'Core commit preflight must not execute final writes.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'      => 409,
 					'proposal_id' => $proposal_id,
@@ -5660,7 +5660,7 @@ final class Controller {
 		if ( false === (bool) ( $preflight['proposal_item_preflight']['executable'] ?? true ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_item_blocked',
-				__( 'Core commit preflight did not mark the proposal item executable.', 'npcink-openclaw-adapter' ),
+				__( 'Core commit preflight did not mark the proposal item executable.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'            => 409,
 					'proposal_id'       => $proposal_id,
@@ -5674,7 +5674,7 @@ final class Controller {
 		if ( '' === $correlation_id ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_correlation_required',
-				__( 'Core commit preflight did not return a correlation id.', 'npcink-openclaw-adapter' ),
+				__( 'Core commit preflight did not return a correlation id.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'      => 409,
 					'proposal_id' => $proposal_id,
@@ -5898,13 +5898,13 @@ final class Controller {
 		return array(
 			'status'                   => 'plan_revision_required',
 			'severity'                 => 'error',
-			'message'                  => __( 'The plan was not accepted for Core proposal intake.', 'npcink-openclaw-adapter' ),
+			'message'                  => __( 'The plan was not accepted for Core proposal intake.', 'npcink-ai-client-adapter' ),
 			'reasons'                  => $reasons,
 			'revision_fields'          => $this->operator_revision_fields( $blocked, $core_data ),
 			'next_steps'               => array(
-				__( 'Show these reasons to the operator.', 'npcink-openclaw-adapter' ),
-				__( 'Revise the Toolbox plan or reviewed draft, then submit a new from-plan request.', 'npcink-openclaw-adapter' ),
-				__( 'Do not call approve-and-execute until Core creates a proposal.', 'npcink-openclaw-adapter' ),
+				__( 'Show these reasons to the operator.', 'npcink-ai-client-adapter' ),
+				__( 'Revise the Toolbox plan or reviewed draft, then submit a new from-plan request.', 'npcink-ai-client-adapter' ),
+				__( 'Do not call approve-and-execute until Core creates a proposal.', 'npcink-ai-client-adapter' ),
 			),
 			'can_retry_after_revision' => true,
 			'core_evidence'            => array(
@@ -5930,7 +5930,7 @@ final class Controller {
 		if ( empty( $reasons ) ) {
 			$reasons[] = sprintf(
 				/* translators: %s: proposal status. */
-				__( 'Core proposal status is %s.', 'npcink-openclaw-adapter' ),
+				__( 'Core proposal status is %s.', 'npcink-ai-client-adapter' ),
 				$status_before
 			);
 		}
@@ -5939,14 +5939,14 @@ final class Controller {
 			'status'                   => 'proposal_' . sanitize_key( $status_before ),
 			'severity'                 => 'error',
 			'message'                  => 'rejected' === $status_before
-				? __( 'Core rejected this proposal. Adapter will not execute it.', 'npcink-openclaw-adapter' )
-				: __( 'This proposal is not in an executable Core status.', 'npcink-openclaw-adapter' ),
+				? __( 'Core rejected this proposal. Adapter will not execute it.', 'npcink-ai-client-adapter' )
+				: __( 'This proposal is not in an executable Core status.', 'npcink-ai-client-adapter' ),
 			'reasons'                  => $reasons,
 			'revision_fields'          => array(),
 			'next_steps'               => array(
-				__( 'Show the Core decision to the operator.', 'npcink-openclaw-adapter' ),
-				__( 'Revise the source plan or draft, then create a new Core proposal.', 'npcink-openclaw-adapter' ),
-				__( 'Do not retry approve-and-execute against this proposal id.', 'npcink-openclaw-adapter' ),
+				__( 'Show the Core decision to the operator.', 'npcink-ai-client-adapter' ),
+				__( 'Revise the source plan or draft, then create a new Core proposal.', 'npcink-ai-client-adapter' ),
+				__( 'Do not retry approve-and-execute against this proposal id.', 'npcink-ai-client-adapter' ),
 			),
 			'can_retry_after_revision' => true,
 			'core_evidence'            => array(
@@ -5979,40 +5979,40 @@ final class Controller {
 		foreach ( $needs_input as $field ) {
 			$reasons[] = sprintf(
 				/* translators: %s: missing field name. */
-				__( 'Missing required input: %s.', 'npcink-openclaw-adapter' ),
+				__( 'Missing required input: %s.', 'npcink-ai-client-adapter' ),
 				$field
 			);
 		}
 
 		if ( false === (bool) ( $item_preflight['proposal_ready'] ?? true ) && empty( $reasons ) ) {
-			$reasons[] = __( 'Core marks the proposal item as not ready for execution.', 'npcink-openclaw-adapter' );
+			$reasons[] = __( 'Core marks the proposal item as not ready for execution.', 'npcink-ai-client-adapter' );
 		}
 		if ( empty( $reasons ) ) {
-			$reasons[] = null !== $error ? $error->get_error_message() : __( 'Core commit preflight did not authorize execution.', 'npcink-openclaw-adapter' );
+			$reasons[] = null !== $error ? $error->get_error_message() : __( 'Core commit preflight did not authorize execution.', 'npcink-ai-client-adapter' );
 		}
 
 		$core_error_code = null !== $error ? $error->get_error_code() : '';
 		if ( 'npcink_governance_core_commit_preflight_already_issued' === $core_error_code ) {
-			$reasons[] = __( 'Core has already issued the one-time execution handoff. If commit-preflight was called directly against Core, Adapter cannot recover that handoff.', 'npcink-openclaw-adapter' );
+			$reasons[] = __( 'Core has already issued the one-time execution handoff. If commit-preflight was called directly against Core, Adapter cannot recover that handoff.', 'npcink-ai-client-adapter' );
 		}
 
 		$next_steps = array(
-			__( 'Show Core preflight blockers to the operator.', 'npcink-openclaw-adapter' ),
-			__( 'Revise the proposal input or source plan, then create a new proposal.', 'npcink-openclaw-adapter' ),
-			__( 'Do not retry approve-and-execute until Core preflight can pass.', 'npcink-openclaw-adapter' ),
+			__( 'Show Core preflight blockers to the operator.', 'npcink-ai-client-adapter' ),
+			__( 'Revise the proposal input or source plan, then create a new proposal.', 'npcink-ai-client-adapter' ),
+			__( 'Do not retry approve-and-execute until Core preflight can pass.', 'npcink-ai-client-adapter' ),
 		);
 		if ( 'npcink_governance_core_commit_preflight_already_issued' === $core_error_code ) {
 			$next_steps = array(
-				__( 'Create a new proposal for the same intended write.', 'npcink-openclaw-adapter' ),
-				__( 'After approval, call Adapter execute or approve-and-execute; do not call Core commit-preflight directly.', 'npcink-openclaw-adapter' ),
-				__( 'Use Adapter commit-preflight only as an advanced diagnostic step and follow it immediately with Adapter execute.', 'npcink-openclaw-adapter' ),
+				__( 'Create a new proposal for the same intended write.', 'npcink-ai-client-adapter' ),
+				__( 'After approval, call Adapter execute or approve-and-execute; do not call Core commit-preflight directly.', 'npcink-ai-client-adapter' ),
+				__( 'Use Adapter commit-preflight only as an advanced diagnostic step and follow it immediately with Adapter execute.', 'npcink-ai-client-adapter' ),
 			);
 		}
 
 		return array(
 			'status'                   => 'preflight_blocked',
 			'severity'                 => 'error',
-			'message'                  => __( 'Core commit preflight blocked execution. Adapter did not run the write ability.', 'npcink-openclaw-adapter' ),
+			'message'                  => __( 'Core commit preflight blocked execution. Adapter did not run the write ability.', 'npcink-ai-client-adapter' ),
 			'reasons'                  => array_values( array_unique( $reasons ) ),
 			'revision_fields'          => array_values( array_unique( $needs_input ) ),
 			'next_steps'               => $next_steps,
@@ -6291,7 +6291,7 @@ final class Controller {
 		if ( '' === $approved_hash || $approved_hash !== $current_hash || ( ! empty( $execution_handoff ) && $handoff_hash !== $approved_hash ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_input_hash_mismatch',
-				__( 'Core commit preflight approved input hash does not match the current proposal input.', 'npcink-openclaw-adapter' ),
+				__( 'Core commit preflight approved input hash does not match the current proposal input.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'              => 409,
 					'proposal_id'         => $proposal_id,
@@ -6308,7 +6308,7 @@ final class Controller {
 		if ( 'core-preflight-v1' !== $policy_version || ( ! empty( $execution_handoff ) && 'core-preflight-v1' !== $handoff_policy ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_policy_version_invalid',
-				__( 'Core commit preflight policy version is not accepted by Adapter execution.', 'npcink-openclaw-adapter' ),
+				__( 'Core commit preflight policy version is not accepted by Adapter execution.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'                  => 409,
 					'proposal_id'             => $proposal_id,
@@ -6374,7 +6374,7 @@ final class Controller {
 	private function execution_already_completed_error( string $proposal_id, array $record ): WP_Error {
 		return new WP_Error(
 			'npcink_openclaw_adapter_execution_already_completed',
-			__( 'Adapter has already completed execution for this proposal.', 'npcink-openclaw-adapter' ),
+			__( 'Adapter has already completed execution for this proposal.', 'npcink-ai-client-adapter' ),
 			array(
 				'status'              => 409,
 				'proposal_id'         => $proposal_id,
@@ -6723,7 +6723,7 @@ final class Controller {
 		if ( ! in_array( $governance_mode, array( 'direct_read', 'core_read_authorization_required' ), true ) || 'wp_abilities_rest' !== (string) ( $capability['execution_surface'] ?? '' ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_proposal_required',
-				__( 'This ability is not direct-read. Create a Core proposal instead.', 'npcink-openclaw-adapter' ),
+				__( 'This ability is not direct-read. Create a Core proposal instead.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'     => 403,
 					'capability' => $this->public_capability_guidance( $capability ),
@@ -6736,7 +6736,7 @@ final class Controller {
 		if ( true === (bool) ( $capability['core_proxy_execute'] ?? false ) || true === (bool) ( $capability['commit_execution'] ?? false ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_invalid_core_guidance',
-				__( 'Core guidance unexpectedly allows proxy or commit execution.', 'npcink-openclaw-adapter' ),
+				__( 'Core guidance unexpectedly allows proxy or commit execution.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 500 )
 			);
 			$this->emit_operation_event( 'adapter.ability.run_read', $started, $error, array( 'ability_id' => $ability_id ) );
@@ -6899,7 +6899,7 @@ final class Controller {
 		if ( empty( $context ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_missing',
-				__( 'Core read preflight did not return a read authorization context.', 'npcink-openclaw-adapter' ),
+				__( 'Core read preflight did not return a read authorization context.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 502 )
 			);
 		}
@@ -6915,7 +6915,7 @@ final class Controller {
 			if ( '' !== $expected_hash && $expected_hash !== $actual_hash ) {
 				return new WP_Error(
 					'npcink_openclaw_adapter_core_read_grant_hash_mismatch',
-					__( 'Core read authorization context does not match the supplied approved input hash.', 'npcink-openclaw-adapter' ),
+					__( 'Core read authorization context does not match the supplied approved input hash.', 'npcink-ai-client-adapter' ),
 					array( 'status' => 403 )
 				);
 			}
@@ -6936,35 +6936,35 @@ final class Controller {
 		if ( true !== (bool) ( $context['read_authorization_granted'] ?? false ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_not_granted',
-				__( 'Core read authorization was not granted.', 'npcink-openclaw-adapter' ),
+				__( 'Core read authorization was not granted.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
 		if ( 'npcink_governance_core' !== (string) ( $context['core_authorization_truth'] ?? '' ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_truth_invalid',
-				__( 'Core read authorization truth marker is invalid.', 'npcink-openclaw-adapter' ),
+				__( 'Core read authorization truth marker is invalid.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
 		if ( $ability_id !== (string) ( $context['ability_id'] ?? '' ) || $request_id !== (string) ( $context['request_id'] ?? '' ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_target_mismatch',
-				__( 'Core read authorization context does not match the requested ability or read request.', 'npcink-openclaw-adapter' ),
+				__( 'Core read authorization context does not match the requested ability or read request.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
 		if ( '' === sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_hash_missing',
-				__( 'Core read authorization context is missing the approved input hash.', 'npcink-openclaw-adapter' ),
+				__( 'Core read authorization context is missing the approved input hash.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
 		if ( true === (bool) ( $context['commit_execution'] ?? false ) || true === (bool) ( $context['write_execution'] ?? false ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_execution_invalid',
-				__( 'Core read authorization context must not enable write or commit execution.', 'npcink-openclaw-adapter' ),
+				__( 'Core read authorization context must not enable write or commit execution.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -6973,7 +6973,7 @@ final class Controller {
 		if ( false === $expires_at || $expires_at <= time() ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_expired',
-				__( 'Core read authorization context is expired.', 'npcink-openclaw-adapter' ),
+				__( 'Core read authorization context is expired.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -7028,7 +7028,7 @@ final class Controller {
 
 		return new WP_Error(
 			'npcink_openclaw_adapter_core_read_authorization_required',
-			__( 'Core requires explicit read authorization before Adapter may return this sensitive read result.', 'npcink-openclaw-adapter' ),
+			__( 'Core requires explicit read authorization before Adapter may return this sensitive read result.', 'npcink-ai-client-adapter' ),
 			array(
 				'status'              => 403,
 				'ability_id'          => sanitize_text_field( (string) ( $capability['ability_id'] ?? '' ) ),
@@ -7039,9 +7039,9 @@ final class Controller {
 				'core_authorization_truth' => 'npcink_governance_core',
 				'adapter_action'      => 'fail_closed',
 				'next_steps'          => array(
-					__( 'Create or approve the sensitive read request in Npcink Governance Core.', 'npcink-openclaw-adapter' ),
-					__( 'Retry only after Core exposes a bounded read authorization context for this ability and input.', 'npcink-openclaw-adapter' ),
-					__( 'Do not bypass Adapter through the database, filesystem, logs, custom scripts, or direct WordPress internals.', 'npcink-openclaw-adapter' ),
+					__( 'Create or approve the sensitive read request in Npcink Governance Core.', 'npcink-ai-client-adapter' ),
+					__( 'Retry only after Core exposes a bounded read authorization context for this ability and input.', 'npcink-ai-client-adapter' ),
+					__( 'Do not bypass Adapter through the database, filesystem, logs, custom scripts, or direct WordPress internals.', 'npcink-ai-client-adapter' ),
 				),
 				'capability'          => $this->public_capability_guidance( $capability ),
 			)
@@ -7349,7 +7349,7 @@ final class Controller {
 
 		return new WP_Error(
 			'npcink_openclaw_adapter_ability_not_found',
-			__( 'The requested ability is not discoverable through Core.', 'npcink-openclaw-adapter' ),
+			__( 'The requested ability is not discoverable through Core.', 'npcink-ai-client-adapter' ),
 			array( 'status' => 404 )
 		);
 	}
@@ -7412,7 +7412,7 @@ final class Controller {
 		if ( $status < 200 || $status >= 300 ) {
 			$data    = $response->get_data();
 			$code    = is_array( $data ) ? (string) ( $data['code'] ?? 'npcink_openclaw_adapter_upstream_failed' ) : 'npcink_openclaw_adapter_upstream_failed';
-			$message = is_array( $data ) ? (string) ( $data['message'] ?? __( 'The upstream WordPress REST request failed.', 'npcink-openclaw-adapter' ) ) : __( 'The upstream WordPress REST request failed.', 'npcink-openclaw-adapter' );
+			$message = is_array( $data ) ? (string) ( $data['message'] ?? __( 'The upstream WordPress REST request failed.', 'npcink-ai-client-adapter' ) ) : __( 'The upstream WordPress REST request failed.', 'npcink-ai-client-adapter' );
 
 			$this->emit_operation_event(
 				'adapter.core.request',
@@ -7505,7 +7505,7 @@ final class Controller {
 		if ( 0 === strpos( $route, '/npcink-governance-core/v1/' ) && ! $this->rest_route_available( '/npcink-governance-core/v1/capabilities' ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_missing_dependency',
-				__( 'Npcink Governance Core is required before Adapter can read capabilities, create proposals, or run commit preflight.', 'npcink-openclaw-adapter' ),
+				__( 'Npcink Governance Core is required before Adapter can read capabilities, create proposals, or run commit preflight.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'              => 503,
 					'dependency'          => 'npcink-governance-core',
@@ -7518,7 +7518,7 @@ final class Controller {
 		if ( 0 === strpos( $route, '/wp-abilities/v1/' ) && ! $this->rest_route_available( '/wp-abilities/v1/abilities' ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_missing_dependency',
-				__( 'WordPress Abilities API is required before Adapter can execute read abilities or approved write abilities.', 'npcink-openclaw-adapter' ),
+				__( 'WordPress Abilities API is required before Adapter can execute read abilities or approved write abilities.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'              => 503,
 					'dependency'          => 'wordpress-abilities-api',
@@ -7958,7 +7958,7 @@ final class Controller {
 		if ( $attachment_id <= 0 ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_media_derivative_attachment_required',
-				__( 'attachment_id is required when no source_artifact is supplied.', 'npcink-openclaw-adapter' ),
+				__( 'attachment_id is required when no source_artifact is supplied.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -8014,7 +8014,7 @@ final class Controller {
 		if ( ! is_string( $path ) || '' === $path || ! is_readable( $path ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_media_derivative_file_unreadable',
-				__( 'The local attachment file is not readable for media derivative upload.', 'npcink-openclaw-adapter' ),
+				__( 'The local attachment file is not readable for media derivative upload.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'        => 400,
 					'attachment_id' => $attachment_id,
@@ -8044,7 +8044,7 @@ final class Controller {
 		if ( ! is_object( $client ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_cloud_addon_unverified',
-				__( 'Npcink Cloud Addon must be configured and verified before media derivative run reads.', 'npcink-openclaw-adapter' ),
+				__( 'Npcink Cloud Addon must be configured and verified before media derivative run reads.', 'npcink-ai-client-adapter' ),
 				array( 'status' => 403 )
 			);
 		}
@@ -8060,7 +8060,7 @@ final class Controller {
 	private function cloud_addon_unavailable_error(): WP_Error {
 		return new WP_Error(
 			'npcink_openclaw_adapter_cloud_addon_unavailable',
-			__( 'Npcink Cloud Addon is required for media derivative Cloud transport.', 'npcink-openclaw-adapter' ),
+			__( 'Npcink Cloud Addon is required for media derivative Cloud transport.', 'npcink-ai-client-adapter' ),
 			array(
 				'status'        => 501,
 				'required_plugin' => 'npcink-cloud-addon',
@@ -8349,7 +8349,7 @@ final class Controller {
 			? sanitize_text_field( (string) $context['adapter_route'] )
 			: $request->get_route();
 		$context['governance_source']  = 'npcink-governance-core';
-		$context['via']                = 'npcink-openclaw-adapter';
+		$context['via']                = 'npcink-ai-client-adapter';
 
 		$npcink_governance_core = is_array( $context['npcink_governance_core'] ?? null ) ? $context['npcink_governance_core'] : array();
 		if ( isset( $context['proposal_id'] ) && '' !== (string) $context['proposal_id'] ) {
@@ -8376,7 +8376,7 @@ final class Controller {
 		return array_merge(
 			array(
 				'caller_type' => 'openclaw_adapter',
-				'via'         => 'npcink-openclaw-adapter',
+				'via'         => 'npcink-ai-client-adapter',
 			),
 			$this->request_log_context( $request, $ability_id ),
 			$this->object_param( $request, 'caller' )

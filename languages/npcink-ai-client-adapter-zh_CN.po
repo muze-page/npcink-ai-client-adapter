@@ -2,8 +2,8 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Npcink OpenClaw Adapter 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/npcink-openclaw-adapter\n"
+"Project-Id-Version: Npcink AI Client Adapter 0.1.1\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/npcink-ai-client-adapter\n"
 "PO-Revision-Date: 2026-06-06 15:10+0800\n"
 "Last-Translator: Npcink <dev@npcink.local>\n"
 "Language-Team: Chinese (China) <zh_CN@li.org>\n"
@@ -13,22 +13,22 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Codex\n"
-"X-Domain: npcink-openclaw-adapter\n"
+"X-Domain: npcink-ai-client-adapter\n"
 
 #. Plugin Name of the plugin
-#: npcink-openclaw-adapter.php
+#: npcink-ai-client-adapter.php
 #: includes/Admin/Connection_Page.php:50
 #: includes/Admin/Connection_Page.php:251
-msgid "Npcink OpenClaw Adapter"
-msgstr "Npcink OpenClaw 适配器"
+msgid "Npcink AI Client Adapter"
+msgstr "Npcink AI 客户端适配器"
 
 #. Description of the plugin
-#: npcink-openclaw-adapter.php
-msgid "Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities execution."
-msgstr "用于 Npcink 治理核心和 WordPress 能力执行的轻量 OpenClaw 适配器。"
+#: npcink-ai-client-adapter.php
+msgid "Thin AI client adapter for Npcink Governance Core and WordPress Abilities execution."
+msgstr "用于 Npcink 治理核心和 WordPress 能力执行的轻量 AI 客户端适配器。"
 
 #. Author of the plugin
-#: npcink-openclaw-adapter.php
+#: npcink-ai-client-adapter.php
 #: includes/Admin/Connection_Page.php:108
 #: includes/Admin/Connection_Page.php:109
 #: includes/Admin/Connection_Page.php:156
@@ -76,7 +76,7 @@ msgid "Review proposals, approval decisions, commit preflight, audit, and Core a
 msgstr "查看提案、审批决策、提交预检、审计和核心应用密钥。"
 
 #: includes/Admin/Connection_Page.php:163
-msgid "Connect OpenClaw through the Adapter surface."
+msgid "Connect AI clients through the Adapter surface."
 msgstr "通过适配器界面连接 OpenClaw。"
 
 #: includes/Admin/Connection_Page.php:164
@@ -230,7 +230,7 @@ msgid "Recommended when the client should not receive an Application Password."
 msgstr "建议在客户端不应接收应用密码时使用。"
 
 #: includes/Admin/Connection_Page.php:343
-msgid "Run this in the same environment as OpenClaw. The private key stays local and Adapter stores only the approved public key."
+msgid "Run this in the same environment as the AI client. The private key stays local and Adapter stores only the approved public key."
 msgstr "请在与 OpenClaw 相同的环境中运行。私钥保留在本地，适配器只保存已批准的公钥。"
 
 #: includes/Admin/Connection_Page.php:346
@@ -270,11 +270,11 @@ msgid "Proposal lookup"
 msgstr "提案查询"
 
 #: includes/Admin/Connection_Page.php:374
-msgid "Check a proposal after OpenClaw creates one."
+msgid "Check a proposal after an AI client creates one."
 msgstr "在 OpenClaw 创建提案后检查该提案。"
 
 #: includes/Admin/Connection_Page.php:376
-msgid "Use the Proposal ID returned to OpenClaw to check Core status, open the Core approval screen, and continue execution from Adapter after approval."
+msgid "Use the Proposal ID returned to the AI client to check Core status, open the Core approval screen, and continue execution from Adapter after approval."
 msgstr "使用返回给 OpenClaw 的提案 ID 检查核心状态，打开核心审批页面，并在批准后从适配器继续执行。"
 
 #: includes/Admin/Connection_Page.php:381
@@ -383,7 +383,7 @@ msgid "Example requests"
 msgstr "示例请求"
 
 #: includes/Admin/Connection_Page.php:435
-msgid "Use a dedicated administrator Application Password. Paste the password only into OpenClaw dedicated secret field, never into chat, tools, files, logs, or proposals."
+msgid "Use a dedicated administrator Application Password. Paste the password only into the AI client dedicated secret field, never into chat, tools, files, logs, or proposals."
 msgstr "请使用专用管理员应用密码。只将密码粘贴到 OpenClaw 专用密钥字段，绝不要粘贴到聊天、工具、文件、日志或提案中。"
 
 #: includes/Admin/Connection_Page.php:442
@@ -395,7 +395,7 @@ msgid "Boundary"
 msgstr "边界"
 
 #: includes/Admin/Connection_Page.php:448
-msgid "OpenClaw only connects to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight."
+msgid "AI clients connect to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight."
 msgstr "OpenClaw 只连接适配器。核心审批后台是适配器背后的人类治理界面。只有核心将能力标记为 wp_abilities_rest 上的 direct_read 时才执行读取。写入会创建核心提案，并停在提交预检。"
 
 #: includes/Admin/Connection_Page.php:465
@@ -475,7 +475,7 @@ msgid "You do not have permission to revoke client keys."
 msgstr "您没有权限撤销客户端密钥。"
 
 #: includes/Admin/Connection_Page.php:589
-msgid "You do not have permission to create OpenClaw handoff credentials."
+msgid "You do not have permission to create AI client handoff credentials."
 msgstr "您没有权限创建 OpenClaw 交接凭据。"
 
 #: includes/Admin/Connection_Page.php:644
@@ -495,7 +495,7 @@ msgid "Adapter could not read this Core proposal status."
 msgstr "适配器无法读取此核心提案状态。"
 
 #: includes/Admin/Connection_Page.php:700
-msgid "After OpenClaw creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes."
+msgid "After an AI client creates a proposal, paste its Proposal ID here. Pending decisions stay in Core; Adapter handles status polling and approved execution routes."
 msgstr "OpenClaw 创建提案后，请在此粘贴提案 ID。待处理决策保留在核心中；适配器负责状态轮询和已批准执行路由。"
 
 #: includes/Admin/Connection_Page.php:710
@@ -574,7 +574,7 @@ msgstr "下一步：将核心作为审批事实来源，将适配器作为 OpenC
 
 #: includes/Admin/Connection_Page.php:951
 #: includes/Admin/Connection_Page.php:956
-msgid "OpenClaw Handoff Created"
+msgid "AI Client Handoff Created"
 msgstr "OpenClaw 交接已创建"
 
 #: includes/Admin/Connection_Page.php:958
@@ -586,7 +586,7 @@ msgid "Paste it only into OpenClaw dedicated secret field. Do not paste it into 
 msgstr "只将它粘贴到 OpenClaw 专用密钥字段。不要粘贴到聊天、工具命令、日志、提案负载、文件或已复制的交接文本中。"
 
 #: includes/Admin/Connection_Page.php:960
-msgid "Use this only for OpenClaw access through Npcink OpenClaw Adapter. Revoke it from the WordPress user profile when the client is retired."
+msgid "Use this only for AI client access through Npcink AI Client Adapter. Revoke it from the WordPress user profile when the client is retired."
 msgstr "此凭据仅用于通过 Npcink OpenClaw 适配器访问 OpenClaw。客户端停用时，请从 WordPress 用户资料中撤销它。"
 
 #: includes/Admin/Connection_Page.php:965
@@ -622,7 +622,7 @@ msgid "OpenClaw handoff"
 msgstr "OpenClaw 交接"
 
 #: includes/Admin/Connection_Page.php:1004
-msgid "Back to Npcink OpenClaw Adapter"
+msgid "Back to Npcink AI Client Adapter"
 msgstr "返回 Npcink OpenClaw 适配器"
 
 #: includes/Admin/Connection_Page.php:1242
@@ -890,7 +890,7 @@ msgid "proposal_id is required."
 msgstr "需要 proposal_id。"
 
 #: includes/Rest/Controller.php:3554
-msgid "Approved by Npcink OpenClaw Adapter approve-and-execute."
+msgid "Approved by Npcink AI Client Adapter approve-and-execute."
 msgstr "由 Npcink OpenClaw 适配器 approve-and-execute 批准。"
 
 #: includes/Rest/Controller.php:3574
