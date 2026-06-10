@@ -1699,8 +1699,8 @@ maa_adapter_assert(
 $smoke_sh = maa_adapter_read( $root . '/tests/smoke-wp.sh' );
 foreach (
 	array(
-		'wp-content/plugins/npcink-openclaw-adapter',
-		'wp plugin activate npcink-openclaw-adapter',
+		'wp-content/plugins/npcink-ai-client-adapter',
+		'wp plugin activate npcink-ai-client-adapter',
 		'eval-file "$ROOT_DIR/tests/smoke-wp.php"',
 	) as $required
 ) {
