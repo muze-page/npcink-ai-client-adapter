@@ -454,6 +454,23 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-op
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter read-ability --profile=local --insecure-local-tls --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --read-request-id=READ_REQUEST_ID
 ```
 
+For generated page visuals, the local CLI includes a bounded
+`recipe ai-image-ratio-crop-media-adoption` helper. It reads `/help`, verifies
+`openclaw_recipes.ai_image_ratio_crop_media_adoption`, can submit
+`POST /media-derivative-runs` for the target aspect-ratio crop, can poll
+`GET /media-derivative-runs/{run_id}/result`, and can call
+`npcink-abilities-toolkit/build-media-adoption-enhancement-plan` for the
+cropped preview URL. It submits `/proposals/from-plan` only when
+`--submit-proposal` is present, and it never approves or executes the final
+proposal.
+
+```bash
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption inspect --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption crop --profile=local --insecure-local-tls --attachment-id=123 --aspect-ratio=16:9
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption result --profile=local --insecure-local-tls RUN_ID
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=local --insecure-local-tls --preview-url=PREVIEW_URL --post-id=7424 --old-url=OLD_URL --title="WordPress AI hero" --alt-text="WordPress AI proposal workflow hero"
+```
+
 The request command accepts only Adapter-relative routes such as `/health`,
 signs the request locally, and prints only the Adapter JSON response. It also
 accepts `--body-stdin` for non-secret POST bodies. Final Adapter write routes

@@ -9,8 +9,10 @@ const toolDir = dirname(fileURLToPath(import.meta.url));
 const rawArgs = process.argv.slice(2);
 const command = rawArgs[0] || '';
 const commandArgs = rawArgs.slice(1);
+const AI_IMAGE_RATIO_CROP_RECIPE_ID = 'ai_image_ratio_crop_media_adoption';
+const AI_IMAGE_RATIO_CROP_RECIPE_CLI_ID = 'ai-image-ratio-crop-media-adoption';
 
-if (!['connect', 'status', 'request', 'read-request', 'read-ability'].includes(command)) {
+if (!['connect', 'status', 'request', 'read-request', 'read-ability', 'recipe'].includes(command)) {
   printUsage();
   process.exit(2);
 }
@@ -24,6 +26,10 @@ function printUsage() {
     '  npcink-openclaw-adapter read-request create --profile=local --ability-id=ABILITY_ID --input-file=/tmp/input.json --purpose=PURPOSE --data-classes=CLASS[,CLASS]',
     '  npcink-openclaw-adapter read-request status --profile=local REQUEST_ID',
     '  npcink-openclaw-adapter read-ability --profile=local --ability-id=ABILITY_ID --input-file=/tmp/input.json [--read-request-id=REQUEST_ID]',
+    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption inspect --profile=local',
+    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption crop --profile=local --attachment-id=123 [--aspect-ratio=16:9]',
+    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption result --profile=local RUN_ID',
+    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=local --preview-url=URL --post-id=123 [--old-url=URL] [--submit-proposal]',
   ].join('\n'));
 }
 
@@ -197,6 +203,233 @@ async function readAbility(args) {
   ], { capture: true, input: JSON.stringify(body) });
   printCapturedResult(result);
   process.exitCode = result.code || 0;
+}
+
+async function recipe(args) {
+  const recipeName = args[0] || '';
+  const action = args[1] || '';
+  const subArgs = args.slice(2);
+  if (![AI_IMAGE_RATIO_CROP_RECIPE_ID, AI_IMAGE_RATIO_CROP_RECIPE_CLI_ID].includes(recipeName)) {
+    printUsage();
+    process.exitCode = 2;
+    return;
+  }
+  if (!['inspect', 'crop', 'result', 'adoption-plan'].includes(action)) {
+    printUsage();
+    process.exitCode = 2;
+    return;
+  }
+
+  const { parsed, positionals } = parseArgs(subArgs);
+  const recipeContract = await loadAiImageRatioCropRecipe(parsed);
+  if (action === 'inspect') {
+    console.log(JSON.stringify({
+      ok: true,
+      recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
+      cli_recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_CLI_ID,
+      recipe: recipeContract,
+      supported_actions: ['crop', 'result', 'adoption-plan'],
+      note: 'This helper creates crop runs and plan proposals only when explicitly requested; it never approves or executes final writes.',
+    }, null, 2));
+    return;
+  }
+  if (action === 'crop') {
+    await recipeAiImageCrop(parsed, recipeContract);
+    return;
+  }
+  if (action === 'result') {
+    await recipeAiImageCropResult(parsed, positionals);
+    return;
+  }
+  await recipeAiImageAdoptionPlan(parsed, recipeContract);
+}
+
+async function loadAiImageRatioCropRecipe(parsed) {
+  const help = await requestJsonViaWrapper(parsed, 'GET', '/help');
+  const recipeContract = help?.openclaw_recipes?.[AI_IMAGE_RATIO_CROP_RECIPE_ID];
+  if (!recipeContract || typeof recipeContract !== 'object') {
+    throw new Error(`Adapter /help does not expose openclaw_recipes.${AI_IMAGE_RATIO_CROP_RECIPE_ID}.`);
+  }
+  const guardrails = recipeContract.guardrails || {};
+  if (
+    guardrails.target_aspect_ratio_required !== true
+    || guardrails.ai_generation_dimensions_are_advisory !== true
+    || guardrails.cloud_crop_required_for_generated_images !== true
+    || guardrails.direct_wordpress_write !== false
+    || guardrails.adapter_artifact_registry !== false
+  ) {
+    throw new Error('Adapter recipe guardrails do not match the expected AI image crop adoption boundary.');
+  }
+  return recipeContract;
+}
+
+async function recipeAiImageCrop(parsed, recipeContract) {
+  const attachmentId = parsed.get('attachment-id') || '';
+  const sourceArtifactFile = parsed.get('source-artifact-file') || '';
+  if (!attachmentId && !sourceArtifactFile) {
+    throw new Error('recipe crop requires --attachment-id or --source-artifact-file.');
+  }
+
+  const defaultInput = recipeContract.default_input || {};
+  const aspectRatio = parsed.get('aspect-ratio') || defaultInput.target_aspect_ratio || '16:9';
+  const preferredFormat = parsed.get('preferred-format') || defaultInput.preferred_format || 'webp';
+  const quality = positiveInt(parsed.get('quality') || defaultInput.quality || '84');
+  const position = parsed.get('position') || defaultInput.crop?.position || 'center';
+  const body = {
+    preferred_format: preferredFormat,
+    quality,
+    crop: {
+      type: 'aspect_ratio',
+      aspect_ratio: aspectRatio,
+      position,
+    },
+  };
+  if (attachmentId) {
+    body.attachment_id = positiveInt(attachmentId);
+  }
+  if (sourceArtifactFile) {
+    body.source_artifact = JSON.parse(readFileSync(sourceArtifactFile, 'utf8'));
+  }
+  if (parsed.get('trace-id')) {
+    body.trace_id = parsed.get('trace-id');
+  }
+  if (parsed.get('idempotency-key')) {
+    body.idempotency_key = parsed.get('idempotency-key');
+  }
+
+  const response = await requestJsonViaWrapper(parsed, 'POST', '/media-derivative-runs', body);
+  console.log(JSON.stringify({
+    ok: true,
+    recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
+    action: 'crop',
+    target_aspect_ratio: aspectRatio,
+    response,
+    next_step: 'Run recipe ai-image-ratio-crop-media-adoption result RUN_ID, then adoption-plan with the cropped preview URL.',
+  }, null, 2));
+}
+
+async function recipeAiImageCropResult(parsed, positionals) {
+  const runId = parsed.get('run-id') || positionals[0] || '';
+  if (!/^[A-Za-z0-9._:-]+$/.test(runId)) {
+    throw new Error('recipe result requires a safe RUN_ID.');
+  }
+  const response = await requestJsonViaWrapper(parsed, 'GET', `/media-derivative-runs/${encodeURIComponent(runId)}/result`);
+  console.log(JSON.stringify({
+    ok: true,
+    recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
+    action: 'result',
+    run_id: runId,
+    response,
+    next_step: 'Review dimensions and warnings. If accepted, run adoption-plan with response.cloud_result.preview_url.',
+  }, null, 2));
+}
+
+async function recipeAiImageAdoptionPlan(parsed, recipeContract) {
+  const previewUrl = parsed.get('preview-url') || parsed.get('url') || '';
+  if (!previewUrl) {
+    throw new Error('recipe adoption-plan requires --preview-url or --url.');
+  }
+
+  const defaultInput = recipeContract.default_input || {};
+  const input = {
+    ...inputPayloadFromArgs(parsed),
+    url: previewUrl,
+    preferred_format: parsed.get('preferred-format') || defaultInput.preferred_format || 'webp',
+    quality: positiveInt(parsed.get('quality') || defaultInput.quality || '84'),
+  };
+  copyParsedValue(parsed, input, 'old-url', 'old_url');
+  copyParsedInt(parsed, input, 'post-id', 'post_id');
+  copyParsedValue(parsed, input, 'title', 'title');
+  copyParsedValue(parsed, input, 'alt-text', 'alt');
+  copyParsedValue(parsed, input, 'source', 'source');
+  copyParsedValue(parsed, input, 'attribution', 'attribution');
+  copyParsedValue(parsed, input, 'external-thread-id', 'external_thread_id');
+
+  const planAbilityId = String(recipeContract.plan_ability_id || 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan');
+  const planResponse = await requestJsonViaWrapper(parsed, 'POST', '/run-read-ability', {
+    ability_id: planAbilityId,
+    input,
+  });
+
+  if (!parsed.has('submit-proposal')) {
+    console.log(JSON.stringify({
+      ok: true,
+      recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
+      action: 'adoption-plan',
+      plan_ability_id: planAbilityId,
+      plan_response: planResponse,
+      next_step: 'Review the plan_response.result, then submit it to /proposals/from-plan when ready.',
+    }, null, 2));
+    return;
+  }
+
+  const plan = planFromReadAbilityResponse(planResponse);
+  const fromPlanBody = {
+    plan_ability_id: planAbilityId,
+    plan,
+    plan_input: input,
+    caller: {
+      external_thread_id: parsed.get('external-thread-id') || 'openclaw-ai-image-ratio-crop-media-adoption',
+      recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
+      via: 'npcink-openclaw-adapter-cli',
+    },
+  };
+  const proposalResponse = await requestJsonViaWrapper(parsed, 'POST', '/proposals/from-plan', fromPlanBody);
+  console.log(JSON.stringify({
+    ok: true,
+    recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
+    action: 'adoption-plan',
+    submitted_proposal: true,
+    plan_ability_id: planAbilityId,
+    plan_response: planResponse,
+    proposal_response: proposalResponse,
+    next_step: 'Poll the proposal and approve/execute only through the Core/Adapter approved proposal flow after operator review.',
+  }, null, 2));
+}
+
+async function requestJsonViaWrapper(parsed, method, route, body = null) {
+  const args = [
+    ...requestCommonArgs(parsed),
+    method,
+    route,
+  ];
+  const options = { capture: true };
+  if (body !== null) {
+    args.push('--body-stdin');
+    options.input = JSON.stringify(body);
+  }
+  const result = await runNode('keypair-adapter-request.mjs', args, options);
+  if (result.code !== 0) {
+    throw new Error(safeErrorMessage(result.stdout, result.stderr));
+  }
+  try {
+    return JSON.parse(result.stdout);
+  } catch (error) {
+    throw new Error(`Adapter wrapper returned non-JSON output for ${method} ${route}.`);
+  }
+}
+
+function planFromReadAbilityResponse(response) {
+  const result = response && typeof response === 'object' ? response.result : null;
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    throw new Error('Read ability response did not include an object result plan.');
+  }
+  if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+    return result.data;
+  }
+  return result;
+}
+
+function copyParsedValue(parsed, target, argName, key) {
+  if (parsed.get(argName)) {
+    target[key] = parsed.get(argName);
+  }
+}
+
+function copyParsedInt(parsed, target, argName, key) {
+  if (parsed.get(argName)) {
+    target[key] = positiveInt(parsed.get(argName));
+  }
 }
 
 async function status(args) {
@@ -469,6 +702,13 @@ if (command === 'connect') {
 } else if (command === 'read-ability') {
   try {
     await readAbility(commandArgs);
+  } catch (error) {
+    console.error(JSON.stringify({ ok: false, error: 'wrapper_failed', message: error.message }, null, 2));
+    process.exit(1);
+  }
+} else if (command === 'recipe') {
+  try {
+    await recipe(commandArgs);
   } catch (error) {
     console.error(JSON.stringify({ ok: false, error: 'wrapper_failed', message: error.message }, null, 2));
     process.exit(1);

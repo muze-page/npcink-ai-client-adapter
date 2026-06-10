@@ -42,6 +42,22 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-op
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter read-ability --profile=example --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --read-request-id=READ_REQUEST_ID
 ```
 
+For AI-generated page visuals that need a stable aspect ratio, use the bounded
+recipe helper. It reads `GET /help`, verifies
+`openclaw_recipes.ai_image_ratio_crop_media_adoption`, and then runs only the
+requested client-side step. It does not approve or execute proposals:
+
+```bash
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption inspect --profile=example
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption crop --profile=example --attachment-id=123 --aspect-ratio=16:9
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption result --profile=example RUN_ID
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=example --preview-url=PREVIEW_URL --post-id=7424 --old-url=OLD_URL --title="WordPress AI hero" --alt-text="WordPress AI proposal workflow hero"
+```
+
+Add `--submit-proposal` to `adoption-plan` only after reviewing the returned
+plan. Final approval and execution still use the Core/Adapter approved proposal
+flow.
+
 Final Adapter write routes are guarded by client intent. Use
 `--intent=preflight` for `POST /proposals/{proposal_id}/commit-preflight`.
 Use `--intent=commit` only when the operator explicitly confirmed final write
