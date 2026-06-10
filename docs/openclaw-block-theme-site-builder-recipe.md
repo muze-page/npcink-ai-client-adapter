@@ -1,0 +1,99 @@
+# OpenClaw Block Theme Site Builder Recipe
+
+Status: accepted
+
+This recipe lets OpenClaw guide a conversational block-theme Site Editor flow
+without making Adapter a generic WordPress site control plane.
+
+## Boundary
+
+- Context abilities:
+  `npcink-abilities-toolkit/get-block-theme-context`,
+  `npcink-abilities-toolkit/get-template-blocks`, and
+  `npcink-abilities-toolkit/get-template-part-blocks`
+- Entrypoint planning ability:
+  `npcink-abilities-toolkit/build-block-theme-site-plan`
+- Artifact type: `block_theme_site_plan`
+- Handoff route: `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`
+- Final route:
+  `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`
+- Final write abilities:
+  `npcink-abilities-toolkit/update-template-blocks` and
+  `npcink-abilities-toolkit/update-template-part-blocks`
+
+Toolkit owns block-theme context reads, Site Editor entity block planning, and
+the final WordPress Abilities write callbacks. Adapter only projects the recipe
+to OpenClaw, forwards the plan to Core, and executes allowlisted write actions
+after Core approval and commit-preflight.
+
+## Supported MVP
+
+The first supported intent is:
+
+`intent=add_breadcrumbs`
+
+```json
+{
+  "intent": "add_breadcrumbs",
+  "target_templates": ["single", "page"],
+  "separator": "/",
+  "show_current_item": true,
+  "show_home_item": true,
+  "show_on_home_page": false
+}
+```
+
+The plan may update existing `wp_template` records for `single`, `page`,
+`archive`, or `index`. It must not create arbitrary templates in this MVP.
+
+## Flow
+
+1. Run `npcink-abilities-toolkit/get-block-theme-context` through Adapter read
+   execution.
+2. Confirm `is_block_theme=true` and review discovered templates/template parts.
+3. Run `npcink-abilities-toolkit/build-block-theme-site-plan` through Adapter
+   read execution.
+4. Confirm the returned plan has `artifact_type=block_theme_site_plan`,
+   `requires_approval=true`, and `commit_execution=false`.
+5. Submit the returned plan to
+   `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`.
+6. Poll `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`.
+7. Execute only after approval with
+   `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`.
+8. Read changed templates back with `get-template-blocks` or
+   `get-template-part-blocks` and verify the reviewed block tree is present.
+
+## Guardrails
+
+- `proposal_mode=batch`
+- `batch_approval=true`
+- `core_preflight_required=true`
+- `core_proxy_execute=false`
+- `commit_execution=false`
+- `direct_wordpress_write=false`
+- `template_write_owner=npcink-abilities-toolkit`
+- `allowed_intents=["add_breadcrumbs"]`
+- `allowed_template_targets=["single","page","archive","index"]`
+- `global_styles_write_allowed=false`
+- `navigation_write_allowed=false`
+- `generic_write_executor=false`
+- `cloud_control_plane=false`
+
+Adapter must not accept arbitrary Site Editor writes, raw `theme.json` patches,
+global styles patches, navigation mutations, template creation, provider/model
+routing, or workflow runtime behavior in this recipe. Those may become separate
+explicit profiles later, each with its own Core proposal surface, Adapter
+execution profile, docs, and smoke coverage.
+
+## Verification
+
+After execution, verify:
+
+- changed templates still parse as Gutenberg blocks;
+- the first planned block for breadcrumb insertion is a stable `core/group`
+  with class `openclaw-breadcrumbs`;
+- Site Editor opens the changed template without invalid block recovery prompts;
+- frontend views affected by `single` and `page` templates render without obvious
+  layout regression;
+- Core proposal audit retains the original `block_theme_site_plan`,
+  `write_actions[]`, approval, preflight, and Adapter execution record.

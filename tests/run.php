@@ -39,8 +39,8 @@ maa_adapter_assert( false !== strpos( $main, 'Requires Plugins: npcink-abilities
 maa_adapter_assert( false !== strpos( $main, 'plugins_loaded' ), 'Main plugin boots on plugins_loaded.' );
 
 $controller = maa_adapter_read( $root . '/includes/Rest/Controller.php' );
-foreach (
-	array(
+	foreach (
+		array(
 		'npcink-openclaw-adapter/v1',
 		'/health',
 		'/help',
@@ -477,8 +477,9 @@ foreach (
 			'npcink-abilities-toolkit/build-media-optimization-plan',
 			'npcink-abilities-toolkit/build-media-adoption-enhancement-plan',
 			'npcink-abilities-toolkit/build-media-rename-plan',
-			'npcink-abilities-toolkit/build-article-block-plan',
-			'npcink-abilities-toolkit/build-pattern-page-plan',
+				'npcink-abilities-toolkit/build-article-block-plan',
+				'npcink-abilities-toolkit/build-block-theme-site-plan',
+				'npcink-abilities-toolkit/build-pattern-page-plan',
 			'npcink-toolbox/build-article-write-plan',
 			'npcink-toolbox/build-article-batch-write-plan',
 			'npcink-toolbox/build-article-media-batch-write-plan',
@@ -509,15 +510,21 @@ foreach (
 		'npcink-abilities-toolkit/restore-media-backup',
 		'npcink-abilities-toolkit/adopt-cloud-media-derivative',
 		'npcink-abilities-toolkit/rename-media-file',
-		'npcink-abilities-toolkit/patch-post-content',
-		'npcink-abilities-toolkit/update-post-blocks',
-		'npcink-abilities-toolkit/patch-setting-value',
+			'npcink-abilities-toolkit/patch-post-content',
+			'npcink-abilities-toolkit/update-post-blocks',
+			'npcink-abilities-toolkit/update-template-blocks',
+			'npcink-abilities-toolkit/update-template-part-blocks',
+			'npcink-abilities-toolkit/patch-setting-value',
 		'npcink_openclaw_adapter_patch_operations_required',
 		'npcink_openclaw_adapter_blocks_required',
 		'patch-post-content execution input must include operations.',
-		'update-post-blocks execution input must include at least one block.',
-		'patch-setting-value execution input must include operations.',
-		'update-post-blocks mode must be replace or append.',
+			'update-post-blocks execution input must include at least one block.',
+			'update-template-blocks execution input must include at least one block.',
+			'update-template-part-blocks execution input must include at least one block.',
+			'patch-setting-value execution input must include operations.',
+			'update-post-blocks mode must be replace or append.',
+			'update-template-blocks mode must be replace.',
+			'update-template-part-blocks mode must be replace.',
 		'npcink_openclaw_adapter_setting_target_type_invalid',
 		'patch-setting-value target_type must be option or theme_mod.',
 		'npcink_openclaw_adapter_derivative_artifact_required',
@@ -692,7 +699,7 @@ foreach (
 		'GET /proposals/{proposal_id}',
 		'approval_proxy_enabled=false',
 		'approve-and-execute',
-		'Current execution allowlist: npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/update-post-blocks, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/restore-media-backup, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, npcink-abilities-toolkit/approve-comment',
+			'Current execution allowlist: npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/update-post-blocks, npcink-abilities-toolkit/update-template-blocks, npcink-abilities-toolkit/update-template-part-blocks, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/restore-media-backup, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, npcink-abilities-toolkit/approve-comment',
 		'Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true',
 		'for dry-run-only verification, stop at commit-preflight and do not call execute',
 		'Failure code handling',
@@ -982,8 +989,9 @@ foreach (
 			'npcink-abilities-toolkit/build-media-optimization-plan',
 			'npcink-abilities-toolkit/build-media-adoption-preflight-summary',
 			'npcink-abilities-toolkit/build-media-rename-plan',
-			'npcink-abilities-toolkit/build-article-block-plan',
-			'npcink-abilities-toolkit/build-pattern-page-plan',
+				'npcink-abilities-toolkit/build-article-block-plan',
+				'npcink-abilities-toolkit/build-block-theme-site-plan',
+				'npcink-abilities-toolkit/build-pattern-page-plan',
 			'npcink-toolbox/build-article-write-plan',
 			'npcink-toolbox/build-article-batch-write-plan',
 			'npcink-toolbox/build-article-media-batch-write-plan',
@@ -994,8 +1002,10 @@ foreach (
 			'openclaw_recipes.article_batch_draft_plan',
 			'openclaw_recipes.article_media_batch_plan',
 			'openclaw_recipes.media_adoption_enhancement_plan',
-			'openclaw_recipes.article_block_plan',
-			'openclaw_recipes.pattern_page_plan',
+				'openclaw_recipes.article_block_plan',
+				'openclaw_recipes.block_theme_site_plan',
+				'openclaw_recipes.pattern_page_plan',
+				'docs/openclaw-block-theme-site-builder-recipe.md',
 			'openclaw_recipes.pattern_page_research_brief',
 			'openclaw_recipes.pattern_page_with_visual_asset_plan',
 			'openclaw_recipes.ai_image_ratio_crop_media_adoption',
@@ -2291,11 +2301,33 @@ foreach (
 		'generic_write_executor=false',
 		'Do not collapse this into a single direct write',
 	) as $required
-) {
-	maa_adapter_assert( false !== strpos( $pattern_page_visual_asset_recipe, $required ), 'Pattern page visual asset recipe contains required text: ' . $required );
-}
+	) {
+		maa_adapter_assert( false !== strpos( $pattern_page_visual_asset_recipe, $required ), 'Pattern page visual asset recipe contains required text: ' . $required );
+	}
 
-$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
+	$block_theme_site_builder_recipe = maa_adapter_read( $root . '/docs/openclaw-block-theme-site-builder-recipe.md' );
+	foreach (
+		array(
+			'OpenClaw Block Theme Site Builder Recipe',
+			'npcink-abilities-toolkit/get-block-theme-context',
+			'npcink-abilities-toolkit/get-template-blocks',
+			'npcink-abilities-toolkit/get-template-part-blocks',
+			'npcink-abilities-toolkit/build-block-theme-site-plan',
+			'block_theme_site_plan',
+			'npcink-abilities-toolkit/update-template-blocks',
+			'npcink-abilities-toolkit/update-template-part-blocks',
+			'intent=add_breadcrumbs',
+			'global_styles_write_allowed=false',
+			'navigation_write_allowed=false',
+			'generic_write_executor=false',
+			'cloud_control_plane=false',
+			'Adapter must not accept arbitrary Site Editor writes',
+		) as $required
+	) {
+		maa_adapter_assert( false !== strpos( $block_theme_site_builder_recipe, $required ), 'Block theme site builder recipe contains required text: ' . $required );
+	}
+
+	$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
 foreach (
 	array(
 		'OpenClaw AI Image Ratio Crop Media Adoption Recipe',
@@ -2357,9 +2389,11 @@ foreach (
 		'Status: accepted',
 		'target_ability_id=npcink-abilities-toolkit/trash-post',
 		'target_ability_id=npcink-abilities-toolkit/set-post-seo-meta',
-		'target_ability_id=npcink-abilities-toolkit/update-post',
-		'target_ability_id=npcink-abilities-toolkit/patch-post-content',
-		'target_ability_id=npcink-abilities-toolkit/patch-setting-value',
+			'target_ability_id=npcink-abilities-toolkit/update-post',
+			'target_ability_id=npcink-abilities-toolkit/patch-post-content',
+			'target_ability_id=npcink-abilities-toolkit/update-template-blocks',
+			'target_ability_id=npcink-abilities-toolkit/update-template-part-blocks',
+			'target_ability_id=npcink-abilities-toolkit/patch-setting-value',
 		'target_ability_id=npcink-abilities-toolkit/set-post-slug',
 		'target_ability_id=npcink-abilities-toolkit/set-post-terms',
 		'target_ability_id=npcink-abilities-toolkit/delete-term',

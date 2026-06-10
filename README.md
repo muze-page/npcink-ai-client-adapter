@@ -623,9 +623,10 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/build-media-inventory-fix-plan`,
 	   `npcink-abilities-toolkit/build-media-reference-repair-plan`, or
 	   `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`, or
-	   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`, or
-	   `npcink-abilities-toolkit/build-media-rename-plan`, or
-	   `npcink-abilities-toolkit/build-pattern-page-plan`, or
+		   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`, or
+		   `npcink-abilities-toolkit/build-media-rename-plan`, or
+		   `npcink-abilities-toolkit/build-block-theme-site-plan`, or
+		   `npcink-abilities-toolkit/build-pattern-page-plan`, or
 	   `npcink-toolbox/build-article-write-plan`, or
 	   `npcink-toolbox/build-article-batch-write-plan`, or
 	   `npcink-toolbox/build-article-media-batch-write-plan`, or
@@ -667,10 +668,21 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/update-post-blocks` actions. The machine-readable
 	   playbook is exposed as `openclaw_recipes.pattern_page_plan` from
 	   `GET /help`, including a `visual_acceptance` block with front-end/editor
-	   targets, 1440/768/390 viewport checks, and the local smoke artifact envs.
-	   See [OpenClaw Pattern Page Plan Recipe](docs/openclaw-pattern-page-plan-recipe.md)
-	   and [OpenClaw Gutenberg Visual Acceptance](docs/openclaw-gutenberg-visual-acceptance.md).
-	   For reviewed Gutenberg article block drafts, use
+		   targets, 1440/768/390 viewport checks, and the local smoke artifact envs.
+		   See [OpenClaw Pattern Page Plan Recipe](docs/openclaw-pattern-page-plan-recipe.md)
+		   and [OpenClaw Gutenberg Visual Acceptance](docs/openclaw-gutenberg-visual-acceptance.md).
+		   For reviewed conversational block theme Site Editor changes, use
+		   `npcink-abilities-toolkit/build-block-theme-site-plan`; Core creates one
+		   batch proposal and Adapter later executes only approved
+		   `npcink-abilities-toolkit/update-template-blocks` and
+		   `npcink-abilities-toolkit/update-template-part-blocks` actions. The
+		   machine-readable playbook is exposed as
+		   `openclaw_recipes.block_theme_site_plan` from `GET /help`. The MVP
+		   supports `intent=add_breadcrumbs` and keeps global styles, navigation,
+		   template creation, and generic Site Editor writes outside Adapter
+		   execution profiles. See
+		   [OpenClaw Block Theme Site Builder Recipe](docs/openclaw-block-theme-site-builder-recipe.md).
+		   For reviewed Gutenberg article block drafts, use
 	   `npcink-abilities-toolkit/build-article-block-plan`; Core creates one
 	   batch proposal and Adapter later executes only approved
 	   `npcink-abilities-toolkit/create-draft` and
@@ -755,9 +767,11 @@ Proposal-required write flow:
    `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`,
    `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-seo-meta`,
    `npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
-   `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
-   `npcink-abilities-toolkit/update-post-blocks`,
-   `npcink-abilities-toolkit/patch-setting-value`,
+	   `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
+	   `npcink-abilities-toolkit/update-post-blocks`,
+	   `npcink-abilities-toolkit/update-template-blocks`,
+	   `npcink-abilities-toolkit/update-template-part-blocks`,
+	   `npcink-abilities-toolkit/patch-setting-value`,
 	   `npcink-abilities-toolkit/update-media-details`,
 	   `npcink-abilities-toolkit/optimize-media-asset`,
 	   `npcink-abilities-toolkit/replace-media-file`,
@@ -885,9 +899,11 @@ Write or destructive abilities:
    stops at Adapter commit-preflight; do not call execute unless the operator
    intends a final write.
 7. For approved proposal execution, only `npcink-abilities-toolkit/trash-post`,
-   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
-   `npcink-abilities-toolkit/patch-post-content`, `npcink-abilities-toolkit/update-post-blocks`,
-   `npcink-abilities-toolkit/patch-setting-value`,
+	   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
+	   `npcink-abilities-toolkit/patch-post-content`, `npcink-abilities-toolkit/update-post-blocks`,
+	   `npcink-abilities-toolkit/update-template-blocks`,
+	   `npcink-abilities-toolkit/update-template-part-blocks`,
+	   `npcink-abilities-toolkit/patch-setting-value`,
    `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
 	   `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
 	   `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/optimize-media-asset`,

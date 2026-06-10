@@ -57,6 +57,7 @@ final class Controller {
 		'npcink-abilities-toolkit/build-media-adoption-enhancement-plan'      => true,
 		'npcink-abilities-toolkit/build-media-rename-plan'                    => true,
 		'npcink-abilities-toolkit/build-article-block-plan'                   => true,
+		'npcink-abilities-toolkit/build-block-theme-site-plan'                => true,
 		'npcink-abilities-toolkit/build-pattern-page-plan'                    => true,
 		'npcink-toolbox/build-article-write-plan'           => true,
 		'npcink-toolbox/build-article-batch-write-plan'     => true,
@@ -157,6 +158,48 @@ final class Controller {
 					'blocks' => array(
 						'code'    => 'npcink_openclaw_adapter_blocks_required',
 						'message' => __( 'update-post-blocks execution input must include at least one block.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
+			'npcink-abilities-toolkit/update-template-blocks' => array(
+				'allowed_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'mode' => array(
+						'allowed' => array( 'replace' ),
+						'code'    => 'npcink_openclaw_adapter_template_block_mode_invalid',
+						'message' => __( 'update-template-blocks mode must be replace.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'require_post_id'       => array(
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'update-template-blocks execution input must include post_id.', 'npcink-openclaw-adapter' ),
+				),
+				'require_array_fields'  => array(
+					'blocks' => array(
+						'code'    => 'npcink_openclaw_adapter_blocks_required',
+						'message' => __( 'update-template-blocks execution input must include at least one block.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
+			'npcink-abilities-toolkit/update-template-part-blocks' => array(
+				'allowed_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'mode' => array(
+						'allowed' => array( 'replace' ),
+						'code'    => 'npcink_openclaw_adapter_template_part_block_mode_invalid',
+						'message' => __( 'update-template-part-blocks mode must be replace.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'require_post_id'       => array(
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'update-template-part-blocks execution input must include post_id.', 'npcink-openclaw-adapter' ),
+				),
+				'require_array_fields'  => array(
+					'blocks' => array(
+						'code'    => 'npcink_openclaw_adapter_blocks_required',
+						'message' => __( 'update-template-part-blocks execution input must include at least one block.', 'npcink-openclaw-adapter' ),
 					),
 				),
 				'post_id_from_result'   => false,
@@ -2768,10 +2811,75 @@ final class Controller {
 					'smoke_artifact_env'   => 'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
 					'fixture_retention_env' => 'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
 				),
-				'visual_acceptance_docs'  => 'docs/openclaw-gutenberg-visual-acceptance.md',
-				'docs'                     => 'docs/openclaw-pattern-page-plan-recipe.md',
-			),
-			'pattern_page_research_brief' => array(
+					'visual_acceptance_docs'  => 'docs/openclaw-gutenberg-visual-acceptance.md',
+					'docs'                     => 'docs/openclaw-pattern-page-plan-recipe.md',
+				),
+				'block_theme_site_plan' => array(
+					'title'                   => 'Block theme site plan',
+					'description'             => 'Build a reviewed Toolkit block_theme_site_plan for conversational Site Editor changes, forward it to Core as one batch proposal, then execute only Core-approved template or template-part block writes.',
+					'entrypoint_ability_id'   => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+					'plan_ability_id'         => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+					'context_ability_ids'     => array(
+						'npcink-abilities-toolkit/get-block-theme-context',
+						'npcink-abilities-toolkit/get-template-blocks',
+						'npcink-abilities-toolkit/get-template-part-blocks',
+					),
+					'final_write_ability_ids' => array(
+						'npcink-abilities-toolkit/update-template-blocks',
+						'npcink-abilities-toolkit/update-template-part-blocks',
+					),
+					'steps'                   => array(
+						array(
+							'order'      => 1,
+							'route'      => 'POST /run-read-ability',
+							'ability_id' => 'npcink-abilities-toolkit/get-block-theme-context',
+							'purpose'    => 'Read active block theme, template, template part, navigation, and global styles context without writing WordPress.',
+						),
+						array(
+							'order'      => 2,
+							'route'      => 'POST /run-read-ability',
+							'ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+							'purpose'    => 'Build a reviewed block_theme_site_plan with Site Editor write_actions but no direct WordPress mutation.',
+						),
+						array(
+							'order'   => 3,
+							'route'   => 'POST /proposals/from-plan',
+							'purpose' => 'Forward the block theme site plan to Core plan intake with plan_ability_id and caller metadata.',
+						),
+						array(
+							'order'   => 4,
+							'route'   => 'GET /proposals/{proposal_id}',
+							'purpose' => 'Poll the Core-owned batch proposal status through Adapter.',
+						),
+						array(
+							'order'   => 5,
+							'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
+							'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted template and template-part write_actions.',
+						),
+						array(
+							'order'   => 6,
+							'route'   => 'POST /run-read-ability',
+							'purpose' => 'Read back get-template-blocks or get-template-part-blocks to verify the approved Site Editor entity changed as expected.',
+						),
+					),
+					'guardrails'              => array(
+						'artifact_type'          => 'block_theme_site_plan',
+						'proposal_mode'          => 'batch',
+						'batch_approval'         => true,
+						'core_preflight_required' => true,
+						'template_write_owner'   => 'npcink-abilities-toolkit',
+						'allowed_intents'        => array( 'add_breadcrumbs' ),
+						'allowed_template_targets' => array( 'single', 'page', 'archive', 'index' ),
+						'global_styles_write_allowed' => false,
+						'navigation_write_allowed' => false,
+						'core_proxy_execute'     => false,
+						'commit_execution'       => false,
+						'cloud_control_plane'    => false,
+						'generic_write_executor' => false,
+					),
+					'docs'                     => 'docs/openclaw-block-theme-site-builder-recipe.md',
+				),
+				'pattern_page_research_brief' => array(
 				'title'       => 'Pattern page research brief',
 				'description' => 'Use Cloud-owned external search through Toolbox to build a suggestion-only landing_page_research_brief before choosing Pattern page variables, section variants, visual assets, and proof angles.',
 				'entrypoint_ability_id' => 'npcink-toolbox/build-content-discoverability-brief',

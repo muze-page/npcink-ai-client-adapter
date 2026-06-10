@@ -121,6 +121,7 @@ Run this order for a local acceptance pass:
    - `openclaw_recipes.article_media_batch_plan`
    - `openclaw_recipes.article_block_plan`
    - `openclaw_recipes.pattern_page_plan`
+   - `openclaw_recipes.block_theme_site_plan`
    - `openclaw_recipes.pattern_page_research_brief`
    - `openclaw_recipes.pattern_page_with_visual_asset_plan`
    - `openclaw_recipes.ai_image_ratio_crop_media_adoption`
@@ -303,8 +304,10 @@ Run this order for a local acceptance pass:
 	`npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
 	`npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/update-media-details`,
 	`npcink-abilities-toolkit/patch-post-content`,
-	`npcink-abilities-toolkit/update-post-blocks`,
-	`npcink-abilities-toolkit/patch-setting-value`,
+		`npcink-abilities-toolkit/update-post-blocks`,
+		`npcink-abilities-toolkit/update-template-blocks`,
+		`npcink-abilities-toolkit/update-template-part-blocks`,
+		`npcink-abilities-toolkit/patch-setting-value`,
     `npcink-abilities-toolkit/replace-media-file`, `npcink-abilities-toolkit/restore-media-backup`,
     `npcink-abilities-toolkit/adopt-cloud-media-derivative`,
     `npcink-abilities-toolkit/rename-media-file`, `npcink-abilities-toolkit/delete-media-permanently`,

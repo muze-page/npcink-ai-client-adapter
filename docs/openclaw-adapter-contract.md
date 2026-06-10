@@ -168,6 +168,7 @@ direct reads:
 - `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`
 - `npcink-abilities-toolkit/build-media-optimization-plan`
 - `npcink-abilities-toolkit/build-media-rename-plan`
+- `npcink-abilities-toolkit/build-block-theme-site-plan`
 - `npcink-abilities-toolkit/build-pattern-page-plan`
 - `npcink-toolbox/build-article-write-plan`
 - `npcink-toolbox/build-article-batch-write-plan`
@@ -224,6 +225,15 @@ handoff data. Adapter may forward that plan to Core only as a review proposal
 handoff. It must remain `proposal_ready=false`, require human `title` and
 `content` input, and must not approve, preflight, execute, or write WordPress
 content.
+
+For Toolkit block theme site planning,
+`npcink-abilities-toolkit/build-block-theme-site-plan` returns a reviewed
+`block_theme_site_plan` for conversational Site Editor changes. Adapter may
+forward that plan to Core only as a batch proposal handoff; each executable
+action must still target `npcink-abilities-toolkit/update-template-blocks` or
+`npcink-abilities-toolkit/update-template-part-blocks`, and pass Core approval
+plus commit-preflight before Adapter execution. Global styles, navigation,
+template creation, and arbitrary Site Editor writes are not part of this MVP.
 
 ## OpenClaw Recipe Discovery
 
@@ -296,6 +306,29 @@ rendering. Adapter must only forward the plan to Core and execute allowlisted
 write actions after Core approval and commit-preflight.
 The recipe also exposes `visual_acceptance` so OpenClaw can run browser checks
 against the created draft page without treating Adapter as a browser runner.
+
+`GET /help` also includes `openclaw_recipes.block_theme_site_plan` for reviewed
+conversational block theme Site Editor changes:
+
+- context abilities:
+  `npcink-abilities-toolkit/get-block-theme-context`,
+  `npcink-abilities-toolkit/get-template-blocks`, and
+  `npcink-abilities-toolkit/get-template-part-blocks`
+- entrypoint ability:
+  `npcink-abilities-toolkit/build-block-theme-site-plan`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write abilities: `npcink-abilities-toolkit/update-template-blocks` and
+  `npcink-abilities-toolkit/update-template-part-blocks`
+- artifact type: `block_theme_site_plan`
+- proposal mode: `batch`
+
+The Toolkit owns block theme context reads, Site Editor entity block planning,
+and final WordPress Abilities write callbacks. Adapter must only forward the plan
+to Core and execute allowlisted write actions after Core approval and
+commit-preflight. The MVP supports `intent=add_breadcrumbs` only and keeps
+global styles, navigation, and template creation outside the execution profile.
 
 `GET /help` also includes `openclaw_recipes.article_block_plan` for reviewed
 Gutenberg article block drafts:
@@ -457,6 +490,8 @@ For a pending `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/c
 `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/update-media-details`,
 `npcink-abilities-toolkit/patch-post-content`,
 `npcink-abilities-toolkit/update-post-blocks`,
+`npcink-abilities-toolkit/update-template-blocks`,
+`npcink-abilities-toolkit/update-template-part-blocks`,
 `npcink-abilities-toolkit/patch-setting-value`,
 `npcink-abilities-toolkit/optimize-media-asset`,
 `npcink-abilities-toolkit/replace-media-file`,
@@ -485,8 +520,10 @@ requires a valid `taxonomy` and `term_id`; `update-media-details` requires
 provided, must be one of `owned`, `ai_generated`, `stock`, `external`, or
 `test`; `upload-media-from-url` may accept a reviewed `file_name` for the new
 media object; `patch-post-content` requires `post_id` and bounded exact replacement
-`operations`; `update-post-blocks` requires `post_id`, `blocks`, and optional
-`mode=replace|append`; `patch-setting-value` requires `target_type`, `target_name`, and
+	`operations`; `update-post-blocks` requires `post_id`, `blocks`, and optional
+	`mode=replace|append`; `update-template-blocks` and
+	`update-template-part-blocks` require `post_id`, `blocks`, and
+	`mode=replace`; `patch-setting-value` requires `target_type`, `target_name`, and
 bounded exact replacement `operations`; `optimize-media-asset` requires `attachment_id`, may accept bounded
 format, width, quality, and suffix inputs, and must preserve the original file;
 `replace-media-file` requires `attachment_id`, uses a recorded
@@ -536,6 +573,8 @@ The current allowlist is intentionally narrow:
 - `npcink-abilities-toolkit/update-media-details`
 - `npcink-abilities-toolkit/patch-post-content`
 - `npcink-abilities-toolkit/update-post-blocks`
+- `npcink-abilities-toolkit/update-template-blocks`
+- `npcink-abilities-toolkit/update-template-part-blocks`
 - `npcink-abilities-toolkit/patch-setting-value`
 - `npcink-abilities-toolkit/optimize-media-asset`
 - `npcink-abilities-toolkit/replace-media-file`
