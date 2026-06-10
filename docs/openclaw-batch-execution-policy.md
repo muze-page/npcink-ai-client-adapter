@@ -53,6 +53,7 @@ V1 supports only the Adapter execution allowlist, currently:
 - `target_ability_id=npcink-abilities-toolkit/patch-post-content`
 - `target_ability_id=npcink-abilities-toolkit/update-post-blocks`
 - `target_ability_id=npcink-abilities-toolkit/update-template-blocks`
+- `target_ability_id=npcink-abilities-toolkit/upsert-template-blocks`
 - `target_ability_id=npcink-abilities-toolkit/update-template-part-blocks`
 - `target_ability_id=npcink-abilities-toolkit/patch-setting-value`
 - `target_ability_id=npcink-abilities-toolkit/set-post-seo-meta`

@@ -18,7 +18,8 @@ without making Adapter a generic WordPress site control plane.
 - Final route:
   `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`
 - Final write abilities:
-  `npcink-abilities-toolkit/update-template-blocks` and
+  `npcink-abilities-toolkit/update-template-blocks`,
+  `npcink-abilities-toolkit/upsert-template-blocks`, and
   `npcink-abilities-toolkit/update-template-part-blocks`
 
 Toolkit owns block-theme context reads, Site Editor entity block planning, and
@@ -44,7 +45,10 @@ The first supported intent is:
 ```
 
 The plan may update existing `wp_template` records for `single`, `page`,
-`archive`, or `index`. It must not create arbitrary templates in this MVP.
+`archive`, or `index`. When a target is only a file-backed active-theme
+template, the plan may create a reviewed `wp_template` Site Editor override via
+`npcink-abilities-toolkit/upsert-template-blocks`. It must not edit theme files
+or create arbitrary unrelated templates.
 
 ## Flow
 
@@ -72,6 +76,7 @@ The plan may update existing `wp_template` records for `single`, `page`,
 - `commit_execution=false`
 - `direct_wordpress_write=false`
 - `template_write_owner=npcink-abilities-toolkit`
+- `file_template_write_mode=create_wp_template_override`
 - `allowed_intents=["add_breadcrumbs"]`
 - `allowed_template_targets=["single","page","archive","index"]`
 - `global_styles_write_allowed=false`
@@ -80,7 +85,7 @@ The plan may update existing `wp_template` records for `single`, `page`,
 - `cloud_control_plane=false`
 
 Adapter must not accept arbitrary Site Editor writes, raw `theme.json` patches,
-global styles patches, navigation mutations, template creation, provider/model
+global styles patches, navigation mutations, theme-file edits, provider/model
 routing, or workflow runtime behavior in this recipe. Those may become separate
 explicit profiles later, each with its own Core proposal surface, Adapter
 execution profile, docs, and smoke coverage.

@@ -2388,7 +2388,7 @@ final class Controller {
 				),
 				'block_theme_site_plan' => array(
 					'title'                   => 'Block theme site plan',
-					'description'             => 'Build a reviewed Toolkit block_theme_site_plan for conversational Site Editor changes, forward it to Core as one batch proposal, then execute only Core-approved template or template-part block writes.',
+					'description'             => 'Build a reviewed Toolkit block_theme_site_plan for conversational Site Editor changes, forward it to Core as one batch proposal, then execute only Core-approved template override, template, or template-part block writes.',
 					'entrypoint_ability_id'   => 'npcink-abilities-toolkit/build-block-theme-site-plan',
 					'plan_ability_id'         => 'npcink-abilities-toolkit/build-block-theme-site-plan',
 					'context_ability_ids'     => array(
@@ -2398,6 +2398,7 @@ final class Controller {
 					),
 					'final_write_ability_ids' => array(
 						'npcink-abilities-toolkit/update-template-blocks',
+						'npcink-abilities-toolkit/upsert-template-blocks',
 						'npcink-abilities-toolkit/update-template-part-blocks',
 					),
 					'steps'                   => array(
@@ -2426,7 +2427,7 @@ final class Controller {
 						array(
 							'order'   => 5,
 							'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-							'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted template and template-part write_actions.',
+							'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted template override, template, and template-part write_actions.',
 						),
 						array(
 							'order'   => 6,
@@ -2440,6 +2441,7 @@ final class Controller {
 						'batch_approval'         => true,
 						'core_preflight_required' => true,
 						'template_write_owner'   => 'npcink-abilities-toolkit',
+						'file_template_write_mode' => 'create_wp_template_override',
 						'allowed_intents'        => array( 'add_breadcrumbs' ),
 						'allowed_template_targets' => array( 'single', 'page', 'archive', 'index' ),
 						'global_styles_write_allowed' => false,

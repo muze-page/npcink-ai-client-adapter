@@ -230,10 +230,11 @@ For Toolkit block theme site planning,
 `npcink-abilities-toolkit/build-block-theme-site-plan` returns a reviewed
 `block_theme_site_plan` for conversational Site Editor changes. Adapter may
 forward that plan to Core only as a batch proposal handoff; each executable
-action must still target `npcink-abilities-toolkit/update-template-blocks` or
+action must still target `npcink-abilities-toolkit/update-template-blocks`,
+`npcink-abilities-toolkit/upsert-template-blocks`, or
 `npcink-abilities-toolkit/update-template-part-blocks`, and pass Core approval
 plus commit-preflight before Adapter execution. Global styles, navigation,
-template creation, and arbitrary Site Editor writes are not part of this MVP.
+theme-file edits, and arbitrary Site Editor writes are not part of this MVP.
 
 ## OpenClaw Recipe Discovery
 
@@ -319,7 +320,8 @@ conversational block theme Site Editor changes:
 - plan handoff route: `POST /proposals/from-plan`
 - status route: `GET /proposals/{proposal_id}`
 - final route: `POST /proposals/{proposal_id}/approve-and-execute`
-- final write abilities: `npcink-abilities-toolkit/update-template-blocks` and
+- final write abilities: `npcink-abilities-toolkit/update-template-blocks`,
+  `npcink-abilities-toolkit/upsert-template-blocks`, and
   `npcink-abilities-toolkit/update-template-part-blocks`
 - artifact type: `block_theme_site_plan`
 - proposal mode: `batch`
@@ -491,6 +493,7 @@ For a pending `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/c
 `npcink-abilities-toolkit/patch-post-content`,
 `npcink-abilities-toolkit/update-post-blocks`,
 `npcink-abilities-toolkit/update-template-blocks`,
+`npcink-abilities-toolkit/upsert-template-blocks`,
 `npcink-abilities-toolkit/update-template-part-blocks`,
 `npcink-abilities-toolkit/patch-setting-value`,
 `npcink-abilities-toolkit/optimize-media-asset`,
@@ -523,7 +526,9 @@ media object; `patch-post-content` requires `post_id` and bounded exact replacem
 	`operations`; `update-post-blocks` requires `post_id`, `blocks`, and optional
 	`mode=replace|append`; `update-template-blocks` and
 	`update-template-part-blocks` require `post_id`, `blocks`, and
-	`mode=replace`; `patch-setting-value` requires `target_type`, `target_name`, and
+	`mode=replace`; `upsert-template-blocks` requires `slug`, `blocks`, and
+	`mode=replace`, with optional `post_id` for an existing template override;
+	`patch-setting-value` requires `target_type`, `target_name`, and
 bounded exact replacement `operations`; `optimize-media-asset` requires `attachment_id`, may accept bounded
 format, width, quality, and suffix inputs, and must preserve the original file;
 `replace-media-file` requires `attachment_id`, uses a recorded
@@ -574,6 +579,7 @@ The current allowlist is intentionally narrow:
 - `npcink-abilities-toolkit/patch-post-content`
 - `npcink-abilities-toolkit/update-post-blocks`
 - `npcink-abilities-toolkit/update-template-blocks`
+- `npcink-abilities-toolkit/upsert-template-blocks`
 - `npcink-abilities-toolkit/update-template-part-blocks`
 - `npcink-abilities-toolkit/patch-setting-value`
 - `npcink-abilities-toolkit/optimize-media-asset`

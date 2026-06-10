@@ -132,6 +132,29 @@ final class Execution_Profile_Registry {
 				),
 				'post_id_from_result'   => false,
 			),
+			'npcink-abilities-toolkit/upsert-template-blocks' => array(
+				'allowed_input_fields'  => array( 'post_id', 'slug', 'theme', 'title', 'source_template_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'mode' => array(
+						'allowed' => array( 'replace' ),
+						'code'    => 'npcink_openclaw_adapter_template_upsert_mode_invalid',
+						'message' => __( 'upsert-template-blocks mode must be replace.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'required_slug_fields'  => array(
+					'slug' => array(
+						'code'    => 'npcink_openclaw_adapter_template_slug_required',
+						'message' => __( 'upsert-template-blocks execution input must include a valid slug.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'require_array_fields'  => array(
+					'blocks' => array(
+						'code'    => 'npcink_openclaw_adapter_blocks_required',
+						'message' => __( 'upsert-template-blocks execution input must include at least one block.', 'npcink-openclaw-adapter' ),
+					),
+				),
+				'post_id_from_result'   => true,
+			),
 			'npcink-abilities-toolkit/update-template-part-blocks' => array(
 				'allowed_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
