@@ -2,10 +2,11 @@
 
 Status: local development handoff guide.
 
-This guide is for connecting OpenClaw to a local WordPress development site
-through Npcink OpenClaw Adapter. The adapter remains a thin channel layer:
+This guide is for connecting an OpenClaw-compatible local AI client to a local
+WordPress development site through Npcink OpenClaw Adapter. The adapter remains
+a thin channel layer:
 
-- OpenClaw only connects to Adapter;
+- the local AI client connects to Adapter;
 - Npcink Governance Core is Adapter's governance service behind the scenes;
 - Core remains the approval, preflight, and audit truth source;
 - read operations go through WordPress Abilities API;
@@ -16,7 +17,7 @@ through Npcink OpenClaw Adapter. The adapter remains a thin channel layer:
 - `core_proxy_execute=false`;
 - `commit_execution=false`.
 
-For the acceptance checklist that productized OpenClaw clients should run
+For the acceptance checklist that productized clients should run
 before relying on the connection, see
 [`openclaw-consumer-acceptance.md`](openclaw-consumer-acceptance.md).
 For the connection-model decision notes and guardrails for future agents, see
@@ -35,10 +36,10 @@ These credentials are for the local development environment only. Do not reuse
 them for production, hosted test sites, shared staging sites, or customer data.
 
 Use the username/password above for browser login to WordPress admin. For REST
-handoff to OpenClaw, create a dedicated WordPress Application Password for the
-same local administrator account. Pass only the non-secret connection manifest
-to OpenClaw, and paste the Application Password only into OpenClaw's dedicated
-secret field or credential vault.
+handoff to a local AI client, create a dedicated WordPress Application Password
+for the same local administrator account. Pass only the non-secret connection
+manifest to the client, and paste the Application Password only into the
+client's dedicated secret field or credential vault.
 
 ## Adapter URLs
 
@@ -75,24 +76,25 @@ Npcink -> Adapter
 The page defaults to the simple Application Password flow for clients that have
 a dedicated password, credential, or secret field. It can create a normal
 WordPress Application Password for the current administrator and show the raw
-password once in the browser. Copied OpenClaw env, manifest, and handoff text
+password once in the browser. Copied client env, manifest, and handoff text
 contain only placeholders or non-secret identifiers. The adapter does not store
 the raw password.
 
 The page also shows a higher-security signed key-pair flow. That flow provides
-an npm CLI connect command, status command, OpenClaw request instructions, and
+an npm CLI connect command, status command, local client request instructions, and
 authorized public key management. The CLI generates the private key locally;
 Adapter stores only the approved public key.
 
 The same page includes a `Proposal status` lookup. Paste the `Proposal ID`
 returned by Adapter after `POST /proposals` or `POST /proposals/from-plan` to
 read Core status through Adapter, open the matching Core approval detail, and
-copy the Adapter status or execution route for OpenClaw. Pending approvals
+copy the Adapter status or execution route for the local AI client. Pending approvals
 remain in Core; Adapter is the status and approved-execution channel.
 
 ## REST Authentication
 
-OpenClaw should use WordPress REST Basic Auth with an Application Password:
+OpenClaw-compatible clients may use WordPress REST Basic Auth with an
+Application Password:
 
 ```text
 Authorization: Basic base64(username:<openclaw-secret-field-value>)
@@ -131,8 +133,8 @@ For local validation, run the npm CLI on the same machine or execution
 environment as OpenClaw:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
@@ -147,24 +149,24 @@ keeps retrying until the pairing code expires.
 After approval, WordPress shows a pairing result page. Return to the terminal or
 local AI client and wait for the polling command to finish.
 
-After pairing, OpenClaw-style local clients should call Adapter through the
+After pairing, local clients should call Adapter through the
 local request wrapper instead of reading the profile file:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
 ```
 
 For POST requests, write the non-secret request JSON to a temporary file and
 pass it with `--body-file`, or pass non-secret JSON through stdin:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
-printf '%s' '{"plan":{}}' | (cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin)
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+printf '%s' '{"plan":{}}' | (cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin)
 ```
 
 The wrapper rejects absolute URLs, signs the Adapter-relative route locally, and
-prints only the Adapter JSON response. Do not ask OpenClaw to read or summarize
+prints only the Adapter JSON response. Do not ask the client to read or summarize
 `~/.npcink-openclaw-adapter/keypair-profiles/*.json`.
 The user-facing local client entrypoint is the published npm CLI. The repository
 does not keep root-level `tools/` compatibility wrappers.
@@ -172,7 +174,7 @@ does not keep root-level `tools/` compatibility wrappers.
 Use the package directly:
 
 ```bash
-npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
+npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 Administrators manage authorized public keys from `Npcink -> Adapter` in the

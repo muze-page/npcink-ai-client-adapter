@@ -22,8 +22,8 @@ fi
 
 if [[ -z "$WP_CLI_PHP" ]]; then
 	for candidate in \
-		"$HOME/Library/Application Support/Local/lightning-services/php-8.5.3+1/bin/darwin-arm64/bin/php" \
 		"$HOME/Library/Application Support/Local/lightning-services/php-8.2.29+0/bin/darwin-arm64/bin/php" \
+		"$HOME/Library/Application Support/Local/lightning-services/php-8.5.3+1/bin/darwin-arm64/bin/php" \
 		"$(command -v php 2>/dev/null || true)"
 	do
 		if [[ -n "$candidate" && -x "$candidate" ]]; then

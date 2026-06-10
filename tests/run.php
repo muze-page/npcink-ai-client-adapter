@@ -708,7 +708,7 @@ foreach (
 		'Key pair clients',
 		'Device-paired clients',
 		'Copy connect command',
-		'New OpenClaw conversation opener',
+		'Local AI client session opener',
 		'Copy new conversation opener',
 		'local_cli_new_session_opener_text',
 		'already paired local Npcink OpenClaw Adapter profile',
@@ -720,7 +720,7 @@ foreach (
 		'local_cli_read_request_create_template',
 		'local_cli_read_request_status_template',
 		'local_cli_read_ability_template',
-		'Copy OpenClaw CLI instructions',
+		'Copy local AI CLI instructions',
 		'Copy status command',
 		'local_cli_setup_text',
 		'render_key_pair_clients_table',
@@ -883,8 +883,9 @@ foreach (
 			'commit=false',
 			'commit_execution=false',
 			'Public Key Device Pairing',
-			'OpenClaw only connects to Adapter',
-			'productized OpenClaw user action',
+			'OpenClaw-compatible clients should connect through Adapter',
+			'does not rely on controlling any specific external AI client',
+			'docs/local-ai-client-policy.md',
 			'GET /wp-json/npcink-openclaw-adapter/v1/help',
 		'POST /wp-json/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke',
 			'GET /wp-json/npcink-openclaw-adapter/v1/site-summary',
@@ -1036,6 +1037,7 @@ $adapter_cli_package = maa_adapter_read( $root . '/packages/adapter-cli/package.
 foreach (
 	array(
 		'"name": "@npcink/openclaw-adapter-cli"',
+		'"version": "0.1.1"',
 		'"bin"',
 		'"npcink-openclaw-adapter": "bin/npcink-openclaw-adapter.mjs"',
 		'"node": ">=20"',
@@ -1148,14 +1150,35 @@ foreach (
 		'Tested up to: 7.0',
 		'Requires PHP: 8.0',
 		'Requires Plugins: npcink-abilities-toolkit',
-		'Stable tag: 0.1.0',
+		'Stable tag: 0.1.1',
 		'License: GPL-2.0-or-later',
 		'structured missing dependency error',
+		'machine-readable `client_policy`',
+		'local CLI also redacts profile paths',
 		'Npcink Governance Core remains the governance backend',
 		'npcink-abilities-toolkit/trash-post',
+		'Add local AI client CLI helper commands, output redaction, and machine-readable client policy',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $wporg_readme, $required ), 'readme.txt contains required text: ' . $required );
+}
+
+$local_ai_client_policy = maa_adapter_read( $root . '/docs/local-ai-client-policy.md' );
+foreach (
+	array(
+		'Local AI Client Policy',
+		'does not control which AI client a customer chooses',
+		'Adapter-Owned Controls',
+		'Customer-Selected Client Boundary',
+		'npcink_openclaw_adapter_client_policy.v1',
+		'forbidden_outputs',
+		'forbidden_local_access',
+		'adapter_relative_routes_only=true',
+		'read-request create',
+		'read-ability',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $local_ai_client_policy, $required ), 'Local AI client policy doc contains required text: ' . $required );
 }
 
 $composer = maa_adapter_read( $root . '/composer.json' );
@@ -1165,6 +1188,7 @@ foreach (
 		'"package:release"',
 		'"package:suite"',
 		'"plugin-check:release"',
+		'php-8.2.29+0',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
 		'--exclude-files=.gitignore,.distignore,AGENTS.md,composer.json',
 	) as $required
@@ -1223,7 +1247,8 @@ $quickstart = maa_adapter_read( $root . '/docs/openclaw-quickstart.md' );
 foreach (
 	array(
 		'OpenClaw Quickstart',
-		'OpenClaw only connects to Adapter',
+		'OpenClaw-compatible local AI client',
+		'the local AI client connects to Adapter',
 		'https://magick-ai.local',
 		'WordPress administrator username: `1`',
 		'WordPress administrator password: `1`',
@@ -1233,7 +1258,7 @@ foreach (
 		'GET /help',
 		'GET /capabilities',
 		'Public Key Device Pairing',
-		'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter',
+		'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter',
 		'does not keep root-level `tools/` compatibility',
 		'connect/device/start',
 		'POST /proposals/from-plan',
@@ -1301,7 +1326,7 @@ foreach (
 		'OpenClaw Connection Model Notes',
 		'Default: simple Application Password connection',
 		'Higher security: local signed key-pair',
-		'@npcink/openclaw-adapter-cli@0.1.0',
+		'@npcink/openclaw-adapter-cli@0.1.1',
 		'sh: npcink-openclaw-adapter: command not found',
 		'Secret Handling Rules',
 		'Plugin-generated private keys',

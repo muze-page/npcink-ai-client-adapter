@@ -9,22 +9,23 @@ It gives OpenClaw one WordPress REST namespace that can:
 - create Core proposals for write or destructive operations;
 - orchestrate one user-triggered approve-and-execute action through Core.
 
-OpenClaw only connects to Adapter. Npcink Governance Core is the governance service
-behind Adapter. Core remains the approval, preflight, and audit truth source;
-the productized OpenClaw user action is exposed by Adapter.
+OpenClaw-compatible clients should connect through Adapter. Npcink Governance
+Core is the governance service behind Adapter. Core remains the approval,
+preflight, and audit truth source; Adapter exposes the productized channel
+actions and does not rely on controlling any specific external AI client.
 
 It does not define abilities, store approval state, run workflows, expose a
 generic approve/reject proxy, or execute final write mutations without Core
 approval, commit-preflight, and an explicit Adapter execution profile.
 
 When Core or Adapter blocks a plan handoff, rejected proposal, or preflighted
-execution, error responses may include `data.operator_feedback`. OpenClaw should
+execution, error responses may include `data.operator_feedback`. Clients should
 display that object to the operator and create a revised new proposal instead
 of retrying execution against the blocked proposal id. Core remains the
 governance truth.
 
 OpenClaw Adapter consumer readiness is complete as of Adapter governance commit
-`b81dc2a`. Productized OpenClaw should use Adapter as the only entry point.
+`b81dc2a`. Productized clients should use Adapter as the only entry point.
 See [OpenClaw Adapter Consumer Readiness](docs/openclaw-adapter-consumer-readiness.md)
 for the dependency snapshot, verified routes, closed loop, and next-stage
 execution allowlist rules.
@@ -208,7 +209,7 @@ equivalent input:
 }
 ```
 
-When OpenClaw explicitly asks to inspect logs, use `recent-error-log-tail` or
+When the operator explicitly asks to inspect logs, use `recent-error-log-tail` or
 send the equivalent input:
 
 ```json
@@ -221,7 +222,7 @@ send the equivalent input:
 ```
 
 When `include_log_contents=false`, log contents are not missing; mark them as
-not explicitly requested. OpenClaw should use `error_log.summary` for
+not explicitly requested. Clients should use `error_log.summary` for
 `fatal_count`, `error_count`, `warning_count`, `deprecated_count`,
 `notice_count`, `summary_source`, and `error_log.summary.by_severity` even when
 contents are not included. Only display `error_log.tail_entries` or `contents`
@@ -359,7 +360,7 @@ The page default view shows:
   password, credential, or secret field;
 - Adapter base URL and non-secret connection manifest URL;
 - Core and WordPress Abilities API connection status;
-- a higher-security signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter`;
+- a higher-security signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter`;
 - authorized public key management with revoke actions;
 - a `Proposal status` lookup where operators paste the `Proposal ID` returned
   to OpenClaw, see Core status through Adapter's read-only proposal proxy, open
@@ -380,7 +381,7 @@ turning the page into a control panel:
 - copyable health and proposal example requests;
 - proposal list/detail, plan-to-proposal, commit-preflight, and
   approve-and-execute routes;
-- a handoff prompt for OpenClaw.
+- a copyable local AI client session opener.
 
 The page does not save adapter credentials, approval state, ability definitions,
 workflow state, or final write policy. The handoff action creates a normal
@@ -388,7 +389,9 @@ WordPress Application Password and displays the raw value once; WordPress stores
 only its hash. Copied env, manifest, and handoff text contain only placeholders
 or non-secret identifiers. Paste the Application Password only into OpenClaw's
 dedicated secret field, not chat, tool commands, logs, proposal payloads, files,
-or copied handoff text.
+or copied handoff text. The Adapter cannot control a customer-selected AI
+client; enforceable boundaries live in Adapter routes, CLI redaction,
+`client_policy`, WordPress REST authentication, and Core approval/preflight.
 
 Public Key Device Pairing: for clients with a local broker, the Adapter REST surface supports a key-pair
 device pairing MVP. The client generates an Ed25519 private key locally, sends
@@ -406,8 +409,8 @@ For local validation, use the npm CLI on the same machine or execution
 environment as OpenClaw:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 The script opens the WordPress approval URL in the system browser. Approve the
@@ -435,20 +438,20 @@ After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
 ```
 
 For sensitive reads, prefer the narrower CLI helpers instead of asking an AI
 client to hand-build JSON route bodies:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-request create --profile=local --insecure-local-tls --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --purpose="Review bounded diagnostics" --data-classes=diagnostics,logs --redaction-level=strict --max-rows=10 --tail-lines=5 --denied-fields=authorization,cookie,application_password
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-request status --profile=local --insecure-local-tls READ_REQUEST_ID
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-ability --profile=local --insecure-local-tls --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --read-request-id=READ_REQUEST_ID
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter read-request create --profile=local --insecure-local-tls --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --purpose="Review bounded diagnostics" --data-classes=diagnostics,logs --redaction-level=strict --max-rows=10 --tail-lines=5 --denied-fields=authorization,cookie,application_password
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter read-request status --profile=local --insecure-local-tls READ_REQUEST_ID
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter read-ability --profile=local --insecure-local-tls --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --read-request-id=READ_REQUEST_ID
 ```
 
 The request command accepts only Adapter-relative routes such as `/health`,
@@ -470,11 +473,14 @@ does not keep root-level `tools/` compatibility wrappers; use the package
 directly:
 
 ```bash
-npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
+npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
 See [`docs/keypair-device-pairing-contract.md`](docs/keypair-device-pairing-contract.md)
 for the public-key pairing and request-signing contract.
+See [`docs/local-ai-client-policy.md`](docs/local-ai-client-policy.md)
+for the machine-readable `client_policy` contract and the boundary between
+Adapter-owned controls and customer-selected AI clients.
 
 When the current site URL is local (`localhost`, loopback, or `.local`), the
 handoff form can include `NPCINK_OPENCLAW_ADAPTER_INSECURE_SSL=true` in copied

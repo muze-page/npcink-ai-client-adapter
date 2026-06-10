@@ -372,8 +372,8 @@ final class Connection_Page {
 				</div>
 				<details class="maa-inline-disclosure">
 					<summary>
-						<strong><?php echo esc_html__( 'New OpenClaw conversation opener', 'npcink-openclaw-adapter' ); ?></strong>
-						<span class="description"><?php echo esc_html__( 'Copy this into later OpenClaw chats after this machine has already connected once.', 'npcink-openclaw-adapter' ); ?></span>
+						<strong><?php echo esc_html__( 'Local AI client session opener', 'npcink-openclaw-adapter' ); ?></strong>
+						<span class="description"><?php echo esc_html__( 'Copy this into later local AI client sessions after this machine has already connected once.', 'npcink-openclaw-adapter' ); ?></span>
 					</summary>
 					<textarea id="maa-local-cli-new-session-opener" rows="12" readonly><?php echo esc_textarea( $local_cli_new_session_opener ); ?></textarea>
 					<p class="maa-action-row">
@@ -382,13 +382,13 @@ final class Connection_Page {
 				</details>
 				<details class="maa-inline-disclosure">
 					<summary>
-						<strong><?php echo esc_html__( 'Full OpenClaw instructions', 'npcink-openclaw-adapter' ); ?></strong>
+						<strong><?php echo esc_html__( 'Full local AI client instructions', 'npcink-openclaw-adapter' ); ?></strong>
 						<span class="description"><?php echo esc_html__( 'Copy only when the client needs the longer setup text.', 'npcink-openclaw-adapter' ); ?></span>
 					</summary>
-					<p class="description"><?php echo esc_html__( 'Do not ask OpenClaw to read the local keypair profile file. Writes still require Core proposal, approval, and preflight.', 'npcink-openclaw-adapter' ); ?></p>
+					<p class="description"><?php echo esc_html__( 'Do not ask the local AI client to read the keypair profile file. Writes still require Core proposal, approval, and preflight.', 'npcink-openclaw-adapter' ); ?></p>
 					<textarea id="maa-local-cli-setup" rows="14" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
 					<p class="maa-action-row">
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy OpenClaw CLI instructions', 'npcink-openclaw-adapter' ); ?></button>
+						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy local AI CLI instructions', 'npcink-openclaw-adapter' ); ?></button>
 					</p>
 				</details>
 			</details>
@@ -1420,7 +1420,7 @@ final class Connection_Page {
 			. $read_request_create . "\n"
 			. $read_request_status . "\n"
 			. $read_ability . "\n\n"
-			. "Rules for OpenClaw:\n"
+			. "Rules for local AI clients:\n"
 			. "1. Treat health/help/manifest client_policy as machine-readable policy and fail closed if your intended action conflicts with it.\n"
 			. "2. Do not read, cat, print, summarize, or copy the local keypair profile file.\n"
 			. "3. Do not output private_key_jwk, public_key_jwk, Authorization, X-Npcink-Signature, profile paths, key ids, connection ids, tokens, passwords, or signing headers.\n"
@@ -1432,7 +1432,7 @@ final class Connection_Page {
 	}
 
 	/**
-	 * Builds the short prompt for later OpenClaw conversations.
+	 * Builds the short prompt for later local AI client sessions.
 	 *
 	 * @param bool $include_local_tls Whether to include the local TLS flag.
 	 * @return string
@@ -1578,7 +1578,7 @@ final class Connection_Page {
 			return 'cd ~ && node ' . escapeshellarg( self::LOCAL_CLI_LOCAL_SCRIPT );
 		}
 
-		return 'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter';
+		return 'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter';
 	}
 
 	/**

@@ -55,13 +55,13 @@ user's local machine. Therefore:
 The current test package is:
 
 ```bash
-@npcink/openclaw-adapter-cli@0.1.0
+@npcink/openclaw-adapter-cli@0.1.1
 ```
 
 Use this command form in user-facing copy:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter status --profile=local
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter status --profile=local
 ```
 
 The `cd ~ &&` prefix is intentional. Running package commands from inside the

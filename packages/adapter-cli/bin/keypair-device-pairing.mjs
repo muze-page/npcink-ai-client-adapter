@@ -168,7 +168,7 @@ const start = await requestJson('POST', `${adapterBaseUrl}/connect/device/start`
     name: clientName,
     device_name: deviceName,
     broker: 'npcink-openclaw-adapter local keypair verifier',
-    broker_version: '0.1.0',
+    broker_version: '0.1.1',
   },
   key: {
     alg: 'Ed25519',

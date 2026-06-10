@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Npcink OpenClaw Adapter
  * Description: Thin OpenClaw adapter for Npcink Governance Core and WordPress Abilities execution.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires PHP: 8.0
  * Requires at least: 7.0
  * Requires Plugins: npcink-abilities-toolkit
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NPCINK_OPENCLAW_ADAPTER_VERSION', '0.1.0' );
+define( 'NPCINK_OPENCLAW_ADAPTER_VERSION', '0.1.1' );
 define( 'NPCINK_OPENCLAW_ADAPTER_FILE', __FILE__ );
 define( 'NPCINK_OPENCLAW_ADAPTER_DIR', plugin_dir_path( __FILE__ ) );
 
