@@ -1131,6 +1131,11 @@ foreach (
 		'cloud_crop_required_for_generated_images',
 		'adapter_artifact_registry',
 		'--submit-proposal',
+		'--source-type=ai_generated',
+		"copyParsedValue(parsed, input, 'source-type', 'source_type')",
+		"copyParsedValue(parsed, input, 'source-page-url', 'source_page_url')",
+		"copyParsedValue(parsed, input, 'attribution-text', 'attribution_text')",
+		"copyParsedInt(parsed, input, 'attach-to-post-id', 'attach_to_post_id')",
 		'it never approves or executes final writes',
 		'keypair-device-pairing.mjs',
 		'keypair-adapter-request.mjs',
@@ -1156,6 +1161,9 @@ foreach (
 maa_adapter_assert( false === strpos( $magick_adapter_tool, 'private_key_jwk:' ), 'Unified local CLI does not read private key material by property access.' );
 maa_adapter_assert( false === strpos( $magick_adapter_tool, 'connection_id: String' ), 'Unified local CLI does not print connection id from status metadata.' );
 maa_adapter_assert( false === strpos( $magick_adapter_tool, 'key_id: String' ), 'Unified local CLI does not print key id from status metadata.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, "copyParsedValue(parsed, input, 'source', 'source')" ), 'AI image adoption CLI does not pass unsupported source input.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, "copyParsedValue(parsed, input, 'attribution', 'attribution')" ), 'AI image adoption CLI does not pass unsupported attribution input.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, "copyParsedValue(parsed, input, 'external-thread-id', 'external_thread_id')" ), 'AI image adoption CLI keeps external thread id in caller metadata only.' );
 
 $wporg_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (

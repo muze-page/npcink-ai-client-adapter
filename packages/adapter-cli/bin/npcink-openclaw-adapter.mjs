@@ -29,7 +29,7 @@ function printUsage() {
     '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption inspect --profile=local',
     '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption crop --profile=local --attachment-id=123 [--aspect-ratio=16:9]',
     '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption result --profile=local RUN_ID',
-    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=local --preview-url=URL --post-id=123 [--old-url=URL] [--submit-proposal]',
+    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=local --preview-url=URL --post-id=123 [--old-url=URL] [--source-type=ai_generated] [--submit-proposal]',
   ].join('\n'));
 }
 
@@ -339,11 +339,17 @@ async function recipeAiImageAdoptionPlan(parsed, recipeContract) {
   };
   copyParsedValue(parsed, input, 'old-url', 'old_url');
   copyParsedInt(parsed, input, 'post-id', 'post_id');
+  copyParsedInt(parsed, input, 'attach-to-post-id', 'attach_to_post_id');
   copyParsedValue(parsed, input, 'title', 'title');
   copyParsedValue(parsed, input, 'alt-text', 'alt');
-  copyParsedValue(parsed, input, 'source', 'source');
-  copyParsedValue(parsed, input, 'attribution', 'attribution');
-  copyParsedValue(parsed, input, 'external-thread-id', 'external_thread_id');
+  copyParsedValue(parsed, input, 'caption', 'caption');
+  copyParsedValue(parsed, input, 'description', 'description');
+  copyParsedValue(parsed, input, 'file-name', 'file_name');
+  copyParsedValue(parsed, input, 'source-type', 'source_type');
+  copyParsedValue(parsed, input, 'source-page-url', 'source_page_url');
+  copyParsedValue(parsed, input, 'photographer-name', 'photographer_name');
+  copyParsedValue(parsed, input, 'attribution-text', 'attribution_text');
+  copyParsedValue(parsed, input, 'copyright-notice', 'copyright_notice');
 
   const planAbilityId = String(recipeContract.plan_ability_id || 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan');
   const planResponse = await requestJsonViaWrapper(parsed, 'POST', '/run-read-ability', {
