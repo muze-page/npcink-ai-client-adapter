@@ -275,7 +275,12 @@ Cloud run projection plus the ability response. Poll
 `GET /media-derivative-runs/{run_id}/result`. The result projection may include
 a same-origin `preview_url`; browser clients can load it through
 `GET /media-derivative-artifacts/{artifact_id}/preview` with WordPress REST
-auth or the short-lived local `preview_sig` emitted in the URL. Then call
+auth or the short-lived local `preview_sig` emitted in the URL. Before Core
+proposal submission, call `POST /run-read-ability` with
+`npcink-abilities-toolkit/build-media-adoption-preflight-summary` using the
+selected `attachment_id`, derivative artifact, and reviewed file name when
+available; review readiness, artifact expiry, and hard-coded content reference
+impact. Then call
 `POST /media-derivative-proposal-payload` with the ability response, Cloud
 result, derivative artifact, and reviewed `media_details_input` when the user
 intent is full image optimization. Adapter returns a legacy single derivative

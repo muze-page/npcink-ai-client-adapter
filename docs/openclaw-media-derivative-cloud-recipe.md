@@ -64,7 +64,16 @@ replace media files.
    - Does not store artifact truth, expose a public Cloud URL, or write
      WordPress media.
 
-5. `POST /media-derivative-proposal-payload`
+5. `POST /run-read-ability`
+   - Ability: `npcink-abilities-toolkit/build-media-adoption-preflight-summary`.
+   - Input: `attachment_id`, the selected `derivative_artifact`, and optional
+     reviewed `file_name`.
+   - Returns local read-only adoption readiness, derivative comparison,
+     content-reference impact, and next-step guidance.
+   - Does not call Cloud, create proposals, return `write_actions`, approve,
+     preflight, or write WordPress.
+
+6. `POST /media-derivative-proposal-payload`
    - Input: `ability_response`, `cloud_result`, `derivative_artifact`, and
      optional reviewed `media_details_input`.
    - Returns the legacy Core-ready single derivative `proposal_payload`.
@@ -75,7 +84,7 @@ replace media files.
      proposal for the same user intent.
    - Does not create, approve, preflight, or execute a proposal.
 
-6. `POST /proposals/from-plan`
+7. `POST /proposals/from-plan`
    - For the user intent "optimize this media item", submit the returned
      `from_plan_request`.
    - Core creates one batch proposal with `input.write_actions[]` containing
@@ -98,4 +107,6 @@ replace media files.
 - Adapter returns derivative artifact and processing evidence only.
 - Bulk conversion must start with a bounded local batch plan and proceed through
   reviewed per-attachment preview runs.
+- Run the local adoption preflight summary before Core proposal submission for
+  reviewed artifact readiness and content-reference impact.
 - Final adoption requires Core proposal approval and commit preflight.

@@ -979,6 +979,7 @@ foreach (
 			'npcink-abilities-toolkit/build-media-reference-repair-plan',
 			'npcink-abilities-toolkit/build-media-settings-reference-repair-plan',
 			'npcink-abilities-toolkit/build-media-optimization-plan',
+			'npcink-abilities-toolkit/build-media-adoption-preflight-summary',
 			'npcink-abilities-toolkit/build-media-rename-plan',
 			'npcink-abilities-toolkit/build-article-block-plan',
 			'npcink-abilities-toolkit/build-pattern-page-plan',
