@@ -87,6 +87,11 @@ Cloud runtime calls:
        "preferred_format": "webp",
        "target_max_width": 1600,
        "quality": 82,
+       "crop": {
+         "type": "aspect_ratio",
+         "aspect_ratio": "16:9",
+         "position": "center"
+       },
        "watermark": {
          "type": "image",
          "position": "bottom_right",

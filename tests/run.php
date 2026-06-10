@@ -100,6 +100,7 @@ foreach (
 		'npcink_cloud_addon_build_media_derivative_proposal_payload',
 		'npcink_cloud_addon_download_media_derivative_artifact',
 		'npcink_governance_core_build_media_derivative_ability_input',
+		"'crop'",
 		"'watermark_enabled'",
 		"isset( \$overrides['preferred_format'] ) && ! isset( \$overrides['target_format'] )",
 		"isset( \$overrides['target_max_width'] ) && ! isset( \$overrides['max_width'] )",

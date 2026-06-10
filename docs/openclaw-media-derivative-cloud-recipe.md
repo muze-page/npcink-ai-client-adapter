@@ -36,7 +36,7 @@ replace media files.
 1. `POST /media-derivative-runs`
    - Required: `input.attachment_id`.
    - Optional input: `preferred_format` or `target_format`, `target_max_width`
-     or `max_width`, `quality`, and `watermark`.
+     or `max_width`, `quality`, bounded aspect-ratio `crop`, and `watermark`.
    - Optional artifact descriptors: `source_artifact`,
      `watermark_artifact`.
    - Adapter builds the local ability request, attaches the local source file

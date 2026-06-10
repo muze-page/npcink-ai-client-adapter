@@ -8040,7 +8040,7 @@ final class Controller {
 	 */
 	private function media_derivative_ability_input( WP_REST_Request $request ): array {
 		$overrides = $this->request_input( $request );
-		foreach ( array( 'attachment_id', 'preferred_format', 'target_format', 'target_max_width', 'max_width', 'quality', 'watermark_enabled', 'watermark' ) as $key ) {
+		foreach ( array( 'attachment_id', 'preferred_format', 'target_format', 'target_max_width', 'max_width', 'quality', 'crop', 'watermark_enabled', 'watermark' ) as $key ) {
 			$value = $request->get_param( $key );
 			if ( null !== $value && ! array_key_exists( $key, $overrides ) ) {
 				$overrides[ $key ] = $this->sanitize_input_value( $value );
