@@ -77,6 +77,18 @@ Local WordPress smoke confirmed:
 - authenticated Adapter status returns `ready`;
 - `/npcink-openclaw-adapter/v1` routes still work after the rename.
 
+### Package Install Acceptance
+
+The release zip was installed on the local target WordPress site as an extracted
+package directory, not as the development symlink. Acceptance confirmed:
+
+- WordPress loaded `npcink-ai-client-adapter` from the packaged plugin root;
+- the package contained both the renamed main file and legacy bootstrap;
+- Adapter CLI status returned `ready` while the package was installed;
+- the full WordPress smoke flow completed successfully against the packaged
+  install;
+- the local development symlink was restored after package acceptance.
+
 ### Operator Checklist
 
 1. Install or update using `build/npcink-ai-client-adapter.zip`.
