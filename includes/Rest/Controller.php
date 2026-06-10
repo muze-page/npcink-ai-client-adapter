@@ -40,33 +40,6 @@ final class Controller {
 	private $current_request_log_context = array();
 
 	/**
-	 * Planning abilities accepted by the adapter plan-to-proposal bridge.
-	 *
-	 * Core enforces the same policy as governance truth; this adapter-side
-	 * allowlist prevents arbitrary plan payload forwarding before Core intake.
-	 *
-	 * @var array<string,bool>
-	 */
-	private static $allowed_plan_ability_ids = array(
-		'npcink-abilities-toolkit/build-content-inventory-fix-plan'           => true,
-		'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan'            => true,
-		'npcink-abilities-toolkit/build-media-inventory-fix-plan'             => true,
-		'npcink-abilities-toolkit/build-media-reference-repair-plan'          => true,
-		'npcink-abilities-toolkit/build-media-settings-reference-repair-plan' => true,
-		'npcink-abilities-toolkit/build-media-optimization-plan'              => true,
-		'npcink-abilities-toolkit/build-media-adoption-enhancement-plan'      => true,
-		'npcink-abilities-toolkit/build-media-rename-plan'                    => true,
-		'npcink-abilities-toolkit/build-article-block-plan'                   => true,
-		'npcink-abilities-toolkit/build-block-theme-site-plan'                => true,
-		'npcink-abilities-toolkit/build-pattern-page-plan'                    => true,
-		'npcink-toolbox/build-article-write-plan'           => true,
-		'npcink-toolbox/build-article-batch-write-plan'     => true,
-		'npcink-toolbox/build-article-media-batch-write-plan' => true,
-		'npcink-toolbox/build-image-candidate-adoption-plan' => true,
-		'npcink-toolbox/build-site-knowledge-review-plan'  => true,
-	);
-
-	/**
 	 * Returns Adapter-owned execution profiles for abilities that may run after
 	 * Core approval and commit preflight.
 	 *
@@ -2205,7 +2178,7 @@ final class Controller {
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
 				),
-				'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
+				'allowed_plan_ability_ids' => Plan_Ability_Allowlist::ids(),
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
@@ -2430,7 +2403,7 @@ final class Controller {
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
 				),
-				'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
+				'allowed_plan_ability_ids' => Plan_Ability_Allowlist::ids(),
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
@@ -3778,7 +3751,7 @@ final class Controller {
 			'legacy_derivative_proposal_payload_available' => true,
 			'ability_guard'          => array(
 				'required_plan_ability_id' => 'npcink-abilities-toolkit/build-media-optimization-plan',
-				'adapter_plan_allowlisted' => isset( self::$allowed_plan_ability_ids['npcink-abilities-toolkit/build-media-optimization-plan'] ),
+				'adapter_plan_allowlisted' => Plan_Ability_Allowlist::contains( 'npcink-abilities-toolkit/build-media-optimization-plan' ),
 				'missing_capability_behavior' => 'surface_plan_ability_unavailable_do_not_split_into_two_proposals',
 			),
 		);
@@ -4858,13 +4831,13 @@ final class Controller {
 		$started = microtime( true );
 		$plan_ability_id = sanitize_text_field( (string) $request->get_param( 'plan_ability_id' ) );
 		$event_context = $this->observability_request_context( $request, array( 'ability_id' => $plan_ability_id ) );
-		if ( ! isset( self::$allowed_plan_ability_ids[ $plan_ability_id ] ) ) {
+		if ( ! Plan_Ability_Allowlist::contains( $plan_ability_id ) ) {
 			$error = new WP_Error(
 				'npcink_openclaw_adapter_plan_ability_not_allowed',
 				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'npcink-openclaw-adapter' ),
 				array(
 					'status'                   => 400,
-					'allowed_plan_ability_ids' => array_keys( self::$allowed_plan_ability_ids ),
+					'allowed_plan_ability_ids' => Plan_Ability_Allowlist::ids(),
 				)
 			);
 			$error = $this->error_with_operator_feedback( $error, $this->plan_handoff_operator_feedback( $error, $plan_ability_id ) );

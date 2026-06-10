@@ -39,6 +39,21 @@ maa_adapter_assert( false !== strpos( $main, 'Requires Plugins: npcink-abilities
 maa_adapter_assert( false !== strpos( $main, 'plugins_loaded' ), 'Main plugin boots on plugins_loaded.' );
 
 $controller = maa_adapter_read( $root . '/includes/Rest/Controller.php' );
+$plan_ability_allowlist = maa_adapter_read( $root . '/includes/Rest/Plan_Ability_Allowlist.php' );
+$controller_contract = $controller . "\n" . $plan_ability_allowlist;
+maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'final class Plan_Ability_Allowlist' ), 'Plan ability allowlist registry exists.' );
+maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'public static function ids' ), 'Plan ability allowlist exposes ids.' );
+maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'public static function contains' ), 'Plan ability allowlist exposes membership checks.' );
+foreach (
+	array(
+		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
+		'npcink-abilities-toolkit/build-media-optimization-plan',
+		'npcink-abilities-toolkit/build-pattern-page-plan',
+		'npcink-toolbox/build-site-knowledge-review-plan',
+	) as $required_plan_ability
+) {
+	maa_adapter_assert( false !== strpos( $plan_ability_allowlist, $required_plan_ability ), 'Plan ability allowlist contains required ability: ' . $required_plan_ability );
+}
 	foreach (
 		array(
 		'npcink-openclaw-adapter/v1',
@@ -566,7 +581,7 @@ $controller = maa_adapter_read( $root . '/includes/Rest/Controller.php' );
 		'backup_id',
 	) as $required
 ) {
-	maa_adapter_assert( false !== strpos( $controller, $required ), 'Controller contains required text: ' . $required );
+	maa_adapter_assert( false !== strpos( $controller_contract, $required ), 'Controller contract contains required text: ' . $required );
 }
 maa_adapter_assert( false === strpos( $controller, '$allowed_execute_ability_ids' ), 'Controller derives execute allowlist from execution profiles.' );
 maa_adapter_assert( false === strpos( $controller, 'include_log_tail' ), 'Adapter does not implement old include_log_tail compatibility.' );
