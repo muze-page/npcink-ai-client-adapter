@@ -581,6 +581,7 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/build-media-inventory-fix-plan`,
 	   `npcink-abilities-toolkit/build-media-reference-repair-plan`, or
 	   `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`, or
+	   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`, or
 	   `npcink-abilities-toolkit/build-media-rename-plan`, or
 	   `npcink-abilities-toolkit/build-pattern-page-plan`, or
 	   `npcink-toolbox/build-article-write-plan`, or
@@ -645,6 +646,16 @@ Plan-to-proposal flow:
 	   machine-readable playbook is exposed as
 	   `openclaw_recipes.image_candidate_adoption_plan` from `GET /help`. See
 	   [OpenClaw Image Candidate Adoption Plan Recipe](docs/openclaw-image-candidate-adoption-plan-recipe.md).
+	   For one reviewed remote visual asset that should be imported, optimized,
+	   and optionally wired into an existing page/post reference, call
+	   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`; Core
+	   creates one batch proposal and Adapter later executes only approved
+	   `npcink-abilities-toolkit/upload-media-from-url`,
+	   `npcink-abilities-toolkit/optimize-media-asset`, and optional
+	   `npcink-abilities-toolkit/patch-post-content` actions. The
+	   machine-readable playbook is exposed as
+	   `openclaw_recipes.media_adoption_enhancement_plan` from `GET /help`.
+	   See [OpenClaw Media Adoption Enhancement Plan Recipe](docs/openclaw-media-adoption-enhancement-plan-recipe.md).
 	   For research-backed Gutenberg landing pages, first use
 	   `openclaw_recipes.pattern_page_research_brief` to request bounded
 	   Cloud-owned `competitor_research` evidence through Toolbox and produce a
