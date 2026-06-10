@@ -996,6 +996,7 @@ foreach (
 			'openclaw_recipes.pattern_page_plan',
 			'openclaw_recipes.pattern_page_research_brief',
 			'openclaw_recipes.pattern_page_with_visual_asset_plan',
+			'openclaw_recipes.ai_image_ratio_crop_media_adoption',
 			'openclaw_recipes.image_candidate_adoption_plan',
 			'docs/openclaw-ai-article-writing-pack-recipe.md',
 			'The primary SEO/GEO/AEO entrypoint is',
@@ -1007,6 +1008,7 @@ foreach (
 			'docs/openclaw-pattern-page-plan-recipe.md',
 			'docs/openclaw-pattern-page-research-brief-recipe.md',
 			'docs/openclaw-pattern-page-with-visual-asset-recipe.md',
+			'docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md',
 			'docs/openclaw-image-candidate-adoption-plan-recipe.md',
 			'docs/openclaw-media-adoption-enhancement-plan-recipe.md',
 		'skipped_destructive_candidates',
@@ -2242,6 +2244,38 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $pattern_page_visual_asset_recipe, $required ), 'Pattern page visual asset recipe contains required text: ' . $required );
+}
+
+$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
+foreach (
+	array(
+		'OpenClaw AI Image Ratio Crop Media Adoption Recipe',
+		'openclaw_recipes.ai_image_ratio_crop_media_adoption',
+		'image_candidate.v1',
+		'npcink-toolbox/generate-image',
+		'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+		'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result',
+		'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview',
+		'npcink-abilities-toolkit/build-media-adoption-enhancement-plan',
+		'npcink-abilities-toolkit/upload-media-from-url',
+		'npcink-abilities-toolkit/optimize-media-asset',
+		'npcink-abilities-toolkit/patch-post-content',
+		'target_aspect_ratio_required=true',
+		'ai_generation_dimensions_are_advisory=true',
+		'cloud_crop_required_for_generated_images=true',
+		'candidate_review_required=true',
+		'signed_preview_is_temporary=true',
+		'preview_url_must_be_adopted_before_expiry=true',
+		'core_proxy_execute=false',
+		'commit_execution=false',
+		'cloud_control_plane=false',
+		'adapter_artifact_registry=false',
+		'generic_write_executor=false',
+		'direct_wordpress_write=false',
+		'Do not ask Adapter to crop arbitrary remote URLs',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $ai_image_ratio_crop_media_adoption_recipe, $required ), 'AI image ratio crop media adoption recipe contains required text: ' . $required );
 }
 
 $pattern_page_research_brief_recipe = maa_adapter_read( $root . '/docs/openclaw-pattern-page-research-brief-recipe.md' );

@@ -123,6 +123,7 @@ Run this order for a local acceptance pass:
    - `openclaw_recipes.pattern_page_plan`
    - `openclaw_recipes.pattern_page_research_brief`
    - `openclaw_recipes.pattern_page_with_visual_asset_plan`
+   - `openclaw_recipes.ai_image_ratio_crop_media_adoption`
    - `openclaw_recipes.content_discoverability_suggestions`
    - `openclaw_recipes.ai_article_draft_with_discoverability`
    - `openclaw_recipes.media_derivative_cloud`
@@ -135,6 +136,14 @@ Run this order for a local acceptance pass:
    `hosted_generation_candidate_only=true`, `cloud_control_plane=false`, and
    `generic_write_executor=false`; OpenClaw must treat hosted image generation
    as a reviewed candidate source, not a direct page write step.
+   Confirm `openclaw_recipes.ai_image_ratio_crop_media_adoption.guardrails`
+   keeps `target_aspect_ratio_required=true`,
+   `ai_generation_dimensions_are_advisory=true`,
+   `cloud_crop_required_for_generated_images=true`,
+   `signed_preview_is_temporary=true`, `adapter_artifact_registry=false`, and
+   `direct_wordpress_write=false`; OpenClaw must adopt the cropped preview
+   through a Core media adoption proposal before a page references the final
+   local media URL.
    Confirm `openclaw_recipes.pattern_page_research_brief.default_input`
    exposes `external_search_intent=competitor_research`,
    `search_policy.max_results=5`,

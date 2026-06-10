@@ -683,6 +683,14 @@ Plan-to-proposal flow:
 	   exposed as `openclaw_recipes.pattern_page_with_visual_asset_plan` from
 	   `GET /help`. See
 	   [OpenClaw Pattern Page With Visual Asset Recipe](docs/openclaw-pattern-page-with-visual-asset-recipe.md).
+	   For AI-generated visuals whose model output dimensions are unreliable,
+	   choose the page-slot ratio first, crop the reviewed candidate through the
+	   Cloud media derivative path, then adopt the cropped preview through
+	   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan` before a
+	   page references the final local media URL. The machine-readable playbook
+	   is exposed as `openclaw_recipes.ai_image_ratio_crop_media_adoption` from
+	   `GET /help`. See
+	   [OpenClaw AI Image Ratio Crop Media Adoption Recipe](docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md).
 	   For Site Knowledge agent evidence review, call
 	   `npcink-toolbox/build-site-knowledge-review-plan`; Core creates a
 	   blocked review proposal that still requires human `title` and `content`

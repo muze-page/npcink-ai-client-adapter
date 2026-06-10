@@ -374,6 +374,29 @@ The composed playbook keeps `hosted_generation_candidate_only=true`,
 `generic_write_executor=false`. Adapter must not call hosted generation,
 import media, or create the page as one direct mutation.
 
+`GET /help` also includes
+`openclaw_recipes.ai_image_ratio_crop_media_adoption` for AI-generated images
+that need a stable page-slot ratio before adoption. This is a composed
+candidate-crop-adoption playbook:
+
+1. collect and review an `image_candidate.v1` from an approved candidate source
+   such as hosted generation;
+2. treat requested generation dimensions as advisory, then run
+   `POST /media-derivative-runs` with a bounded `crop` from a local
+   `attachment_id` or same-site `source_artifact`;
+3. use the cropped preview URL immediately as input to
+   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`;
+4. submit the returned plan to Core through `POST /proposals/from-plan`.
+
+The playbook keeps `target_aspect_ratio_required=true`,
+`ai_generation_dimensions_are_advisory=true`,
+`cloud_crop_required_for_generated_images=true`,
+`candidate_review_required=true`, `signed_preview_is_temporary=true`,
+`core_proxy_execute=false`, `commit_execution=false`,
+`cloud_control_plane=false`, `adapter_artifact_registry=false`, and
+`direct_wordpress_write=false`. Adapter must not crop arbitrary remote URLs,
+store Cloud artifacts, or make the cropped preview the canonical page media URL.
+
 `commit_execution=false` means no write happened, `dry_run=true` means preview
 only, and `requires_approval=true` means the plan must be handed to Core or the
 host governance layer. Adapter must not execute, approve, or promote
