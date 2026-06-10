@@ -1112,6 +1112,12 @@ maa_adapter_smoke_assert( false === (bool) ( $health['commit_execution'] ?? true
 maa_adapter_smoke_assert( false === (bool) ( $health['approval_proxy_enabled'] ?? true ), 'adapter health keeps approval proxy disabled' );
 maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $health['approval_surface'] ?? '' ), 'adapter health exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $health ), 'adapter health exposes Core app token configured state without token value' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_client_policy.v1' === (string) ( $health['client_policy']['schema_version'] ?? '' ), 'adapter health exposes machine-readable client policy' );
+maa_adapter_smoke_assert( in_array( 'profile_path', (array) ( $health['client_policy']['forbidden_outputs'] ?? array() ), true ), 'adapter health policy forbids profile path output' );
+maa_adapter_smoke_assert( in_array( 'key_id', (array) ( $health['client_policy']['forbidden_outputs'] ?? array() ), true ), 'adapter health policy forbids key id output' );
+maa_adapter_smoke_assert( in_array( 'database_direct', (array) ( $health['client_policy']['forbidden_local_access'] ?? array() ), true ), 'adapter health policy forbids direct database access' );
+maa_adapter_smoke_assert( true === (bool) ( $health['client_policy']['sensitive_read_flow']['required'] ?? false ), 'adapter health policy requires sensitive read flow' );
+maa_adapter_smoke_assert( 'ability_id_plus_input_hash' === (string) ( $health['client_policy']['sensitive_read_flow']['grant_binding'] ?? '' ), 'adapter health policy documents read grant binding' );
 maa_adapter_smoke_assert( in_array( 'read_requests:create', (array) ( $health['core_app_token_required_scopes'] ?? array() ), true ), 'adapter health documents Core read request create scope' );
 maa_adapter_smoke_assert( in_array( 'read_requests:read', (array) ( $health['core_app_token_required_scopes'] ?? array() ), true ), 'adapter health documents Core read request status scope' );
 maa_adapter_smoke_assert( in_array( 'read_requests:preflight', (array) ( $health['core_app_token_required_scopes'] ?? array() ), true ), 'adapter health documents Core read request preflight scope' );
@@ -1178,6 +1184,13 @@ maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/trash-comment', (a
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/approve-comment', (array) ( $health['allowed_execute_ability_ids'] ?? array() ), true ), 'adapter health exposes approve-comment execute allowlist' );
 
 $help = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/help' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_client_policy.v1' === (string) ( $help['client_policy']['schema_version'] ?? '' ), 'adapter help exposes machine-readable client policy' );
+maa_adapter_smoke_assert( false === (bool) ( $help['client_policy']['allowed_transport']['direct_database_access_allowed'] ?? true ), 'adapter help policy forbids direct database access' );
+maa_adapter_smoke_assert( 'POST /read-requests' === (string) ( $help['client_policy']['sensitive_read_flow']['steps']['create'] ?? '' ), 'adapter help policy documents sensitive read request creation' );
+$manifest = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/connection/manifest' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_client_policy.v1' === (string) ( $manifest['client_policy']['schema_version'] ?? '' ), 'adapter connection manifest exposes machine-readable client policy' );
+maa_adapter_smoke_assert( in_array( 'custom_scripts_for_wordpress_data', (array) ( $manifest['client_policy']['forbidden_local_access'] ?? array() ), true ), 'adapter manifest policy forbids custom data scripts' );
+maa_adapter_smoke_assert( true === (bool) ( $manifest['client_policy']['allowed_transport']['adapter_relative_routes_only'] ?? false ), 'adapter manifest policy requires adapter-relative routes' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals/{proposal_id}' ), 'adapter help exposes proposal detail route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals/{proposal_id}/media-optimization-readiness' ), 'adapter help exposes media optimization readiness route' );

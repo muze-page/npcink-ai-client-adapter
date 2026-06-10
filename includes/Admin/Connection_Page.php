@@ -1399,26 +1399,36 @@ final class Connection_Page {
 		$status_command = $this->local_cli_status_command( $include_local_tls );
 		$connect_command = $this->local_cli_connect_command( $include_local_tls );
 		$request_prefix = $this->local_cli_request_prefix( $include_local_tls );
+		$read_request_create = $this->local_cli_read_request_create_template( $include_local_tls );
+		$read_request_status = $this->local_cli_read_request_status_template( $include_local_tls );
+		$read_ability = $this->local_cli_read_ability_template( $include_local_tls );
 
 		return "Npcink OpenClaw Adapter local CLI setup\n\n"
-			. "Use this local CLI to call Adapter. Do not read, print, summarize, or copy ~/.npcink-openclaw-adapter/keypair-profiles/*.json.\n\n"
+			. "Use this local CLI to call Adapter. The CLI redacts profile paths, key ids, connection ids, signing fields, tokens, passwords, and secrets from command output. Do not read, print, summarize, or copy ~/.npcink-openclaw-adapter/keypair-profiles/*.json.\n\n"
 			. "Pairing command for the user terminal:\n"
 			. $connect_command . "\n\n"
 			. "Connection status:\n"
 			. $status_command . "\n\n"
 			. "Adapter requests:\n"
 			. "{$request_prefix} GET /health\n"
+			. "{$request_prefix} GET /help\n"
 			. "{$request_prefix} GET /capabilities\n"
 			. "{$request_prefix} POST /proposals/from-plan --body-file=/tmp/magick-proposal.json\n"
 			. "{$request_prefix} POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight\n"
 			. "{$request_prefix} POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit\n\n"
+			. "Sensitive read helpers:\n"
+			. $read_request_create . "\n"
+			. $read_request_status . "\n"
+			. $read_ability . "\n\n"
 			. "Rules for OpenClaw:\n"
-			. "1. Do not read, cat, print, summarize, or copy the local keypair profile file.\n"
-			. "2. Do not output private_key_jwk, public_key_jwk, Authorization, X-Npcink-Signature, or any signing headers.\n"
-			. "3. POST bodies must contain only non-secret JSON. Use --body-file or --body-stdin.\n"
-			. "4. Use only Adapter-relative routes such as /health, /capabilities, or /proposals.\n"
-			. "5. WordPress writes must still go through Core proposal, approval, and preflight.\n"
-			. "6. Dry-run or preflight-only verification must stop at commit-preflight; final execute routes require --intent=commit.";
+			. "1. Treat health/help/manifest client_policy as machine-readable policy and fail closed if your intended action conflicts with it.\n"
+			. "2. Do not read, cat, print, summarize, or copy the local keypair profile file.\n"
+			. "3. Do not output private_key_jwk, public_key_jwk, Authorization, X-Npcink-Signature, profile paths, key ids, connection ids, tokens, passwords, or signing headers.\n"
+			. "4. POST bodies must contain only non-secret JSON. Use --body-file or --body-stdin.\n"
+			. "5. Use only Adapter-relative routes such as /health, /help, /capabilities, /read-requests, /run-read-ability, or /proposals.\n"
+			. "6. Sensitive reads must use read-request create, wait for Core approval, then read-ability with the same input and read_request_id.\n"
+			. "7. WordPress writes must still go through Core proposal, approval, and preflight.\n"
+			. "8. Dry-run or preflight-only verification must stop at commit-preflight; final execute routes require --intent=commit.";
 	}
 
 	/**
@@ -1429,14 +1439,23 @@ final class Connection_Page {
 	 */
 	private function local_cli_new_session_opener_text( bool $include_local_tls ): string {
 		$status_command = $this->local_cli_status_command( $include_local_tls );
+		$help_command = $this->local_cli_request_prefix( $include_local_tls ) . ' GET /help';
 		$capabilities_command = $this->local_cli_request_prefix( $include_local_tls ) . ' GET /capabilities';
+		$read_request_create = $this->local_cli_read_request_create_template( $include_local_tls );
+		$read_request_status = $this->local_cli_read_request_status_template( $include_local_tls );
+		$read_ability = $this->local_cli_read_ability_template( $include_local_tls );
 
 		return "You are using an already paired local Npcink OpenClaw Adapter profile on this machine. Do not run connect again unless the status check fails.\n\n"
-			. "First, run only this read-only status check and return the JSON result. Do not read, print, summarize, or copy any file under ~/.npcink-openclaw-adapter/keypair-profiles/. Do not show signing headers, private keys, profile JSON, or secrets.\n\n"
+			. "First, run only this read-only status check and return the JSON result. The CLI redacts profile paths, key ids, connection ids, signing fields, tokens, passwords, and secrets from output. Do not read, print, summarize, or copy any file under ~/.npcink-openclaw-adapter/keypair-profiles/. Do not show signing headers, private keys, profile JSON, or secrets.\n\n"
 			. $status_command . "\n\n"
-			. "If ok=true, status=ready, and boundary.status=ok, immediately run this second read-only discovery request and summarize the available read and proposal capabilities relevant to my task:\n\n"
+			. "If ok=true, status=ready, and boundary.status=ok, immediately run these read-only discovery requests. Read client_policy from /help and treat it as machine-readable policy; fail closed if your intended action conflicts with forbidden_outputs, forbidden_local_access, allowed_transport, sensitive_read_flow, or write_flow.\n\n"
+			. $help_command . "\n"
 			. $capabilities_command . "\n\n"
-			. "After that, continue only with Adapter-relative request commands I provide or with read-only routes clearly exposed by /capabilities for the task I asked about. Public and internal read-only data checks are allowed. If Core marks a capability with read_authorization_required=true, requires_read_authorization=true, or read_policy=core_read_authorization_required, create a Core sensitive read request only through Adapter POST /read-requests with ability_id, the exact input, purpose, data_classes, and redaction_level=strict; then wait for Core approval via Adapter GET /read-requests/{request_id}. After approval, call POST /run-read-ability with the same ability_id, same input, and read_request_id so Adapter can run Core read-preflight immediately before the read. Do not bypass through the database, filesystem, logs, custom scripts, or direct WordPress internals. Any WordPress write must create or inspect a Core proposal first, and final execution requires my explicit confirmation before using an --intent=commit approve-and-execute command.";
+			. "After that, continue only with Adapter-relative request commands I provide or with read-only routes clearly exposed by /capabilities for the task I asked about. Public and internal read-only data checks are allowed only through Adapter. If Core marks a capability with read_authorization_required=true, requires_read_authorization=true, read_policy=core_read_authorization_required, governance_mode=core_read_authorization_required, or authorization_mode=core_read_request, use only these narrow CLI helpers:\n\n"
+			. $read_request_create . "\n"
+			. $read_request_status . "\n"
+			. $read_ability . "\n\n"
+			. "For sensitive reads, create the request with ability_id, the exact input, purpose, data_classes, redaction_level=strict, and bounds; then wait for Core approval; then call read-ability with the same ability_id, same input, and read_request_id. If the input changes, create a new read request. Do not bypass through the database, filesystem, logs, custom scripts, direct WordPress internals, or direct Core routes. Any WordPress write must create or inspect a Core proposal first, and final execution requires my explicit confirmation before using an --intent=commit approve-and-execute command.";
 	}
 
 	/**
@@ -1517,6 +1536,36 @@ final class Connection_Page {
 	 */
 	private function local_cli_request_prefix( bool $include_local_tls ): string {
 		return $this->local_cli_prefix() . ' request --profile=local' . $this->local_cli_tls_flag( $include_local_tls );
+	}
+
+	/**
+	 * Builds a local CLI sensitive read request template.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_read_request_create_template( bool $include_local_tls ): string {
+		return $this->local_cli_prefix() . ' read-request create --profile=local' . $this->local_cli_tls_flag( $include_local_tls ) . ' --ability-id=ABILITY_ID --input-file=/tmp/read-input.json --purpose="Describe the bounded sensitive read" --data-classes=CLASS[,CLASS] --redaction-level=strict --max-rows=10 --tail-lines=5 --denied-fields=authorization,cookie,application_password';
+	}
+
+	/**
+	 * Builds a local CLI sensitive read request status template.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_read_request_status_template( bool $include_local_tls ): string {
+		return $this->local_cli_prefix() . ' read-request status --profile=local' . $this->local_cli_tls_flag( $include_local_tls ) . ' READ_REQUEST_ID';
+	}
+
+	/**
+	 * Builds a local CLI read ability template.
+	 *
+	 * @param bool $include_local_tls Whether to include the local TLS flag.
+	 * @return string
+	 */
+	private function local_cli_read_ability_template( bool $include_local_tls ): string {
+		return $this->local_cli_prefix() . ' read-ability --profile=local' . $this->local_cli_tls_flag( $include_local_tls ) . ' --ability-id=ABILITY_ID --input-file=/tmp/read-input.json --read-request-id=READ_REQUEST_ID';
 	}
 
 	/**

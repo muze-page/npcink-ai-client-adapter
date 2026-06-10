@@ -437,6 +437,15 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-op
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
 ```
 
+For sensitive reads, prefer the narrower CLI helpers instead of asking an AI
+client to hand-build JSON route bodies:
+
+```bash
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-request create --profile=local --insecure-local-tls --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --purpose="Review bounded diagnostics" --data-classes=diagnostics,logs --redaction-level=strict --max-rows=10 --tail-lines=5 --denied-fields=authorization,cookie,application_password
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-request status --profile=local --insecure-local-tls READ_REQUEST_ID
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-ability --profile=local --insecure-local-tls --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --read-request-id=READ_REQUEST_ID
+```
+
 The request command accepts only Adapter-relative routes such as `/health`,
 signs the request locally, and prints only the Adapter JSON response. It also
 accepts `--body-stdin` for non-secret POST bodies. Final Adapter write routes
@@ -446,6 +455,11 @@ The CLI refuses those routes when the body still contains preview markers such
 as `dry_run=true`, `commit=false`, or `commit_execution=false`; for dry-run or
 preflight-only validation, use `/proposals/{proposal_id}/commit-preflight` with
 `--intent=preflight` and stop there.
+CLI output is redacted by default for local profile paths, key ids, connection
+ids, public/private keys, signatures, authorization headers, cookies, tokens,
+passwords, and secrets. Adapter also returns a machine-readable `client_policy`
+on `/connection/manifest`, `/health`, and `/help`; local AI clients should read
+that policy before selecting routes.
 The user-facing local client entrypoint is the published npm CLI. The repository
 does not keep root-level `tools/` compatibility wrappers; use the package
 directly:

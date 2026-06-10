@@ -83,7 +83,7 @@ function readProfile(path) {
   const adapterBaseUrl = String(parsed.adapter_base_url || '').replace(/\/$/, '');
   const keyId = String(parsed.key_id || '');
   if (!adapterBaseUrl || !keyId || !parsed.private_key_jwk) {
-    throw new Error('Profile is missing adapter_base_url, key_id, or private_key_jwk.');
+    throw new Error('Profile is missing required connection or signing fields.');
   }
   return {
     adapterBaseUrl,
@@ -238,6 +238,52 @@ function requestJson(methodValue, url, body, headers) {
   });
 }
 
+function redactOutput(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactOutput(item));
+  }
+  if (!value || typeof value !== 'object') {
+    if (
+      typeof value === 'string'
+      && (
+        value.includes('.npcink-openclaw-adapter/keypair-profiles/')
+        || /authorization\s*:/i.test(value)
+        || /x-npcink-/i.test(value)
+        || /signature\s*=/i.test(value)
+      )
+    ) {
+      return '[redacted]';
+    }
+    return value;
+  }
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    out[key] = isSensitiveOutputKey(key) ? '[redacted]' : redactOutput(item);
+  }
+  return out;
+}
+
+function isSensitiveOutputKey(key) {
+  return [
+    'profile_path',
+    'profile_json',
+    'private_key',
+    'private_key_jwk',
+    'public_key',
+    'key_id',
+    'connection_id',
+    'authorization',
+    'cookie',
+    'token',
+    'application_password',
+    'password',
+    'secret',
+    'signature',
+    'x_npcink_key_id',
+    'x_npcink_signature',
+  ].includes(String(key).toLowerCase().replace(/-/g, '_'));
+}
+
 try {
   const routeUrl = new URL(route, 'https://adapter.invalid');
   const cleanRoute = routeUrl.pathname;
@@ -256,7 +302,7 @@ try {
   const headers = signedHeaders(profileData.privateKey, profileData.keyId, method, restRoute, queryForSignature, body);
   const response = await requestJson(method, adapterUrl, body, headers);
   if (response !== null) {
-    console.log(JSON.stringify(response, null, 2));
+    console.log(JSON.stringify(redactOutput(response), null, 2));
   }
 } catch (error) {
   console.error(JSON.stringify({

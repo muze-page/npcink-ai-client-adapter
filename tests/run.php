@@ -79,6 +79,15 @@ foreach (
 		'core_authorization_truth',
 		'commit_execution',
 		'write_execution',
+		'client_policy',
+		'npcink_openclaw_adapter_client_policy.v1',
+		'adapter_only_fail_closed',
+		'forbidden_outputs',
+		'forbidden_local_access',
+		'keypair_profile_files',
+		'database_direct',
+		'filesystem_secret_read_allowed',
+		'ability_id_plus_input_hash',
 		'run_read_ability( string $ability_id, array $input, array $log_context = array(), array $read_authorization = array() )',
 		'/media-metadata-optimization',
 		'media_metadata_optimization_route',
@@ -703,8 +712,14 @@ foreach (
 		'Copy new conversation opener',
 		'local_cli_new_session_opener_text',
 		'already paired local Npcink OpenClaw Adapter profile',
-		'immediately run this second read-only discovery request',
+		'Read client_policy from /help and treat it as machine-readable policy',
 		'read_policy=core_read_authorization_required',
+		'read-request create --profile=local',
+		'read-request status --profile=local',
+		'read-ability --profile=local',
+		'local_cli_read_request_create_template',
+		'local_cli_read_request_status_template',
+		'local_cli_read_ability_template',
 		'Copy OpenClaw CLI instructions',
 		'Copy status command',
 		'local_cli_setup_text',
@@ -1080,6 +1095,8 @@ foreach (
 		'MAGICK-AI-ADAPTER-V1',
 		'Object.keys(value).length === 0',
 		'wrapper_failed',
+		'redactOutput',
+		'isSensitiveOutputKey',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $keypair_request_tool, $required ), 'Packaged keypair request wrapper contains expected behavior: ' . $required );
@@ -1093,22 +1110,32 @@ foreach (
 		'connect',
 		'status',
 		'request',
+		'read-request',
+		'read-ability',
 		'keypair-device-pairing.mjs',
 		'keypair-adapter-request.mjs',
 		'missing_profile',
 		'health_failed',
-		'profile_path',
+		'profile_configured',
 		'core_capabilities',
 		'abilities_catalog',
 		'commit_execution',
 		'proposal_execution',
 		'available_via_adapter_routes',
+		'readRequestCreate',
+		'readRequestStatus',
+		'inputPayloadFromArgs',
+		'redactOutput',
+		'isSensitiveOutputKey',
+		'read-request create requires --ability-id, --purpose, and --data-classes.',
 		'false values are expected boundary controls, not an execution-disabled signal.',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $magick_adapter_tool, $required ), 'Packaged unified local CLI contains expected behavior: ' . $required );
 }
-maa_adapter_assert( false === strpos( $magick_adapter_tool, 'private_key_jwk' ), 'Unified local CLI does not print or inspect private key material by name.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, 'private_key_jwk:' ), 'Unified local CLI does not read private key material by property access.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, 'connection_id: String' ), 'Unified local CLI does not print connection id from status metadata.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, 'key_id: String' ), 'Unified local CLI does not print key id from status metadata.' );
 
 $wporg_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (

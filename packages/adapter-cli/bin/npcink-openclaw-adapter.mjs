@@ -10,7 +10,7 @@ const rawArgs = process.argv.slice(2);
 const command = rawArgs[0] || '';
 const commandArgs = rawArgs.slice(1);
 
-if (!['connect', 'status', 'request'].includes(command)) {
+if (!['connect', 'status', 'request', 'read-request', 'read-ability'].includes(command)) {
   printUsage();
   process.exit(2);
 }
@@ -21,6 +21,9 @@ function printUsage() {
     '  npcink-openclaw-adapter connect --site=https://example.test --profile=local [--insecure-local-tls]',
     '  npcink-openclaw-adapter status --profile=local [--insecure-local-tls]',
     '  npcink-openclaw-adapter request --profile=local [--insecure-local-tls] METHOD /adapter-route [--body-file=/tmp/body.json|--body-stdin]',
+    '  npcink-openclaw-adapter read-request create --profile=local --ability-id=ABILITY_ID --input-file=/tmp/input.json --purpose=PURPOSE --data-classes=CLASS[,CLASS]',
+    '  npcink-openclaw-adapter read-request status --profile=local REQUEST_ID',
+    '  npcink-openclaw-adapter read-ability --profile=local --ability-id=ABILITY_ID --input-file=/tmp/input.json [--read-request-id=REQUEST_ID]',
   ].join('\n'));
 }
 
@@ -52,8 +55,12 @@ function profilePathFromArgs(args) {
 
 function runNode(scriptName, args, options = {}) {
   return new Promise((resolve, reject) => {
-    const stdio = options.capture ? ['inherit', 'pipe', 'pipe'] : 'inherit';
-    const child = spawn(process.execPath, [join(toolDir, scriptName), ...args], { stdio });
+    const childStdio = [
+      options.input !== undefined ? 'pipe' : 'inherit',
+      options.capture ? 'pipe' : 'inherit',
+      options.capture ? 'pipe' : 'inherit',
+    ];
+    const child = spawn(process.execPath, [join(toolDir, scriptName), ...args], { stdio: childStdio });
     let stdout = '';
     let stderr = '';
     if (options.capture) {
@@ -65,6 +72,10 @@ function runNode(scriptName, args, options = {}) {
       });
     }
     child.on('error', reject);
+    if (options.input !== undefined) {
+      child.stdin.write(options.input);
+      child.stdin.end();
+    }
     child.on('close', (code) => {
       resolve({ code, stdout, stderr });
     });
@@ -77,7 +88,114 @@ async function connect(args) {
 }
 
 async function request(args) {
-  const result = await runNode('keypair-adapter-request.mjs', args);
+  const result = await runNode('keypair-adapter-request.mjs', args, { capture: true });
+  printCapturedResult(result);
+  process.exitCode = result.code || 0;
+}
+
+async function readRequest(args) {
+  const subcommand = args[0] || '';
+  const subArgs = args.slice(1);
+  if ('create' === subcommand) {
+    await readRequestCreate(subArgs);
+    return;
+  }
+  if ('status' === subcommand) {
+    await readRequestStatus(subArgs);
+    return;
+  }
+  printUsage();
+  process.exitCode = 2;
+}
+
+async function readRequestCreate(args) {
+  const { parsed } = parseArgs(args);
+  const abilityId = parsed.get('ability-id') || '';
+  const purpose = parsed.get('purpose') || '';
+  const dataClasses = csvList(parsed.get('data-classes') || '');
+  if (!abilityId || !purpose || dataClasses.length === 0) {
+    console.error(JSON.stringify({
+      ok: false,
+      error: 'usage',
+      message: 'read-request create requires --ability-id, --purpose, and --data-classes.',
+    }, null, 2));
+    process.exitCode = 2;
+    return;
+  }
+
+  const body = {
+    ability_id: abilityId,
+    input: inputPayloadFromArgs(parsed),
+    requested_input_summary: parsed.get('requested-input-summary') || '',
+    data_classes: dataClasses,
+    purpose,
+    redaction_level: parsed.get('redaction-level') || 'strict',
+  };
+  const bounds = boundsFromArgs(parsed);
+  if (Object.keys(bounds).length > 0) {
+    body.bounds = bounds;
+  }
+
+  const result = await runNode('keypair-adapter-request.mjs', [
+    ...requestCommonArgs(parsed),
+    'POST',
+    '/read-requests',
+    '--body-stdin',
+  ], { capture: true, input: JSON.stringify(body) });
+  printCapturedResult(result);
+  process.exitCode = result.code || 0;
+}
+
+async function readRequestStatus(args) {
+  const { parsed, positionals } = parseArgs(args);
+  const requestId = positionals[0] || '';
+  if (!/^[A-Za-z0-9_-]+$/.test(requestId)) {
+    console.error(JSON.stringify({
+      ok: false,
+      error: 'usage',
+      message: 'read-request status requires a safe request id.',
+    }, null, 2));
+    process.exitCode = 2;
+    return;
+  }
+
+  const result = await runNode('keypair-adapter-request.mjs', [
+    ...requestCommonArgs(parsed),
+    'GET',
+    `/read-requests/${requestId}`,
+  ], { capture: true });
+  printCapturedResult(result);
+  process.exitCode = result.code || 0;
+}
+
+async function readAbility(args) {
+  const { parsed } = parseArgs(args);
+  const abilityId = parsed.get('ability-id') || '';
+  if (!abilityId) {
+    console.error(JSON.stringify({
+      ok: false,
+      error: 'usage',
+      message: 'read-ability requires --ability-id.',
+    }, null, 2));
+    process.exitCode = 2;
+    return;
+  }
+
+  const body = {
+    ability_id: abilityId,
+    input: inputPayloadFromArgs(parsed),
+  };
+  if (parsed.get('read-request-id')) {
+    body.read_request_id = parsed.get('read-request-id');
+  }
+
+  const result = await runNode('keypair-adapter-request.mjs', [
+    ...requestCommonArgs(parsed),
+    'POST',
+    '/run-read-ability',
+    '--body-stdin',
+  ], { capture: true, input: JSON.stringify(body) });
+  printCapturedResult(result);
   process.exitCode = result.code || 0;
 }
 
@@ -88,7 +206,7 @@ async function status(args) {
       ok: false,
       status: 'missing_profile',
       profile,
-      profile_path: profilePath,
+      profile_configured: false,
       message: 'Run connect before status.',
     }, null, 2));
     process.exitCode = 1;
@@ -100,8 +218,6 @@ async function status(args) {
     const profileData = JSON.parse(readFileSync(profilePath, 'utf8'));
     metadata = {
       adapter_base_url: String(profileData.adapter_base_url || ''),
-      connection_id: String(profileData.connection_id || ''),
-      key_id: String(profileData.key_id || ''),
       created_at: String(profileData.created_at || ''),
       scopes_effective: Array.isArray(profileData.scopes_effective) ? profileData.scopes_effective : [],
     };
@@ -110,7 +226,7 @@ async function status(args) {
       ok: false,
       status: 'invalid_profile',
       profile,
-      profile_path: profilePath,
+      profile_configured: true,
       message: error.message,
     }, null, 2));
     process.exitCode = 1;
@@ -132,7 +248,7 @@ async function status(args) {
       ok: false,
       status: 'health_failed',
       profile,
-      profile_path: profilePath,
+      profile_configured: true,
       connection: metadata,
       message: safeErrorMessage(result.stdout, result.stderr),
     }, null, 2));
@@ -158,7 +274,7 @@ async function status(args) {
     ok: true,
     status: 'ready',
     profile,
-    profile_path: profilePath,
+    profile_configured: true,
     connection: metadata,
     health: {
       core_capabilities: Boolean(health.core_capabilities),
@@ -185,6 +301,143 @@ async function status(args) {
   }, null, 2));
 }
 
+function requestCommonArgs(parsed) {
+  const out = [`--profile=${parsed.get('profile') || 'default'}`];
+  if (parsed.get('profile-file')) {
+    out.push(`--profile-file=${parsed.get('profile-file')}`);
+  }
+  if (parsed.has('insecure-local-tls')) {
+    out.push('--insecure-local-tls');
+  }
+  return out;
+}
+
+function inputPayloadFromArgs(parsed) {
+  const inputFile = parsed.get('input-file') || '';
+  const inputJson = parsed.get('input-json') || '';
+  const inputStdin = parsed.has('input-stdin');
+  const sources = [inputFile ? 1 : 0, inputJson ? 1 : 0, inputStdin ? 1 : 0].reduce((a, b) => a + b, 0);
+  if (sources > 1) {
+    throw new Error('Use only one of --input-file, --input-json, or --input-stdin.');
+  }
+  if (inputFile) {
+    return JSON.parse(readFileSync(inputFile, 'utf8'));
+  }
+  if (inputJson) {
+    return JSON.parse(inputJson);
+  }
+  if (inputStdin) {
+    return JSON.parse(readFileSync(0, 'utf8'));
+  }
+  return {};
+}
+
+function boundsFromArgs(parsed) {
+  const bounds = {};
+  if (parsed.get('max-rows')) {
+    bounds.max_rows = positiveInt(parsed.get('max-rows'));
+  }
+  if (parsed.get('tail-lines')) {
+    bounds.tail_lines = positiveInt(parsed.get('tail-lines'));
+  }
+  const allowedFields = csvList(parsed.get('allowed-fields') || '');
+  if (allowedFields.length > 0) {
+    bounds.allowed_fields = allowedFields;
+  }
+  const deniedFields = csvList(parsed.get('denied-fields') || '');
+  if (deniedFields.length > 0) {
+    bounds.denied_fields = deniedFields;
+  }
+  if (parsed.has('one-time')) {
+    bounds.one_time = true;
+  }
+  return bounds;
+}
+
+function positiveInt(value) {
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function csvList(value) {
+  return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+}
+
+function printCapturedResult(result) {
+  const stdout = result.stdout.trim();
+  const stderr = result.stderr.trim();
+  if (stdout) {
+    console.log(sanitizeOutputText(stdout));
+  }
+  if (stderr) {
+    console.error(sanitizeOutputText(stderr));
+  }
+}
+
+function sanitizeOutputText(text) {
+  try {
+    return JSON.stringify(redactOutput(JSON.parse(text)), null, 2);
+  } catch (error) {
+    return text
+      .replace(/(key_id|connection_id|authorization|cookie|token|signature|password|secret)=?["']?[^\s,"']+/gi, '$1=[redacted]')
+      .replace(/\/[^\s]*\.npcink-openclaw-adapter\/keypair-profiles\/[^\s"']+/g, '[redacted]');
+  }
+}
+
+function redactOutput(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactOutput(item));
+  }
+  if (!value || typeof value !== 'object') {
+    return redactScalar(value);
+  }
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (isSensitiveOutputKey(key)) {
+      out[key] = '[redacted]';
+    } else {
+      out[key] = redactOutput(item);
+    }
+  }
+  return out;
+}
+
+function redactScalar(value) {
+  if (
+    typeof value === 'string'
+    && (
+      value.includes('.npcink-openclaw-adapter/keypair-profiles/')
+      || /authorization\s*:/i.test(value)
+      || /x-npcink-/i.test(value)
+      || /signature\s*=/i.test(value)
+    )
+  ) {
+    return '[redacted]';
+  }
+  return value;
+}
+
+function isSensitiveOutputKey(key) {
+  return [
+    'profile_path',
+    'profile_json',
+    'private_key',
+    'private_key_jwk',
+    'public_key',
+    'key_id',
+    'connection_id',
+    'authorization',
+    'cookie',
+    'token',
+    'application_password',
+    'password',
+    'secret',
+    'signature',
+    'x_npcink_key_id',
+    'x_npcink_signature',
+  ].includes(String(key).toLowerCase().replace(/-/g, '_'));
+}
+
 function safeErrorMessage(stdout, stderr) {
   for (const text of [stdout, stderr]) {
     if (!text.trim()) {
@@ -192,9 +445,9 @@ function safeErrorMessage(stdout, stderr) {
     }
     try {
       const parsed = JSON.parse(text);
-      return parsed.message || parsed.error || parsed.code || 'Request failed.';
+      return sanitizeOutputText(String(parsed.message || parsed.error || parsed.code || 'Request failed.'));
     } catch (error) {
-      return text.trim().split('\n')[0];
+      return sanitizeOutputText(text.trim().split('\n')[0]);
     }
   }
   return 'Request failed.';
@@ -206,4 +459,18 @@ if (command === 'connect') {
   await status(commandArgs);
 } else if (command === 'request') {
   await request(commandArgs);
+} else if (command === 'read-request') {
+  try {
+    await readRequest(commandArgs);
+  } catch (error) {
+    console.error(JSON.stringify({ ok: false, error: 'wrapper_failed', message: error.message }, null, 2));
+    process.exit(1);
+  }
+} else if (command === 'read-ability') {
+  try {
+    await readAbility(commandArgs);
+  } catch (error) {
+    console.error(JSON.stringify({ ok: false, error: 'wrapper_failed', message: error.message }, null, 2));
+    process.exit(1);
+  }
 }

@@ -1663,6 +1663,7 @@ final class Controller {
 					'requires_npcink_governance_core'      => true,
 				),
 			),
+			'client_policy'  => $this->client_policy(),
 		);
 
 		$base['integrity'] = array(
@@ -1671,6 +1672,85 @@ final class Controller {
 		);
 
 		return $base;
+	}
+
+	/**
+	 * Returns machine-readable client policy for local AI clients.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function client_policy(): array {
+		return array(
+			'schema_version' => 'npcink_openclaw_adapter_client_policy.v1',
+			'policy_owner'   => 'npcink-openclaw-adapter',
+			'client_posture' => 'adapter_only_fail_closed',
+			'forbidden_outputs' => array(
+				'profile_path',
+				'profile_json',
+				'private_key',
+				'private_key_jwk',
+				'public_key',
+				'key_id',
+				'connection_id',
+				'authorization',
+				'cookie',
+				'token',
+				'application_password',
+				'password',
+				'secret',
+				'signature',
+				'x_npcink_key_id',
+				'x_npcink_signature',
+			),
+			'forbidden_local_access' => array(
+				'keypair_profile_files',
+				'database_direct',
+				'filesystem_reads_for_wordpress_data',
+				'log_file_reads',
+				'custom_scripts_for_wordpress_data',
+				'direct_wordpress_internals',
+			),
+			'allowed_transport' => array(
+				'adapter_cli_only' => true,
+				'adapter_relative_routes_only' => true,
+				'direct_database_access_allowed' => false,
+				'filesystem_secret_read_allowed' => false,
+			),
+			'sensitive_read_flow' => array(
+				'required' => true,
+				'trigger_fields' => array(
+					'read_authorization_required=true',
+					'requires_read_authorization=true',
+					'read_policy=core_read_authorization_required',
+					'governance_mode=core_read_authorization_required',
+					'authorization_mode=core_read_request',
+				),
+				'steps' => array(
+					'create'  => 'POST /read-requests',
+					'status'  => 'GET /read-requests/{request_id}',
+					'execute' => 'POST /run-read-ability with identical ability_id, input, and read_request_id',
+				),
+				'grant_binding' => 'ability_id_plus_input_hash',
+				'input_change_behavior' => 'create_new_read_request',
+			),
+			'write_flow' => array(
+				'required' => true,
+				'proposal_required' => true,
+				'approval_surface' => 'npcink_governance_core_admin_or_adapter_unified_user_action',
+				'commit_intent_required' => true,
+				'final_write_routes' => array(
+					'POST /execute-approved-proposal',
+					'POST /proposals/{proposal_id}/execute',
+					'POST /proposals/{proposal_id}/approve-and-execute',
+				),
+			),
+			'recommended_cli' => array(
+				'status' => 'npcink-openclaw-adapter status --profile=local',
+				'read_request_create' => 'npcink-openclaw-adapter read-request create --profile=local --ability-id=ABILITY_ID --input-file=/tmp/input.json --purpose=PURPOSE --data-classes=CLASS[,CLASS]',
+				'read_request_status' => 'npcink-openclaw-adapter read-request status --profile=local REQUEST_ID',
+				'read_ability' => 'npcink-openclaw-adapter read-ability --profile=local --ability-id=ABILITY_ID --input-file=/tmp/input.json [--read-request-id=REQUEST_ID]',
+			),
+		);
 	}
 
 	/**
@@ -2031,6 +2111,7 @@ final class Controller {
 				'approval_proxy_enabled' => false,
 				'approval_surface'       => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
+				'client_policy'         => $this->client_policy(),
 				'ai_request_log_context_fields' => array(
 					'proposal_id',
 					'correlation_id',
@@ -2257,6 +2338,7 @@ final class Controller {
 				'approval_proxy_enabled' => false,
 				'approval_surface' => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
+				'client_policy' => $this->client_policy(),
 				'distribution_mode' => 'adapter_entry_with_separate_governance_and_ability_plugins',
 				'dependencies' => $this->dependency_status()['items'],
 				'ai_request_log_context' => array(

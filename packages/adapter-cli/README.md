@@ -33,6 +33,15 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-op
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter request --profile=example GET /capabilities
 ```
 
+Prefer the narrow read helpers for OpenClaw sessions. They build the Adapter
+body, keep output redacted, and reduce route/JSON mistakes:
+
+```bash
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-request create --profile=example --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --purpose="Review bounded diagnostics" --data-classes=diagnostics,logs --redaction-level=strict --max-rows=10 --tail-lines=5 --denied-fields=authorization,cookie,application_password
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-request status --profile=example READ_REQUEST_ID
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-openclaw-adapter read-ability --profile=example --ability-id=npcink-abilities-toolkit/wp-ops-diagnostics-detail --input-file=/tmp/read-input.json --read-request-id=READ_REQUEST_ID
+```
+
 Final Adapter write routes are guarded by client intent. Use
 `--intent=preflight` for `POST /proposals/{proposal_id}/commit-preflight`.
 Use `--intent=commit` only when the operator explicitly confirmed final write
@@ -46,6 +55,12 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.0 -- npcink-op
 The CLI refuses final execute routes when `--intent=commit` is missing, or when
 the request body still contains preview markers such as `dry_run=true`,
 `commit=false`, or `commit_execution=false`.
+
+CLI output is redacted by default for local connection identifiers, profile
+paths, key ids, signatures, authorization headers, cookies, tokens, passwords,
+and secrets. The Adapter also exposes `client_policy` on `/connection/manifest`,
+`/health`, and `/help` so AI clients can read a machine-readable policy before
+choosing routes.
 
 For local WordPress development sites with self-signed `.local` HTTPS, add
 `--insecure-local-tls`.
