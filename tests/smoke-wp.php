@@ -457,6 +457,114 @@ function maa_adapter_smoke_visual_acceptance_viewports(): array {
 }
 
 /**
+ * Flattens a parsed Gutenberg block tree.
+ *
+ * @param array<int,array<string,mixed>> $blocks Parsed blocks.
+ * @return array<int,array<string,mixed>>
+ */
+function maa_adapter_smoke_flatten_blocks( array $blocks ): array {
+	$flat = array();
+	foreach ( $blocks as $block ) {
+		if ( ! is_array( $block ) ) {
+			continue;
+		}
+		$flat[] = $block;
+		$inner_blocks = is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : array();
+		if ( ! empty( $inner_blocks ) ) {
+			$flat = array_merge( $flat, maa_adapter_smoke_flatten_blocks( $inner_blocks ) );
+		}
+	}
+
+	return $flat;
+}
+
+/**
+ * Counts parsed blocks by block name.
+ *
+ * @param array<int,array<string,mixed>> $blocks Parsed blocks.
+ * @param string                         $block_name Block name.
+ * @return int
+ */
+function maa_adapter_smoke_count_blocks_by_name( array $blocks, string $block_name ): int {
+	$count = 0;
+	foreach ( maa_adapter_smoke_flatten_blocks( $blocks ) as $block ) {
+		if ( $block_name === (string) ( $block['blockName'] ?? '' ) ) {
+			++$count;
+		}
+	}
+
+	return $count;
+}
+
+/**
+ * Returns whether a block has style.spacing.padding.
+ *
+ * @param array<string,mixed> $block Parsed block.
+ * @return bool
+ */
+function maa_adapter_smoke_block_has_padding_style( array $block ): bool {
+	$attrs   = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : array();
+	$style   = is_array( $attrs['style'] ?? null ) ? $attrs['style'] : array();
+	$spacing = is_array( $style['spacing'] ?? null ) ? $style['spacing'] : array();
+	$padding = is_array( $spacing['padding'] ?? null ) ? $spacing['padding'] : array();
+
+	return ! empty( array_filter( array_map( 'strval', $padding ) ) );
+}
+
+/**
+ * Counts blocks with explicit Gutenberg-native padding.
+ *
+ * @param array<int,array<string,mixed>> $blocks Parsed blocks.
+ * @return int
+ */
+function maa_adapter_smoke_count_padded_blocks( array $blocks ): int {
+	$count = 0;
+	foreach ( maa_adapter_smoke_flatten_blocks( $blocks ) as $block ) {
+		if ( maa_adapter_smoke_block_has_padding_style( $block ) ) {
+			++$count;
+		}
+	}
+
+	return $count;
+}
+
+/**
+ * Asserts basic machine-checkable Gutenberg content quality.
+ *
+ * This catches regressions that previously appeared as broken images, blank
+ * headings, or flat sections without Gutenberg-native spacing.
+ *
+ * @param string                    $label Assertion label prefix.
+ * @param string                    $post_content Post content.
+ * @param array<int,array<string,mixed>> $blocks Parsed blocks.
+ * @param int                       $minimum_padded_blocks Minimum padded blocks.
+ * @return void
+ */
+function maa_adapter_smoke_assert_gutenberg_content_quality( string $label, string $post_content, array $blocks, int $minimum_padded_blocks ): void {
+	$flat_blocks = maa_adapter_smoke_flatten_blocks( $blocks );
+	maa_adapter_smoke_assert( ! empty( $flat_blocks ), $label . ' has parsed Gutenberg blocks' );
+	maa_adapter_smoke_assert( 0 === preg_match( '/<h[1-6][^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/h[1-6]>/i', $post_content ), $label . ' has no empty heading markup' );
+	maa_adapter_smoke_assert( 0 === preg_match( '/<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/i', $post_content ), $label . ' has no empty paragraph markup' );
+	maa_adapter_smoke_assert( maa_adapter_smoke_count_padded_blocks( $blocks ) >= $minimum_padded_blocks, $label . ' keeps Gutenberg-native spacing on key sections' );
+}
+
+/**
+ * Asserts all image tags in a Gutenberg payload have a concrete src and alt.
+ *
+ * @param string $label Assertion label prefix.
+ * @param string $post_content Post content.
+ * @return void
+ */
+function maa_adapter_smoke_assert_gutenberg_images_are_complete( string $label, string $post_content ): void {
+	$image_count = preg_match_all( '/<img\b[^>]*>/i', $post_content, $matches );
+	maa_adapter_smoke_assert( false !== $image_count && $image_count > 0, $label . ' contains rendered image markup' );
+	foreach ( (array) ( $matches[0] ?? array() ) as $image_markup ) {
+		maa_adapter_smoke_assert( 1 === preg_match( '/\ssrc=(["\'])(?!\1)[^"\']+\1/i', $image_markup ), $label . ' image has non-empty src' );
+		maa_adapter_smoke_assert( 1 === preg_match( '/\salt=(["\'])(?!\1)[^"\']+\1/i', $image_markup ), $label . ' image has non-empty alt' );
+	}
+}
+
+/**
  * Records a created Gutenberg plan fixture for optional browser acceptance.
  *
  * @param string              $fixture_type Fixture type.
@@ -1984,6 +2092,11 @@ maa_adapter_smoke_assert( '' !== $pattern_page_proposal_id, 'adapter pattern pag
 $pattern_page_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $pattern_page_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $pattern_page_execute['success'] ?? false ), 'adapter pattern page approve-and-execute succeeds' );
 maa_adapter_smoke_assert( 2 === (int) ( $pattern_page_execute['executed_count'] ?? 0 ), 'adapter pattern page batch executes create and update actions' );
+$pattern_page_execution_record = is_array( $pattern_page_execute['execution_record'] ?? null ) ? $pattern_page_execute['execution_record'] : array();
+$pattern_page_execution_verification = is_array( $pattern_page_execution_record['verification'] ?? null ) ? $pattern_page_execution_record['verification'] : array();
+maa_adapter_smoke_assert( 'recorded' === (string) ( $pattern_page_execution_verification['status'] ?? '' ), 'adapter pattern page execution record persists verification summary' );
+maa_adapter_smoke_assert( 1 <= (int) ( $pattern_page_execution_verification['aggregates']['block_readback_verified_count'] ?? 0 ), 'adapter pattern page execution verifies post-block readback' );
+maa_adapter_smoke_assert( 0 === (int) ( $pattern_page_execution_verification['aggregates']['block_readback_failed_count'] ?? -1 ), 'adapter pattern page execution has no failed block readbacks' );
 $pattern_page_post_id = 0;
 foreach ( (array) ( $pattern_page_execute['results'] ?? array() ) as $pattern_page_result ) {
 	if ( is_array( $pattern_page_result ) && 'npcink-abilities-toolkit/create-draft' === (string) ( $pattern_page_result['target_ability_id'] ?? '' ) ) {
@@ -2006,11 +2119,16 @@ maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string
 $pattern_page_blocks_result = is_array( $pattern_page_blocks_shortcut['result'] ?? null ) ? $pattern_page_blocks_shortcut['result'] : array();
 maa_adapter_smoke_assert( (int) ( $pattern_page_blocks_result['block_count'] ?? 0 ) >= 7, 'adapter pattern page block read returns expected section count' );
 $pattern_page_content = (string) get_post_field( 'post_content', $pattern_page_post_id );
-$pattern_page_blocks_json = wp_json_encode( parse_blocks( $pattern_page_content ) );
+$pattern_page_blocks = parse_blocks( $pattern_page_content );
+$pattern_page_blocks_json = wp_json_encode( $pattern_page_blocks );
 maa_adapter_smoke_assert( is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/media-text"' ), 'adapter pattern page draft contains media-text block' );
 maa_adapter_smoke_assert( is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/details"' ), 'adapter pattern page draft contains FAQ details block' );
 maa_adapter_smoke_assert( is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"isStackedOnMobile":true' ), 'adapter pattern page draft keeps mobile stacking attrs' );
 maa_adapter_smoke_assert( false !== strpos( $pattern_page_content, '<!-- wp:' ), 'adapter pattern page draft stores Gutenberg block comments' );
+maa_adapter_smoke_assert( false !== strpos( $pattern_page_content, $pattern_page_media_url ), 'adapter pattern page draft preserves reviewed media URL' );
+maa_adapter_smoke_assert( false !== strpos( $pattern_page_content, 'Adapter pattern page smoke media' ), 'adapter pattern page draft preserves reviewed media alt text' );
+maa_adapter_smoke_assert_gutenberg_images_are_complete( 'adapter pattern page draft', $pattern_page_content );
+maa_adapter_smoke_assert_gutenberg_content_quality( 'adapter pattern page draft', $pattern_page_content, $pattern_page_blocks, 8 );
 $pattern_page_visual_fixture = maa_adapter_smoke_record_gutenberg_visual_acceptance_fixture(
 	'pattern_page_plan',
 	$pattern_page_post_id,
@@ -2021,6 +2139,8 @@ $pattern_page_visual_fixture = maa_adapter_smoke_record_gutenberg_visual_accepta
 		'has_media_text'          => is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/media-text"' ),
 		'has_faq_details'         => is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"blockName":"core\\/details"' ),
 		'has_mobile_stack_attrs'  => is_string( $pattern_page_blocks_json ) && false !== strpos( $pattern_page_blocks_json, '"isStackedOnMobile":true' ),
+		'has_complete_images'     => true,
+		'padded_block_count'      => maa_adapter_smoke_count_padded_blocks( $pattern_page_blocks ),
 	)
 );
 maa_adapter_smoke_assert( '' !== (string) ( $pattern_page_visual_fixture['front_end_url'] ?? '' ), 'adapter pattern page visual acceptance fixture has front-end URL' );
@@ -2122,6 +2242,11 @@ maa_adapter_smoke_assert( '' !== $article_block_proposal_id, 'adapter article bl
 $article_block_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $article_block_proposal_id ) . '/approve-and-execute' );
 maa_adapter_smoke_assert( true === (bool) ( $article_block_execute['success'] ?? false ), 'adapter article block approve-and-execute succeeds' );
 maa_adapter_smoke_assert( 2 === (int) ( $article_block_execute['executed_count'] ?? 0 ), 'adapter article block batch executes create and update actions' );
+$article_block_execution_record = is_array( $article_block_execute['execution_record'] ?? null ) ? $article_block_execute['execution_record'] : array();
+$article_block_execution_verification = is_array( $article_block_execution_record['verification'] ?? null ) ? $article_block_execution_record['verification'] : array();
+maa_adapter_smoke_assert( 'recorded' === (string) ( $article_block_execution_verification['status'] ?? '' ), 'adapter article block execution record persists verification summary' );
+maa_adapter_smoke_assert( 1 <= (int) ( $article_block_execution_verification['aggregates']['block_readback_verified_count'] ?? 0 ), 'adapter article block execution verifies post-block readback' );
+maa_adapter_smoke_assert( 0 === (int) ( $article_block_execution_verification['aggregates']['block_readback_failed_count'] ?? -1 ), 'adapter article block execution has no failed block readbacks' );
 $article_block_post_id = 0;
 foreach ( (array) ( $article_block_execute['results'] ?? array() ) as $article_block_result ) {
 	if ( is_array( $article_block_result ) && 'npcink-abilities-toolkit/create-draft' === (string) ( $article_block_result['target_ability_id'] ?? '' ) ) {
@@ -2144,12 +2269,17 @@ maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string
 $article_block_blocks_result = is_array( $article_block_blocks_shortcut['result'] ?? null ) ? $article_block_blocks_shortcut['result'] : array();
 maa_adapter_smoke_assert( (int) ( $article_block_blocks_result['block_count'] ?? 0 ) >= 10, 'adapter article block read returns expected article block count' );
 $article_block_content = (string) get_post_field( 'post_content', $article_block_post_id );
-$article_block_blocks_json = wp_json_encode( parse_blocks( $article_block_content ) );
+$article_block_blocks = parse_blocks( $article_block_content );
+$article_block_blocks_json = wp_json_encode( $article_block_blocks );
 maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/image"' ), 'adapter article block draft contains image block' );
 maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/columns"' ), 'adapter article block draft contains comparison columns' );
 maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/details"' ), 'adapter article block draft contains FAQ details block' );
 maa_adapter_smoke_assert( is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"isStackedOnMobile":true' ), 'adapter article block draft keeps mobile stacking attrs' );
 maa_adapter_smoke_assert( false !== strpos( $article_block_content, '<!-- wp:' ), 'adapter article block draft stores Gutenberg block comments' );
+maa_adapter_smoke_assert( false !== strpos( $article_block_content, $article_block_media_url ), 'adapter article block draft preserves reviewed media URL' );
+maa_adapter_smoke_assert( false !== strpos( $article_block_content, 'Adapter article block smoke media' ), 'adapter article block draft preserves reviewed media alt text' );
+maa_adapter_smoke_assert_gutenberg_images_are_complete( 'adapter article block draft', $article_block_content );
+maa_adapter_smoke_assert_gutenberg_content_quality( 'adapter article block draft', $article_block_content, $article_block_blocks, 2 );
 $article_block_visual_fixture = maa_adapter_smoke_record_gutenberg_visual_acceptance_fixture(
 	'article_block_plan',
 	$article_block_post_id,
@@ -2161,6 +2291,8 @@ $article_block_visual_fixture = maa_adapter_smoke_record_gutenberg_visual_accept
 		'has_comparison_columns'  => is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/columns"' ),
 		'has_faq_details'         => is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"blockName":"core\\/details"' ),
 		'has_mobile_stack_attrs'  => is_string( $article_block_blocks_json ) && false !== strpos( $article_block_blocks_json, '"isStackedOnMobile":true' ),
+		'has_complete_images'     => true,
+		'padded_block_count'      => maa_adapter_smoke_count_padded_blocks( $article_block_blocks ),
 	)
 );
 maa_adapter_smoke_assert( '' !== (string) ( $article_block_visual_fixture['front_end_url'] ?? '' ), 'adapter article block visual acceptance fixture has front-end URL' );
