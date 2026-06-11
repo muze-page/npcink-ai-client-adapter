@@ -55,6 +55,11 @@ When OpenClaw needs to learn from relevant public landing pages first, run
 and use the reviewed `landing_page_research_brief` only as suggestion-only
 evidence for variables, section choices, visual asset requirements, and FAQ
 seeds.
+For repeated or visually important page generation, also follow
+[`openclaw-gutenberg-design-system.md`](openclaw-gutenberg-design-system.md):
+select a recipe variant, vary section primitives, use a reviewed media role,
+and require design-quality signals before proposal creation instead of
+reusing one monolithic template.
 
 ## Flow
 
@@ -62,12 +67,17 @@ seeds.
    execution.
 2. Confirm the returned `design_quality.pattern_version` is `2.0` or newer and
    `responsive_quality.uses_mobile_stack=true`.
-3. Submit the returned `pattern_page_plan` to
+3. For modern, visual, or repeated page requests, confirm
+   `design_quality.design_system=gutenberg_native_v1`,
+   `design_quality.section_shape_variety >= 4`,
+   `design_quality.template_similarity_score <= 0.75`, and a non-empty
+   `design_quality.variant_reason`.
+4. Submit the returned `pattern_page_plan` to
    `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`.
-4. Poll `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`.
-5. Execute only after approval with
+5. Poll `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`.
+6. Execute only after approval with
    `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`.
-6. Read the created page through
+7. Read the created page through
    `GET /wp-json/npcink-openclaw-adapter/v1/post-blocks?post_id={post_id}`.
 
 ## Responsive Verification
@@ -82,6 +92,8 @@ After execution, verify:
 - the front-end page has no horizontal overflow at 1440px, 768px, and 390px;
 - buttons wrap instead of overflowing on mobile;
 - Gutenberg editor opens without invalid block recovery prompts.
+- modern landing pages show section shape variety instead of repeating the
+  same hero-card-grid-CTA composition.
 
 `GET /help` exposes these browser checks as
 `openclaw_recipes.pattern_page_plan.visual_acceptance`. For local browser QA,
@@ -110,6 +122,7 @@ for the shared visual acceptance contract.
 - `allowed_style_presets=["minimal-dark-light"]`
 - `allowed_responsive_profiles=["landing_standard"]`
 - `allowed_media_strategies=["mock_or_existing_media","existing_media_url"]`
+- `design_system_contract=docs/openclaw-gutenberg-design-system.md`
 - `direct_wordpress_write=false`
 
 Adapter must not accept arbitrary CSS, arbitrary pattern ids, or page rendering

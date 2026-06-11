@@ -157,5 +157,6 @@ Future changes to these flows should keep the following checks green:
 See also:
 
 - [`openclaw-content-intent-router-contract.md`](openclaw-content-intent-router-contract.md)
+- [`openclaw-gutenberg-design-system.md`](openclaw-gutenberg-design-system.md)
 - [`openclaw-gutenberg-visual-acceptance.md`](openclaw-gutenberg-visual-acceptance.md)
 - [`openclaw-site-edit-router-contract.md`](openclaw-site-edit-router-contract.md)

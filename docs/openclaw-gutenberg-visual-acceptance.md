@@ -108,6 +108,27 @@ For each retained fixture, verify:
 - images load from reviewed existing media URLs;
 - CTA buttons and long headings do not overflow on mobile.
 
+## Design Quality Checks
+
+Browser acceptance should catch more than technical breakage. For visually
+important landing pages, also check:
+
+- the page has at least four distinct section shapes, such as split hero,
+  product media panel, bento grid, comparison cards, FAQ, and final CTA band;
+- the chosen media role is visible above or near the fold when the customer
+  asked for a modern or visual page;
+- color story is not only black and white unless the request explicitly asks
+  for a monochrome treatment;
+- repeated pages for the same site do not share the exact same section order,
+  media placement, and CTA arrangement;
+- headings and descriptions are aligned intentionally, not just inherited from
+  theme defaults;
+- the generated page still feels editable as core Gutenberg blocks.
+
+Use
+[`openclaw-gutenberg-design-system.md`](openclaw-gutenberg-design-system.md)
+for the design vocabulary, anti-template rules, and expected quality signals.
+
 ## Structural Baseline
 
 Smoke verifies the preconditions that can be checked without a browser:
