@@ -6,10 +6,13 @@ Use this recipe when OpenClaw wants to use an AI-generated visual in a
 Gutenberg page slot whose dimensions matter, such as a `16:9` hero image, a
 `1:1` feature tile, or a `4:5` card image.
 
-AI image generation dimensions are advisory. If the page slot needs a specific
-ratio, request a generated candidate, review it, crop it through the Cloud
-media derivative path, then adopt the cropped preview through a Core media
-adoption proposal before the page references it.
+Cloud image recommendation should run before generation when a page brief can
+match an existing, source-backed, owned, or previously generated candidate. AI
+generation is the fallback when recommendation does not produce a reviewable
+fit. AI image generation dimensions are advisory. If the page slot needs a
+specific ratio, request a generated candidate, review it, crop it through the
+Cloud media derivative path, then adopt the cropped preview through a Core
+media adoption proposal before the page references it.
 
 Adapter does not generate images, choose providers, store Cloud artifact truth,
 import media, crop images locally, or patch page content by itself.
@@ -46,32 +49,42 @@ actions:
    - square card or avatar-like tile: `1:1`
    - editorial card: `4:5`
    - wide product interface mock: `21:9` only when the page design needs it
-2. Collect one or more `image_candidate.v1` options from an approved candidate
-   source. Hosted image generation may be used only as a candidate source with
-   provenance, prompt, `hosted_profile`, and `model_id` when available.
-3. Review the selected candidate. Reject images with unreadable UI text,
+2. Collect one or more `image_candidate.v1` options from the Cloud-backed
+   image source recommender or another approved candidate source.
+3. If recommendation produces no reviewable fit, use hosted AI image generation
+   as a candidate source with provenance, prompt, `hosted_profile`, `model_id`,
+   source artifact details, and artifact expiry when available.
+4. Review the selected candidate. Reject images with unreadable UI text,
    unwanted logos, visible watermarking, license uncertainty, broken hands or
    faces when relevant, misleading product screenshots, or off-brand imagery.
-4. If the selected candidate is already a local attachment, run
+5. If the selected candidate is already a local attachment, run
    `POST /media-derivative-runs` with `input.attachment_id` and bounded
    `crop`.
-5. If the selected candidate is a same-site short-TTL Cloud artifact, run
+6. If the selected candidate is a same-site short-TTL Cloud artifact, run
    `POST /media-derivative-runs` with `source_artifact` and bounded `crop`.
-6. If the selected candidate is only a remote URL, first adopt or import it
+7. If the selected candidate is only a remote URL, first adopt or import it
    through a Core-governed media adoption proposal, then crop the resulting
    local attachment. Do not ask Adapter to crop arbitrary remote URLs.
-7. Poll the derivative run and read the result. Verify that the returned
+8. Poll the derivative run and read the result. Verify that the returned
    dimensions match the target aspect ratio and that warnings, if present, are
    acceptable.
-8. Use the signed cropped preview URL immediately as the selected `url` in
+9. Use the signed cropped preview URL immediately as the selected `url` in
    `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`. If this
    replaces an image already referenced by a page, include `old_url` for exact
    patching.
-9. Forward the returned `media_adoption_enhancement_plan` to Core through
+10. Forward the returned `media_adoption_enhancement_plan` to Core through
    `POST /proposals/from-plan`, then execute only after Core approval and
    commit-preflight.
-10. Verify the final local media URL with HTTP 200, expected content type,
+11. Verify the final local media URL with HTTP 200, expected content type,
     expected dimensions, page content readback, and Gutenberg block validity.
+
+## Source Selection Policy
+
+- `preferred_source=cloud_recommended_existing_candidate`
+- `fallback_source=cloud_hosted_ai_generated_candidate`
+- `fallback_condition=no_reviewable_candidate_matches_page_brief`
+- `generated_artifact_must_be_cropped_before_adoption=true`
+- `final_page_reference_must_be_local_wordpress_media_url=true`
 
 ## Example Crop Input
 
@@ -110,6 +123,7 @@ created by the proposal, not the preview URL.
 
 - `target_aspect_ratio_required=true`
 - `ai_generation_dimensions_are_advisory=true`
+- `cloud_recommendation_precedes_generation=true`
 - `cloud_crop_required_for_generated_images=true`
 - `candidate_review_required=true`
 - `reject_text_or_logo_artifacts=true`
