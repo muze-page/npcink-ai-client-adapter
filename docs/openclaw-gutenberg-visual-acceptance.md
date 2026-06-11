@@ -83,6 +83,10 @@ runner should also open `block_editor_url` and check for invalid block recovery
 prompts. Without those variables, editor checks are skipped and front-end checks
 still run.
 
+Alternatively, set `MAA_ADAPTER_VISUAL_ACCEPTANCE_CREATE_TEMP_ADMIN=1` to let
+the wrapper create a temporary local administrator for the editor check. The
+temporary user is deleted on exit, and the generated password is not printed.
+
 ## Required Viewports
 
 Use the same viewport set for pages and articles:
