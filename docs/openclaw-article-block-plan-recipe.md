@@ -34,6 +34,7 @@ approval and commit-preflight.
     "dek": "用 Gutenberg 原生模块组织文章，让编辑、审查和移动端阅读都更稳定。",
     "intro": "文章计划应该和页面 Pattern 分开处理，重点放在语义结构和可编辑性。",
     "hero_media_url": "https://example.test/wp-content/uploads/2026/06/article-hero.jpg",
+    "hero_media_attachment_id": 9053,
     "hero_media_alt": "Article hero preview",
     "takeaways": [],
     "sections": [],
@@ -44,7 +45,9 @@ approval and commit-preflight.
 ```
 
 `hero_media_url` must be an existing reviewed WordPress media URL supplied by
-OpenClaw or another caller. Adapter does not fetch, upload, generate, or select media for this recipe.
+OpenClaw or another caller. When the reviewed media library attachment is
+known, also pass `hero_media_attachment_id` so Toolkit can bind
+`core/image.attrs.id` and emit the matching `wp-image-{id}` class. Adapter does not fetch, upload, generate, or select media for this recipe.
 
 ## Flow
 
@@ -69,6 +72,11 @@ After execution, verify:
 - block readback contains `core/columns` with `isStackedOnMobile=true` when
   comparison content is supplied;
 - when `hero_media_url` is supplied, block readback contains `core/image`;
+- when `hero_media_attachment_id` is supplied, `core/image.attrs.id` equals the
+  reviewed attachment id;
+- rendered image markup contains the matching `wp-image-{id}` class;
+- media references use a local WordPress media URL, not a temporary Cloud
+  derivative preview URL;
 - FAQ output contains `core/details`;
 - the front-end post has no horizontal overflow at 1440px, 768px, and 390px;
 - Gutenberg editor opens without invalid block recovery prompts.

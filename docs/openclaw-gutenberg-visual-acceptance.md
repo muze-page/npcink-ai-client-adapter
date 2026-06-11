@@ -115,6 +115,12 @@ Smoke verifies the preconditions that can be checked without a browser:
 - post or page remains `draft`;
 - Gutenberg block comments are stored;
 - `core/media-text` or `core/image` exists when media is supplied;
+- when a reviewed attachment id is supplied, `core/image.attrs.id` or
+  `core/media-text.attrs.mediaId` matches that attachment id;
+- rendered image markup contains the matching `wp-image-{id}` class when an
+  attachment id is supplied;
+- media blocks reference final local WordPress media URLs, not temporary Cloud
+  derivative preview URLs;
 - `core/columns` keeps `isStackedOnMobile=true` where columns are used;
 - FAQ output uses `core/details`;
 - `GET /post-blocks` can read the generated block tree through Adapter.
