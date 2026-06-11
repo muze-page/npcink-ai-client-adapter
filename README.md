@@ -1024,6 +1024,9 @@ fixture manifest instead of creating new smoke fixtures. During this local-only
 pass, retained smoke fixtures are temporarily published so anonymous browser
 rendering verifies the generated Gutenberg content rather than a theme 404 page;
 the smoke path still asserts the governed execution creates draft content first.
+Set `MAA_ADAPTER_VISUAL_ACCEPTANCE_CREATE_TEMP_ADMIN=1` to create a temporary
+local administrator for the editor invalid-block check; the wrapper deletes that
+user on exit and does not print the generated password.
 
 Local smoke and HTTP acceptance tests must register every created fixture for
 automatic cleanup before assertions can fail. Rejected and preflight-blocked

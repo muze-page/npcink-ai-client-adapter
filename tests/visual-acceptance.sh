@@ -8,6 +8,8 @@ NODE_DEPS_DIR="${MAA_ADAPTER_VISUAL_ACCEPTANCE_NODE_DIR:-$ROOT_DIR/build/visual-
 SKIP_SMOKE="${MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE:-}"
 KEEP_FIXTURES_AFTER_RUN="${MAA_ADAPTER_VISUAL_ACCEPTANCE_KEEP_FIXTURES_AFTER_RUN:-}"
 INSTALL_BROWSER="${MAA_ADAPTER_VISUAL_ACCEPTANCE_INSTALL_BROWSER:-}"
+CREATE_TEMP_ADMIN="${MAA_ADAPTER_VISUAL_ACCEPTANCE_CREATE_TEMP_ADMIN:-}"
+TEMP_ADMIN_USER_ID=""
 
 mkdir -p "$REPORT_DIR" "$NODE_DEPS_DIR"
 
@@ -54,7 +56,44 @@ cleanup_visual_fixtures() {
 	fi
 }
 
-trap cleanup_visual_fixtures EXIT
+cleanup_temp_admin() {
+	if [[ -n "$TEMP_ADMIN_USER_ID" ]]; then
+		run_wp user delete "$TEMP_ADMIN_USER_ID" --yes --reassign=1 >/dev/null || true
+	fi
+}
+
+cleanup_all() {
+	cleanup_visual_fixtures
+	cleanup_temp_admin
+}
+
+trap cleanup_all EXIT
+
+if [[ "$CREATE_TEMP_ADMIN" == "1" || "$CREATE_TEMP_ADMIN" == "true" ]]; then
+	if [[ -n "${WP_ADMIN_USER:-}" && -z "${WP_ADMIN_PASSWORD:-}" ]] || [[ -z "${WP_ADMIN_USER:-}" && -n "${WP_ADMIN_PASSWORD:-}" ]]; then
+		echo "Set both WP_ADMIN_USER and WP_ADMIN_PASSWORD, or set neither when MAA_ADAPTER_VISUAL_ACCEPTANCE_CREATE_TEMP_ADMIN=1." >&2
+		exit 2
+	fi
+	if [[ -z "${WP_ADMIN_USER:-}" && -z "${WP_ADMIN_PASSWORD:-}" ]]; then
+		temp_admin_user="codex_visual_$(date +%s)_$$"
+		temp_admin_email="$temp_admin_user@example.invalid"
+		if command -v openssl >/dev/null 2>&1; then
+			temp_admin_password="Cv$(openssl rand -hex 18)9"
+		else
+			temp_admin_password="Cv$(date +%s)$$${RANDOM:-0}9"
+		fi
+		temp_admin_create_output="$(run_wp user create "$temp_admin_user" "$temp_admin_email" --role=administrator --user_pass="$temp_admin_password" --porcelain 2>&1)"
+		TEMP_ADMIN_USER_ID="$(printf '%s\n' "$temp_admin_create_output" | awk '/^[0-9]+$/ { id = $0 } END { print id }')"
+		if [[ -z "$TEMP_ADMIN_USER_ID" ]]; then
+			printf '%s\n' "$temp_admin_create_output" >&2
+			echo "Failed to create temporary visual acceptance admin user." >&2
+			exit 2
+		fi
+		export WP_ADMIN_USER="$temp_admin_user"
+		export WP_ADMIN_PASSWORD="$temp_admin_password"
+		echo "Created temporary visual acceptance admin user: $temp_admin_user ($TEMP_ADMIN_USER_ID)"
+	fi
+fi
 
 if [[ "$SKIP_SMOKE" != "1" && "$SKIP_SMOKE" != "true" ]]; then
 	MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT="$MANIFEST_PATH" \
