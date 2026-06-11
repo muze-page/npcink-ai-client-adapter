@@ -574,23 +574,36 @@ function maa_adapter_smoke_assert_gutenberg_images_are_complete( string $label, 
  * @return array<string,mixed>
  */
 function maa_adapter_smoke_record_gutenberg_visual_acceptance_fixture( string $fixture_type, int $post_id, array $attachment_ids, array $structure_signals ): array {
+	$original_post_status = (string) get_post_status( $post_id );
+	if ( maa_adapter_smoke_keep_visual_acceptance_fixtures() && 'publish' !== $original_post_status ) {
+		$publish_result = wp_update_post(
+			array(
+				'ID'          => $post_id,
+				'post_status' => 'publish',
+			),
+			true
+		);
+		maa_adapter_smoke_assert( ! is_wp_error( $publish_result ), 'adapter visual acceptance fixture is temporarily published for anonymous browser rendering' );
+	}
+
 	$fixture = array(
-		'fixture_type'      => sanitize_key( $fixture_type ),
-		'post_id'           => $post_id,
-		'post_type'         => (string) get_post_type( $post_id ),
-		'post_status'       => (string) get_post_status( $post_id ),
-		'attachment_ids'    => array_values( array_unique( array_filter( array_map( 'absint', $attachment_ids ) ) ) ),
-		'front_end_url'     => (string) get_permalink( $post_id ),
-		'block_editor_url'  => (string) get_edit_post_link( $post_id, 'raw' ),
-		'viewports'         => maa_adapter_smoke_visual_acceptance_viewports(),
-		'manual_checks'     => array(
+		'fixture_type'                  => sanitize_key( $fixture_type ),
+		'post_id'                       => $post_id,
+		'post_type'                     => (string) get_post_type( $post_id ),
+		'post_status'                   => $original_post_status,
+		'visual_acceptance_post_status' => (string) get_post_status( $post_id ),
+		'attachment_ids'                => array_values( array_unique( array_filter( array_map( 'absint', $attachment_ids ) ) ) ),
+		'front_end_url'                 => (string) get_permalink( $post_id ),
+		'block_editor_url'              => (string) get_edit_post_link( $post_id, 'raw' ),
+		'viewports'                     => maa_adapter_smoke_visual_acceptance_viewports(),
+		'manual_checks'                 => array(
 			'front_end_has_no_horizontal_overflow',
 			'block_editor_has_no_invalid_block_recovery_prompt',
 			'core_blocks_remain_individually_editable',
 			'mobile_layout_wraps_or_stacks_without_clipping',
 		),
-		'structure_signals' => $structure_signals,
-		'fixtures_retained' => maa_adapter_smoke_keep_visual_acceptance_fixtures(),
+		'structure_signals'             => $structure_signals,
+		'fixtures_retained'             => maa_adapter_smoke_keep_visual_acceptance_fixtures(),
 	);
 
 	$registry =& maa_adapter_smoke_visual_acceptance_registry();

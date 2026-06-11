@@ -480,6 +480,10 @@ For Gutenberg page or article block changes, `composer smoke:wp` must exercise
 the full `plan -> proposal -> approve-and-execute -> get-post-blocks` path and
 fail if generated content contains broken images, blank headings/paragraphs, no
 section spacing signal, or missing Adapter readback verification.
+Run `composer visual:wp` when front-end layout quality is in scope; it retains
+the smoke fixtures, opens the front-end URLs at desktop/tablet/mobile viewports,
+checks image loading, horizontal overflow, visible headings, controls, and
+section spacing, then writes screenshots plus `build/visual-acceptance/report.json`.
 
 After changing Core cross-reference docs, run:
 
