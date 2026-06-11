@@ -734,16 +734,20 @@ Plan-to-proposal flow:
 	   suggestion-only `landing_page_research_brief`. See
 	   [OpenClaw Pattern Page Research Brief Recipe](docs/openclaw-pattern-page-research-brief-recipe.md).
 	   For visually richer Gutenberg landing pages, compose the reviewed image
-	   candidate adoption flow with `pattern_page_plan`: first adopt one
-	   reviewed `image_candidate.v1` into the local media library, then pass the
-	   approved WordPress media URL as `variables.hero_media_url` with
+	   candidate adoption flow with `pattern_page_plan`: first ask the
+	   Cloud-backed image source recommender for a fitting candidate, use
+	   hosted AI image generation only when no reviewable recommendation fits,
+	   crop and convert the selected candidate through the Cloud media derivative path,
+	   adopt the processed result into the local media library through Core, then
+	   pass the approved WordPress media URL as `variables.hero_media_url` with
 	   `media_strategy=existing_media_url`. The machine-readable playbook is
 	   exposed as `openclaw_recipes.pattern_page_with_visual_asset_plan` from
 	   `GET /help`. See
 	   [OpenClaw Pattern Page With Visual Asset Recipe](docs/openclaw-pattern-page-with-visual-asset-recipe.md).
 	   For AI-generated visuals whose model output dimensions are unreliable,
-	   choose the page-slot ratio first, crop the reviewed candidate through the
-	   Cloud media derivative path, then adopt the cropped preview through
+	   choose the page-slot ratio first, prefer existing Cloud-recommended
+	   candidates when available, crop the reviewed candidate through the Cloud
+	   media derivative path, then adopt the cropped preview through
 	   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan` before a
 	   page references the final local media URL. The machine-readable playbook
 	   is exposed as `openclaw_recipes.ai_image_ratio_crop_media_adoption` from

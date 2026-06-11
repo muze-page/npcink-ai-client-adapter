@@ -413,35 +413,48 @@ create a media registry by itself.
 Gutenberg landing pages. This is a composed two-stage playbook that can follow
 `pattern_page_research_brief`:
 
-1. collect and review one `image_candidate.v1`, then use
-   `npcink-toolbox/build-image-candidate-adoption-plan` to ask Core for media
-   adoption;
-2. pass the approved local WordPress media URL into
+1. ask the Cloud-backed image source recommender for reviewable
+   `image_candidate.v1` options;
+2. use hosted AI generation only as a fallback when no recommended candidate
+   matches the page visual brief;
+3. crop and convert the selected candidate through the Cloud media derivative
+   path before adoption;
+4. use `npcink-toolbox/build-image-candidate-adoption-plan` or
+   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan` to ask Core
+   for media adoption;
+5. pass the approved local WordPress media URL into
    `npcink-abilities-toolkit/build-pattern-page-plan` with
    `media_strategy=existing_media_url`.
 
 The composed playbook keeps `hosted_generation_candidate_only=true`,
+`cloud_candidate_selection_allowed=true`,
+`hosted_ai_generation_allowed_as_fallback=true`,
+`cloud_crop_required_before_page_plan=true`,
 `candidate_review_required=true`, `core_proxy_execute=false`,
 `commit_execution=false`, `cloud_control_plane=false`, and
 `generic_write_executor=false`. Adapter must not call hosted generation,
-import media, or create the page as one direct mutation.
+import media, crop images, or create the page as one direct mutation. The page
+plan must reference the final local WordPress media URL, not a remote source or
+temporary Cloud preview URL.
 
 `GET /help` also includes
 `openclaw_recipes.ai_image_ratio_crop_media_adoption` for AI-generated images
 that need a stable page-slot ratio before adoption. This is a composed
 candidate-crop-adoption playbook:
 
-1. collect and review an `image_candidate.v1` from an approved candidate source
-   such as hosted generation;
-2. treat requested generation dimensions as advisory, then run
+1. collect and review an `image_candidate.v1` from Cloud recommendation first;
+2. use hosted generation only when recommendation fails to produce a
+   reviewable fit;
+3. treat requested generation dimensions as advisory, then run
    `POST /media-derivative-runs` with a bounded `crop` from a local
    `attachment_id` or same-site `source_artifact`;
-3. use the cropped preview URL immediately as input to
+4. use the cropped preview URL immediately as input to
    `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`;
-4. submit the returned plan to Core through `POST /proposals/from-plan`.
+5. submit the returned plan to Core through `POST /proposals/from-plan`.
 
 The playbook keeps `target_aspect_ratio_required=true`,
 `ai_generation_dimensions_are_advisory=true`,
+`cloud_recommendation_precedes_generation=true`,
 `cloud_crop_required_for_generated_images=true`,
 `candidate_review_required=true`, `signed_preview_is_temporary=true`,
 `core_proxy_execute=false`, `commit_execution=false`,
