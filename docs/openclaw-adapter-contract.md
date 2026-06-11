@@ -308,6 +308,23 @@ write actions after Core approval and commit-preflight.
 The recipe also exposes `visual_acceptance` so OpenClaw can run browser checks
 against the created draft page without treating Adapter as a browser runner.
 
+`GET /help` also includes `openclaw_recipes.site_edit_router` for normalizing
+untrusted customer wording before a reviewed block-editing recipe is selected:
+
+- contract mode: `untrusted_user_prompt_to_allowed_recipe`
+- `prompt_is_authorization=false`
+- default behavior: `fail_closed`
+- supported routes: `article_block_plan`, `pattern_page_plan`, and
+  `block_theme_site_plan`
+- fail-closed surfaces: navigation, global styles, raw theme files, raw template
+  HTML, direct database writes, auto-approval, and direct execution
+
+The router is a machine-readable contract, not a prompt owner or workflow
+runtime. Adapter must not execute customer natural language directly. It may only
+project the allowed surface/intent/target shape and then continue through the
+existing recipe, plan, proposal, approval, commit-preflight, execution profile,
+and read-back verification path.
+
 `GET /help` also includes `openclaw_recipes.block_theme_site_plan` for reviewed
 conversational block theme Site Editor changes:
 
@@ -640,6 +657,16 @@ metadata, executed counts, and Core correlation only, and records
 `execution_failed` in Core; it does not store the full proposal or create a
 retry queue. Core remains the proposal, approval, preflight, execution-outcome,
 and audit truth source.
+
+For approved block writes, Adapter also performs a bounded post-execution
+readback before storing the execution record. `update-post-blocks` is verified
+through `npcink-abilities-toolkit/get-post-blocks`; `update-template-blocks`
+and `upsert-template-blocks` are verified through
+`npcink-abilities-toolkit/get-template-blocks`; `update-template-part-blocks`
+is verified through `npcink-abilities-toolkit/get-template-part-blocks`. The
+record keeps only compact counts, validation flags, and readback status. A
+readback failure is recorded as verification metadata and does not turn an
+already successful approved write into a retry queue or a second write path.
 
 Adapter proposal detail must preserve Core's raw `status` and expose
 Adapter-derived `effective_status` beside it. For example, a completed

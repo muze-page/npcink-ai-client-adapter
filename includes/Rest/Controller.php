@@ -2224,6 +2224,107 @@ final class Controller {
 				),
 				'docs'         => 'docs/openclaw-article-media-batch-plan-recipe.md',
 			),
+			'site_edit_router' => array(
+				'title'       => 'Site edit router',
+				'description' => 'Normalize untrusted user wording into one allowed WordPress block editing surface before choosing a reviewed recipe. This is a contract, not authorization and not a prompt execution surface.',
+				'contract_version' => 1,
+				'mode'        => 'untrusted_user_prompt_to_allowed_recipe',
+				'prompt_is_authorization' => false,
+				'default_behavior' => 'fail_closed',
+				'normalization_output_schema' => array(
+					'type'                 => 'object',
+					'required'             => array( 'surface', 'intent', 'target', 'route' ),
+					'additionalProperties' => false,
+					'properties'           => array(
+						'surface' => array(
+							'type' => 'string',
+							'enum' => array( 'post_content', 'site_template', 'template_part', 'navigation', 'global_styles', 'unsupported' ),
+						),
+						'intent'  => array(
+							'type' => 'string',
+							'enum' => array( 'create_article_blocks', 'create_pattern_page', 'add_breadcrumbs', 'unsupported' ),
+						),
+						'target'  => array(
+							'type' => 'object',
+						),
+						'route'   => array(
+							'type' => 'string',
+							'enum' => array( 'article_block_plan', 'pattern_page_plan', 'block_theme_site_plan', 'unsupported' ),
+						),
+						'needs_clarification' => array(
+							'type' => 'boolean',
+						),
+					),
+				),
+				'supported_routes' => array(
+					array(
+						'surface'              => 'post_content',
+						'intent'               => 'create_article_blocks',
+						'route'                => 'article_block_plan',
+						'read_ability_ids'     => array( 'npcink-abilities-toolkit/get-post-blocks' ),
+						'plan_ability_id'      => 'npcink-abilities-toolkit/build-article-block-plan',
+						'final_write_ability_ids' => array(
+							'npcink-abilities-toolkit/create-draft',
+							'npcink-abilities-toolkit/update-post-blocks',
+						),
+						'proposal_required'    => true,
+					),
+					array(
+						'surface'              => 'post_content',
+						'intent'               => 'create_pattern_page',
+						'route'                => 'pattern_page_plan',
+						'read_ability_ids'     => array( 'npcink-abilities-toolkit/get-post-blocks' ),
+						'plan_ability_id'      => 'npcink-abilities-toolkit/build-pattern-page-plan',
+						'final_write_ability_ids' => array(
+							'npcink-abilities-toolkit/create-draft',
+							'npcink-abilities-toolkit/update-post-blocks',
+						),
+						'proposal_required'    => true,
+					),
+					array(
+						'surface'              => 'site_template',
+						'intent'               => 'add_breadcrumbs',
+						'route'                => 'block_theme_site_plan',
+						'read_ability_ids'     => array(
+							'npcink-abilities-toolkit/get-block-theme-context',
+							'npcink-abilities-toolkit/get-template-blocks',
+							'npcink-abilities-toolkit/get-template-part-blocks',
+						),
+						'plan_ability_id'      => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+						'final_write_ability_ids' => array(
+							'npcink-abilities-toolkit/update-template-blocks',
+							'npcink-abilities-toolkit/upsert-template-blocks',
+							'npcink-abilities-toolkit/update-template-part-blocks',
+						),
+						'proposal_required'    => true,
+					),
+				),
+				'fail_closed_surfaces' => array(
+					'navigation',
+					'global_styles',
+					'raw_theme_files',
+					'custom_html_template',
+					'custom_theme_json_patch',
+					'unsupported',
+				),
+				'forbidden_outputs' => array(
+					'raw_template_html',
+					'theme_json_patch',
+					'navigation_mutation',
+					'global_styles_mutation',
+					'plugin_file_edit',
+					'database_write',
+					'auto_approval',
+					'direct_execute',
+				),
+				'failure_behavior' => array(
+					'ambiguous_surface'  => 'Return needs_clarification=true and do not submit a proposal.',
+					'unsupported_intent' => 'Return route=unsupported with a machine-readable unsupported reason and do not invent write_actions.',
+					'unsupported_target' => 'Return route=unsupported unless an existing supported route owns the exact target.',
+					'proposal_required'  => 'All supported write routes must continue through /proposals/from-plan and approve-and-execute.',
+				),
+				'docs' => 'docs/openclaw-site-edit-router-contract.md',
+			),
 			'article_block_plan' => array(
 				'title'                   => 'Article block plan',
 				'description'             => 'Build a reviewed Toolkit article_block_plan, forward it to Core as one batch proposal, then execute only Core-approved draft creation and Gutenberg block update actions.',
@@ -5643,6 +5744,15 @@ final class Controller {
 		if ( ! empty( $profile['post_id_from_result'] ) && is_array( $result_data ) ) {
 			$post_id = absint( $result_data['post_id'] ?? $post_id );
 		}
+		if ( is_array( $result_data ) ) {
+			$readback_verification = $this->block_write_readback_verification( $ability_id, $ability_input, $result_data, $base_request_context );
+			if ( ! empty( $readback_verification ) ) {
+				$result_data['verification'] = array_merge(
+					is_array( $result_data['verification'] ?? null ) ? $result_data['verification'] : array(),
+					$readback_verification
+				);
+			}
+		}
 
 		$post_status_after = get_post_status( $post_id );
 
@@ -5657,6 +5767,88 @@ final class Controller {
 			'post_status_after'  => false === $post_status_after ? '' : (string) $post_status_after,
 			'adapter_request_id' => (string) ( $context['adapter_request_id'] ?? '' ),
 			'result'             => $result_data,
+		);
+	}
+
+	/**
+	 * Runs a bounded readback after approved block writes.
+	 *
+	 * @param string              $ability_id Executed write ability id.
+	 * @param array<string,mixed> $ability_input Executed input.
+	 * @param array<string,mixed> $ability_result Write ability result.
+	 * @param array<string,mixed> $base_request_context Base request context.
+	 * @return array<string,mixed>
+	 */
+	private function block_write_readback_verification( string $ability_id, array $ability_input, array $ability_result, array $base_request_context ): array {
+		$read_ability_id = '';
+		$read_input      = array();
+
+		if ( 'npcink-abilities-toolkit/update-post-blocks' === $ability_id ) {
+			$post_id = absint( $ability_result['post_id'] ?? ( $ability_input['post_id'] ?? 0 ) );
+			if ( $post_id <= 0 ) {
+				return array();
+			}
+			$read_ability_id = 'npcink-abilities-toolkit/get-post-blocks';
+			$read_input      = array(
+				'post_id'              => $post_id,
+				'include_inner_blocks' => true,
+			);
+		} elseif ( in_array( $ability_id, array( 'npcink-abilities-toolkit/update-template-blocks', 'npcink-abilities-toolkit/upsert-template-blocks' ), true ) ) {
+			$post_id = absint( $ability_result['post_id'] ?? ( $ability_input['post_id'] ?? 0 ) );
+			$slug    = sanitize_key( (string) ( $ability_result['slug'] ?? ( $ability_input['slug'] ?? '' ) ) );
+			if ( $post_id <= 0 && '' === $slug ) {
+				return array();
+			}
+			$read_ability_id = 'npcink-abilities-toolkit/get-template-blocks';
+			$read_input      = $post_id > 0 ? array( 'post_id' => $post_id ) : array( 'slug' => $slug );
+		} elseif ( 'npcink-abilities-toolkit/update-template-part-blocks' === $ability_id ) {
+			$post_id = absint( $ability_result['post_id'] ?? ( $ability_input['post_id'] ?? 0 ) );
+			$slug    = sanitize_key( (string) ( $ability_result['slug'] ?? ( $ability_input['slug'] ?? '' ) ) );
+			if ( $post_id <= 0 && '' === $slug ) {
+				return array();
+			}
+			$read_ability_id = 'npcink-abilities-toolkit/get-template-part-blocks';
+			$read_input      = $post_id > 0 ? array( 'post_id' => $post_id ) : array( 'slug' => $slug );
+		}
+
+		if ( '' === $read_ability_id ) {
+			return array();
+		}
+
+		$read_context = $base_request_context;
+		$read_context['verification_source'] = 'post_execution_block_readback';
+		$read_context['write_ability_id']    = $ability_id;
+		$read_context['ability_id']          = $read_ability_id;
+		$response = $this->run_read_ability( $read_ability_id, $read_input, $read_context );
+		if ( is_wp_error( $response ) ) {
+			$error_data = $response->get_error_data();
+			$error_data = is_array( $error_data ) ? $error_data : array();
+
+			return array(
+				'block_readback_status'     => 'readback_failed',
+				'block_readback_ability_id' => $read_ability_id,
+				'block_readback_error_code' => sanitize_key( $response->get_error_code() ),
+				'block_readback_status_code' => absint( $error_data['status'] ?? 0 ),
+			);
+		}
+
+		$data        = $response->get_data();
+		$data        = is_array( $data ) ? $data : array();
+		$read_result = is_array( $data['result'] ?? null ) ? $data['result'] : array();
+		$validation  = is_array( $ability_result['validation'] ?? null ) ? $ability_result['validation'] : array();
+
+		return array(
+			'block_readback_status'          => 'verified',
+			'block_readback_ability_id'      => $read_ability_id,
+			'block_readback_post_id'         => absint( $read_result['post_id'] ?? ( $read_input['post_id'] ?? 0 ) ),
+			'block_readback_post_type'       => sanitize_key( (string) ( $read_result['post_type'] ?? ( $ability_result['post_type'] ?? '' ) ) ),
+			'block_readback_slug'            => sanitize_key( (string) ( $read_result['slug'] ?? ( $ability_result['slug'] ?? ( $read_input['slug'] ?? '' ) ) ) ),
+			'block_readback_block_count'     => absint( $read_result['block_count'] ?? 0 ),
+			'block_readback_content_length'  => absint( $read_result['content_length'] ?? 0 ),
+			'block_write_block_count_after'  => absint( $ability_result['block_count_after'] ?? 0 ),
+			'block_write_validation_valid'   => (bool) ( $validation['valid'] ?? false ),
+			'block_write_roundtrip_checked'  => (bool) ( $validation['roundtrip_checked'] ?? false ),
+			'block_write_roundtrip_ok'       => (bool) ( $validation['roundtrip_ok'] ?? false ),
 		);
 	}
 
@@ -6721,6 +6913,19 @@ final class Controller {
 			'content_reference_post_count',
 			'content_reference_actual_replacement_count',
 			'content_reference_unmatched_rules',
+			'block_readback_status',
+			'block_readback_ability_id',
+			'block_readback_post_id',
+			'block_readback_post_type',
+			'block_readback_slug',
+			'block_readback_block_count',
+			'block_readback_content_length',
+			'block_readback_error_code',
+			'block_readback_status_code',
+			'block_write_block_count_after',
+			'block_write_validation_valid',
+			'block_write_roundtrip_checked',
+			'block_write_roundtrip_ok',
 			'backup_available',
 			'rollback_available',
 		);
@@ -6780,12 +6985,19 @@ final class Controller {
 		$has_post_references = false;
 		$old_urls_absent     = true;
 		$new_urls_present    = true;
+		$block_readbacks     = 0;
+		$block_readback_failures = 0;
 
 		foreach ( $items as $item ) {
 			$verification = is_array( $item['verification'] ?? null ) ? $item['verification'] : array();
 			$backup_available   = $backup_available || (bool) ( $verification['backup_available'] ?? false );
 			$rollback_available = $rollback_available || (bool) ( $verification['rollback_available'] ?? false );
 			$actual_replacements += absint( $verification['content_reference_actual_replacement_count'] ?? 0 );
+			if ( 'verified' === (string) ( $verification['block_readback_status'] ?? '' ) ) {
+				++$block_readbacks;
+			} elseif ( 'readback_failed' === (string) ( $verification['block_readback_status'] ?? '' ) ) {
+				++$block_readback_failures;
+			}
 			foreach ( (array) ( $verification['post_references_verified'] ?? array() ) as $post_reference ) {
 				if ( is_array( $post_reference ) ) {
 					$post_ids[] = absint( $post_reference['post_id'] ?? 0 );
@@ -6806,6 +7018,8 @@ final class Controller {
 			'post_reference_count'                       => count( array_unique( array_filter( $post_ids ) ) ),
 			'post_reference_old_urls_absent'             => $has_post_references ? $old_urls_absent : null,
 			'post_reference_new_urls_present'            => $has_post_references ? $new_urls_present : null,
+			'block_readback_verified_count'              => $block_readbacks,
+			'block_readback_failed_count'                => $block_readback_failures,
 		);
 	}
 

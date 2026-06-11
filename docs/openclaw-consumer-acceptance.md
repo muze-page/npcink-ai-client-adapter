@@ -119,6 +119,7 @@ Run this order for a local acceptance pass:
    - `openclaw_recipes.article_draft_plan`
    - `openclaw_recipes.article_batch_draft_plan`
    - `openclaw_recipes.article_media_batch_plan`
+   - `openclaw_recipes.site_edit_router`
    - `openclaw_recipes.article_block_plan`
    - `openclaw_recipes.pattern_page_plan`
    - `openclaw_recipes.block_theme_site_plan`
@@ -132,6 +133,10 @@ Run this order for a local acceptance pass:
    `openclaw_recipes.article_block_plan.visual_acceptance` expose
    `operator_browser_check`, front-end and block-editor targets, and desktop,
    tablet, and mobile viewport rows.
+   Confirm `openclaw_recipes.site_edit_router` exposes
+   `prompt_is_authorization=false`, `default_behavior=fail_closed`, and
+   fail-closed surfaces for navigation and global styles before any Gutenberg
+   or block-theme editing recipe is selected.
    Confirm `openclaw_recipes.pattern_page_with_visual_asset_plan.guardrails`
    keeps `candidate_review_required=true`,
    `hosted_generation_candidate_only=true`, `cloud_control_plane=false`, and
