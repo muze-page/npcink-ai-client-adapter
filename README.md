@@ -662,11 +662,19 @@ Plan-to-proposal flow:
 		   `GET /help`. See
 		   [OpenClaw Article Media Batch Plan Recipe](docs/openclaw-article-media-batch-plan-recipe.md).
 		   Before selecting any Gutenberg or block-theme editing recipe, normalize
-		   customer wording through the machine-readable
-		   `openclaw_recipes.site_edit_router` contract from `GET /help`.
+		   customer wording through `openclaw_recipes.content_intent_router`
+		   and the read-only `npcink-abilities-toolkit/route-content-intent`
+		   ability. The machine-readable playbook is exposed from `GET /help`
+		   and documented in
+		   [OpenClaw Content Intent Router Contract](docs/openclaw-content-intent-router-contract.md).
 		   The router marks customer prompts as untrusted input
 		   (`prompt_is_authorization=false`), defaults unsupported or ambiguous
-		   requests to fail closed, and only routes to existing reviewed recipes.
+		   requests to fail closed, and only routes to existing reviewed recipes:
+		   `openclaw_recipes.pattern_page_plan`,
+		   `openclaw_recipes.article_block_plan`, or
+		   `openclaw_recipes.block_theme_site_plan`. Use
+		   `openclaw_recipes.site_edit_router` as the narrower Site Editor
+		   surface contract.
 		   Post-content routes use `npcink-abilities-toolkit/get-post-blocks`
 		   and `npcink-abilities-toolkit/update-post-blocks`; block-theme routes
 		   use `npcink-abilities-toolkit/get-template-blocks`,

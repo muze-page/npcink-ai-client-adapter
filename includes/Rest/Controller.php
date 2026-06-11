@@ -2223,9 +2223,80 @@ final class Controller {
 					'generic_write_executor'   => false,
 				),
 				'docs'         => 'docs/openclaw-article-media-batch-plan-recipe.md',
-			),
-			'site_edit_router' => array(
-				'title'       => 'Site edit router',
+				),
+				'content_intent_router' => array(
+					'title'       => 'Content intent router',
+					'description' => 'Normalize natural-language content requests into one supported Gutenberg recipe route before building a page, article, or supported Site Editor plan. This is a read-only routing step, not authorization and not a write executor.',
+					'contract_version' => 1,
+					'mode'        => 'natural_language_to_allowed_gutenberg_recipe',
+					'entrypoint_ability_id' => 'npcink-abilities-toolkit/route-content-intent',
+					'prompt_is_authorization' => false,
+					'default_behavior' => 'fail_closed',
+					'supported_routes' => array(
+						'page_landing' => array(
+							'route'           => 'pattern_page_plan',
+							'plan_ability_id' => 'npcink-abilities-toolkit/build-pattern-page-plan',
+							'readback_ability_ids' => array( 'npcink-abilities-toolkit/get-post-blocks' ),
+						),
+						'post_article' => array(
+							'route'           => 'article_block_plan',
+							'plan_ability_id' => 'npcink-abilities-toolkit/build-article-block-plan',
+							'readback_ability_ids' => array( 'npcink-abilities-toolkit/get-post-blocks' ),
+						),
+						'site_template_breadcrumbs' => array(
+							'route'           => 'block_theme_site_plan',
+							'plan_ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+							'readback_ability_ids' => array(
+								'npcink-abilities-toolkit/get-template-blocks',
+								'npcink-abilities-toolkit/get-template-part-blocks',
+							),
+						),
+					),
+					'fail_closed_targets' => array(
+						'template_part_without_recipe',
+						'navigation',
+						'global_styles',
+						'raw_theme_files',
+						'custom_html',
+						'custom_css',
+						'unsupported',
+					),
+					'steps'       => array(
+						array(
+							'order'      => 1,
+							'route'      => 'POST /run-read-ability',
+							'ability_id' => 'npcink-abilities-toolkit/route-content-intent',
+							'purpose'    => 'Normalize the user prompt to a supported recipe route, or return unsupported/needs_clarification without write_actions.',
+						),
+						array(
+							'order'   => 2,
+							'route'   => 'POST /run-read-ability',
+							'purpose' => 'Call only the returned plan_ability_id and let the AI fill bounded variables inside that recipe.',
+						),
+						array(
+							'order'   => 3,
+							'route'   => 'POST /proposals/from-plan',
+							'purpose' => 'Forward the returned plan artifact to Core proposal intake.',
+						),
+						array(
+							'order'   => 4,
+							'route'   => 'read-back ability from the route output',
+							'purpose' => 'After approved execution, verify through get-post-blocks or template block readback.',
+						),
+					),
+					'guardrails'  => array(
+						'prompt_is_authorization' => false,
+						'direct_wordpress_write'  => false,
+						'commit_execution'        => false,
+						'generic_write_executor'  => false,
+						'proposal_required'       => true,
+						'custom_css_allowed'      => false,
+						'core_html_allowed'       => false,
+					),
+					'docs'        => 'docs/openclaw-content-intent-router-contract.md',
+				),
+				'site_edit_router' => array(
+					'title'       => 'Site edit router',
 				'description' => 'Normalize untrusted user wording into one allowed WordPress block editing surface before choosing a reviewed recipe. This is a contract, not authorization and not a prompt execution surface.',
 				'contract_version' => 1,
 				'mode'        => 'untrusted_user_prompt_to_allowed_recipe',

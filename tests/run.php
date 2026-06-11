@@ -1057,12 +1057,14 @@ foreach (
 			'openclaw_recipes.article_batch_draft_plan',
 			'openclaw_recipes.article_media_batch_plan',
 			'openclaw_recipes.media_adoption_enhancement_plan',
-					'openclaw_recipes.article_block_plan',
-					'openclaw_recipes.block_theme_site_plan',
-					'openclaw_recipes.pattern_page_plan',
-					'openclaw_recipes.site_edit_router',
-					'docs/openclaw-block-theme-site-builder-recipe.md',
-					'docs/openclaw-site-edit-router-contract.md',
+						'openclaw_recipes.article_block_plan',
+						'openclaw_recipes.block_theme_site_plan',
+						'openclaw_recipes.content_intent_router',
+						'openclaw_recipes.pattern_page_plan',
+						'openclaw_recipes.site_edit_router',
+						'docs/openclaw-block-theme-site-builder-recipe.md',
+						'docs/openclaw-content-intent-router-contract.md',
+						'docs/openclaw-site-edit-router-contract.md',
 				'openclaw_recipes.pattern_page_research_brief',
 		'openclaw_recipes.pattern_page_with_visual_asset_plan',
 		'openclaw_recipes.ai_image_ratio_crop_media_adoption',
@@ -2522,7 +2524,7 @@ foreach (
 			maa_adapter_assert( false !== strpos( $block_theme_site_builder_recipe, $required ), 'Block theme site builder recipe contains required text: ' . $required );
 		}
 
-		$site_edit_router_contract = maa_adapter_read( $root . '/docs/openclaw-site-edit-router-contract.md' );
+			$site_edit_router_contract = maa_adapter_read( $root . '/docs/openclaw-site-edit-router-contract.md' );
 	foreach (
 		array(
 			'OpenClaw Site Edit Router Contract',
@@ -2541,9 +2543,32 @@ foreach (
 			'raw template HTML',
 			'Core proposal `status=executed`',
 		) as $required
-	) {
-		maa_adapter_assert( false !== strpos( $site_edit_router_contract, $required ), 'Site edit router contract contains required text: ' . $required );
-	}
+		) {
+			maa_adapter_assert( false !== strpos( $site_edit_router_contract, $required ), 'Site edit router contract contains required text: ' . $required );
+		}
+
+			$content_intent_router_contract = maa_adapter_read( $root . '/docs/openclaw-content-intent-router-contract.md' );
+		foreach (
+			array(
+				'OpenClaw Content Intent Router Contract',
+				'npcink-abilities-toolkit/route-content-intent',
+				'content_intent_route',
+				'page_landing',
+				'post_article',
+				'site_template_breadcrumbs',
+				'openclaw_recipes.pattern_page_plan',
+				'openclaw_recipes.article_block_plan',
+				'openclaw_recipes.block_theme_site_plan',
+				'route=unsupported',
+				'needs_clarification=true',
+				'prompt_is_authorization=false',
+				'direct_wordpress_write=false',
+				'custom_css_allowed=false',
+				'core_html_allowed=false',
+			) as $required
+		) {
+			maa_adapter_assert( false !== strpos( $content_intent_router_contract, $required ), 'Content intent router contract contains required text: ' . $required );
+		}
 
 		$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
 	foreach (
