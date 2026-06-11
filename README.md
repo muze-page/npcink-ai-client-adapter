@@ -675,6 +675,8 @@ Plan-to-proposal flow:
 		   `openclaw_recipes.block_theme_site_plan`. Use
 		   `openclaw_recipes.site_edit_router` as the narrower Site Editor
 		   surface contract.
+		   The verified page/article/template routing baseline is captured in
+		   [OpenClaw Gutenberg Content Intent Routing Baseline](docs/openclaw-gutenberg-content-intent-routing-baseline.md).
 		   Post-content routes use `npcink-abilities-toolkit/get-post-blocks`
 		   and `npcink-abilities-toolkit/update-post-blocks`; block-theme routes
 		   use `npcink-abilities-toolkit/get-template-blocks`,

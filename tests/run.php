@@ -1064,6 +1064,7 @@ foreach (
 						'openclaw_recipes.site_edit_router',
 						'docs/openclaw-block-theme-site-builder-recipe.md',
 						'docs/openclaw-content-intent-router-contract.md',
+						'docs/openclaw-gutenberg-content-intent-routing-baseline.md',
 						'docs/openclaw-site-edit-router-contract.md',
 				'openclaw_recipes.pattern_page_research_brief',
 		'openclaw_recipes.pattern_page_with_visual_asset_plan',
@@ -2568,6 +2569,31 @@ foreach (
 			) as $required
 		) {
 			maa_adapter_assert( false !== strpos( $content_intent_router_contract, $required ), 'Content intent router contract contains required text: ' . $required );
+		}
+
+			$gutenberg_intent_routing_baseline = maa_adapter_read( $root . '/docs/openclaw-gutenberg-content-intent-routing-baseline.md' );
+		foreach (
+			array(
+				'OpenClaw Gutenberg Content Intent Routing Baseline',
+				'npcink-abilities-toolkit/route-content-intent',
+				'pattern_page_plan',
+				'article_block_plan',
+				'block_theme_site_plan',
+				'7874c491-89a1-4700-a07d-526937ff466c',
+				'9fd06242-a936-4d9d-a693-621284e5eb6b',
+				'ae94822a-0c33-4a5f-b189-b8a1578ab02a',
+				'281748',
+				'281750',
+				'core/image.attrs.id=8053',
+				'core/media-text.attrs.mediaId=8053',
+				'wp-image-8053',
+				'successful no-op',
+				'get-post-blocks',
+				'get-template-blocks',
+				'get-template-part-blocks',
+			) as $required
+		) {
+			maa_adapter_assert( false !== strpos( $gutenberg_intent_routing_baseline, $required ), 'Gutenberg intent routing baseline contains required text: ' . $required );
 		}
 
 		$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
