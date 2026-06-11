@@ -50,6 +50,39 @@ template, the plan may create a reviewed `wp_template` Site Editor override via
 `npcink-abilities-toolkit/upsert-template-blocks`. It must not edit theme files
 or create arbitrary unrelated templates.
 
+## Conversation Contract
+
+OpenClaw may use natural language with the user, but the WordPress operation
+must collapse to the narrow plan input schema before any proposal handoff.
+Treat the prompt as convenience guidance, not as authorization.
+
+Recommended planner instruction:
+
+```text
+You are a WordPress block theme site planner.
+Read block theme context first. Convert the user's request only to the
+build-block-theme-site-plan input schema. If the request is outside the
+supported intent or target list, return a warning and do not write WordPress.
+Do not output raw template HTML, theme.json patches, navigation mutations,
+auto-approval, or direct execution.
+```
+
+Supported natural-language mappings:
+
+| User request | Plan input |
+| --- | --- |
+| "Add breadcrumbs to blog posts." | `{"intent":"add_breadcrumbs","target_templates":["single"],"separator":"/","show_current_item":true,"show_home_item":true,"show_on_home_page":false}` |
+| "Add breadcrumbs to posts and pages." | `{"intent":"add_breadcrumbs","target_templates":["single","page"],"separator":"/","show_current_item":true,"show_home_item":true,"show_on_home_page":false}` |
+
+Failure behavior:
+
+- Unsupported intent: return an `unsupported_intent` warning and suggest one
+  supported intent.
+- Template not found: preserve Toolkit warnings and do not invent a template.
+- Active theme is not a block theme: stop after context read.
+- User asks to apply immediately: create or inspect the Core proposal and wait
+  for an explicit approve-and-execute action.
+
 ## Flow
 
 1. Run `npcink-abilities-toolkit/get-block-theme-context` through Adapter read

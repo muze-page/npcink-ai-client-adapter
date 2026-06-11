@@ -2401,6 +2401,67 @@ final class Controller {
 						'npcink-abilities-toolkit/upsert-template-blocks',
 						'npcink-abilities-toolkit/update-template-part-blocks',
 					),
+					'conversation_contract'   => array(
+						'contract_version' => 1,
+						'mode'             => 'natural_language_to_reviewed_plan',
+						'goal'             => 'Translate conversational block-theme Site Editor requests into one reviewed block_theme_site_plan. Do not produce direct WordPress writes, raw theme file edits, or a second workflow runtime.',
+						'required_context_before_planning' => array(
+							'npcink-abilities-toolkit/get-block-theme-context',
+							'active_theme',
+							'is_block_theme',
+							'templates',
+							'template_parts',
+						),
+						'planner_prompt_guidance' => array(
+							'role'         => 'WordPress block theme site planner',
+							'instruction'  => 'Map the user request to the narrow build-block-theme-site-plan input schema. If the request is outside allowed_intents or allowed_template_targets, return a warning and do not invent write_actions.',
+							'output_shape' => array(
+								'intent'              => 'add_breadcrumbs',
+								'target_templates'    => array( 'single' ),
+								'separator'           => '/',
+								'show_current_item'   => true,
+								'show_home_item'      => true,
+								'show_on_home_page'   => false,
+							),
+							'forbidden_outputs' => array(
+								'raw_template_html',
+								'theme_json_patch',
+								'navigation_mutation',
+								'auto_approval',
+								'direct_execute',
+							),
+						),
+						'intent_examples' => array(
+							array(
+								'user_request' => 'Add breadcrumbs to blog posts.',
+								'plan_input'   => array(
+									'intent'              => 'add_breadcrumbs',
+									'target_templates'    => array( 'single' ),
+									'separator'           => '/',
+									'show_current_item'   => true,
+									'show_home_item'      => true,
+									'show_on_home_page'   => false,
+								),
+							),
+							array(
+								'user_request' => 'Add breadcrumbs to posts and pages.',
+								'plan_input'   => array(
+									'intent'              => 'add_breadcrumbs',
+									'target_templates'    => array( 'single', 'page' ),
+									'separator'           => '/',
+									'show_current_item'   => true,
+									'show_home_item'      => true,
+									'show_on_home_page'   => false,
+								),
+							),
+						),
+						'failure_behavior' => array(
+							'unsupported_intent' => 'Return a concise unsupported_intent warning and suggest one supported intent instead of writing WordPress.',
+							'template_not_found' => 'Preserve Toolkit warnings and do not create unrelated templates.',
+							'not_block_theme'    => 'Stop after context read and report that the active theme is not a block theme.',
+							'approval_required'  => 'Create or inspect the Core proposal; do not call final execution until the user chooses approve-and-execute.',
+						),
+					),
 					'steps'                   => array(
 						array(
 							'order'      => 1,
