@@ -133,6 +133,10 @@ Run this order for a local acceptance pass:
    `openclaw_recipes.article_block_plan.visual_acceptance` expose
    `operator_browser_check`, front-end and block-editor targets, and desktop,
    tablet, and mobile viewport rows.
+   Confirm local Gutenberg smoke verifies post-execution `get-post-blocks`
+   readback, complete image `src`/`alt` attributes, non-empty heading and
+   paragraph markup, and Gutenberg-native spacing on key sections before
+   manual viewport review.
    Confirm `openclaw_recipes.site_edit_router` exposes
    `prompt_is_authorization=false`, `default_behavior=fail_closed`, and
    fail-closed surfaces for navigation and global styles before any Gutenberg
@@ -471,6 +475,11 @@ composer package:release
 composer smoke:wp
 git diff --check
 ```
+
+For Gutenberg page or article block changes, `composer smoke:wp` must exercise
+the full `plan -> proposal -> approve-and-execute -> get-post-blocks` path and
+fail if generated content contains broken images, blank headings/paragraphs, no
+section spacing signal, or missing Adapter readback verification.
 
 After changing Core cross-reference docs, run:
 

@@ -681,6 +681,11 @@ Plan-to-proposal flow:
 	   playbook is exposed as `openclaw_recipes.pattern_page_plan` from
 	   `GET /help`, including a `visual_acceptance` block with front-end/editor
 		   targets, 1440/768/390 viewport checks, and the local smoke artifact envs.
+		   Local smoke also machine-checks the generated draft for non-empty
+		   headings, complete image `src`/`alt` attributes,
+		   Gutenberg-native spacing on key sections, and
+		   post-execution `get-post-blocks` readback verification before any
+		   browser review.
 		   See [OpenClaw Pattern Page Plan Recipe](docs/openclaw-pattern-page-plan-recipe.md)
 		   and [OpenClaw Gutenberg Visual Acceptance](docs/openclaw-gutenberg-visual-acceptance.md).
 		   For reviewed conversational block theme Site Editor changes, use
@@ -1009,3 +1014,10 @@ Local smoke and HTTP acceptance tests must register every created fixture for
 automatic cleanup before assertions can fail. Rejected and preflight-blocked
 negative-loop cases must not rely on final write execution to remove target
 posts, because the correct behavior is to leave those writes unexecuted.
+The Gutenberg page/article smoke path additionally asserts that approved
+block-write proposals persist compact execution verification, post-content
+readback reports no failed block reads, image markup has non-empty `src` and
+`alt`, generated headings and paragraphs are not blank, and key sections retain
+Gutenberg-native spacing. Set `MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES=1`
+with `MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT=/path/to/manifest.json` when a retained
+fixture is needed for browser viewport review.
