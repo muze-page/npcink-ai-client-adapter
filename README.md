@@ -658,11 +658,23 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/upload-media-from-url`,
 	   `npcink-abilities-toolkit/update-media-details`, and
 	   `npcink-abilities-toolkit/set-post-featured-image` actions. The machine-readable
-	   playbook is exposed as `openclaw_recipes.article_media_batch_plan` from
-	   `GET /help`. See
-	   [OpenClaw Article Media Batch Plan Recipe](docs/openclaw-article-media-batch-plan-recipe.md).
-	   For reviewed Gutenberg page pattern drafts, use
-	   `npcink-abilities-toolkit/build-pattern-page-plan`; Core creates one
+		   playbook is exposed as `openclaw_recipes.article_media_batch_plan` from
+		   `GET /help`. See
+		   [OpenClaw Article Media Batch Plan Recipe](docs/openclaw-article-media-batch-plan-recipe.md).
+		   Before selecting any Gutenberg or block-theme editing recipe, normalize
+		   customer wording through the machine-readable
+		   `openclaw_recipes.site_edit_router` contract from `GET /help`.
+		   The router marks customer prompts as untrusted input
+		   (`prompt_is_authorization=false`), defaults unsupported or ambiguous
+		   requests to fail closed, and only routes to existing reviewed recipes.
+		   Post-content routes use `npcink-abilities-toolkit/get-post-blocks`
+		   and `npcink-abilities-toolkit/update-post-blocks`; block-theme routes
+		   use `npcink-abilities-toolkit/get-template-blocks`,
+		   `npcink-abilities-toolkit/get-template-part-blocks`, and
+		   bounded post-execution readback where readback failure is recorded as verification metadata.
+		   See [OpenClaw Site Edit Router Contract](docs/openclaw-site-edit-router-contract.md).
+		   For reviewed Gutenberg page pattern drafts, use
+		   `npcink-abilities-toolkit/build-pattern-page-plan`; Core creates one
 	   batch proposal and Adapter later executes only approved
 	   `npcink-abilities-toolkit/create-draft` and
 	   `npcink-abilities-toolkit/update-post-blocks` actions. The machine-readable
@@ -791,7 +803,11 @@ Proposal-required write flow:
     Abilities API, normalizes ability input to `dry_run=false` and
     `commit=true`, stores a bounded execution record, and returns `proposal_id`,
     `correlation_id`, `ability_id`, and `execution_record` with the ability
-    result. If execution fails after Core preflight has been consumed, Adapter
+    result. For approved block writes, Adapter performs a bounded post-execution readback before storing the execution record: `update-post-blocks` uses
+    `npcink-abilities-toolkit/get-post-blocks`, template writes use
+    `npcink-abilities-toolkit/get-template-blocks`, and template part writes use
+    `npcink-abilities-toolkit/get-template-part-blocks`. A readback failure is recorded as verification metadata; it does not create a second write path or
+    retry queue. If execution fails after Core preflight has been consumed, Adapter
     stores and returns only a bounded failed execution summary; it does not
     store the full proposal or create a retry queue. Repeating the same
     successful proposal execution returns

@@ -308,6 +308,23 @@ write actions after Core approval and commit-preflight.
 The recipe also exposes `visual_acceptance` so OpenClaw can run browser checks
 against the created draft page without treating Adapter as a browser runner.
 
+`GET /help` also includes `openclaw_recipes.site_edit_router` for normalizing
+untrusted customer wording before a reviewed block-editing recipe is selected:
+
+- contract mode: `untrusted_user_prompt_to_allowed_recipe`
+- `prompt_is_authorization=false`
+- default behavior: `fail_closed`
+- supported routes: `article_block_plan`, `pattern_page_plan`, and
+  `block_theme_site_plan`
+- fail-closed surfaces: navigation, global styles, raw theme files, raw template
+  HTML, direct database writes, auto-approval, and direct execution
+
+The router is a machine-readable contract, not a prompt owner or workflow
+runtime. Adapter must not execute customer natural language directly. It may only
+project the allowed surface/intent/target shape and then continue through the
+existing recipe, plan, proposal, approval, commit-preflight, execution profile,
+and read-back verification path.
+
 `GET /help` also includes `openclaw_recipes.block_theme_site_plan` for reviewed
 conversational block theme Site Editor changes:
 
@@ -552,7 +569,8 @@ approved main-file rename and attachment URL update to the WordPress ability;
 
 The response must include `proposal_id`, `post_id`, `ability_id`,
 `correlation_id`, `status_before`, whether Adapter performed approval, Core
-`commit_execution=false`, an `execution_record`, and the execution result.
+`commit_execution=false`, an `execution_record` with
+`core_execution_record`, and the execution result.
 Rejected proposals, non-allowlisted abilities, preflight failures, and
 duplicate execution attempts must not execute.
 
@@ -626,21 +644,34 @@ one was issued through Adapter, otherwise call Core commit-preflight, require
 `approval_context` to WordPress Abilities API, and return `proposal_id`,
 `correlation_id`, `ability_id`, and `execution_record` with the ability result.
 After a successful execution, Adapter stores only a bounded public-safe
-execution record keyed by proposal id for replay protection. The record may
-include a compact `verification` summary extracted from allowlisted Ability
-verification fields such as current media file, MIME type, post reference
-verification, backup availability, and rollback availability; it must not store
-the full proposal or full Ability response. When execution fails after Core
-preflight has been consumed, Adapter stores the same bounded public-safe record
-shape with `status=failed`, `error_code`, failed action metadata, executed
-counts, and Core correlation only; it does not store the full proposal or
-create a retry queue. Core remains the proposal, approval, preflight, and audit
-truth source.
+execution record keyed by proposal id for replay protection and records the
+execution outcome back to Core through
+`/npcink-governance-core/v1/proposals/{proposal_id}/record-execution`. The
+record may include a compact `verification` summary extracted from allowlisted
+Ability verification fields such as current media file, MIME type, post
+reference verification, backup availability, and rollback availability; it
+must not store the full proposal or full Ability response. When execution
+fails after Core preflight has been consumed, Adapter stores the same bounded
+public-safe record shape with `status=failed`, `error_code`, failed action
+metadata, executed counts, and Core correlation only, and records
+`execution_failed` in Core; it does not store the full proposal or create a
+retry queue. Core remains the proposal, approval, preflight, execution-outcome,
+and audit truth source.
+
+For approved block writes, Adapter also performs a bounded post-execution
+readback before storing the execution record. `update-post-blocks` is verified
+through `npcink-abilities-toolkit/get-post-blocks`; `update-template-blocks`
+and `upsert-template-blocks` are verified through
+`npcink-abilities-toolkit/get-template-blocks`; `update-template-part-blocks`
+is verified through `npcink-abilities-toolkit/get-template-part-blocks`. The
+record keeps only compact counts, validation flags, and readback status. A
+readback failure is recorded as verification metadata and does not turn an
+already successful approved write into a retry queue or a second write path.
 
 Adapter proposal detail must preserve Core's raw `status` and expose
-Adapter-derived `effective_status` beside it. For example, a Core-approved
-proposal with a completed successful Adapter execution keeps `status=approved`
-and reports `effective_status=executed`, `execution_status=succeeded`,
+Adapter-derived `effective_status` beside it. For example, a completed
+successful Adapter execution should record `status=executed` in Core and
+reports `effective_status=executed`, `execution_status=succeeded`,
 `executable=false`, and `non_executable_reason=already_executed`.
 
 Within one approved `write_actions[]` batch, Adapter may resolve exact output

@@ -1224,6 +1224,12 @@ maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) (
 maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );
 maa_adapter_smoke_assert( 'npcink-toolbox/build-article-batch-write-plan' === (string) ( $help['openclaw_recipes']['article_batch_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article batch draft plan entrypoint ability' );
 maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_batch_draft_plan']['guardrails']['batch_approval'] ?? false ), 'adapter help marks OpenClaw article batch draft plan as batch approval' );
+maa_adapter_smoke_assert( 'untrusted_user_prompt_to_allowed_recipe' === (string) ( $help['openclaw_recipes']['site_edit_router']['mode'] ?? '' ), 'adapter help exposes site edit router mode' );
+maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['site_edit_router']['prompt_is_authorization'] ?? true ), 'adapter help marks customer prompts as non-authorizing' );
+maa_adapter_smoke_assert( 'fail_closed' === (string) ( $help['openclaw_recipes']['site_edit_router']['default_behavior'] ?? '' ), 'adapter help makes site edit router fail closed by default' );
+maa_adapter_smoke_assert( in_array( 'navigation', (array) ( $help['openclaw_recipes']['site_edit_router']['fail_closed_surfaces'] ?? array() ), true ), 'adapter help fails closed for navigation edits' );
+maa_adapter_smoke_assert( in_array( 'global_styles_mutation', (array) ( $help['openclaw_recipes']['site_edit_router']['forbidden_outputs'] ?? array() ), true ), 'adapter help forbids global styles mutations from router output' );
+maa_adapter_smoke_assert( in_array( 'block_theme_site_plan', (array) ( $help['openclaw_recipes']['site_edit_router']['normalization_output_schema']['properties']['route']['enum'] ?? array() ), true ), 'adapter help site edit router can route to block theme recipe' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-block-theme-site-plan' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes block theme site plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['template_write_owner'] ?? '' ), 'adapter help keeps Toolkit as block theme template writer owner' );
 maa_adapter_smoke_assert( 'create_wp_template_override' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['file_template_write_mode'] ?? '' ), 'adapter help exposes file-backed template override write mode' );
@@ -2294,9 +2300,10 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_govern
 	maa_adapter_smoke_assert( '' !== $media_optimization_after_path && is_readable( $media_optimization_after_path ), 'adapter media optimization batch writes adopted WebP file' );
 	maa_adapter_smoke_assert( $media_optimization_artifact_contents === (string) file_get_contents( $media_optimization_after_path ), 'adapter media optimization batch writes expected Cloud artifact bytes' );
 	$media_optimization_executed_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) );
-	maa_adapter_smoke_assert( 'approved' === (string) ( $media_optimization_executed_detail['status'] ?? '' ), 'adapter media optimization detail preserves Core approved status' );
+	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_executed_detail['status'] ?? '' ), 'adapter media optimization detail records Core executed status' );
 	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_executed_detail['effective_status'] ?? '' ), 'adapter media optimization detail exposes executed effective status' );
 	maa_adapter_smoke_assert( 'recorded' === (string) ( $media_optimization_executed_detail['adapter_status']['execution_record']['verification']['status'] ?? '' ), 'adapter media optimization detail exposes persisted verification summary' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_optimization_executed_detail['adapter_status']['execution_record']['core_execution_record']['recorded'] ?? false ), 'adapter media optimization detail records Core execution outcome' );
 	$media_optimization_replacement_id = '';
 	foreach ( (array) ( $media_optimization_execute['results'] ?? array() ) as $media_optimization_result ) {
 		$result_payload = is_array( $media_optimization_result['result'] ?? null ) ? $media_optimization_result['result'] : array();

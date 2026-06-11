@@ -54,6 +54,9 @@ maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'public static fu
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'final class Execution_Profile_Registry' ), 'Execution profile registry exists.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'public static function profiles' ), 'Execution profile registry exposes profiles.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abilities-toolkit/update-post-blocks' ), 'Execution profile registry keeps governed block writes allowlisted.' );
+maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-post-blocks' ), 'Controller can read back post blocks after execution.' );
+maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-blocks' ), 'Controller can read back template blocks after execution.' );
+maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-part-blocks' ), 'Controller can read back template part blocks after execution.' );
 foreach (
 	array(
 		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
@@ -308,6 +311,9 @@ foreach (
 			'completed_execution_record',
 			'store_completed_execution_record',
 			'store_failed_execution_record',
+			'record_core_execution_result',
+			'/record-execution',
+			'core_execution_record',
 			'failed_action_id',
 			'failed_action_index',
 			'npcink_openclaw_adapter_execution_already_completed',
@@ -337,14 +343,17 @@ foreach (
 			'patch_preview',
 			'old_url_absent',
 			'new_url_present',
-			'actual_replacement_count',
-			'unmatched_rules',
-			'compact_execution_verification',
-			'sanitize_public_verification_summary',
-			'aggregate_execution_verification',
-			'post_reference_count',
-			'post_reference_old_urls_absent',
-			'post_reference_new_urls_present',
+				'actual_replacement_count',
+				'unmatched_rules',
+				'compact_execution_verification',
+				'block_write_readback_verification',
+				'sanitize_public_verification_summary',
+				'aggregate_execution_verification',
+				'block_readback_status',
+				'block_readback_verified_count',
+				'post_reference_count',
+				'post_reference_old_urls_absent',
+				'post_reference_new_urls_present',
 			'get_core_proposal_data',
 			'validate_execute_ability',
 			'dispatch_upstream_with_runtime_context',
@@ -974,9 +983,14 @@ foreach (
 		'npcink-abilities-toolkit/create-draft',
 		'npcink-abilities-toolkit/update-post',
 		'npcink-abilities-toolkit/patch-post-content',
-		'npcink-abilities-toolkit/update-post-blocks',
-		'npcink-abilities-toolkit/patch-setting-value',
-		'npcink-abilities-toolkit/set-post-seo-meta',
+			'npcink-abilities-toolkit/update-post-blocks',
+			'npcink-abilities-toolkit/get-post-blocks',
+			'npcink-abilities-toolkit/get-template-blocks',
+			'npcink-abilities-toolkit/get-template-part-blocks',
+			'bounded post-execution readback',
+			'readback failure is recorded as verification metadata',
+			'npcink-abilities-toolkit/patch-setting-value',
+			'npcink-abilities-toolkit/set-post-seo-meta',
 		'npcink-abilities-toolkit/set-post-slug',
 		'npcink-abilities-toolkit/set-post-terms',
 		'npcink-abilities-toolkit/delete-term',
@@ -1031,11 +1045,13 @@ foreach (
 			'openclaw_recipes.article_batch_draft_plan',
 			'openclaw_recipes.article_media_batch_plan',
 			'openclaw_recipes.media_adoption_enhancement_plan',
-				'openclaw_recipes.article_block_plan',
-				'openclaw_recipes.block_theme_site_plan',
-				'openclaw_recipes.pattern_page_plan',
-				'docs/openclaw-block-theme-site-builder-recipe.md',
-			'openclaw_recipes.pattern_page_research_brief',
+					'openclaw_recipes.article_block_plan',
+					'openclaw_recipes.block_theme_site_plan',
+					'openclaw_recipes.pattern_page_plan',
+					'openclaw_recipes.site_edit_router',
+					'docs/openclaw-block-theme-site-builder-recipe.md',
+					'docs/openclaw-site-edit-router-contract.md',
+				'openclaw_recipes.pattern_page_research_brief',
 			'openclaw_recipes.pattern_page_with_visual_asset_plan',
 			'openclaw_recipes.ai_image_ratio_crop_media_adoption',
 			'openclaw_recipes.image_candidate_adoption_plan',
@@ -1393,7 +1409,7 @@ foreach (
 		'Secret Handling Rules',
 		'Plugin-generated private keys',
 		'Adapter-owned MCP broker',
-		'Core remains the proposal, approval, preflight, and audit truth',
+		'Core remains the proposal, approval, preflight, execution-outcome, and audit',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $connection_model_notes, $required ), 'Connection model notes contain required text: ' . $required );
@@ -1502,8 +1518,12 @@ foreach (
 		'npcink-toolbox/build-article-batch-write-plan',
 		'npcink-toolbox/build-article-media-batch-write-plan',
 		'openclaw_recipes.article_batch_draft_plan',
-		'openclaw_recipes.article_media_batch_plan',
-		'Toolbox may expose click-driven buttons for the same fixed flows',
+			'openclaw_recipes.article_media_batch_plan',
+			'openclaw_recipes.site_edit_router',
+			'untrusted_user_prompt_to_allowed_recipe',
+			'prompt_is_authorization=false',
+			'fail_closed',
+			'Toolbox may expose click-driven buttons for the same fixed flows',
 		'same ability ids, artifact',
 		'Core proposal handoff routes',
 		'OpenClaw recipe owner',
@@ -1578,9 +1598,12 @@ foreach (
 		'For dry-run-only validation, stop at this step and do not call',
 		'normalized ability input to `dry_run=false` and',
 		'status=failed',
-		'failed action metadata',
-		'does not store the full proposal or create a retry queue',
-		'npcink_openclaw_adapter_write_action_invalid',
+			'failed action metadata',
+			'does not store the full proposal or create a retry queue',
+			'openclaw_recipes.site_edit_router',
+			'prompt_is_authorization=false',
+			'default_behavior=fail_closed',
+			'npcink_openclaw_adapter_write_action_invalid',
 		'approved proposal execution',
 		'approve-and-execute',
 		'npcink-abilities-toolkit/trash-post',
@@ -2353,12 +2376,35 @@ foreach (
 			'cloud_control_plane=false',
 			'Adapter must not accept arbitrary Site Editor writes',
 		) as $required
+		) {
+			maa_adapter_assert( false !== strpos( $block_theme_site_builder_recipe, $required ), 'Block theme site builder recipe contains required text: ' . $required );
+		}
+
+		$site_edit_router_contract = maa_adapter_read( $root . '/docs/openclaw-site-edit-router-contract.md' );
+	foreach (
+		array(
+			'OpenClaw Site Edit Router Contract',
+			'Customer natural language is untrusted input',
+			'prompt_is_authorization=false',
+			'article_block_plan',
+			'pattern_page_plan',
+			'block_theme_site_plan',
+			'route=unsupported',
+			'npcink-abilities-toolkit/get-post-blocks',
+			'npcink-abilities-toolkit/update-post-blocks',
+			'npcink-abilities-toolkit/get-block-theme-context',
+			'npcink-abilities-toolkit/update-template-blocks',
+			'navigation mutations',
+			'global styles mutations',
+			'raw template HTML',
+			'Core proposal `status=executed`',
+		) as $required
 	) {
-		maa_adapter_assert( false !== strpos( $block_theme_site_builder_recipe, $required ), 'Block theme site builder recipe contains required text: ' . $required );
+		maa_adapter_assert( false !== strpos( $site_edit_router_contract, $required ), 'Site edit router contract contains required text: ' . $required );
 	}
 
-	$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
-foreach (
+		$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
+	foreach (
 	array(
 		'OpenClaw AI Image Ratio Crop Media Adoption Recipe',
 		'openclaw_recipes.ai_image_ratio_crop_media_adoption',
