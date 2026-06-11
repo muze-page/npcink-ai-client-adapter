@@ -289,6 +289,25 @@ The article media batch recipe must preserve image-source attribution and keep
 `batch_approval=true`, `partial_success=false`, `core_proxy_execute=false`,
 `commit_execution=false`, `draft_only=true`, and `publish_allowed=false`.
 
+`GET /help` also includes `openclaw_recipes.content_intent_router` for routing
+natural-language content requests to one supported Gutenberg recipe before a
+plan is built:
+
+- entrypoint ability:
+  `npcink-abilities-toolkit/route-content-intent`
+- artifact type: `content_intent_route`
+- `prompt_is_authorization=false`
+- default behavior: `fail_closed`
+- supported routes: `page_landing`, `post_article`, and
+  `site_template_breadcrumbs`
+- downstream routes: `pattern_page_plan`, `article_block_plan`, and
+  `block_theme_site_plan`
+
+The content intent router is read-only. It must not emit `write_actions`, must
+not create proposals for `route=unsupported`, and must not treat a customer
+prompt as execution approval. See
+[`docs/openclaw-content-intent-router-contract.md`](openclaw-content-intent-router-contract.md).
+
 `GET /help` also includes `openclaw_recipes.pattern_page_plan` for reviewed
 Gutenberg page pattern drafts:
 
