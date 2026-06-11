@@ -1084,6 +1084,9 @@ foreach (
 		'complete image `src`/`alt` attributes',
 		'Gutenberg-native spacing on key sections',
 		'post-execution `get-post-blocks` readback verification',
+		'composer visual:wp',
+		'build/visual-acceptance/',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
 		'.distignore',
 		'Do not delete',
 	) as $required
@@ -1269,6 +1272,7 @@ foreach (
 		'"package:release"',
 		'"package:suite"',
 		'"plugin-check:release"',
+		'"visual:wp": "bash tests/visual-acceptance.sh"',
 		'php-8.2.29+0',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
 		'--exclude-files=.gitignore,.distignore,AGENTS.md,composer.json',
@@ -1611,6 +1615,8 @@ foreach (
 			'non-empty heading and',
 			'Gutenberg-native spacing on key sections',
 			'plan -> proposal -> approve-and-execute -> get-post-blocks',
+			'composer visual:wp',
+			'build/visual-acceptance/report.json',
 		'approved proposal execution',
 		'approve-and-execute',
 		'npcink-abilities-toolkit/trash-post',
@@ -1735,6 +1741,70 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $smoke_sh, $required ), 'Smoke shell contains required text: ' . $required );
+}
+
+$visual_acceptance_sh = maa_adapter_read( $root . '/tests/visual-acceptance.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
+		'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES=1',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_KEEP_FIXTURES_AFTER_RUN',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_INSTALL_BROWSER',
+		'build/visual-acceptance-node',
+		'npm install --prefix "$NODE_DEPS_DIR" --no-save playwright',
+		'playwright" install chromium',
+		'scripts/gutenberg-visual-acceptance.mjs',
+		'tests/cleanup-visual-acceptance.php',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $visual_acceptance_sh, $required ), 'Visual acceptance shell contains required text: ' . $required );
+}
+
+$visual_acceptance_cleanup = maa_adapter_read( $root . '/tests/cleanup-visual-acceptance.php' );
+foreach (
+	array(
+		'Cleaned visual acceptance fixtures',
+		'wp_delete_attachment',
+		'wp_delete_post',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $visual_acceptance_cleanup, $required ), 'Visual acceptance cleanup contains required text: ' . $required );
+}
+
+$visual_acceptance_runner = maa_adapter_read( $root . '/scripts/gutenberg-visual-acceptance.mjs' );
+foreach (
+	array(
+		'createRequire',
+		"require('playwright')",
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_BROWSER_CHANNEL',
+		"browserLaunchOptions.channel = 'chrome'",
+		'horizontalOverflow',
+		'visible images loaded',
+		'visible images have alt text',
+		'visible controls stay within viewport',
+		'key sections have visible spacing',
+		'front end opened the fixture page',
+		'low_background_variety',
+		'WP_ADMIN_USER',
+		'WP_ADMIN_PASSWORD',
+		'block editor showed invalid block recovery prompt',
+		'report.json',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $visual_acceptance_runner, $required ), 'Visual acceptance runner contains required text: ' . $required );
+}
+
+$smoke_wp_visual_contract = maa_adapter_read( $root . '/tests/smoke-wp.php' );
+foreach (
+	array(
+		'visual_acceptance_post_status',
+		'adapter visual acceptance fixture is temporarily published for anonymous browser rendering',
+		'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $smoke_wp_visual_contract, $required ), 'Smoke visual acceptance contract contains required text: ' . $required );
 }
 
 $smoke_wp = maa_adapter_read( $root . '/tests/smoke-wp.php' );
@@ -2294,6 +2364,13 @@ foreach (
 		'openclaw_recipes.article_block_plan',
 		'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
 		'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
+		'composer visual:wp',
+		'build/visual-acceptance/report.json',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_BROWSER_CHANNEL',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_INSTALL_BROWSER',
+		'WP_ADMIN_USER',
+		'WP_ADMIN_PASSWORD',
 		'front_end_url',
 		'block_editor_url',
 		'attachment_ids',

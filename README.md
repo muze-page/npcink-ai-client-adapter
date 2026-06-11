@@ -1010,6 +1010,21 @@ Run the LocalWP smoke test:
 composer smoke:wp
 ```
 
+Run the retained-fixture browser visual acceptance pass for Gutenberg page and
+article fixtures:
+
+```bash
+composer visual:wp
+```
+
+The browser runner writes screenshots and a JSON report to
+`build/visual-acceptance/`. Set
+`MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1` to reuse an existing retained
+fixture manifest instead of creating new smoke fixtures. During this local-only
+pass, retained smoke fixtures are temporarily published so anonymous browser
+rendering verifies the generated Gutenberg content rather than a theme 404 page;
+the smoke path still asserts the governed execution creates draft content first.
+
 Local smoke and HTTP acceptance tests must register every created fixture for
 automatic cleanup before assertions can fail. Rejected and preflight-blocked
 negative-loop cases must not rely on final write execution to remove target

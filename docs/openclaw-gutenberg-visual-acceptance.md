@@ -41,6 +41,48 @@ The JSON manifest includes:
 Only use retained fixtures in local development. Delete the retained draft posts
 and media attachments after the browser pass.
 
+## Automated Browser Runner
+
+For local browser QA, run:
+
+```bash
+composer visual:wp
+```
+
+The wrapper:
+
+1. runs `composer smoke:wp` with fixture retention enabled;
+2. writes the fixture manifest to `build/visual-acceptance/manifest.json`;
+3. temporarily publishes retained smoke-only fixtures so anonymous browser
+   rendering opens the generated Gutenberg content instead of a 404 page;
+4. installs Playwright into `build/visual-acceptance-node`;
+5. opens each retained front-end fixture at the required viewports;
+6. writes screenshots and `build/visual-acceptance/report.json`;
+7. deletes the retained fixture posts and media on exit.
+
+This temporary publish step is local test setup only. The proposal execution
+smoke still asserts that the governed create action produces draft content
+before the retained browser fixture is prepared.
+
+On macOS the runner defaults to the installed Chrome browser to avoid a slow
+first-run Chromium download. Override with
+`MAA_ADAPTER_VISUAL_ACCEPTANCE_BROWSER_CHANNEL=chrome` or set
+`MAA_ADAPTER_VISUAL_ACCEPTANCE_INSTALL_BROWSER=1` when the local environment
+should install Playwright's managed Chromium binary.
+
+To reuse an existing manifest without creating new smoke fixtures:
+
+```bash
+MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1 \
+MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT=/tmp/openclaw-gutenberg-visual-acceptance.json \
+composer visual:wp
+```
+
+Set `WP_ADMIN_USER` and `WP_ADMIN_PASSWORD` only in local development when the
+runner should also open `block_editor_url` and check for invalid block recovery
+prompts. Without those variables, editor checks are skipped and front-end checks
+still run.
+
 ## Required Viewports
 
 Use the same viewport set for pages and articles:
@@ -53,8 +95,10 @@ Use the same viewport set for pages and articles:
 
 For each retained fixture, verify:
 
+- the front-end URL opens the retained fixture, not a theme 404 page;
 - the front-end page has no horizontal overflow;
-- the block editor opens without invalid block recovery prompts;
+- the block editor opens without invalid block recovery prompts when local
+  admin credentials are provided to the runner;
 - core blocks remain individually editable;
 - mobile layout wraps or stacks without clipping;
 - images load from reviewed existing media URLs;
