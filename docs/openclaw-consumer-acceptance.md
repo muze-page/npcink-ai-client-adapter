@@ -137,6 +137,10 @@ Run this order for a local acceptance pass:
    readback, complete image `src`/`alt` attributes, non-empty heading and
    paragraph markup, and Gutenberg-native spacing on key sections before
    manual viewport review.
+   When OpenClaw supplies reviewed media attachment ids, confirm article and
+   page block readback preserves `core/image.attrs.id` or
+   `core/media-text.attrs.mediaId`, rendered markup contains `wp-image-{id}`,
+   and no generated content references temporary Cloud derivative preview URLs.
    Confirm `openclaw_recipes.site_edit_router` exposes
    `prompt_is_authorization=false`, `default_behavior=fail_closed`, and
    fail-closed surfaces for navigation and global styles before any Gutenberg
