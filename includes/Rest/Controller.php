@@ -4754,6 +4754,13 @@ final class Controller {
 			return $proposal;
 		}
 
+		$existing_record = $this->completed_execution_record( $proposal_id );
+		if ( is_array( $existing_record ) ) {
+			$error = $this->execution_already_completed_error( $proposal_id, $existing_record );
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $error, $event_context );
+			return $error;
+		}
+
 		$ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
 		$event_context['ability_id'] = $ability_id;
 		$execution_actions = $this->normalize_execution_actions( $proposal_id, $proposal );
@@ -6488,6 +6495,7 @@ final class Controller {
 			'verification'        => $this->compact_execution_verification( $execution ),
 			'executed_at'         => gmdate( 'c' ),
 		);
+		$record['core_execution_record'] = $this->record_core_execution_result( $proposal_id, $record );
 
 		$records = $this->execution_records();
 		$records[ $this->execution_record_key( $proposal_id ) ] = $record;
@@ -6538,6 +6546,7 @@ final class Controller {
 			'failed_at'           => gmdate( 'c' ),
 			'executed_at'         => gmdate( 'c' ),
 		);
+		$record['core_execution_record'] = $this->record_core_execution_result( $proposal_id, $record );
 
 		$records = $this->execution_records();
 		$records[ $this->execution_record_key( $proposal_id ) ] = $record;
@@ -6572,6 +6581,64 @@ final class Controller {
 	}
 
 	/**
+	 * Records Adapter execution outcome back to Core lifecycle state.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $record Adapter execution record.
+	 * @return array<string,mixed>
+	 */
+	private function record_core_execution_result( string $proposal_id, array $record ): array {
+		$status = sanitize_key( (string) ( $record['status'] ?? '' ) );
+		if ( ! in_array( $status, array( 'succeeded', 'failed' ), true ) ) {
+			return array(
+				'recorded' => false,
+				'status'   => 'skipped',
+				'reason'   => 'unsupported_adapter_execution_status',
+			);
+		}
+
+		$response = $this->dispatch_upstream(
+			'POST',
+			'/npcink-governance-core/v1/proposals/' . rawurlencode( $proposal_id ) . '/record-execution',
+			array(
+				'execution_status'    => $status,
+				'correlation_id'      => sanitize_text_field( (string) ( $record['correlation_id'] ?? '' ) ),
+				'approved_input_hash' => sanitize_text_field( (string) ( $record['approved_input_hash'] ?? '' ) ),
+				'adapter_request_id'  => sanitize_text_field( (string) ( $record['adapter_request_id'] ?? '' ) ),
+				'execution_mode'      => sanitize_key( (string) ( $record['execution_mode'] ?? '' ) ),
+				'executed_count'      => absint( $record['executed_count'] ?? 0 ),
+				'failed_count'        => absint( $record['failed_count'] ?? 0 ),
+				'error_code'          => sanitize_key( (string) ( $record['error_code'] ?? '' ) ),
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			$error_data = $response->get_error_data();
+			$error_data = is_array( $error_data ) ? $error_data : array();
+
+			return array(
+				'recorded'       => false,
+				'status'         => 'failed',
+				'error_code'     => sanitize_key( $response->get_error_code() ),
+				'status_code'    => absint( $error_data['status'] ?? 0 ),
+				'upstream_route' => sanitize_text_field( (string) ( $error_data['upstream_route'] ?? '' ) ),
+			);
+		}
+
+		$data = $response->get_data();
+		$data = is_array( $data ) ? $data : array();
+
+		return array(
+			'recorded'        => true,
+			'status'          => sanitize_key( (string) ( $data['status'] ?? '' ) ),
+			'proposal_id'     => sanitize_text_field( (string) ( $data['proposal_id'] ?? $proposal_id ) ),
+			'ability_id'      => sanitize_text_field( (string) ( $data['ability_id'] ?? '' ) ),
+			'updated_at'      => sanitize_text_field( (string) ( $data['updated_at'] ?? '' ) ),
+			'commit_execution' => false,
+		);
+	}
+
+	/**
 	 * Returns a public-safe execution record.
 	 *
 	 * @param array<string,mixed> $record Record.
@@ -6597,6 +6664,7 @@ final class Controller {
 			'failed_action_id'    => (string) ( $record['failed_action_id'] ?? '' ),
 			'failed_action_index' => absint( $record['failed_action_index'] ?? 0 ),
 			'verification'        => is_array( $record['verification'] ?? null ) ? $record['verification'] : null,
+			'core_execution_record' => is_array( $record['core_execution_record'] ?? null ) ? $record['core_execution_record'] : null,
 			'failed_at'           => (string) ( $record['failed_at'] ?? '' ),
 			'executed_at'         => (string) ( $record['executed_at'] ?? '' ),
 		);

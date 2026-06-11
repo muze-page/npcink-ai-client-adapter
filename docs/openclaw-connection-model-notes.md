@@ -122,8 +122,9 @@ Do not move these responsibilities into Adapter:
 - generic final WordPress write executor;
 - Cloud control plane or Cloud OpenClaw platform.
 
-Core remains the proposal, approval, preflight, and audit truth. Adapter remains
-the thin OpenClaw channel layer.
+Core remains the proposal, approval, preflight, execution-outcome, and audit
+truth. Adapter remains the thin OpenClaw channel layer and final allowlisted
+executor after Core preflight.
 
 ## Rejected Alternatives
 

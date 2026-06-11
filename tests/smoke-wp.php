@@ -2294,9 +2294,10 @@ if ( 404 === (int) $media_optimization_bridge_result['status'] && 'npcink_govern
 	maa_adapter_smoke_assert( '' !== $media_optimization_after_path && is_readable( $media_optimization_after_path ), 'adapter media optimization batch writes adopted WebP file' );
 	maa_adapter_smoke_assert( $media_optimization_artifact_contents === (string) file_get_contents( $media_optimization_after_path ), 'adapter media optimization batch writes expected Cloud artifact bytes' );
 	$media_optimization_executed_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $media_optimization_proposal_id ) );
-	maa_adapter_smoke_assert( 'approved' === (string) ( $media_optimization_executed_detail['status'] ?? '' ), 'adapter media optimization detail preserves Core approved status' );
+	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_executed_detail['status'] ?? '' ), 'adapter media optimization detail records Core executed status' );
 	maa_adapter_smoke_assert( 'executed' === (string) ( $media_optimization_executed_detail['effective_status'] ?? '' ), 'adapter media optimization detail exposes executed effective status' );
 	maa_adapter_smoke_assert( 'recorded' === (string) ( $media_optimization_executed_detail['adapter_status']['execution_record']['verification']['status'] ?? '' ), 'adapter media optimization detail exposes persisted verification summary' );
+	maa_adapter_smoke_assert( true === (bool) ( $media_optimization_executed_detail['adapter_status']['execution_record']['core_execution_record']['recorded'] ?? false ), 'adapter media optimization detail records Core execution outcome' );
 	$media_optimization_replacement_id = '';
 	foreach ( (array) ( $media_optimization_execute['results'] ?? array() ) as $media_optimization_result ) {
 		$result_payload = is_array( $media_optimization_result['result'] ?? null ) ? $media_optimization_result['result'] : array();

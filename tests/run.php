@@ -308,6 +308,9 @@ foreach (
 			'completed_execution_record',
 			'store_completed_execution_record',
 			'store_failed_execution_record',
+			'record_core_execution_result',
+			'/record-execution',
+			'core_execution_record',
 			'failed_action_id',
 			'failed_action_index',
 			'npcink_openclaw_adapter_execution_already_completed',
@@ -1393,7 +1396,7 @@ foreach (
 		'Secret Handling Rules',
 		'Plugin-generated private keys',
 		'Adapter-owned MCP broker',
-		'Core remains the proposal, approval, preflight, and audit truth',
+		'Core remains the proposal, approval, preflight, execution-outcome, and audit',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $connection_model_notes, $required ), 'Connection model notes contain required text: ' . $required );
