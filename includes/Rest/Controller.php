@@ -2773,11 +2773,13 @@ final class Controller {
 				),
 				'block_theme_site_plan' => array(
 					'title'                   => 'Block theme site plan',
-					'description'             => 'Build a reviewed Toolkit block_theme_site_plan for conversational Site Editor changes, forward it to Core as one batch proposal, then execute only Core-approved template override, template, or template-part block writes.',
+					'description'             => 'Inspect supported block theme surfaces first, build a reviewed Toolkit block_theme_site_plan only when a fix is needed, forward plans with write_actions to Core, then execute only Core-approved template override, template, or template-part block writes.',
 					'entrypoint_ability_id'   => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+					'inspection_ability_id'   => 'npcink-abilities-toolkit/inspect-block-theme-surface',
 					'plan_ability_id'         => 'npcink-abilities-toolkit/build-block-theme-site-plan',
 					'context_ability_ids'     => array(
 						'npcink-abilities-toolkit/get-block-theme-context',
+						'npcink-abilities-toolkit/inspect-block-theme-surface',
 						'npcink-abilities-toolkit/get-template-blocks',
 						'npcink-abilities-toolkit/get-template-part-blocks',
 					),
@@ -2792,14 +2794,16 @@ final class Controller {
 						'goal'             => 'Translate conversational block-theme Site Editor requests into one reviewed block_theme_site_plan. Do not produce direct WordPress writes, raw theme file edits, or a second workflow runtime.',
 						'required_context_before_planning' => array(
 							'npcink-abilities-toolkit/get-block-theme-context',
+							'npcink-abilities-toolkit/inspect-block-theme-surface',
 							'active_theme',
 							'is_block_theme',
 							'templates',
 							'template_parts',
+							'dual_review.consensus.recommended_next_step',
 						),
 						'planner_prompt_guidance' => array(
 							'role'         => 'WordPress block theme site planner',
-							'instruction'  => 'Map the user request to the narrow build-block-theme-site-plan input schema. If the request is outside allowed_intents or allowed_template_targets, return a warning and do not invent write_actions.',
+							'instruction'  => 'Map the user request to the narrow block theme input schema, run inspect-block-theme-surface with the same normalized input, and build a plan only when the inspector recommends build_block_theme_site_plan. If the request is outside allowed_intents or allowed_template_targets, return a warning and do not invent write_actions.',
 							'output_shape' => array(
 								'intent'              => 'add_breadcrumbs',
 								'target_templates'    => array( 'single' ),
@@ -2815,6 +2819,11 @@ final class Controller {
 								'auto_approval',
 								'direct_execute',
 							),
+						),
+						'inspection_decision_contract' => array(
+							'no_changes_required'        => 'Report the inspected templates already satisfy the requested breadcrumb placement; do not call build-block-theme-site-plan and do not create a proposal.',
+							'build_block_theme_site_plan' => 'Call build-block-theme-site-plan with the inspector-normalized input, review returned write_actions, and submit to Core only if action_count is greater than zero.',
+							'manual_review'              => 'Stop and report the issue codes that require human review; do not create a proposal from uncertain template state.',
 						),
 						'intent_examples' => array(
 							array(
@@ -2844,6 +2853,7 @@ final class Controller {
 							'unsupported_intent' => 'Return a concise unsupported_intent warning and suggest one supported intent instead of writing WordPress.',
 							'template_not_found' => 'Preserve Toolkit warnings and do not create unrelated templates.',
 							'not_block_theme'    => 'Stop after context read and report that the active theme is not a block theme.',
+							'no_changes_required' => 'Stop after surface inspection and report that no proposal is needed because the target already matches.',
 							'approval_required'  => 'Create or inspect the Core proposal; do not call final execution until the user chooses approve-and-execute.',
 						),
 					),
@@ -2857,26 +2867,32 @@ final class Controller {
 						array(
 							'order'      => 2,
 							'route'      => 'POST /run-read-ability',
-							'ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
-							'purpose'    => 'Build a reviewed block_theme_site_plan with Site Editor write_actions but no direct WordPress mutation.',
+							'ability_id' => 'npcink-abilities-toolkit/inspect-block-theme-surface',
+							'purpose'    => 'Inspect breadcrumb placement, homepage visibility, template resolution, and dual-review next step without writing WordPress or creating proposals.',
 						),
 						array(
-							'order'   => 3,
-							'route'   => 'POST /proposals/from-plan',
-							'purpose' => 'Forward the block theme site plan to Core plan intake with plan_ability_id and caller metadata.',
+							'order'      => 3,
+							'route'      => 'POST /run-read-ability',
+							'ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+							'purpose'    => 'Build a reviewed block_theme_site_plan only when inspection recommends build_block_theme_site_plan; otherwise stop before plan creation.',
 						),
 						array(
 							'order'   => 4,
+							'route'   => 'POST /proposals/from-plan',
+							'purpose' => 'Forward the block theme site plan to Core plan intake only when reviewed write_actions remain, with plan_ability_id and caller metadata.',
+						),
+						array(
+							'order'   => 5,
 							'route'   => 'GET /proposals/{proposal_id}',
 							'purpose' => 'Poll the Core-owned batch proposal status through Adapter.',
 						),
 						array(
-							'order'   => 5,
+							'order'   => 6,
 							'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
 							'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted template override, template, and template-part write_actions.',
 						),
 						array(
-							'order'   => 6,
+							'order'   => 7,
 							'route'   => 'POST /run-read-ability',
 							'purpose' => 'Read back get-template-blocks or get-template-part-blocks to verify the approved Site Editor entity changed as expected.',
 						),
@@ -2886,6 +2902,8 @@ final class Controller {
 						'proposal_mode'          => 'batch',
 						'batch_approval'         => true,
 						'core_preflight_required' => true,
+						'surface_inspection_required' => true,
+						'proposal_handoff_requires_write_actions' => true,
 							'template_write_owner'   => 'npcink-abilities-toolkit',
 							'file_template_write_mode' => 'create_wp_template_override',
 						'allowed_intents'        => array( 'add_breadcrumbs' ),

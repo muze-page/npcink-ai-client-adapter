@@ -57,6 +57,9 @@ maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abili
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-post-blocks' ), 'Controller can read back post blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-blocks' ), 'Controller can read back template blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-part-blocks' ), 'Controller can read back template part blocks after execution.' );
+maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/inspect-block-theme-surface' ), 'Controller exposes block theme surface inspection before plan creation.' );
+maa_adapter_assert( false !== strpos( $controller, 'inspection_decision_contract' ), 'Controller documents block theme inspection decision handling.' );
+maa_adapter_assert( false !== strpos( $controller, 'proposal_handoff_requires_write_actions' ), 'Controller documents block theme proposal handoff stop condition.' );
 maa_adapter_assert( false !== strpos( $controller, 'negative_acceptance_examples' ), 'Controller exposes content intent negative acceptance examples.' );
 maa_adapter_assert( false !== strpos( $controller, 'must_not_submit_proposal' ), 'Controller negative examples stop before proposal handoff.' );
 maa_adapter_assert( false !== strpos( $controller, 'Change global styles and write a theme.json color patch.' ), 'Controller negative examples cover global styles and theme.json requests.' );

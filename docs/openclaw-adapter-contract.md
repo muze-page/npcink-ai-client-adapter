@@ -351,9 +351,12 @@ conversational block theme Site Editor changes:
 
 - context abilities:
   `npcink-abilities-toolkit/get-block-theme-context`,
+  `npcink-abilities-toolkit/inspect-block-theme-surface`,
   `npcink-abilities-toolkit/get-template-blocks`, and
   `npcink-abilities-toolkit/get-template-part-blocks`
-- entrypoint ability:
+- inspection ability:
+  `npcink-abilities-toolkit/inspect-block-theme-surface`
+- entrypoint planning ability, only when inspection recommends a fix:
   `npcink-abilities-toolkit/build-block-theme-site-plan`
 - plan handoff route: `POST /proposals/from-plan`
 - status route: `GET /proposals/{proposal_id}`
@@ -364,10 +367,11 @@ conversational block theme Site Editor changes:
 - artifact type: `block_theme_site_plan`
 - proposal mode: `batch`
 
-The Toolkit owns block theme context reads, Site Editor entity block planning,
-and final WordPress Abilities write callbacks. Adapter must only forward the plan
-to Core and execute allowlisted write actions after Core approval and
-commit-preflight. The MVP supports `intent=add_breadcrumbs` only and keeps
+The Toolkit owns block theme context reads, surface inspection, Site Editor
+entity block planning, and final WordPress Abilities write callbacks. Adapter
+must only forward plans with reviewed `write_actions[]` to Core and execute
+allowlisted write actions after Core approval and commit-preflight. The MVP
+supports `intent=add_breadcrumbs` only and keeps
 global styles, navigation, and template creation outside the execution profile.
 
 `GET /help` also includes `openclaw_recipes.article_block_plan` for reviewed
