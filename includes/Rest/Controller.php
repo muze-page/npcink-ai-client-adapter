@@ -2293,6 +2293,32 @@ final class Controller {
 						'custom_css_allowed'      => false,
 						'core_html_allowed'       => false,
 					),
+					'negative_acceptance_examples' => array(
+						array(
+							'prompt'              => 'Change the navigation menu and add a Products link.',
+							'expected_route'      => 'unsupported',
+							'expected_supported'  => false,
+							'expected_plan_ability_id' => '',
+							'must_not_emit_write_actions' => true,
+							'must_not_submit_proposal' => true,
+						),
+						array(
+							'prompt'              => 'Change global styles and write a theme.json color patch.',
+							'expected_route'      => 'unsupported',
+							'expected_supported'  => false,
+							'expected_plan_ability_id' => '',
+							'must_not_emit_write_actions' => true,
+							'must_not_submit_proposal' => true,
+						),
+						array(
+							'prompt'              => 'Directly execute a custom HTML template change.',
+							'expected_route'      => 'unsupported',
+							'expected_supported'  => false,
+							'expected_plan_ability_id' => '',
+							'must_not_emit_write_actions' => true,
+							'must_not_submit_proposal' => true,
+						),
+					),
 					'docs'        => 'docs/openclaw-content-intent-router-contract.md',
 				),
 				'site_edit_router' => array(

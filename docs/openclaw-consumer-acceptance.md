@@ -145,6 +145,10 @@ Run this order for a local acceptance pass:
    `prompt_is_authorization=false`, `default_behavior=fail_closed`, and
    fail-closed surfaces for navigation and global styles before any Gutenberg
    or block-theme editing recipe is selected.
+   Confirm `openclaw_recipes.content_intent_router.negative_acceptance_examples`
+   includes navigation, global styles/theme.json, and custom HTML direct-execute
+   prompts. Each example must route to `unsupported`, keep `plan_ability_id`
+   empty, emit no `write_actions`, and stop before `POST /proposals/from-plan`.
    Confirm `openclaw_recipes.pattern_page_with_visual_asset_plan.guardrails`
    keeps `candidate_review_required=true`,
    `hosted_generation_candidate_only=true`, `cloud_control_plane=false`, and

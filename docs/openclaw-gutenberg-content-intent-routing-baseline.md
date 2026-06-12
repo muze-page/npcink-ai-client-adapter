@@ -144,6 +144,9 @@ Future changes to these flows should keep the following checks green:
 1. `route-content-intent` runs before the plan ability.
 2. Unsupported or ambiguous prompts return `route=unsupported` or
    `needs_clarification=true`.
+   Negative prompts for navigation edits, global styles or `theme.json` patches,
+   and custom HTML direct execution must keep `plan_ability_id` empty, emit no
+   `write_actions`, and stop before `POST /proposals/from-plan`.
 3. Plan abilities remain read-only and return Core-ready artifacts, not direct
    writes.
 4. Core proposal approval remains required before Adapter execution.

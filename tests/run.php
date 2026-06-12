@@ -57,6 +57,9 @@ maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abili
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-post-blocks' ), 'Controller can read back post blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-blocks' ), 'Controller can read back template blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-part-blocks' ), 'Controller can read back template part blocks after execution.' );
+maa_adapter_assert( false !== strpos( $controller, 'negative_acceptance_examples' ), 'Controller exposes content intent negative acceptance examples.' );
+maa_adapter_assert( false !== strpos( $controller, 'must_not_submit_proposal' ), 'Controller negative examples stop before proposal handoff.' );
+maa_adapter_assert( false !== strpos( $controller, 'Change global styles and write a theme.json color patch.' ), 'Controller negative examples cover global styles and theme.json requests.' );
 foreach (
 	array(
 		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
@@ -2623,6 +2626,11 @@ foreach (
 				'openclaw_recipes.block_theme_site_plan',
 				'route=unsupported',
 				'needs_clarification=true',
+				'Change the navigation menu and add a Products link.',
+				'Change global styles and write a theme.json color patch.',
+				'Directly execute a custom HTML template change.',
+				'must not emit',
+				'must not be submitted to `POST /proposals/from-plan`',
 				'prompt_is_authorization=false',
 				'direct_wordpress_write=false',
 				'custom_css_allowed=false',
@@ -2640,6 +2648,10 @@ foreach (
 				'pattern_page_plan',
 				'article_block_plan',
 				'block_theme_site_plan',
+				'Negative prompts for navigation edits',
+				'keep `plan_ability_id` empty',
+				'emit no',
+				'stop before `POST /proposals/from-plan`',
 				'7874c491-89a1-4700-a07d-526937ff466c',
 				'9fd06242-a936-4d9d-a693-621284e5eb6b',
 				'ae94822a-0c33-4a5f-b189-b8a1578ab02a',

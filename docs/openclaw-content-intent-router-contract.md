@@ -30,6 +30,16 @@ Template parts, navigation, global styles, arbitrary CSS, arbitrary HTML, raw
 theme file edits, and custom `theme.json` patches fail closed unless a future
 recipe adds its own contract and tests.
 
+## Negative Acceptance
+
+The following customer prompts must return `route=unsupported`, must keep
+`supported=false`, must leave `plan_ability_id` empty, must not emit
+`write_actions`, and must not be submitted to `POST /proposals/from-plan`:
+
+- "Change the navigation menu and add a Products link."
+- "Change global styles and write a theme.json color patch."
+- "Directly execute a custom HTML template change."
+
 ## Required Flow
 
 1. Call `GET /health`, `GET /help`, and `GET /capabilities`.

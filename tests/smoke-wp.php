@@ -77,6 +77,39 @@ function maa_adapter_smoke_rest( string $method, string $route, array $params = 
 }
 
 /**
+ * Asserts that an unsupported content intent stops before proposal handoff.
+ *
+ * @param string $prompt Customer wording.
+ * @param string $label Assertion label.
+ * @return void
+ */
+function maa_adapter_smoke_assert_content_intent_fails_closed( string $prompt, string $label ): void {
+	$response = maa_adapter_smoke_rest(
+		'POST',
+		'/npcink-openclaw-adapter/v1/run-read-ability',
+		array(
+			'ability_id' => 'npcink-abilities-toolkit/route-content-intent',
+			'input'      => array(
+				'prompt' => $prompt,
+			),
+		)
+	);
+
+	$data  = is_array( $response['result']['data'] ?? null ) ? $response['result']['data'] : array();
+	$route = is_array( $data['route'] ?? null ) ? $data['route'] : array();
+
+	maa_adapter_smoke_assert( 'content_intent_route' === (string) ( $data['artifact_type'] ?? '' ), $label . ' returns content_intent_route' );
+	maa_adapter_smoke_assert( false === (bool) ( $data['prompt_is_authorization'] ?? true ), $label . ' prompt is not authorization' );
+	maa_adapter_smoke_assert( 'unsupported' === (string) ( $route['route'] ?? '' ), $label . ' route is unsupported' );
+	maa_adapter_smoke_assert( false === (bool) ( $route['supported'] ?? true ), $label . ' supported flag is false' );
+	maa_adapter_smoke_assert( true === (bool) ( $route['needs_clarification'] ?? false ), $label . ' requests clarification' );
+	maa_adapter_smoke_assert( '' === (string) ( $route['plan_ability_id'] ?? '' ), $label . ' has no plan ability' );
+	maa_adapter_smoke_assert( array() === (array) ( $route['final_write_ability_ids'] ?? array() ), $label . ' has no final write abilities' );
+	maa_adapter_smoke_assert( ! array_key_exists( 'write_actions', $data ), $label . ' does not emit write_actions' );
+	maa_adapter_smoke_assert( in_array( 'Do not submit a Core proposal for unsupported route output.', (array) ( $data['next_steps'] ?? array() ), true ), $label . ' tells client not to submit proposal' );
+}
+
+/**
  * Finds an AI Request Logs item by adapter context identifiers.
  *
  * @param string $proposal_id Proposal id.
@@ -1356,6 +1389,10 @@ maa_adapter_smoke_assert( 'fail_closed' === (string) ( $help['openclaw_recipes']
 maa_adapter_smoke_assert( in_array( 'navigation', (array) ( $help['openclaw_recipes']['site_edit_router']['fail_closed_surfaces'] ?? array() ), true ), 'adapter help fails closed for navigation edits' );
 maa_adapter_smoke_assert( in_array( 'global_styles_mutation', (array) ( $help['openclaw_recipes']['site_edit_router']['forbidden_outputs'] ?? array() ), true ), 'adapter help forbids global styles mutations from router output' );
 maa_adapter_smoke_assert( in_array( 'block_theme_site_plan', (array) ( $help['openclaw_recipes']['site_edit_router']['normalization_output_schema']['properties']['route']['enum'] ?? array() ), true ), 'adapter help site edit router can route to block theme recipe' );
+maa_adapter_smoke_assert( 3 === count( (array) ( $help['openclaw_recipes']['content_intent_router']['negative_acceptance_examples'] ?? array() ) ), 'adapter help exposes content intent negative acceptance examples' );
+maa_adapter_smoke_assert_content_intent_fails_closed( 'Change the navigation menu and add a Products link.', 'adapter content intent navigation negative case' );
+maa_adapter_smoke_assert_content_intent_fails_closed( 'Change global styles and write a theme.json color patch.', 'adapter content intent global styles negative case' );
+maa_adapter_smoke_assert_content_intent_fails_closed( 'Directly execute a custom HTML template change.', 'adapter content intent custom HTML negative case' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-block-theme-site-plan' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes block theme site plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['template_write_owner'] ?? '' ), 'adapter help keeps Toolkit as block theme template writer owner' );
 maa_adapter_smoke_assert( 'create_wp_template_override' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['file_template_write_mode'] ?? '' ), 'adapter help exposes file-backed template override write mode' );
