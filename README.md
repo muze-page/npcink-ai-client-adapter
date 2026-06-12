@@ -675,6 +675,8 @@ Plan-to-proposal flow:
 		   `openclaw_recipes.block_theme_site_plan`. Use
 		   `openclaw_recipes.site_edit_router` as the narrower Site Editor
 		   surface contract.
+		   The verified page/article/template routing baseline is captured in
+		   [OpenClaw Gutenberg Content Intent Routing Baseline](docs/openclaw-gutenberg-content-intent-routing-baseline.md).
 		   Post-content routes use `npcink-abilities-toolkit/get-post-blocks`
 		   and `npcink-abilities-toolkit/update-post-blocks`; block-theme routes
 		   use `npcink-abilities-toolkit/get-template-blocks`,
@@ -694,6 +696,12 @@ Plan-to-proposal flow:
 		   Gutenberg-native spacing on key sections, and
 		   post-execution `get-post-blocks` readback verification before any
 		   browser review.
+		   For modern or repeated landing-page generation, treat visual quality
+		   as a design-system contract rather than a one-off template tweak:
+		   require recipe variants, section shape variety, reviewed media roles,
+		   anti-template checks, and design-quality signals before proposal
+		   creation. See
+		   [OpenClaw Gutenberg Design System](docs/openclaw-gutenberg-design-system.md).
 		   See [OpenClaw Pattern Page Plan Recipe](docs/openclaw-pattern-page-plan-recipe.md)
 		   and [OpenClaw Gutenberg Visual Acceptance](docs/openclaw-gutenberg-visual-acceptance.md).
 		   For reviewed conversational block theme Site Editor changes, use

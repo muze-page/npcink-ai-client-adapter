@@ -372,6 +372,12 @@ foreach (
 		'article_draft_plan',
 		'article_media_batch_plan',
 		'pattern_page_plan',
+		'design_quality_contract',
+		'docs/openclaw-gutenberg-design-system.md',
+		'gutenberg_native_v1',
+		'design_quality.section_shape_variety',
+		'design_quality.template_similarity_score',
+		'section_shape_variety_min',
 		'pattern_page_research_brief',
 		'pattern_page_with_visual_asset_plan',
 		'media_source_strategy',
@@ -535,6 +541,9 @@ foreach (
 			'article_block_plan',
 			'pattern_page_with_visual_asset_plan',
 			'visual_acceptance',
+			'design_quality_contract',
+			'gutenberg_native_v1',
+			'template_similarity_score_max',
 			'operator_browser_check',
 			'front_end_has_no_horizontal_overflow',
 			'block_editor_has_no_invalid_block_recovery_prompt',
@@ -543,6 +552,7 @@ foreach (
 			'image_candidate_adoption_plan',
 			'docs/openclaw-article-batch-draft-plan-recipe.md',
 			'docs/openclaw-article-block-plan-recipe.md',
+			'docs/openclaw-gutenberg-design-system.md',
 			'docs/openclaw-gutenberg-visual-acceptance.md',
 			'docs/openclaw-pattern-page-with-visual-asset-recipe.md',
 			'docs/openclaw-image-candidate-adoption-plan-recipe.md',
@@ -1064,6 +1074,8 @@ foreach (
 						'openclaw_recipes.site_edit_router',
 						'docs/openclaw-block-theme-site-builder-recipe.md',
 						'docs/openclaw-content-intent-router-contract.md',
+						'docs/openclaw-gutenberg-design-system.md',
+						'docs/openclaw-gutenberg-content-intent-routing-baseline.md',
 						'docs/openclaw-site-edit-router-contract.md',
 				'openclaw_recipes.pattern_page_research_brief',
 		'openclaw_recipes.pattern_page_with_visual_asset_plan',
@@ -1081,6 +1093,7 @@ foreach (
 			'docs/openclaw-article-media-batch-plan-recipe.md',
 			'docs/openclaw-article-block-plan-recipe.md',
 			'docs/openclaw-pattern-page-plan-recipe.md',
+			'docs/openclaw-gutenberg-design-system.md',
 			'docs/openclaw-pattern-page-research-brief-recipe.md',
 			'docs/openclaw-pattern-page-with-visual-asset-recipe.md',
 			'docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md',
@@ -2320,6 +2333,10 @@ foreach (
 		'media_strategy',
 		'existing_media_url',
 		'design_quality.pattern_version',
+		'design_quality.design_system=gutenberg_native_v1',
+		'design_quality.section_shape_variety >= 4',
+		'design_quality.template_similarity_score <= 0.75',
+		'design_quality.variant_reason',
 		'responsive_quality.uses_mobile_stack=true',
 		'GET /wp-json/npcink-openclaw-adapter/v1/post-blocks?post_id={post_id}',
 		'isStackedOnMobile=true',
@@ -2330,10 +2347,12 @@ foreach (
 		'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
 		'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
 		'openclaw-gutenberg-visual-acceptance.md',
+		'openclaw-gutenberg-design-system.md',
 		'Adapter does not fetch, upload, generate, or select media',
 		'pattern_renderer_owner=npcink-abilities-toolkit',
 		'allowed_responsive_profiles=["landing_standard"]',
 		'allowed_media_strategies=["mock_or_existing_media","existing_media_url"]',
+		'design_system_contract=docs/openclaw-gutenberg-design-system.md',
 		'core_proxy_execute=false',
 		'commit_execution=false',
 		'direct_wordpress_write=false',
@@ -2419,10 +2438,53 @@ foreach (
 		'front-end page has no horizontal overflow',
 		'block editor opens without invalid block recovery prompts',
 		'core blocks remain individually editable',
+		'Design Quality Checks',
+		'at least four distinct section shapes',
+		'not only black and white',
+		'do not share the exact same section order',
+		'openclaw-gutenberg-design-system.md',
 		'Do not fix visual issues by adding arbitrary CSS',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $gutenberg_visual_acceptance, $required ), 'Gutenberg visual acceptance doc contains required text: ' . $required );
+}
+
+$gutenberg_design_system = maa_adapter_read( $root . '/docs/openclaw-gutenberg-design-system.md' );
+foreach (
+	array(
+		'OpenClaw Gutenberg Design System',
+		'natural language -> intent route -> plan -> Core proposal -> approved execute -> readback',
+		'WordPress Twenty Twenty-Five patterns',
+		'Frost block theme patterns',
+		'Ollie block theme patterns',
+		'10up Gutenberg engineering practices',
+		'Toolkit owns:',
+		'OpenClaw owns:',
+		'Core owns:',
+		'split_hero',
+		'product_media_panel',
+		'bento_feature_grid',
+		'comparison_cards',
+		'workflow_timeline',
+		'editorial_lede',
+		'featured_image',
+		'breadcrumbs',
+		'Anti-Template Rules',
+		'variant_reason',
+		'template_similarity_score',
+		'design_system',
+		'gutenberg_native_v1',
+		'section_shape_variety >= 4',
+		'media_coverage_score >= 0.6',
+		'template_similarity_score <= 0.75',
+		'Temporary Cloud preview URLs must never be referenced',
+		'no horizontal overflow at 1440px, 768px, and 390px',
+		'Adapter must not:',
+		'store a pattern registry',
+		'execute writes without Core approval and commit-preflight',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $gutenberg_design_system, $required ), 'Gutenberg design system doc contains required text: ' . $required );
 }
 
 $image_candidate_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-image-candidate-adoption-plan-recipe.md' );
@@ -2568,6 +2630,31 @@ foreach (
 			) as $required
 		) {
 			maa_adapter_assert( false !== strpos( $content_intent_router_contract, $required ), 'Content intent router contract contains required text: ' . $required );
+		}
+
+			$gutenberg_intent_routing_baseline = maa_adapter_read( $root . '/docs/openclaw-gutenberg-content-intent-routing-baseline.md' );
+		foreach (
+			array(
+				'OpenClaw Gutenberg Content Intent Routing Baseline',
+				'npcink-abilities-toolkit/route-content-intent',
+				'pattern_page_plan',
+				'article_block_plan',
+				'block_theme_site_plan',
+				'7874c491-89a1-4700-a07d-526937ff466c',
+				'9fd06242-a936-4d9d-a693-621284e5eb6b',
+				'ae94822a-0c33-4a5f-b189-b8a1578ab02a',
+				'281748',
+				'281750',
+				'core/image.attrs.id=8053',
+				'core/media-text.attrs.mediaId=8053',
+				'wp-image-8053',
+				'successful no-op',
+				'get-post-blocks',
+				'get-template-blocks',
+				'get-template-part-blocks',
+			) as $required
+		) {
+			maa_adapter_assert( false !== strpos( $gutenberg_intent_routing_baseline, $required ), 'Gutenberg intent routing baseline contains required text: ' . $required );
 		}
 
 		$ai_image_ratio_crop_media_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' );
