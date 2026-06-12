@@ -140,7 +140,9 @@ projections through Cloud Addon. The result projection may include a same-origin
 one non-expired derivative artifact through Cloud Addon for local preview only.
 Browser image requests may use WordPress REST auth or the short-lived local
 `preview_sig` embedded in the URL. It does not store artifact truth, expose a
-public Cloud URL, or write WordPress media. `POST
+public Cloud URL, expose local filesystem paths, return inline artifact
+`bytes`/`content` in JSON projections, act as a large-file download channel, or
+write WordPress media. `POST
 /media-derivative-proposal-payload` builds a Core-ready local proposal payload
 from the ability response, Cloud result, and derivative artifact, but does not
 create, approve, preflight, or execute a proposal.

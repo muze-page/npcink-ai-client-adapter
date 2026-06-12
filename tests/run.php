@@ -270,6 +270,35 @@ foreach (
 			'core_approved_commit_preflight_required',
 			'wp_abilities_rest_after_core_preflight',
 			'MAX_EXECUTION_ACTIONS',
+			'MAX_DEVICE_PAIRINGS',
+			'MAX_DEVICE_PAIRING_STARTS_PER_WINDOW',
+			'MAX_DEVICE_PAIRING_BODY_BYTES',
+			'MAX_DEVICE_PAIRING_POLL_BODY_BYTES',
+			'CLIENT_KEY_LAST_USED_WRITE_TTL',
+			'MAX_REST_BODY_BYTES',
+			'MAX_ACTION_INPUT_BYTES',
+			'MAX_BLOCK_ITEMS',
+			'MAX_OPERATION_ITEMS',
+			'MAX_TERM_ITEMS',
+			'MAX_PROPOSAL_LIST_LIMIT',
+			'MAX_AI_SMOKE_PROMPT_CHARS',
+			'MAX_LIGHT_POST_BODY_BYTES',
+			'MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES',
+			'can_use_admin_session',
+			'validate_request_body_size',
+			'enforce_device_pairing_start_rate_limit',
+			'request_rate_limit_fingerprint',
+			'bounded_text_field',
+			'should_update_client_key_last_used',
+			'validate_execute_action_input_size',
+			'public_media_derivative_artifact_descriptor',
+			'normalize_plan_batch_metadata',
+			'npcink_openclaw_adapter_request_body_too_large',
+			'npcink_openclaw_adapter_device_pairing_rate_limited',
+			'npcink_openclaw_adapter_action_input_too_large',
+			'npcink_openclaw_adapter_action_items_limit_exceeded',
+			'npcink_openclaw_adapter_ai_smoke_prompt_too_large',
+			'npcink_openclaw_adapter_media_derivative_preview_too_large',
 			'execution_input_contract',
 			'partial_success',
 			'batch_write_actions',
@@ -631,6 +660,23 @@ foreach (
 ) {
 	maa_adapter_assert( false !== strpos( $controller_contract, $required ), 'Controller contract contains required text: ' . $required );
 }
+$smoke_route = substr( $controller, (int) strpos( $controller, "'/ai-provider-log-correlation-smoke'" ), 1400 );
+maa_adapter_assert( false !== strpos( $smoke_route, "array( \$this, 'can_use_admin_session' )" ), 'AI provider smoke route requires administrator session auth.' );
+maa_adapter_assert( false === strpos( $smoke_route, "array( \$this, 'can_use_adapter' )" ), 'AI provider smoke route is not available through signed adapter clients.' );
+$client_key_auth = substr( $controller, (int) strpos( $controller, 'private function authenticate_signed_request' ), 2600 );
+maa_adapter_assert( false !== strpos( $client_key_auth, 'should_update_client_key_last_used' ), 'Signed request auth throttles last-used option writes.' );
+$client_key_scope = substr( $controller, (int) strpos( $controller, 'private function client_key_scope_allows_request' ), 1400 );
+maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-runs'" ), 'Client key scopes treat media derivative runs as propose-scope routes.' );
+maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-proposal-payload'" ), 'Client key scopes treat media derivative proposal payloads as propose-scope routes.' );
+$public_artifact_projection = substr( $controller, (int) strpos( $controller, 'private function public_media_derivative_artifact_descriptor' ), 700 );
+maa_adapter_assert( false !== strpos( $public_artifact_projection, "'path', 'file_path', 'tmp_name', 'bytes', 'content'" ), 'Public media derivative artifact projections remove local paths and inline content.' );
+$preview_download = substr( $controller, (int) strpos( $controller, 'public function download_media_derivative_artifact_preview' ), 1800 );
+maa_adapter_assert( false !== strpos( $preview_download, 'MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES' ), 'Media derivative preview proxy enforces a bounded response size.' );
+$plan_batch_metadata = substr( $controller, (int) strpos( $controller, 'private function normalize_plan_batch_metadata' ), 1400 );
+maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['proposal_mode']  = 'batch';" ), 'Adapter makes dependent plan batches explicit before Core from-plan forwarding.' );
+maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['batch_approval'] = true;" ), 'Adapter makes dependent plan batch approval explicit before Core from-plan forwarding.' );
+maa_adapter_assert( false !== strpos( $controller, 'min( self::MAX_PROPOSAL_LIST_LIMIT, max( 1, absint' ), 'Adapter list routes clamp caller supplied limits.' );
+maa_adapter_assert( false === strpos( $controller, 'HTTP_USER_AGENT' ), 'Public pairing rate limit is not weakened by caller-controlled user agents.' );
 maa_adapter_assert( false === strpos( $controller, '$allowed_execute_ability_ids' ), 'Controller derives execute allowlist from execution profiles.' );
 maa_adapter_assert( false === strpos( $controller, 'include_log_tail' ), 'Adapter does not implement old include_log_tail compatibility.' );
 maa_adapter_assert( false === strpos( $controller, 'include_error_log' ), 'Adapter does not use old include_error_log diagnostics input.' );
