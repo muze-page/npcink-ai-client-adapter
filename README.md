@@ -681,7 +681,9 @@ Plan-to-proposal flow:
 		   and `npcink-abilities-toolkit/update-post-blocks`; block-theme routes
 		   use `npcink-abilities-toolkit/get-template-blocks`,
 		   `npcink-abilities-toolkit/get-template-part-blocks`, and
-		   bounded post-execution readback where readback failure is recorded as verification metadata.
+		   `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`
+		   for lightweight post-execution/readback contract checks where
+		   readback failure is recorded as verification metadata.
 		   See [OpenClaw Site Edit Router Contract](docs/openclaw-site-edit-router-contract.md).
 		   For reviewed Gutenberg page pattern drafts, use
 		   `npcink-abilities-toolkit/build-pattern-page-plan`; Core creates one
@@ -714,7 +716,11 @@ Plan-to-proposal flow:
 		   `openclaw_recipes.block_theme_site_plan` from `GET /help`. The MVP
 		   supports `intent=add_breadcrumbs` and keeps global styles, navigation,
 		   template creation, and generic Site Editor writes outside Adapter
-		   execution profiles. See
+		   execution profiles. After execution or when the user asks to check a
+		   template result, read back the template blocks and call
+		   `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`;
+		   only `contract_status=needs_revision` should trigger another
+		   supported plan. See
 		   [OpenClaw Block Theme Site Builder Recipe](docs/openclaw-block-theme-site-builder-recipe.md).
 		   For reviewed Gutenberg article block drafts, use
 	   `npcink-abilities-toolkit/build-article-block-plan`; Core creates one

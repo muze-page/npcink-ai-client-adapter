@@ -10,10 +10,13 @@ without making Adapter a generic WordPress site control plane.
 - Context abilities:
   `npcink-abilities-toolkit/get-block-theme-context`,
   `npcink-abilities-toolkit/inspect-block-theme-surface`,
+  `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`,
   `npcink-abilities-toolkit/get-template-blocks`, and
   `npcink-abilities-toolkit/get-template-part-blocks`
 - Inspection ability:
   `npcink-abilities-toolkit/inspect-block-theme-surface`
+- Lightweight contract inspection ability:
+  `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`
 - Entrypoint planning ability, only when inspection recommends a fix:
   `npcink-abilities-toolkit/build-block-theme-site-plan`
 - Artifact type: `block_theme_site_plan`
@@ -25,11 +28,11 @@ without making Adapter a generic WordPress site control plane.
   `npcink-abilities-toolkit/upsert-template-blocks`, and
   `npcink-abilities-toolkit/update-template-part-blocks`
 
-Toolkit owns block-theme context reads, surface inspection, Site Editor entity
-block planning, and the final WordPress Abilities write callbacks. Adapter only
-projects the recipe to OpenClaw, forwards plans with reviewed write actions to
-Core, and executes allowlisted write actions after Core approval and
-commit-preflight.
+Toolkit owns block-theme context reads, surface inspection, lightweight
+composition contract inspection, Site Editor entity block planning, and the
+final WordPress Abilities write callbacks. Adapter only projects the recipe to
+OpenClaw, forwards plans with reviewed write actions to Core, and executes
+allowlisted write actions after Core approval and commit-preflight.
 
 ## Supported MVP
 
@@ -70,6 +73,11 @@ normalized input. If the inspector returns no_changes_required, report that no
 proposal is needed. If it returns build_block_theme_site_plan, call
 build-block-theme-site-plan and submit to Core only when reviewed write_actions
 remain. If it returns manual_review, stop and report the issue codes. If the
+user asks to check the current result or after approved execution, read the
+target template blocks and run inspect-gutenberg-composition-contract. If
+contract_status=pass, stop and report that no further proposal is needed. If
+contract_status=needs_revision, report violation_codes and build another plan
+only when the violation maps to the supported add_breadcrumbs intent. If the
 request is outside the supported intent or target list, return a warning and do
 not write WordPress. Do not output raw template HTML, theme.json patches,
 navigation mutations, auto-approval, or direct execution.
@@ -116,7 +124,11 @@ Failure behavior:
 9. Execute only after approval with
    `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`.
 10. Read changed templates back with `get-template-blocks` or
-   `get-template-part-blocks` and verify the reviewed block tree is present.
+   `get-template-part-blocks`.
+11. Run `npcink-abilities-toolkit/inspect-gutenberg-composition-contract` on
+   the read-back blocks. Stop when `contract_status=pass`; if it returns
+   `needs_revision`, report `violation_codes` and create a new plan only for
+   supported fixable breadcrumb placement issues.
 
 ## Guardrails
 
@@ -124,6 +136,7 @@ Failure behavior:
 - `batch_approval=true`
 - `core_preflight_required=true`
 - `surface_inspection_required=true`
+- `contract_inspection_required_after_execution=true`
 - `proposal_handoff_requires_write_actions=true`
 - `core_proxy_execute=false`
 - `commit_execution=false`

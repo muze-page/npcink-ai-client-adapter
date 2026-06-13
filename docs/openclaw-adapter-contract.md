@@ -352,10 +352,13 @@ conversational block theme Site Editor changes:
 - context abilities:
   `npcink-abilities-toolkit/get-block-theme-context`,
   `npcink-abilities-toolkit/inspect-block-theme-surface`,
+  `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`,
   `npcink-abilities-toolkit/get-template-blocks`, and
   `npcink-abilities-toolkit/get-template-part-blocks`
 - inspection ability:
   `npcink-abilities-toolkit/inspect-block-theme-surface`
+- lightweight contract inspection ability:
+  `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`
 - entrypoint planning ability, only when inspection recommends a fix:
   `npcink-abilities-toolkit/build-block-theme-site-plan`
 - plan handoff route: `POST /proposals/from-plan`
@@ -367,10 +370,14 @@ conversational block theme Site Editor changes:
 - artifact type: `block_theme_site_plan`
 - proposal mode: `batch`
 
-The Toolkit owns block theme context reads, surface inspection, Site Editor
-entity block planning, and final WordPress Abilities write callbacks. Adapter
-must only forward plans with reviewed `write_actions[]` to Core and execute
-allowlisted write actions after Core approval and commit-preflight. The MVP
+The Toolkit owns block theme context reads, surface inspection, lightweight
+composition contract inspection, Site Editor entity block planning, and final
+WordPress Abilities write callbacks. Adapter must only forward plans with
+reviewed `write_actions[]` to Core and execute allowlisted write actions after
+Core approval and commit-preflight. After execution or when the user asks to
+check the result, clients should read back the template blocks and call
+`npcink-abilities-toolkit/inspect-gutenberg-composition-contract`; only
+`contract_status=needs_revision` should trigger another supported plan. The MVP
 supports `intent=add_breadcrumbs` only and keeps
 global styles, navigation, and template creation outside the execution profile.
 

@@ -92,6 +92,8 @@ Use this route when the customer asks for a supported Site Editor template
 change.
 
 - Context ability: `npcink-abilities-toolkit/get-block-theme-context`
+- Lightweight contract inspection ability:
+  `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`
 - Read-back abilities:
   `npcink-abilities-toolkit/get-template-blocks`,
   `npcink-abilities-toolkit/get-template-part-blocks`
@@ -101,7 +103,12 @@ change.
   `npcink-abilities-toolkit/upsert-template-blocks`,
   `npcink-abilities-toolkit/update-template-part-blocks`
 
-The current supported Site Editor intent is only `add_breadcrumbs`.
+The current supported Site Editor intent is only `add_breadcrumbs`. When the
+customer asks to check or verify the current result, read the target template
+blocks and call `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`
+before creating another proposal. A `contract_status=pass` result stops the
+flow; `contract_status=needs_revision` may continue only if the violation maps
+to the supported breadcrumb placement plan.
 
 ## Fail-Closed Surfaces
 
