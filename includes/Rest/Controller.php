@@ -173,7 +173,7 @@ final class Controller {
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'revoke_client_key' ),
-					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'permission_callback' => array( $this, 'can_use_admin_session' ),
 				),
 			)
 		);

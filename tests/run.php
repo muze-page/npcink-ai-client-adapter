@@ -666,6 +666,9 @@ foreach (
 $smoke_route = substr( $controller, (int) strpos( $controller, "'/ai-provider-log-correlation-smoke'" ), 1400 );
 maa_adapter_assert( false !== strpos( $smoke_route, "array( \$this, 'can_use_admin_session' )" ), 'AI provider smoke route requires administrator session auth.' );
 maa_adapter_assert( false === strpos( $smoke_route, "array( \$this, 'can_use_adapter' )" ), 'AI provider smoke route is not available through signed adapter clients.' );
+$key_revoke_route = substr( $controller, (int) strpos( $controller, "'/connection/key-pairs/(?P<key_id>mk_[A-Za-z0-9_-]+)'" ), 360 );
+maa_adapter_assert( false !== strpos( $key_revoke_route, "array( \$this, 'can_use_admin_session' )" ), 'Client key revoke route requires administrator session auth.' );
+maa_adapter_assert( false === strpos( $key_revoke_route, "array( \$this, 'can_use_adapter' )" ), 'Client key revoke route is not available through signed adapter clients.' );
 $client_key_auth = substr( $controller, (int) strpos( $controller, 'private function authenticate_signed_request' ), 2600 );
 maa_adapter_assert( false !== strpos( $client_key_auth, 'should_update_client_key_last_used' ), 'Signed request auth throttles last-used option writes.' );
 $client_key_scope = substr( $controller, (int) strpos( $controller, 'private function client_key_scope_allows_request' ), 1400 );
