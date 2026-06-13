@@ -29,8 +29,23 @@ final class Controller {
 	const PREFLIGHT_HANDOFFS_OPTION = 'npcink_openclaw_adapter_preflight_handoffs';
 	const DEVICE_PAIRING_TTL       = 600;
 	const SIGNATURE_NONCE_TTL      = 300;
-	const MAX_EXECUTION_RECORDS    = 500;
-	const MAX_PREFLIGHT_HANDOFFS   = 500;
+	const DEVICE_PAIRING_RATE_LIMIT_TTL = 60;
+	const MAX_DEVICE_PAIRINGS          = 100;
+	const MAX_DEVICE_PAIRING_STARTS_PER_WINDOW = 20;
+	const MAX_DEVICE_PAIRING_BODY_BYTES = 8192;
+	const MAX_DEVICE_PAIRING_POLL_BODY_BYTES = 1024;
+	const MAX_EXECUTION_RECORDS        = 500;
+	const MAX_PREFLIGHT_HANDOFFS       = 500;
+	const CLIENT_KEY_LAST_USED_WRITE_TTL = 60;
+	const MAX_REST_BODY_BYTES         = 1048576;
+	const MAX_ACTION_INPUT_BYTES      = 1048576;
+	const MAX_BLOCK_ITEMS             = 300;
+	const MAX_OPERATION_ITEMS         = 300;
+	const MAX_TERM_ITEMS              = 100;
+	const MAX_PROPOSAL_LIST_LIMIT     = 100;
+	const MAX_AI_SMOKE_PROMPT_CHARS   = 200;
+	const MAX_LIGHT_POST_BODY_BYTES   = 4096;
+	const MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES = 10485760;
 
 	/**
 	 * Current request log context while an ability is running.
@@ -158,7 +173,7 @@ final class Controller {
 				array(
 					'methods'             => WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'revoke_client_key' ),
-					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'permission_callback' => array( $this, 'can_use_admin_session' ),
 				),
 			)
 		);
@@ -297,7 +312,7 @@ final class Controller {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'ai_provider_log_correlation_smoke' ),
-					'permission_callback' => array( $this, 'can_use_adapter' ),
+					'permission_callback' => array( $this, 'can_use_admin_session' ),
 					'args'                => array(
 						'proposal_id'    => array(
 							'type'              => 'string',
@@ -841,6 +856,16 @@ final class Controller {
 	}
 
 	/**
+	 * Authorizes manual administrator-only diagnostics.
+	 *
+	 * @param WP_REST_Request|null $request Request.
+	 * @return bool
+	 */
+	public function can_use_admin_session( ?WP_REST_Request $request = null ): bool {
+		return current_user_can( 'manage_options' );
+	}
+
+	/**
 	 * Authorizes one local media derivative preview URL.
 	 *
 	 * Browser image requests cannot send X-WP-Nonce headers. The projection
@@ -876,10 +901,16 @@ final class Controller {
 	 */
 	public function start_device_pairing( WP_REST_Request $request ) {
 		$started = microtime( true );
-		$body = $this->request_json_body( $request );
+		$body = $this->request_json_body( $request, self::MAX_DEVICE_PAIRING_BODY_BYTES );
 		if ( is_wp_error( $body ) ) {
 			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $body );
 			return $body;
+		}
+
+		$rate_limit = $this->enforce_device_pairing_start_rate_limit( $request );
+		if ( is_wp_error( $rate_limit ) ) {
+			$this->emit_operation_event( 'adapter.device_pairing.start', $started, $rate_limit );
+			return $rate_limit;
 		}
 
 		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
@@ -894,8 +925,8 @@ final class Controller {
 
 		$client = is_array( $body['client'] ?? null ) ? $body['client'] : array();
 		$key    = is_array( $body['key'] ?? null ) ? $body['key'] : array();
-		$name   = sanitize_text_field( (string) ( $client['name'] ?? '' ) );
-		$public_key = sanitize_text_field( (string) ( $key['public_key'] ?? '' ) );
+		$name   = $this->bounded_text_field( (string) ( $client['name'] ?? '' ), 120 );
+		$public_key = $this->bounded_text_field( (string) ( $key['public_key'] ?? '' ), 128 );
 		$scopes = $this->connection_requested_scopes( is_array( $body['requested_scopes'] ?? null ) ? $body['requested_scopes'] : array() );
 
 		if ( '' === $name || 'Ed25519' !== (string) ( $key['alg'] ?? '' ) || 32 !== strlen( $this->base64url_decode( $public_key ) ) ) {
@@ -919,9 +950,9 @@ final class Controller {
 			'status'           => 'pending',
 			'client'           => array(
 				'name'           => $name,
-				'device_name'    => sanitize_text_field( (string) ( $client['device_name'] ?? '' ) ),
-				'broker'         => sanitize_text_field( (string) ( $client['broker'] ?? '' ) ),
-				'broker_version' => sanitize_text_field( (string) ( $client['broker_version'] ?? '' ) ),
+				'device_name'    => $this->bounded_text_field( (string) ( $client['device_name'] ?? '' ), 120 ),
+				'broker'         => $this->bounded_text_field( (string) ( $client['broker'] ?? '' ), 80 ),
+				'broker_version' => $this->bounded_text_field( (string) ( $client['broker_version'] ?? '' ), 80 ),
 			),
 			'key'              => array(
 				'alg'         => 'Ed25519',
@@ -959,7 +990,7 @@ final class Controller {
 	 */
 	public function poll_device_pairing( WP_REST_Request $request ) {
 		$started = microtime( true );
-		$body = $this->request_json_body( $request );
+		$body = $this->request_json_body( $request, self::MAX_DEVICE_PAIRING_POLL_BODY_BYTES );
 		if ( is_wp_error( $body ) ) {
 			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $body );
 			return $body;
@@ -1202,7 +1233,14 @@ final class Controller {
 	 * @param WP_REST_Request $request Request.
 	 * @return array<string,mixed>|WP_Error
 	 */
-	private function request_json_body( WP_REST_Request $request ) {
+	private function request_json_body( WP_REST_Request $request, int $max_bytes = 0 ) {
+		if ( $max_bytes > 0 ) {
+			$body_size = $this->validate_request_body_size( $request, $max_bytes );
+			if ( is_wp_error( $body_size ) ) {
+				return $body_size;
+			}
+		}
+
 		$params = $request->get_json_params();
 		if ( is_array( $params ) ) {
 			return $params;
@@ -1213,6 +1251,88 @@ final class Controller {
 			__( 'A JSON request body is required.', 'npcink-ai-client-adapter' ),
 			array( 'status' => 400 )
 		);
+	}
+
+	/**
+	 * Rejects request bodies above the route's bounded payload contract.
+	 *
+	 * @param WP_REST_Request $request   Request.
+	 * @param int             $max_bytes Maximum accepted body size.
+	 * @return true|WP_Error
+	 */
+	private function validate_request_body_size( WP_REST_Request $request, int $max_bytes ) {
+		$body = (string) $request->get_body();
+		$size = strlen( $body );
+		if ( $max_bytes <= 0 || $size <= $max_bytes ) {
+			return true;
+		}
+
+		return new WP_Error(
+			'npcink_openclaw_adapter_request_body_too_large',
+			__( 'Adapter request body is too large.', 'npcink-ai-client-adapter' ),
+			array(
+				'status'     => 413,
+				'body_bytes' => $size,
+				'max_bytes'  => $max_bytes,
+			)
+		);
+	}
+
+	/**
+	 * Applies a lightweight public pairing start rate limit.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return true|WP_Error
+	 */
+	private function enforce_device_pairing_start_rate_limit( WP_REST_Request $request ) {
+		$key   = 'npcink_openclaw_adapter_pairing_start_' . md5( $this->request_rate_limit_fingerprint() );
+		$count = absint( get_transient( $key ) );
+		if ( $count >= self::MAX_DEVICE_PAIRING_STARTS_PER_WINDOW ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_device_pairing_rate_limited',
+				__( 'Too many device pairing attempts. Try again shortly.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'       => 429,
+					'retry_after'  => self::DEVICE_PAIRING_RATE_LIMIT_TTL,
+					'window'       => self::DEVICE_PAIRING_RATE_LIMIT_TTL,
+					'max_attempts' => self::MAX_DEVICE_PAIRING_STARTS_PER_WINDOW,
+				)
+			);
+		}
+
+		set_transient( $key, $count + 1, self::DEVICE_PAIRING_RATE_LIMIT_TTL );
+
+		return true;
+	}
+
+	/**
+	 * Returns a coarse local request fingerprint for unauthenticated throttles.
+	 *
+	 * @return string
+	 */
+	private function request_rate_limit_fingerprint(): string {
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : '';
+
+		return '' !== $remote_addr ? $remote_addr : 'unknown';
+	}
+
+	/**
+	 * Sanitizes and bounds one plain text field.
+	 *
+	 * @param string $value      Raw value.
+	 * @param int    $max_length Maximum character length.
+	 * @return string
+	 */
+	private function bounded_text_field( string $value, int $max_length ): string {
+		$value = sanitize_text_field( $value );
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( $value ) : strlen( $value );
+		if ( $max_length > 0 && $length > $max_length ) {
+			$value = function_exists( 'mb_substr' )
+				? mb_substr( $value, 0, $max_length )
+				: substr( $value, 0, $max_length );
+		}
+
+		return $value;
 	}
 
 	/**
@@ -1462,12 +1582,26 @@ final class Controller {
 	private function prune_device_pairings( array $pairings ): array {
 		$now = time();
 		foreach ( $pairings as $user_code => $pairing ) {
-			if ( $now > (int) ( $pairing['expires_at'] ?? 0 ) && 'approved' !== (string) ( $pairing['status'] ?? '' ) ) {
+			if ( $now > (int) ( $pairing['expires_at'] ?? 0 ) ) {
 				unset( $pairings[ $user_code ] );
 			}
 		}
 
-		return $pairings;
+		if ( count( $pairings ) <= self::MAX_DEVICE_PAIRINGS ) {
+			return $pairings;
+		}
+
+		uasort(
+			$pairings,
+			static function ( $left, $right ): int {
+				$left_time  = is_array( $left ) ? (string) ( $left['created_at'] ?? '' ) : '';
+				$right_time = is_array( $right ) ? (string) ( $right['created_at'] ?? '' ) : '';
+
+				return strcmp( $left_time, $right_time );
+			}
+		);
+
+		return array_slice( $pairings, - self::MAX_DEVICE_PAIRINGS, null, true );
 	}
 
 	/**
@@ -1499,6 +1633,21 @@ final class Controller {
 	private function client_key_records(): array {
 		$records = get_option( self::CLIENT_KEYS_OPTION, array() );
 		return is_array( $records ) ? $records : array();
+	}
+
+	/**
+	 * Returns whether the last-used timestamp should be persisted again.
+	 *
+	 * @param string $last_used_at Last persisted timestamp.
+	 * @return bool
+	 */
+	private function should_update_client_key_last_used( string $last_used_at ): bool {
+		$last_used = strtotime( $last_used_at );
+		if ( false === $last_used ) {
+			return true;
+		}
+
+		return ( time() - $last_used ) >= self::CLIENT_KEY_LAST_USED_WRITE_TTL;
 	}
 
 	/**
@@ -1580,9 +1729,11 @@ final class Controller {
 		}
 
 		set_transient( $nonce_key, 1, self::SIGNATURE_NONCE_TTL );
-		$record['last_used_at'] = gmdate( 'c' );
-		$keys[ $key_id ]        = $record;
-		update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+		if ( $this->should_update_client_key_last_used( (string) ( $record['last_used_at'] ?? '' ) ) ) {
+			$record['last_used_at'] = gmdate( 'c' );
+			$keys[ $key_id ]        = $record;
+			update_option( self::CLIENT_KEYS_OPTION, $keys, false );
+		}
 		wp_set_current_user( $user_id );
 
 		return true;
@@ -1669,6 +1820,10 @@ final class Controller {
 		$method = strtoupper( $request->get_method() );
 
 		if ( false !== strpos( $route, '/proposals' ) || false !== strpos( $route, '/execute-approved-proposal' ) ) {
+			return ! empty( $scopes['magick.propose'] );
+		}
+
+		if ( false !== strpos( $route, '/media-derivative-runs' ) || false !== strpos( $route, '/media-derivative-proposal-payload' ) ) {
 			return ! empty( $scopes['magick.propose'] );
 		}
 
@@ -2618,11 +2773,13 @@ final class Controller {
 				),
 				'block_theme_site_plan' => array(
 					'title'                   => 'Block theme site plan',
-					'description'             => 'Build a reviewed Toolkit block_theme_site_plan for conversational Site Editor changes, forward it to Core as one batch proposal, then execute only Core-approved template override, template, or template-part block writes.',
+					'description'             => 'Inspect supported block theme surfaces first, build a reviewed Toolkit block_theme_site_plan only when a fix is needed, forward plans with write_actions to Core, then execute only Core-approved template override, template, or template-part block writes.',
 					'entrypoint_ability_id'   => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+					'inspection_ability_id'   => 'npcink-abilities-toolkit/inspect-block-theme-surface',
 					'plan_ability_id'         => 'npcink-abilities-toolkit/build-block-theme-site-plan',
 					'context_ability_ids'     => array(
 						'npcink-abilities-toolkit/get-block-theme-context',
+						'npcink-abilities-toolkit/inspect-block-theme-surface',
 						'npcink-abilities-toolkit/get-template-blocks',
 						'npcink-abilities-toolkit/get-template-part-blocks',
 					),
@@ -2637,14 +2794,16 @@ final class Controller {
 						'goal'             => 'Translate conversational block-theme Site Editor requests into one reviewed block_theme_site_plan. Do not produce direct WordPress writes, raw theme file edits, or a second workflow runtime.',
 						'required_context_before_planning' => array(
 							'npcink-abilities-toolkit/get-block-theme-context',
+							'npcink-abilities-toolkit/inspect-block-theme-surface',
 							'active_theme',
 							'is_block_theme',
 							'templates',
 							'template_parts',
+							'dual_review.consensus.recommended_next_step',
 						),
 						'planner_prompt_guidance' => array(
 							'role'         => 'WordPress block theme site planner',
-							'instruction'  => 'Map the user request to the narrow build-block-theme-site-plan input schema. If the request is outside allowed_intents or allowed_template_targets, return a warning and do not invent write_actions.',
+							'instruction'  => 'Map the user request to the narrow block theme input schema, run inspect-block-theme-surface with the same normalized input, and build a plan only when the inspector recommends build_block_theme_site_plan. If the request is outside allowed_intents or allowed_template_targets, return a warning and do not invent write_actions.',
 							'output_shape' => array(
 								'intent'              => 'add_breadcrumbs',
 								'target_templates'    => array( 'single' ),
@@ -2660,6 +2819,11 @@ final class Controller {
 								'auto_approval',
 								'direct_execute',
 							),
+						),
+						'inspection_decision_contract' => array(
+							'no_changes_required'        => 'Report the inspected templates already satisfy the requested breadcrumb placement; do not call build-block-theme-site-plan and do not create a proposal.',
+							'build_block_theme_site_plan' => 'Call build-block-theme-site-plan with the inspector-normalized input, review returned write_actions, and submit to Core only if action_count is greater than zero.',
+							'manual_review'              => 'Stop and report the issue codes that require human review; do not create a proposal from uncertain template state.',
 						),
 						'intent_examples' => array(
 							array(
@@ -2689,6 +2853,7 @@ final class Controller {
 							'unsupported_intent' => 'Return a concise unsupported_intent warning and suggest one supported intent instead of writing WordPress.',
 							'template_not_found' => 'Preserve Toolkit warnings and do not create unrelated templates.',
 							'not_block_theme'    => 'Stop after context read and report that the active theme is not a block theme.',
+							'no_changes_required' => 'Stop after surface inspection and report that no proposal is needed because the target already matches.',
 							'approval_required'  => 'Create or inspect the Core proposal; do not call final execution until the user chooses approve-and-execute.',
 						),
 					),
@@ -2702,26 +2867,32 @@ final class Controller {
 						array(
 							'order'      => 2,
 							'route'      => 'POST /run-read-ability',
-							'ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
-							'purpose'    => 'Build a reviewed block_theme_site_plan with Site Editor write_actions but no direct WordPress mutation.',
+							'ability_id' => 'npcink-abilities-toolkit/inspect-block-theme-surface',
+							'purpose'    => 'Inspect breadcrumb placement, homepage visibility, template resolution, and dual-review next step without writing WordPress or creating proposals.',
 						),
 						array(
-							'order'   => 3,
-							'route'   => 'POST /proposals/from-plan',
-							'purpose' => 'Forward the block theme site plan to Core plan intake with plan_ability_id and caller metadata.',
+							'order'      => 3,
+							'route'      => 'POST /run-read-ability',
+							'ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+							'purpose'    => 'Build a reviewed block_theme_site_plan only when inspection recommends build_block_theme_site_plan; otherwise stop before plan creation.',
 						),
 						array(
 							'order'   => 4,
+							'route'   => 'POST /proposals/from-plan',
+							'purpose' => 'Forward the block theme site plan to Core plan intake only when reviewed write_actions remain, with plan_ability_id and caller metadata.',
+						),
+						array(
+							'order'   => 5,
 							'route'   => 'GET /proposals/{proposal_id}',
 							'purpose' => 'Poll the Core-owned batch proposal status through Adapter.',
 						),
 						array(
-							'order'   => 5,
+							'order'   => 6,
 							'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
 							'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted template override, template, and template-part write_actions.',
 						),
 						array(
-							'order'   => 6,
+							'order'   => 7,
 							'route'   => 'POST /run-read-ability',
 							'purpose' => 'Read back get-template-blocks or get-template-part-blocks to verify the approved Site Editor entity changed as expected.',
 						),
@@ -2731,6 +2902,8 @@ final class Controller {
 						'proposal_mode'          => 'batch',
 						'batch_approval'         => true,
 						'core_preflight_required' => true,
+						'surface_inspection_required' => true,
+						'proposal_handoff_requires_write_actions' => true,
 							'template_write_owner'   => 'npcink-abilities-toolkit',
 							'file_template_write_mode' => 'create_wp_template_override',
 						'allowed_intents'        => array( 'add_breadcrumbs' ),
@@ -3421,6 +3594,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function run_read_ability_route( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_REST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		return $this->run_read_ability(
 			(string) $request->get_param( 'ability_id' ),
 			$this->request_input( $request ),
@@ -3436,6 +3614,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_read_request( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_REST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		$ability_id = sanitize_text_field( (string) $request->get_param( 'ability_id' ) );
 		$payload    = array(
 			'ability_id'               => $ability_id,
@@ -3469,7 +3652,7 @@ final class Controller {
 			'GET',
 			'/npcink-governance-core/v1/read-requests',
 			array(
-				'limit'  => absint( $request->get_param( 'limit' ) ),
+				'limit'  => min( self::MAX_PROPOSAL_LIST_LIMIT, max( 1, absint( $request->get_param( 'limit' ) ) ) ),
 				'status' => sanitize_key( (string) $request->get_param( 'status' ) ),
 			),
 			true
@@ -3494,6 +3677,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function media_metadata_optimization_route( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_REST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		$ability_id = 'npcink-abilities-toolkit/optimize-media-metadata';
 
 		return $this->run_read_ability(
@@ -3510,6 +3698,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_media_derivative_run( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_REST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		if ( ! function_exists( 'npcink_cloud_addon_dispatch_media_derivative_cloud_request' ) ) {
 			return $this->cloud_addon_unavailable_error();
 		}
@@ -3654,6 +3847,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function build_media_derivative_proposal_payload( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_REST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payload' ) ) {
 			return $this->cloud_addon_unavailable_error();
 		}
@@ -3955,6 +4153,18 @@ final class Controller {
 		$mime_type   = sanitize_text_field( (string) ( $download['mime_type'] ?? 'application/octet-stream' ) );
 		$artifact_id = sanitize_file_name( (string) ( $download['artifact_id'] ?? $artifact['artifact_id'] ?? 'derivative-artifact' ) );
 		$filename    = $artifact_id . $this->media_derivative_extension_for_mime( $mime_type );
+		$content_length = strlen( $contents );
+		if ( $content_length > self::MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_media_derivative_preview_too_large',
+				__( 'Media derivative preview is too large to proxy through Adapter.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'     => 413,
+					'body_bytes' => $content_length,
+					'max_bytes'  => self::MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES,
+				)
+			);
+		}
 
 		if ( function_exists( 'status_header' ) ) {
 			status_header( 200 );
@@ -3964,7 +4174,7 @@ final class Controller {
 		}
 
 		header( 'Content-Type: ' . $mime_type );
-		header( 'Content-Length: ' . strlen( $contents ) );
+		header( 'Content-Length: ' . $content_length );
 		header( 'Content-Disposition: inline; filename="' . $filename . '"' );
 		header( 'Cache-Control: private, no-store, max-age=0' );
 		header( 'X-Content-Type-Options: nosniff' );
@@ -3996,6 +4206,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function ai_provider_log_correlation_smoke( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_LIGHT_POST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		if ( ! function_exists( 'wp_ai_client_prompt' ) ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_ai_client_unavailable',
@@ -4006,8 +4221,18 @@ final class Controller {
 
 		$ability_id  = (string) $request->get_param( 'ability_id' );
 		$ai_provider = sanitize_key( (string) $request->get_param( 'ai_provider' ) );
-		$ai_model    = sanitize_text_field( (string) $request->get_param( 'ai_model' ) );
+		$ai_model    = $this->bounded_text_field( (string) $request->get_param( 'ai_model' ), 120 );
 		$prompt      = sanitize_textarea_field( (string) $request->get_param( 'prompt' ) );
+		if ( strlen( $prompt ) > self::MAX_AI_SMOKE_PROMPT_CHARS ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_ai_smoke_prompt_too_large',
+				__( 'AI provider log correlation smoke prompt is too large.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'           => 413,
+					'max_prompt_chars' => self::MAX_AI_SMOKE_PROMPT_CHARS,
+				)
+			);
+		}
 
 		if ( '' === $ai_provider || '' === $ai_model ) {
 			return new WP_Error(
@@ -4075,7 +4300,7 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function list_proposals( WP_REST_Request $request ) {
-		$limit = max( 1, absint( $request->get_param( 'limit' ) ) );
+		$limit = min( self::MAX_PROPOSAL_LIST_LIMIT, max( 1, absint( $request->get_param( 'limit' ) ) ) );
 
 		return $this->dispatch_upstream(
 			'GET',
@@ -4715,6 +4940,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_proposal( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_REST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		$started    = microtime( true );
 		$ability_id  = (string) $request->get_param( 'ability_id' );
 		$event_context = $this->observability_request_context( $request, array( 'ability_id' => $ability_id ) );
@@ -4767,6 +4997,11 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function create_proposals_from_plan( WP_REST_Request $request ) {
+		$body_size = $this->validate_request_body_size( $request, self::MAX_REST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			return $body_size;
+		}
+
 		$started = microtime( true );
 		$plan_ability_id = sanitize_text_field( (string) $request->get_param( 'plan_ability_id' ) );
 		$event_context = $this->observability_request_context( $request, array( 'ability_id' => $plan_ability_id ) );
@@ -4784,7 +5019,7 @@ final class Controller {
 			return $error;
 		}
 
-		$plan            = $this->object_param( $request, 'plan' );
+		$plan            = $this->normalize_plan_batch_metadata( $this->object_param( $request, 'plan' ) );
 		$valid_plan_input = $this->validate_plan_write_action_inputs( $plan );
 		if ( is_wp_error( $valid_plan_input ) ) {
 			$valid_plan_input = $this->error_with_operator_feedback( $valid_plan_input, $this->plan_handoff_operator_feedback( $valid_plan_input, $plan_ability_id ) );
@@ -4806,6 +5041,38 @@ final class Controller {
 		$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, is_wp_error( $response ) ? $response : null, $event_context );
 
 		return $response;
+	}
+
+	/**
+	 * Makes dependent/output-reference plan batches explicit for Core versions that do not infer it.
+	 *
+	 * @param array<string,mixed> $plan_payload Plan output or success envelope.
+	 * @return array<string,mixed>
+	 */
+	private function normalize_plan_batch_metadata( array $plan_payload ): array {
+		$is_envelope = is_array( $plan_payload['data'] ?? null );
+		$plan        = $is_envelope ? (array) $plan_payload['data'] : $plan_payload;
+		$actions     = is_array( $plan['write_actions'] ?? null ) ? array_values( $plan['write_actions'] ) : array();
+
+		foreach ( $actions as $action ) {
+			if ( ! is_array( $action ) ) {
+				continue;
+			}
+
+			$depends_on = is_array( $action['depends_on'] ?? null ) ? array_filter( $action['depends_on'] ) : array();
+			if ( ! empty( $depends_on ) || ! empty( $this->collect_output_references( $action['input'] ?? array() ) ) ) {
+				$plan['proposal_mode']  = 'batch';
+				$plan['batch_approval'] = true;
+				break;
+			}
+		}
+
+		if ( $is_envelope ) {
+			$plan_payload['data'] = $plan;
+			return $plan_payload;
+		}
+
+		return $plan;
 	}
 
 	/**
@@ -4940,6 +5207,12 @@ final class Controller {
 	 */
 	public function execute_approved_proposal_route( WP_REST_Request $request ) {
 		$started = microtime( true );
+		$body_size = $this->validate_request_body_size( $request, self::MAX_LIGHT_POST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $body_size );
+			return $body_size;
+		}
+
 		$proposal_id = sanitize_text_field( (string) $request->get_param( 'proposal_id' ) );
 		$event_context = $this->observability_request_context( $request, array( 'proposal_id' => $proposal_id ) );
 		if ( '' === $proposal_id ) {
@@ -5013,6 +5286,12 @@ final class Controller {
 	 */
 	public function approve_and_execute_proposal_route( WP_REST_Request $request ) {
 		$started = microtime( true );
+		$body_size = $this->validate_request_body_size( $request, self::MAX_LIGHT_POST_BODY_BYTES );
+		if ( is_wp_error( $body_size ) ) {
+			$this->emit_operation_event( 'adapter.proposal.execute', $started, $body_size );
+			return $body_size;
+		}
+
 		$proposal_id = sanitize_text_field( (string) $request->get_param( 'proposal_id' ) );
 		$event_context = $this->observability_request_context( $request, array( 'proposal_id' => $proposal_id ) );
 		if ( '' === $proposal_id ) {
@@ -5201,6 +5480,71 @@ final class Controller {
 	}
 
 	/**
+	 * Bounds Adapter-owned execution input before validation or dispatch.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param string              $ability_id Ability id.
+	 * @param array<string,mixed> $input Ability input.
+	 * @param int|null            $action_index Batch action index.
+	 * @return true|WP_Error
+	 */
+	private function validate_execute_action_input_size( string $proposal_id, string $ability_id, array $input, ?int $action_index = null ) {
+		$error_data = array(
+			'status'      => 413,
+			'proposal_id' => $proposal_id,
+			'ability_id'  => $ability_id,
+		);
+		if ( null !== $action_index ) {
+			$error_data['action_index']      = $action_index;
+			$error_data['target_ability_id'] = $ability_id;
+		}
+
+		$json  = wp_json_encode( $input );
+		$bytes = is_string( $json ) ? strlen( $json ) : 0;
+		if ( $bytes > self::MAX_ACTION_INPUT_BYTES ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_action_input_too_large',
+				__( 'Execution input exceeds the adapter action payload limit.', 'npcink-ai-client-adapter' ),
+				array_merge(
+					$error_data,
+					array(
+						'input_bytes' => $bytes,
+						'max_bytes'   => self::MAX_ACTION_INPUT_BYTES,
+					)
+				)
+			);
+		}
+
+		foreach (
+			array(
+				'blocks'     => self::MAX_BLOCK_ITEMS,
+				'operations' => self::MAX_OPERATION_ITEMS,
+				'term_ids'   => self::MAX_TERM_ITEMS,
+				'terms'      => self::MAX_TERM_ITEMS,
+			) as $field => $max_items
+		) {
+			if ( ! is_array( $input[ $field ] ?? null ) || count( $input[ $field ] ) <= $max_items ) {
+				continue;
+			}
+
+			return new WP_Error(
+				'npcink_openclaw_adapter_action_items_limit_exceeded',
+				__( 'Execution input includes too many items for one field.', 'npcink-ai-client-adapter' ),
+				array_merge(
+					$error_data,
+					array(
+						'field'      => $field,
+						'item_count' => count( $input[ $field ] ),
+						'max_items'  => $max_items,
+					)
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Validates the Adapter-owned execution input shape for one allowlisted ability.
 	 *
 	 * @param string              $proposal_id Proposal id.
@@ -5224,6 +5568,11 @@ final class Controller {
 
 		$profiles = self::execution_profiles();
 		$profile  = is_array( $profiles[ $ability_id ] ?? null ) ? $profiles[ $ability_id ] : array();
+
+		$bounded_input = $this->validate_execute_action_input_size( $proposal_id, $ability_id, $input, $action_index );
+		if ( is_wp_error( $bounded_input ) ) {
+			return $bounded_input;
+		}
 
 		$allowed_input_fields = (array) ( $profile['allowed_input_fields'] ?? array() );
 		if ( ! empty( $allowed_input_fields ) ) {
@@ -8621,6 +8970,7 @@ final class Controller {
 		if ( '' !== $preview_url ) {
 			$derivative['preview_url'] = $preview_url;
 		}
+		$derivative = $this->public_media_derivative_artifact_descriptor( $derivative );
 		$error      = is_array( $data['error'] ?? null ) ? $data['error'] : array();
 		$warnings   = is_array( $data['warnings'] ?? null ) ? $data['warnings'] : array();
 		if ( empty( $warnings ) && is_array( $derivative['processing_warnings'] ?? null ) ) {
@@ -8637,6 +8987,20 @@ final class Controller {
 			'warnings'   => array_values( array_map( 'sanitize_text_field', $warnings ) ),
 			'error'      => $this->sanitize_input_value( $error ),
 		);
+	}
+
+	/**
+	 * Removes local-only and inline-content artifact fields from public REST projections.
+	 *
+	 * @param array<string,mixed> $artifact Artifact descriptor.
+	 * @return array<string,mixed>
+	 */
+	private function public_media_derivative_artifact_descriptor( array $artifact ): array {
+		foreach ( array( 'path', 'file_path', 'tmp_name', 'bytes', 'content' ) as $key ) {
+			unset( $artifact[ $key ] );
+		}
+
+		return $artifact;
 	}
 
 	/**

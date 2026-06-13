@@ -57,6 +57,9 @@ maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abili
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-post-blocks' ), 'Controller can read back post blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-blocks' ), 'Controller can read back template blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-part-blocks' ), 'Controller can read back template part blocks after execution.' );
+maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/inspect-block-theme-surface' ), 'Controller exposes block theme surface inspection before plan creation.' );
+maa_adapter_assert( false !== strpos( $controller, 'inspection_decision_contract' ), 'Controller documents block theme inspection decision handling.' );
+maa_adapter_assert( false !== strpos( $controller, 'proposal_handoff_requires_write_actions' ), 'Controller documents block theme proposal handoff stop condition.' );
 maa_adapter_assert( false !== strpos( $controller, 'negative_acceptance_examples' ), 'Controller exposes content intent negative acceptance examples.' );
 maa_adapter_assert( false !== strpos( $controller, 'must_not_submit_proposal' ), 'Controller negative examples stop before proposal handoff.' );
 maa_adapter_assert( false !== strpos( $controller, 'Change global styles and write a theme.json color patch.' ), 'Controller negative examples cover global styles and theme.json requests.' );
@@ -270,6 +273,35 @@ foreach (
 			'core_approved_commit_preflight_required',
 			'wp_abilities_rest_after_core_preflight',
 			'MAX_EXECUTION_ACTIONS',
+			'MAX_DEVICE_PAIRINGS',
+			'MAX_DEVICE_PAIRING_STARTS_PER_WINDOW',
+			'MAX_DEVICE_PAIRING_BODY_BYTES',
+			'MAX_DEVICE_PAIRING_POLL_BODY_BYTES',
+			'CLIENT_KEY_LAST_USED_WRITE_TTL',
+			'MAX_REST_BODY_BYTES',
+			'MAX_ACTION_INPUT_BYTES',
+			'MAX_BLOCK_ITEMS',
+			'MAX_OPERATION_ITEMS',
+			'MAX_TERM_ITEMS',
+			'MAX_PROPOSAL_LIST_LIMIT',
+			'MAX_AI_SMOKE_PROMPT_CHARS',
+			'MAX_LIGHT_POST_BODY_BYTES',
+			'MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES',
+			'can_use_admin_session',
+			'validate_request_body_size',
+			'enforce_device_pairing_start_rate_limit',
+			'request_rate_limit_fingerprint',
+			'bounded_text_field',
+			'should_update_client_key_last_used',
+			'validate_execute_action_input_size',
+			'public_media_derivative_artifact_descriptor',
+			'normalize_plan_batch_metadata',
+			'npcink_openclaw_adapter_request_body_too_large',
+			'npcink_openclaw_adapter_device_pairing_rate_limited',
+			'npcink_openclaw_adapter_action_input_too_large',
+			'npcink_openclaw_adapter_action_items_limit_exceeded',
+			'npcink_openclaw_adapter_ai_smoke_prompt_too_large',
+			'npcink_openclaw_adapter_media_derivative_preview_too_large',
 			'execution_input_contract',
 			'partial_success',
 			'batch_write_actions',
@@ -631,6 +663,26 @@ foreach (
 ) {
 	maa_adapter_assert( false !== strpos( $controller_contract, $required ), 'Controller contract contains required text: ' . $required );
 }
+$smoke_route = substr( $controller, (int) strpos( $controller, "'/ai-provider-log-correlation-smoke'" ), 1400 );
+maa_adapter_assert( false !== strpos( $smoke_route, "array( \$this, 'can_use_admin_session' )" ), 'AI provider smoke route requires administrator session auth.' );
+maa_adapter_assert( false === strpos( $smoke_route, "array( \$this, 'can_use_adapter' )" ), 'AI provider smoke route is not available through signed adapter clients.' );
+$key_revoke_route = substr( $controller, (int) strpos( $controller, "'/connection/key-pairs/(?P<key_id>mk_[A-Za-z0-9_-]+)'" ), 360 );
+maa_adapter_assert( false !== strpos( $key_revoke_route, "array( \$this, 'can_use_admin_session' )" ), 'Client key revoke route requires administrator session auth.' );
+maa_adapter_assert( false === strpos( $key_revoke_route, "array( \$this, 'can_use_adapter' )" ), 'Client key revoke route is not available through signed adapter clients.' );
+$client_key_auth = substr( $controller, (int) strpos( $controller, 'private function authenticate_signed_request' ), 2600 );
+maa_adapter_assert( false !== strpos( $client_key_auth, 'should_update_client_key_last_used' ), 'Signed request auth throttles last-used option writes.' );
+$client_key_scope = substr( $controller, (int) strpos( $controller, 'private function client_key_scope_allows_request' ), 1400 );
+maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-runs'" ), 'Client key scopes treat media derivative runs as propose-scope routes.' );
+maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-proposal-payload'" ), 'Client key scopes treat media derivative proposal payloads as propose-scope routes.' );
+$public_artifact_projection = substr( $controller, (int) strpos( $controller, 'private function public_media_derivative_artifact_descriptor' ), 700 );
+maa_adapter_assert( false !== strpos( $public_artifact_projection, "'path', 'file_path', 'tmp_name', 'bytes', 'content'" ), 'Public media derivative artifact projections remove local paths and inline content.' );
+$preview_download = substr( $controller, (int) strpos( $controller, 'public function download_media_derivative_artifact_preview' ), 1800 );
+maa_adapter_assert( false !== strpos( $preview_download, 'MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES' ), 'Media derivative preview proxy enforces a bounded response size.' );
+$plan_batch_metadata = substr( $controller, (int) strpos( $controller, 'private function normalize_plan_batch_metadata' ), 1400 );
+maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['proposal_mode']  = 'batch';" ), 'Adapter makes dependent plan batches explicit before Core from-plan forwarding.' );
+maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['batch_approval'] = true;" ), 'Adapter makes dependent plan batch approval explicit before Core from-plan forwarding.' );
+maa_adapter_assert( false !== strpos( $controller, 'min( self::MAX_PROPOSAL_LIST_LIMIT, max( 1, absint' ), 'Adapter list routes clamp caller supplied limits.' );
+maa_adapter_assert( false === strpos( $controller, 'HTTP_USER_AGENT' ), 'Public pairing rate limit is not weakened by caller-controlled user agents.' );
 maa_adapter_assert( false === strpos( $controller, '$allowed_execute_ability_ids' ), 'Controller derives execute allowlist from execution profiles.' );
 maa_adapter_assert( false === strpos( $controller, 'include_log_tail' ), 'Adapter does not implement old include_log_tail compatibility.' );
 maa_adapter_assert( false === strpos( $controller, 'include_error_log' ), 'Adapter does not use old include_error_log diagnostics input.' );
@@ -1308,6 +1360,7 @@ foreach (
 		'"package:suite"',
 		'"plugin-check:release"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
+		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
 		'php-8.2.29+0',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
 		'--exclude-files=.gitignore,.distignore,AGENTS.md,composer.json',
@@ -1315,6 +1368,11 @@ foreach (
 ) {
 	maa_adapter_assert( false !== strpos( $composer, $required ), 'composer.json contains required text: ' . $required );
 }
+maa_adapter_assert( false === strpos( $composer, '@eval:lab' ) && false === strpos( $composer, '@eval:project:quality' ), 'Default Adapter test and release scripts do not require eval-lab.' );
+$eval_lab_proxy = maa_adapter_read( $root . '/scripts/eval-lab.sh' );
+maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'MAGICK_AI_EVAL_LAB_PATH' ) && false !== strpos( $eval_lab_proxy, 'composer eval:task -- "$@"' ), 'Eval-lab proxy supports override path and task registry dispatch.' );
+maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'composer "$SCRIPT" -- "$@"' ), 'Eval-lab proxy keeps legacy Composer entrypoint compatibility.' );
+maa_adapter_assert( false === strpos( $composer . "\n" . $eval_lab_proxy, 'sk-' ), 'Eval-lab integration does not contain committed provider keys.' );
 
 $distribution_contract = maa_adapter_read( $root . '/docs/distribution-contract.md' );
 foreach (

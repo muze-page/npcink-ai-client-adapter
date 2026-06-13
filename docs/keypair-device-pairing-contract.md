@@ -200,5 +200,7 @@ The wrapper:
 
 - `magick.status`: health, help, capabilities, connection metadata.
 - `magick.read`: direct-read ability routes.
-- `magick.propose`: proposal and approved-proposal execution routes. Core
-  remains the proposal, approval, preflight, and audit truth.
+- `magick.propose`: proposal routes, approved-proposal execution routes, and
+  media derivative Cloud run/proposal-payload routes that can consume runtime
+  resources before a governed media proposal is created. Core remains the
+  proposal, approval, preflight, and audit truth.
