@@ -1357,6 +1357,7 @@ foreach (
 		'"package:suite"',
 		'"plugin-check:release"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
+		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
 		'php-8.2.29+0',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
 		'--exclude-files=.gitignore,.distignore,AGENTS.md,composer.json',
@@ -1364,6 +1365,11 @@ foreach (
 ) {
 	maa_adapter_assert( false !== strpos( $composer, $required ), 'composer.json contains required text: ' . $required );
 }
+maa_adapter_assert( false === strpos( $composer, '@eval:lab' ) && false === strpos( $composer, '@eval:project:quality' ), 'Default Adapter test and release scripts do not require eval-lab.' );
+$eval_lab_proxy = maa_adapter_read( $root . '/scripts/eval-lab.sh' );
+maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'MAGICK_AI_EVAL_LAB_PATH' ) && false !== strpos( $eval_lab_proxy, 'composer eval:task -- "$@"' ), 'Eval-lab proxy supports override path and task registry dispatch.' );
+maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'composer "$SCRIPT" -- "$@"' ), 'Eval-lab proxy keeps legacy Composer entrypoint compatibility.' );
+maa_adapter_assert( false === strpos( $composer . "\n" . $eval_lab_proxy, 'sk-' ), 'Eval-lab integration does not contain committed provider keys.' );
 
 $distribution_contract = maa_adapter_read( $root . '/docs/distribution-contract.md' );
 foreach (
