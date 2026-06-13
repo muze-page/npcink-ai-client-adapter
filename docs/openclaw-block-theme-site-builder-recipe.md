@@ -158,6 +158,23 @@ execution profile, docs, and smoke coverage.
 
 ## Verification
 
+Local Adapter acceptance can be run before asking a user to perform a real
+OpenClaw round trip:
+
+```bash
+composer accept:block-theme-openclaw
+```
+
+The command writes
+`build/block-theme-openclaw-acceptance/report.json`. It exercises the
+Adapter-only startup checks, natural-language breadcrumb routing, block-theme
+context reads, template block readbacks, contract inspection, a controlled
+broken breadcrumb fixture, and future-facing unsupported layout prompts. The
+default run reports unsupported future capability gaps without failing the
+current MVP. Set
+`MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_STRICT_FUTURE=1` when those gaps
+should fail the run.
+
 After execution, verify:
 
 - changed templates still parse as Gutenberg blocks;

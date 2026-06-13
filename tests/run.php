@@ -1840,6 +1840,49 @@ foreach (
 	maa_adapter_assert( false !== strpos( $smoke_sh, $required ), 'Smoke shell contains required text: ' . $required );
 }
 
+$block_theme_openclaw_acceptance_sh = maa_adapter_read( $root . '/tests/block-theme-openclaw-acceptance.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_OUT',
+		'wp-content/plugins/npcink-ai-client-adapter',
+		'wp plugin activate npcink-ai-client-adapter',
+		'eval-file "$ROOT_DIR/tests/block-theme-openclaw-acceptance.php"',
+		'build/block-theme-openclaw-acceptance/report.json',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $block_theme_openclaw_acceptance_sh, $required ), 'Block theme OpenClaw acceptance shell contains required text: ' . $required );
+}
+
+$block_theme_openclaw_acceptance = maa_adapter_read( $root . '/tests/block-theme-openclaw-acceptance.php' );
+foreach (
+	array(
+		'block_theme_openclaw_acceptance_report',
+		'MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_STRICT_FUTURE',
+		'/npcink-openclaw-adapter/v1/health',
+		'/npcink-openclaw-adapter/v1/help',
+		'/npcink-openclaw-adapter/v1/capabilities',
+		'npcink-abilities-toolkit/route-content-intent',
+		'npcink-abilities-toolkit/get-block-theme-context',
+		'npcink-abilities-toolkit/get-template-blocks',
+		'npcink-abilities-toolkit/inspect-gutenberg-composition-contract',
+		'Natural-language route input contains only prompt',
+		'front-page',
+		'home',
+		'index',
+		'no_hint_breadcrumb_check',
+		'broken_breadcrumb_detection',
+		'unsupported_layout_boundary',
+		'template_placement_contract_failed',
+		'build_block_theme_site_plan',
+		'product_gaps',
+		'npcink-abilities-toolkit',
+		'created_proposal',
+		'executed_write',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $block_theme_openclaw_acceptance, $required ), 'Block theme OpenClaw acceptance harness contains required text: ' . $required );
+}
+
 $visual_acceptance_sh = maa_adapter_read( $root . '/tests/visual-acceptance.sh' );
 foreach (
 	array(
