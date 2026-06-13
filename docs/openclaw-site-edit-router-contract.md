@@ -103,12 +103,13 @@ change.
   `npcink-abilities-toolkit/upsert-template-blocks`,
   `npcink-abilities-toolkit/update-template-part-blocks`
 
-The current supported Site Editor intent is only `add_breadcrumbs`. When the
-customer asks to check or verify the current result, read the target template
-blocks and call `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`
-before creating another proposal. A `contract_status=pass` result stops the
-flow; `contract_status=needs_revision` may continue only if the violation maps
-to the supported breadcrumb placement plan.
+The current supported Site Editor intents are `add_breadcrumbs` and the bounded
+`customize_template_layout` profiles exposed by Toolkit. When the customer asks
+to check or verify the current result, read the target template blocks and call
+`npcink-abilities-toolkit/inspect-gutenberg-composition-contract` before
+creating another proposal. A `contract_status=pass` result stops the flow;
+`contract_status=needs_revision` may continue only if the violation maps to a
+supported block theme plan.
 
 ## Fail-Closed Surfaces
 

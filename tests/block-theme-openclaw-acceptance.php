@@ -373,36 +373,41 @@ $report['scenarios']['broken_breadcrumb_detection'] = array(
 	'created_proposal' => false,
 );
 
-// Scenario 3: future layout customization gaps are reported before proposal.
+// Scenario 3: bounded layout customization routes before proposal.
 $layout_prompts = array(
 	'article_layout'  => '帮我把文章页改成更专业的布局：顶部有面包屑，标题下面显示作者和日期，下面是特色图和正文，底部放相关文章。',
 	'homepage_layout' => '帮我自定义首页：顶部放一个大标题和介绍，下面展示最新文章、分类入口和一个行动按钮。',
+);
+$expected_layout_profiles = array(
+	'article_layout'  => 'article_standard',
+	'homepage_layout' => 'homepage_landing',
+);
+$expected_layout_targets = array(
+	'article_layout'  => 'single',
+	'homepage_layout' => 'front-page',
 );
 $layout_results = array();
 foreach ( $layout_prompts as $key => $layout_prompt ) {
 	$layout_input = array( 'prompt' => $layout_prompt );
 	$layout_response = maa_adapter_btoa_run_read_ability( 'npcink-abilities-toolkit/route-content-intent', $layout_input, $assertions );
 	$layout_route = maa_adapter_btoa_route_data( $layout_response );
+	$layout_plan_input = is_array( $layout_route['recommended_plan_input'] ?? null ) ? $layout_route['recommended_plan_input'] : array();
 	$layout_results[ $key ] = array(
-		'input' => $layout_input,
-		'route' => $layout_route,
-		'fail_closed' => maa_adapter_btoa_route_is_fail_closed( $layout_route ),
+		'input'                  => $layout_input,
+		'route'                  => $layout_route,
+		'recommended_plan_input' => $layout_plan_input,
+		'fail_closed'            => maa_adapter_btoa_route_is_fail_closed( $layout_route ),
 	);
 	maa_adapter_btoa_assert( $assertions, array( 'prompt' ) === array_keys( $layout_input ), $key . ' route input contains only prompt' );
-	if ( ! maa_adapter_btoa_route_is_fail_closed( $layout_route ) ) {
-		$product_gaps[] = array(
-			'scenario'            => 'unsupported_layout_boundary',
-			'case'                => $key,
-			'expected'            => 'fail_closed_until_template_layout_plan_is_supported',
-			'actual_route'        => (string) ( $layout_route['route'] ?? '' ),
-			'actual_plan_ability' => (string) ( $layout_route['plan_ability_id'] ?? '' ),
-			'next_owner'          => 'npcink-abilities-toolkit',
-			'reason'              => 'natural_language_template_layout_request_was_routed_to_a_narrower_supported_intent',
-		);
-		echo '[gap] ' . $key . " unsupported layout customization did not fail closed\n";
-	}
+	maa_adapter_btoa_assert( $assertions, ! maa_adapter_btoa_route_is_fail_closed( $layout_route ), $key . ' template layout request routes to a supported bounded plan' );
+	maa_adapter_btoa_assert( $assertions, 'block_theme_site_plan' === (string) ( $layout_route['route'] ?? '' ), $key . ' template layout routes to block_theme_site_plan' );
+	maa_adapter_btoa_assert( $assertions, 'site_template_layout' === (string) ( $layout_route['route_key'] ?? '' ), $key . ' template layout uses the site_template_layout route key' );
+	maa_adapter_btoa_assert( $assertions, 'npcink-abilities-toolkit/build-block-theme-site-plan' === (string) ( $layout_route['plan_ability_id'] ?? '' ), $key . ' template layout selects the block theme plan ability' );
+	maa_adapter_btoa_assert( $assertions, 'customize_template_layout' === (string) ( $layout_plan_input['intent'] ?? '' ), $key . ' template layout recommends customize_template_layout' );
+	maa_adapter_btoa_assert( $assertions, ( $expected_layout_profiles[ $key ] ?? '' ) === (string) ( $layout_plan_input['layout_profile'] ?? '' ), $key . ' template layout recommends the expected layout profile' );
+	maa_adapter_btoa_assert( $assertions, in_array( $expected_layout_targets[ $key ] ?? '', (array) ( $layout_plan_input['target_templates'] ?? array() ), true ), $key . ' template layout recommends the expected template target' );
 }
-$report['scenarios']['unsupported_layout_boundary'] = array(
+$report['scenarios']['template_layout_route'] = array(
 	'prompts'          => $layout_prompts,
 	'results'          => $layout_results,
 	'created_proposal' => false,

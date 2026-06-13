@@ -378,8 +378,10 @@ Core approval and commit-preflight. After execution or when the user asks to
 check the result, clients should read back the template blocks and call
 `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`; only
 `contract_status=needs_revision` should trigger another supported plan. The MVP
-supports `intent=add_breadcrumbs` only and keeps
-global styles, navigation, and template creation outside the execution profile.
+supports `intent=add_breadcrumbs` plus bounded
+`intent=customize_template_layout` profiles, and keeps global styles,
+navigation, raw template HTML, and arbitrary unprofiled template composition
+outside the execution profile.
 
 `GET /help` also includes `openclaw_recipes.article_block_plan` for reviewed
 Gutenberg article block drafts:

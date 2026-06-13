@@ -77,9 +77,9 @@ user asks to check the current result or after approved execution, read the
 target template blocks and run inspect-gutenberg-composition-contract. If
 contract_status=pass, stop and report that no further proposal is needed. If
 contract_status=needs_revision, report violation_codes and build another plan
-only when the violation maps to the supported add_breadcrumbs intent. If the
-request is outside the supported intent or target list, return a warning and do
-not write WordPress. Do not output raw template HTML, theme.json patches,
+only when the violation maps to a supported block theme intent. If the request
+is outside the supported intent, profile, or target list, return a warning and
+do not write WordPress. Do not output raw template HTML, theme.json patches,
 navigation mutations, auto-approval, or direct execution.
 ```
 
@@ -143,7 +143,8 @@ Failure behavior:
 - `direct_wordpress_write=false`
 - `template_write_owner=npcink-abilities-toolkit`
 - `file_template_write_mode=create_wp_template_override`
-- `allowed_intents=["add_breadcrumbs"]`
+- `allowed_intents=["add_breadcrumbs","customize_template_layout"]`
+- `allowed_layout_profiles=["article_standard","page_standard","homepage_landing"]`
 - `allowed_template_targets=["single","page","archive","index"]`
 - `global_styles_write_allowed=false`
 - `navigation_write_allowed=false`
