@@ -11,8 +11,8 @@ a thin channel layer:
 - Core remains the approval, preflight, and audit truth source;
 - read operations go through WordPress Abilities API;
 - write-like operations create Core proposals and may use Adapter's
-  approve-and-execute user action for one allowlisted execution;
-- `approval_proxy_enabled=false`;
+  approve-and-execute user action for one supported execution;
+- `core_proxy_execute=false`;
 - `approval_surface=npcink_governance_core_admin`;
 - `core_proxy_execute=false`;
 - `commit_execution=false`.
@@ -187,8 +187,7 @@ corresponding local profile from authenticating.
 2. Confirm:
    - `core_capabilities=true`
    - `abilities_catalog=true`
-   - `approval_proxy_enabled=false`
-   - `approval_surface=npcink_governance_core_admin`
+   -    - `approval_surface=npcink_governance_core_admin`
    - `core_proxy_execute=false`
    - `commit_execution=false`
 3. Call `GET /help` to confirm route discovery includes proposal list/detail,
@@ -401,7 +400,7 @@ These are read-only Core status proxies. They preserve proposal fields such as
 returns it.
 
 5. If `status=pending`, use the unified OpenClaw action
-   `POST /proposals/{proposal_id}/approve-and-execute` for allowlisted
+   `POST /proposals/{proposal_id}/approve-and-execute` for supported
    execution, or use `Npcink -> Core` for split approval decisions.
    Do not call Core directly from OpenClaw.
 6. If `status=rejected`, stop and show the rejection state or reason returned
@@ -445,7 +444,7 @@ proposal state, approval, preflight, and audit.
 
 For a batch plan-shaped proposal, the same route accepts
 `input.write_actions[]` only when every action targets the Adapter execution
-allowlist and passes ability-specific input checks. Adapter still calls Core
+supported profiles and passes ability-specific input checks. Adapter still calls Core
 approve and Core commit-preflight before running the bounded batch, and returns
 per-action `results[]` with `execution_mode=batch_write_actions`.
 10. The lower-level execution route is available only for already approved
@@ -463,9 +462,9 @@ requires `approval_commit_authorized=true`, requires `commit_execution=false`,
 passes Core `approval_context`, normalizes ability input to `dry_run=false` and `commit=true`,
 and executes one proposal through WordPress Abilities API. The adapter does not
 create its own governance state.
-For abilities outside that execution allowlist, Adapter does not execute final
+For abilities outside that execution supported profiles, Adapter does not execute final
 WordPress writes.
-Future execution abilities must be added one by one to the Adapter allowlist
+Future execution abilities must be added one by one to the Adapter supported profiles
 with dedicated smoke coverage; this is not a generic proxy-execute surface.
 
 ## Log Correlation
@@ -508,7 +507,7 @@ Then open AI Request Logs and search the same `proposal_id` or
 `correlation_id`. If the provider column is blank, use the Adapter context
 fields for the explicit `ai_provider` and `ai_model` sent to the smoke route.
 
-Approval and rejection endpoints are visible only as disabled stubs:
+Approval and rejection endpoints are visible only as generic approval proxy routes:
 
 ```text
 POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve
@@ -516,8 +515,8 @@ POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/reject
 ```
 
 They return HTTP 403 with
-`code=npcink_openclaw_adapter_approval_proxy_disabled`,
-`approval_proxy_enabled=false`, and
+`code=npcink_openclaw_adapter_execute_profile_unsupported`,
+`core_proxy_execute=false`, and
 `approval_surface=npcink_governance_core_admin`. Use
 `POST /proposals/{proposal_id}/approve-and-execute` for the Adapter unified
 user action, or Npcink Governance Core admin for split approval decisions. Adapter does
@@ -526,10 +525,10 @@ approval power.
 
 Failure code handling:
 
-- `npcink_openclaw_adapter_approval_proxy_disabled`: call approve-and-execute or use
+- `npcink_openclaw_adapter_execute_profile_unsupported`: call approve-and-execute or use
   Core admin for split approval.
-- `npcink_openclaw_adapter_execute_ability_not_allowed`: stop; the proposal ability
-  is outside Adapter's execution allowlist.
+- `npcink_openclaw_adapter_execute_profile_unsupported`: stop; the proposal ability
+  is outside Adapter's execution supported profiles.
 - `npcink_openclaw_adapter_proposal_rejected`: stop and show the Core rejection.
 - `npcink_openclaw_adapter_preflight_not_authorized` or
   `npcink_openclaw_adapter_preflight_item_blocked`: stop and show Core preflight

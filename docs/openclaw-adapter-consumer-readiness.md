@@ -55,7 +55,7 @@ The readiness pass verified:
 - proposal create, list, and detail;
 - Core approval through Adapter `approve-and-execute`;
 - Core commit-preflight before execution;
-- allowlisted final execution for `npcink-abilities-toolkit/trash-post`,
+- supported final execution for `npcink-abilities-toolkit/trash-post`,
   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
   `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
   `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
@@ -70,7 +70,7 @@ The readiness pass verified:
   `npcink-abilities-toolkit/approve-comment`;
 - rejected proposals do not execute;
 - preflight-blocked proposals do not execute;
-- non-allowlisted proposals do not execute;
+- non-supported proposals do not execute;
 - AI Request Logs and Core Governance Audit correlation by `proposal_id` and
   `correlation_id`;
 - returned `proposal_id`, `correlation_id`, `ability_id`, and
@@ -92,7 +92,7 @@ Adapter remains a thin OpenClaw channel layer:
 - Adapter does not generically execute arbitrary write abilities.
 - Adapter does own the OpenClaw read envelope and bounded read-result redaction
   layer for direct-read rows where Core reports sensitive policy guidance.
-- Adapter execution allowlist currently includes `npcink-abilities-toolkit/trash-post`,
+- Adapter execution supported profiles currently includes `npcink-abilities-toolkit/trash-post`,
   `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
   `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
   `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
@@ -105,18 +105,18 @@ Adapter remains a thin OpenClaw channel layer:
   `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`, and
   `npcink-abilities-toolkit/approve-comment`.
 
-The disabled approve/reject stubs must remain disabled unless a future decision
+The generic proposal approval proxying must remain disabled unless a future decision
 explicitly changes the product boundary. The current productized user action is
 `POST /proposals/{proposal_id}/approve-and-execute`.
 
 Batch `write_actions[]` execution is governed by
 [`openclaw-batch-execution-policy.md`](openclaw-batch-execution-policy.md).
-The policy keeps the execution allowlist limited to explicitly implemented
+The policy keeps the execution supported profiles limited to explicitly implemented
 ability ids.
 
 ## Next-Stage Rules
 
-Do not default-expand the final execution allowlist.
+Do not default-expand the final execution supported profiles.
 
 Each new Adapter-executable write ability needs its own ADR or execution policy
 document before implementation. That document must define:
@@ -133,4 +133,4 @@ document before implementation. That document must define:
 
 Core must not add a final execution route. Core remains the governance
 authority, while Adapter remains the OpenClaw product entry and WordPress
-execution channel for explicitly allowlisted actions.
+execution channel for explicitly supported actions.

@@ -15,13 +15,13 @@ Thin AI client channel plugin for Npcink Governance Core and WordPress Abilities
 
 Npcink AI Client Adapter gives OpenClaw-compatible and similar AI clients one WordPress REST namespace for reading Npcink Governance Core capability guidance, routing approved read abilities through the WordPress Abilities API, and forwarding governed write requests to Npcink Governance Core proposal and commit-preflight endpoints.
 
-Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, expose generic approve/reject proxying, or execute final write mutations without Core approval and commit-preflight.
+Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, or execute final write mutations without Core approval and commit-preflight.
 
 Adapter can be distributed as the Npcink AI suite entry plugin while Core and Toolkit remain separate plugins. Adapter health reports missing dependencies and dependency-sensitive routes fail closed with a structured missing dependency error.
 
 Adapter exposes a machine-readable `client_policy` on health, help, and the connection manifest so OpenClaw-compatible clients, Qclaw-style clients, WorkBuddy-style clients, or other local AI clients can consume explicit route, output, sensitive-read, and write-flow boundaries. The local CLI also redacts profile paths, key ids, signing headers, tokens, passwords, and secrets from output.
 
-Current governed execution support is deliberately limited to individually approved proposal execution for explicit Adapter profiles, including `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/update-template-blocks`, `npcink-abilities-toolkit/upsert-template-blocks`, `npcink-abilities-toolkit/update-template-part-blocks`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
+Current governed execution support covers individually approved proposal execution for explicit Adapter profiles, including `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/update-template-blocks`, `npcink-abilities-toolkit/upsert-template-blocks`, `npcink-abilities-toolkit/update-template-part-blocks`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
 
 == Installation ==
 
@@ -34,11 +34,11 @@ Current governed execution support is deliberately limited to individually appro
 
 = Does Adapter approve proposals? =
 
-Only through the explicit `approve-and-execute` user action. Npcink Governance Core remains the governance backend for proposal storage, approval, commit-preflight, and audit, and Adapter standalone approve/reject stubs stay disabled.
+Adapter provides an explicit `approve-and-execute` user action for supported execution profiles. Npcink Governance Core remains the governance backend for proposal storage, approval, commit-preflight, and audit.
 
 = Does Adapter execute arbitrary abilities? =
 
-No. Adapter only executes abilities that are explicitly allowlisted. The current execution allowlist includes draft, post update, taxonomy, media metadata/upload/featured-image, media derivative, comment, and bounded destructive profiles documented in the OpenClaw batch execution policy.
+Adapter executes supported execution profiles after Core approval and commit-preflight. Current profiles include draft, post update, taxonomy, media metadata/upload/featured-image, media derivative, comment, and bounded destructive operations documented in the OpenClaw batch execution policy.
 
 == Changelog ==
 

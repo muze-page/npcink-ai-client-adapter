@@ -17,7 +17,7 @@ executor.
 
 The Toolkit owns article block rendering, editorial template bounds, responsive
 quality metadata, and Gutenberg block construction. Adapter only forwards the
-read-only plan to Core and executes allowlisted write actions after Core
+read-only plan to Core and executes supported write actions after Core
 approval and commit-preflight.
 
 ## Supported Input

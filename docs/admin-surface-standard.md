@@ -86,4 +86,4 @@ status bridge, not a duplicate Core review queue.
 
 Static contracts should preserve that Adapter is a thin OpenClaw channel:
 reads go through WordPress Abilities API, governed writes go through Core, and
-any execution remains allowlisted after Core approval and commit-preflight.
+any execution remains supported after Core approval and commit-preflight.

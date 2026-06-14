@@ -1,6 +1,6 @@
 <?php
 /**
- * Adapter plan-to-proposal ability allowlist.
+ * Adapter plan-to-proposal supported ability registry.
  *
  * @package NpcinkOpenClawAdapter
  */
@@ -12,11 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Lists planning abilities accepted by the adapter plan-to-proposal bridge.
+ * Lists planning abilities implemented by the adapter plan-to-proposal bridge.
  */
-final class Plan_Ability_Allowlist {
+final class Supported_Plan_Abilities {
 	/**
-	 * Returns all allowed planning ability ids.
+	 * Returns all supported planning ability ids.
 	 *
 	 * @return list<string>
 	 */
@@ -25,10 +25,10 @@ final class Plan_Ability_Allowlist {
 	}
 
 	/**
-	 * Checks whether a planning ability may be submitted to Core.
+	 * Checks whether a planning ability is implemented by this bridge.
 	 *
-	 * Core remains the governance truth; this adapter-side allowlist prevents
-	 * arbitrary plan payload forwarding before Core intake.
+	 * Core remains the governance truth; this adapter-side registry describes
+	 * the concrete plan payload shapes implemented by this plugin.
 	 *
 	 * @param string $ability_id Ability id.
 	 * @return bool
@@ -38,7 +38,7 @@ final class Plan_Ability_Allowlist {
 	}
 
 	/**
-	 * Returns the allowlist as an id map.
+	 * Returns the supported ability map.
 	 *
 	 * @return array<string,bool>
 	 */

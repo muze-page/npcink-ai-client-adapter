@@ -156,7 +156,7 @@ The returned payloads must preserve:
 
 Any recording, attachment metadata update, media replacement, or rollback must
 enter Core proposal governance and pass Core approval plus commit-preflight
-before Adapter's allowlisted final execution path can run.
+before Adapter's supported final execution path can run.
 
 ## Read-Only Planning Contract
 
@@ -324,7 +324,7 @@ Gutenberg page pattern drafts:
 - proposal mode: `batch`
 
 The Toolkit owns pattern registry, whitelisted classes, and Gutenberg block
-rendering. Adapter must only forward the plan to Core and execute allowlisted
+rendering. Adapter must only forward the plan to Core and execute supported
 write actions after Core approval and commit-preflight.
 The recipe also exposes `visual_acceptance` so OpenClaw can run browser checks
 against the created draft page without treating Adapter as a browser runner.
@@ -373,7 +373,7 @@ conversational block theme Site Editor changes:
 The Toolkit owns block theme context reads, surface inspection, lightweight
 composition contract inspection, Site Editor entity block planning, and final
 WordPress Abilities write callbacks. Adapter must only forward plans with
-reviewed `write_actions[]` to Core and execute allowlisted write actions after
+reviewed `write_actions[]` to Core and execute supported write actions after
 Core approval and commit-preflight. After execution or when the user asks to
 check the result, clients should read back the template blocks and call
 `npcink-abilities-toolkit/inspect-gutenberg-composition-contract`; only
@@ -398,7 +398,7 @@ Gutenberg article block drafts:
 
 The Toolkit owns editorial templates, native Gutenberg article block rendering,
 and responsive quality metadata. Adapter must only forward the plan to Core and
-execute allowlisted write actions after Core approval and commit-preflight.
+execute supported write actions after Core approval and commit-preflight.
 The recipe also exposes `visual_acceptance` with the same front-end/editor
 targets and viewport set used by the pattern page flow.
 
@@ -534,7 +534,7 @@ same proposal.
 
 Dry-run-only proposal verification stops at Adapter commit-preflight. Adapter `execute`, `execute-approved-proposal`, and `approve-and-execute` routes are final write paths; immediately before dispatching a WordPress ability, Adapter normalizes the ability input to `dry_run=false` and `commit=true`. OpenClaw must not call an execute route when the operator only asked to verify a dry-run proposal or preflight.
 
-Before Adapter calls the WordPress Abilities API for a final allowlisted write,
+Before Adapter calls the WordPress Abilities API for a final supported write,
 it must verify Core's `approval_context.approved_input_hash` matches the current
 proposal input hash and that `approval_context.policy_version` is
 `core-preflight-v1`. If Core also returns an `execution_handoff`, its hash and
@@ -574,7 +574,7 @@ context and executable preflight result, then executes one WordPress Abilities
 API call. For an already approved proposal, Adapter skips only the Core approve
 step and still obtains commit-preflight authorization before execution.
 
-The execution input may be either top-level `proposal.input` for an allowlisted
+The execution input may be either top-level `proposal.input` for an supported
 ability or a bounded `proposal.input.write_actions[]` batch. `trash-post`
 requires `post_id`; `create-draft` requires `title`; `update-post` requires
 `post_id` plus at least one of `title`, `content`, or `excerpt`;
@@ -618,7 +618,7 @@ The response must include `proposal_id`, `post_id`, `ability_id`,
 `correlation_id`, `status_before`, whether Adapter performed approval, Core
 `commit_execution=false`, an `execution_record` with
 `core_execution_record`, and the execution result.
-Rejected proposals, non-allowlisted abilities, preflight failures, and
+Rejected proposals, non-supported abilities, preflight failures, and
 duplicate execution attempts must not execute.
 
 ## Approved Proposal Execution Contract
@@ -631,7 +631,7 @@ POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/execute
 POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```
 
-The current allowlist is intentionally narrow:
+The current supported profiles is intentionally narrow:
 
 - `npcink-abilities-toolkit/trash-post`
 - `npcink-abilities-toolkit/create-draft`
@@ -657,11 +657,11 @@ The current allowlist is intentionally narrow:
 - `npcink-abilities-toolkit/trash-comment`
 - `npcink-abilities-toolkit/approve-comment`
 
-The allowlist applies to both single-ability execution and each
-`write_actions[]` item. A batch containing any non-allowlisted action fails
+The supported profiles applies to both single-ability execution and each
+`write_actions[]` item. A batch containing any non-supported action fails
 closed and executes no actions.
 
-The allowlist is derived from Adapter's local execution profile registry, not
+The supported profiles is derived from Adapter's local execution profile registry, not
 from capability discovery alone. Each profile entry is an explicit opt-in for
 final WordPress writes and must define the Adapter-owned execution shape:
 
@@ -694,7 +694,7 @@ After a successful execution, Adapter stores only a bounded public-safe
 execution record keyed by proposal id for replay protection and records the
 execution outcome back to Core through
 `/npcink-governance-core/v1/proposals/{proposal_id}/record-execution`. The
-record may include a compact `verification` summary extracted from allowlisted
+record may include a compact `verification` summary extracted from supported
 Ability verification fields such as current media file, MIME type, post
 reference verification, backup availability, and rollback availability; it
 must not store the full proposal or full Ability response. When execution
@@ -847,7 +847,7 @@ capabilities, add `capabilities:read` for that wider smoke only.
 
 ## Approval Disabled Stub Contract
 
-The adapter exposes these routes only as disabled stubs:
+The adapter exposes these routes only as generic approval proxy routes:
 
 ```text
 POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve
@@ -858,15 +858,15 @@ Default response:
 
 ```json
 {
-  "code": "npcink_openclaw_adapter_approval_proxy_disabled",
-  "message": "Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions.",
+  "code": "npcink_openclaw_adapter_execute_profile_unsupported",
+  "message": "Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions.",
   "approval_proxy_enabled": false,
   "approval_surface": "npcink_governance_core_admin",
   "unified_action_route": "POST /proposals/{proposal_id}/approve-and-execute"
 }
 ```
 
-The disabled stubs must not forward to Core approval or rejection routes. The
+The generic approval proxy routes must not forward to Core approval or rejection routes. The
 default Core app key used by Adapter must not require approval or rejection
 scopes. OpenClaw and agents must not receive default approval power through
 standalone approve/reject proxy routes.
@@ -874,7 +874,7 @@ standalone approve/reject proxy routes.
 The supported Adapter-side approval action is the unified
 `approve-and-execute` route. Adapter must not expose a generic approve/reject
 proxy without a separate explicit trusted-host policy and ADR-backed feature.
-The disabled stubs and top-level health contract preserve
+The generic approval proxy routes and top-level health contract preserve
 `approval_surface=npcink_governance_core_admin` to make the standalone proxy boundary
 explicit.
 
@@ -1136,7 +1136,7 @@ Connection check order:
 6. proposal-required `POST /proposals`.
 7. proposal status polling with `GET /proposals/{proposal_id}`.
 8. unified user action with `POST /proposals/{proposal_id}/approve-and-execute`
-   for allowlisted execution, or split approval in Core admin.
+   for supported execution, or split approval in Core admin.
 9. rejected proposal stops the flow.
 10. approved proposal split path uses `POST /proposals/{proposal_id}/execute`;
     Adapter commit-preflight is diagnostic and must be followed immediately by
@@ -1153,7 +1153,7 @@ OpenClaw must treat Core as the only proposal and approval truth:
 3. Poll `GET /proposals/{proposal_id}` through the adapter for Core status.
 4. If `status=pending` and the user chooses the unified OpenClaw action, call
    `POST /proposals/{proposal_id}/approve-and-execute`. Adapter calls Core
-   approve, then Core commit-preflight, then one allowlisted final write.
+   approve, then Core commit-preflight, then one supported final write.
 5. If `status=rejected`, stop and show the rejection state or reason returned
    by Core.
 6. If using the lower-level split path and `status=approved`, call
@@ -1162,7 +1162,7 @@ OpenClaw must treat Core as the only proposal and approval truth:
    commit-preflight and do not call execute. If execution is intended, Adapter
    execute normalizes ability input to `dry_run=false` and `commit=true`.
 7. Adapter stops unless the ability is
-   allowlisted for Adapter execution, currently `npcink-abilities-toolkit/trash-post`,
+   supported for Adapter execution, currently `npcink-abilities-toolkit/trash-post`,
    `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`,
    `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/set-post-slug`,
    `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`,
@@ -1184,14 +1184,14 @@ Adapter invariants:
 - It does not store proposal or approval state.
 - It stores bounded execution records only to prevent replaying an already
   completed Adapter write.
-- It owns only explicit post-Core execution profile policy for allowlisted
+- It owns only explicit post-Core execution profile policy for supported
   approved writes.
 - It does not expose a generic approve/reject proxy.
-- It does not execute final WordPress mutations outside the allowlisted
+- It does not execute final WordPress mutations outside the supported
   approve-and-execute or approved-proposal execution path.
 - It preserves `core_proxy_execute=false`.
 - It preserves `commit_execution=false`.
-- It exposes `approval_proxy_enabled=false`.
+- It exposes `core_proxy_execute=false`.
 - It keeps Core as the approval, preflight, and audit truth source.
 
 For read-only planning abilities, OpenClaw may instead send the returned plan

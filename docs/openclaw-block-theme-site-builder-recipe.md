@@ -32,7 +32,7 @@ Toolkit owns block-theme context reads, surface inspection, lightweight
 composition contract inspection, Site Editor entity block planning, and the
 final WordPress Abilities write callbacks. Adapter only projects the recipe to
 OpenClaw, forwards plans with reviewed write actions to Core, and executes
-allowlisted write actions after Core approval and commit-preflight.
+supported write actions after Core approval and commit-preflight.
 
 ## Supported MVP
 

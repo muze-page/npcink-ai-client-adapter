@@ -58,7 +58,7 @@ Toolkit owns:
 - allowed pattern variants;
 - Gutenberg-native style attributes;
 - quality signal calculation;
-- class allowlists if a later version adds them.
+- class supported profiless if a later version adds them.
 
 OpenClaw owns:
 

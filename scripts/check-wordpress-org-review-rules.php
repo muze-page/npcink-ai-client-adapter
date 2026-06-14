@@ -59,6 +59,8 @@ $rules = array(
 	'Do not output raw script tags from PHP admin views; enqueue scripts.' => '/<\s*\/?\s*script\b/i',
 	'Do not output raw style tags from PHP admin views; enqueue styles.' => '/<\s*\/?\s*style\b/i',
 	'Do not read $_GET directly in plugin views; route reads through nonce-verified helpers.' => '/\$_GET\s*\[/',
+	'Do not expose standalone disabled approval/rejection stubs in the WordPress.org package.' => '/approval_proxy_disabled|approval_proxy_enabled|Direct approve\/reject proxy routes are disabled|Approval disabled stub|Reject disabled stub/',
+	'Do not describe execution profile support as an allowlist in the WordPress.org package.' => '/allowed_execute_ability_ids|allowed_plan_ability_ids|Plan_Ability_Allowlist/',
 );
 
 foreach ( npcink_openclaw_adapter_wporg_php_files() as $file ) {

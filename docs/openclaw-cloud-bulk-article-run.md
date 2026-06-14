@@ -48,7 +48,7 @@ OpenClaw must not:
 - publish from Cloud output;
 - schedule WordPress posts from Cloud status;
 - approve a proposal from Cloud readiness;
-- execute arbitrary write actions outside Adapter allowlists;
+- execute arbitrary write actions outside Adapter supported profiless;
 - store Cloud API keys or WordPress write credentials in prompt context.
 
 ## Boundary

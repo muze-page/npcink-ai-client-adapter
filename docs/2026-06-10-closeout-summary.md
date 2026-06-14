@@ -49,10 +49,10 @@ truth source.
 
 Adapter Controller complexity was reduced without changing route behavior:
 
-- `45d0ed0 Extract adapter plan ability allowlist`
+- `45d0ed0 Extract adapter plan ability supported profiles`
 - `50b11ff Extract adapter execution profile registry`
 
-The plan-to-proposal allowlist now lives in `Plan_Ability_Allowlist`. The
+The plan-to-proposal supported profiles now lives in `Plan_Ability_Allowlist`. The
 approved-write execution profile policy now lives in
 `Execution_Profile_Registry`. Controller keeps using these registries while the
 REST namespace and governance behavior remain unchanged.
@@ -73,13 +73,13 @@ The Toolkit branch `codex/pattern-page-quality-review` was pushed to origin.
 ### Adapter Toolkit Alignment
 
 Adapter was updated to consume the new Toolkit ability only through its
-explicit execution profile allowlist:
+explicit execution profile supported profiles:
 
 - `eede3cd Allow template override upsert execution`
 
 This added `npcink-abilities-toolkit/upsert-template-blocks` to Adapter's
 post-Core execution profile registry, help recipe, batch execution policy,
-contract docs, static tests, and smoke allowlist. The ability remains
+contract docs, static tests, and smoke supported profiles. The ability remains
 Core-governed and does not introduce generic Site Editor writes.
 
 ### Adapter Public Identity

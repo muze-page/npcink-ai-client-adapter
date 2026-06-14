@@ -496,12 +496,11 @@ async function status(args) {
   }
 
   const health = JSON.parse(result.stdout);
-  const approvalProxyEnabled = Boolean(health.approval_proxy_enabled);
   const coreProxyExecute = Boolean(health.core_proxy_execute);
   const commitExecution = Boolean(health.commit_execution);
-  const boundaryOk = !approvalProxyEnabled && !coreProxyExecute && !commitExecution;
+  const boundaryOk = !coreProxyExecute && !commitExecution;
   const approvedProposalExecutionRoutes = Array.isArray(health.approved_proposal_execution_routes) ? health.approved_proposal_execution_routes : [];
-  const allowedExecuteAbilityIds = Array.isArray(health.allowed_execute_ability_ids) ? health.allowed_execute_ability_ids : [];
+  const supportedExecuteAbilityIds = Array.isArray(health.supported_execute_ability_ids) ? health.supported_execute_ability_ids : [];
   let proposalExecutionStatus = 'unknown_check_health';
   if (!health.core_capabilities || !health.abilities_catalog) {
     proposalExecutionStatus = 'blocked_by_missing_dependencies';
@@ -518,23 +517,21 @@ async function status(args) {
     health: {
       core_capabilities: Boolean(health.core_capabilities),
       abilities_catalog: Boolean(health.abilities_catalog),
-      approval_proxy_enabled: approvalProxyEnabled,
       core_proxy_execute: coreProxyExecute,
       commit_execution: commitExecution,
     },
     boundary: {
       status: boundaryOk ? 'ok' : 'unexpected',
       expected: {
-        approval_proxy_enabled: false,
         core_proxy_execute: false,
         commit_execution: false,
       },
-      note: 'false values are expected boundary controls, not an execution-disabled signal.',
+      note: 'false values indicate Core keeps final execution authority separate from Adapter diagnostics.',
     },
     proposal_execution: {
       status: proposalExecutionStatus,
       routes: approvedProposalExecutionRoutes,
-      allowed_ability_ids: allowedExecuteAbilityIds,
+      supported_ability_ids: supportedExecuteAbilityIds,
       readiness_rule: 'Use GET /proposals/{proposal_id}; execute only through Adapter approve-and-execute or execute routes after Core approval and commit-preflight.',
     },
   }, null, 2));

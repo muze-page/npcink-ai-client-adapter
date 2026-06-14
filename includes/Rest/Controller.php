@@ -72,7 +72,7 @@ final class Controller {
 	 *
 	 * @return array<int,string>
 	 */
-	private static function allowed_execute_ability_ids(): array {
+	private static function supported_execute_ability_ids(): array {
 		return array_keys( self::execution_profiles() );
 	}
 
@@ -763,10 +763,10 @@ final class Controller {
 			)
 		);
 
-		register_rest_route(
-			self::NAMESPACE,
-			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)',
-			array(
+			register_rest_route(
+				self::NAMESPACE,
+				'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)',
+				array(
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_proposal' ),
@@ -779,50 +779,12 @@ final class Controller {
 						),
 					),
 				),
-			)
-		);
+				)
+			);
 
-		register_rest_route(
-			self::NAMESPACE,
-			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/approve',
-			array(
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'approval_proxy_disabled' ),
-					'permission_callback' => array( $this, 'can_use_adapter' ),
-					'args'                => array(
-						'proposal_id' => array(
-							'type'              => 'string',
-							'required'          => true,
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/reject',
-			array(
-				array(
-					'methods'             => WP_REST_Server::CREATABLE,
-					'callback'            => array( $this, 'approval_proxy_disabled' ),
-					'permission_callback' => array( $this, 'can_use_adapter' ),
-					'args'                => array(
-						'proposal_id' => array(
-							'type'              => 'string',
-							'required'          => true,
-							'sanitize_callback' => 'sanitize_text_field',
-						),
-					),
-				),
-			)
-		);
-
-		register_rest_route(
-			self::NAMESPACE,
-			'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/commit-preflight',
+			register_rest_route(
+				self::NAMESPACE,
+				'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/commit-preflight',
 			array(
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
@@ -1874,13 +1836,12 @@ final class Controller {
 				'dependencies_ready'     => empty( $dependencies['missing'] ),
 				'dependencies'           => $dependencies['items'],
 				'dependency_count'       => count( $dependencies['items'] ),
-				'missing_dependencies'   => $dependencies['missing'],
-				'cloud_addon'            => $this->cloud_addon_health(),
-				'core_proxy_execute'     => false,
-				'commit_execution'       => false,
-				'approval_proxy_enabled' => false,
-				'approval_surface'       => 'npcink_governance_core_admin',
-				'core_app_token_configured' => '' !== $this->core_app_token(),
+					'missing_dependencies'   => $dependencies['missing'],
+					'cloud_addon'            => $this->cloud_addon_health(),
+					'core_proxy_execute'     => false,
+					'commit_execution'       => false,
+					'approval_surface'       => 'npcink_governance_core_admin',
+					'core_app_token_configured' => '' !== $this->core_app_token(),
 				'client_policy'         => $this->client_policy(),
 				'ai_request_log_context_fields' => array(
 					'proposal_id',
@@ -1920,7 +1881,7 @@ final class Controller {
 					'POST /proposals/{proposal_id}/execute',
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
-				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
+				'supported_execute_ability_ids' => self::supported_execute_ability_ids(),
 				'execution_input_contract' => array(
 					'single' => 'proposal.input, with ability-specific required fields',
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
@@ -1932,7 +1893,7 @@ final class Controller {
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
 				),
-				'allowed_plan_ability_ids' => Plan_Ability_Allowlist::ids(),
+				'supported_plan_ability_ids' => Supported_Plan_Abilities::ids(),
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
@@ -1962,12 +1923,11 @@ final class Controller {
 							'unsupported_without_core_grant' => 'fail_closed',
 						),
 					),
-					'proposal_status' => array(
-						'governance_mode'     => 'core_proposal_read_proxy',
-						'execution_surface'   => 'npcink_governance_core_rest',
-						'core_required_scope' => 'proposals:read',
-						'approval_proxy_enabled' => false,
-						'approval_surface'    => 'npcink_governance_core_admin',
+						'proposal_status' => array(
+							'governance_mode'     => 'core_proposal_read_proxy',
+							'execution_surface'   => 'npcink_governance_core_rest',
+							'core_required_scope' => 'proposals:read',
+							'approval_surface'    => 'npcink_governance_core_admin',
 						'proposal_status_routes' => array(
 							'GET /proposals',
 							'GET /proposals/{proposal_id}',
@@ -1983,7 +1943,7 @@ final class Controller {
 						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
 						'core_required_scope'  => 'commit:preflight',
 						'core_commit_execution' => false,
-						'allowed_ability_ids'  => self::allowed_execute_ability_ids(),
+						'supported_ability_ids'  => self::supported_execute_ability_ids(),
 						'execution_input_contract' => array(
 							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
@@ -1998,7 +1958,7 @@ final class Controller {
 						'execution_surface'    => 'wp_abilities_rest_after_core_preflight',
 						'approval_surface'     => 'npcink_openclaw_adapter_unified_action',
 						'core_commit_execution' => false,
-						'allowed_ability_ids'  => self::allowed_execute_ability_ids(),
+						'supported_ability_ids'  => self::supported_execute_ability_ids(),
 						'execution_input_contract' => array(
 							'single' => 'proposal.input',
 							'batch'  => 'proposal.input.write_actions[]',
@@ -2037,11 +1997,9 @@ final class Controller {
 				'health_url'              => rest_url( self::NAMESPACE . '/health' ),
 				'help_url'                => rest_url( self::NAMESPACE . '/help' ),
 				'capabilities_url'        => rest_url( self::NAMESPACE . '/capabilities' ),
-				'proposal_list_url'       => rest_url( self::NAMESPACE . '/proposals' ),
-				'proposal_detail_url'     => rest_url( self::NAMESPACE . '/proposals/{proposal_id}' ),
-				'proposal_approve_url'    => rest_url( self::NAMESPACE . '/proposals/{proposal_id}/approve' ),
-				'proposal_reject_url'     => rest_url( self::NAMESPACE . '/proposals/{proposal_id}/reject' ),
-				'auth'                    => array(
+					'proposal_list_url'       => rest_url( self::NAMESPACE . '/proposals' ),
+					'proposal_detail_url'     => rest_url( self::NAMESPACE . '/proposals/{proposal_id}' ),
+					'auth'                    => array(
 					'type'        => 'wordpress_rest_application_password',
 					'header'      => 'Authorization: Basic base64(username:application_password)',
 					'recommended' => 'dedicated_administrator_application_password_for_initial_openclaw_poc',
@@ -2099,14 +2057,13 @@ final class Controller {
 				'routes'        => $this->help_routes_flat( $route_groups ),
 				'route_groups'  => $route_groups,
 				'openclaw_recipes' => $this->openclaw_recipes(),
-				'core_required_scopes' => array(
-					'proposal_status'  => 'proposals:read',
-					'proposal_create'  => 'proposals:create',
-					'proposal_from_plan' => 'proposals:create',
-					'commit_preflight' => 'commit:preflight',
-				),
-				'approval_proxy_enabled' => false,
-				'approval_surface' => 'npcink_governance_core_admin',
+					'core_required_scopes' => array(
+						'proposal_status'  => 'proposals:read',
+						'proposal_create'  => 'proposals:create',
+						'proposal_from_plan' => 'proposals:create',
+						'commit_preflight' => 'commit:preflight',
+					),
+					'approval_surface' => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
 				'client_policy' => $this->client_policy(),
 				'distribution_mode' => 'adapter_entry_with_separate_governance_and_ability_plugins',
@@ -2145,7 +2102,7 @@ final class Controller {
 					'POST /proposals/{proposal_id}/execute',
 					'POST /proposals/{proposal_id}/approve-and-execute',
 				),
-				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
+				'supported_execute_ability_ids' => self::supported_execute_ability_ids(),
 				'execution_input_contract' => array(
 					'single' => 'proposal.input, with ability-specific required fields',
 					'batch'  => 'proposal.input.write_actions[].target_ability_id + proposal.input.write_actions[].input',
@@ -2157,19 +2114,17 @@ final class Controller {
 				'plan_proposal_routes' => array(
 					'POST /proposals/from-plan',
 				),
-				'allowed_plan_ability_ids' => Plan_Ability_Allowlist::ids(),
+				'supported_plan_ability_ids' => Supported_Plan_Abilities::ids(),
 				'proposal_status_routes' => array(
 					'GET /proposals',
 					'GET /proposals/{proposal_id}',
 					'GET /proposals/{proposal_id}/media-optimization-readiness',
 				),
-				'diagnostics'    => $this->diagnostics_contract(),
-				'non_goals'     => array(
-					'approval_proxy_enabled' => false,
-					'reject_proxy_enabled'   => false,
-					'workflow_runtime'       => false,
-					'mcp_runtime'            => false,
-					'final_commit_execution' => false,
+					'diagnostics'    => $this->diagnostics_contract(),
+					'non_goals'     => array(
+						'workflow_runtime'       => false,
+						'mcp_runtime'            => false,
+						'final_commit_execution' => false,
 				),
 			),
 			200
@@ -2218,14 +2173,12 @@ final class Controller {
 				'GET /proposals/{proposal_id}',
 				'GET /proposals/{proposal_id}/media-optimization-readiness',
 			),
-			'governance'      => array(
-				'POST /proposals',
-				'POST /proposals/from-plan',
-				'POST /proposals/{proposal_id}/approve',
-				'POST /proposals/{proposal_id}/reject',
-				'POST /proposals/{proposal_id}/commit-preflight',
-				'POST /execute-approved-proposal',
-				'POST /proposals/{proposal_id}/execute',
+				'governance'      => array(
+					'POST /proposals',
+					'POST /proposals/from-plan',
+					'POST /proposals/{proposal_id}/commit-preflight',
+					'POST /execute-approved-proposal',
+					'POST /proposals/{proposal_id}/execute',
 				'POST /proposals/{proposal_id}/approve-and-execute',
 			),
 		);
@@ -2267,7 +2220,7 @@ final class Controller {
 					array(
 						'order'   => 4,
 						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted draft write.',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the supported draft write.',
 					),
 				),
 				'guardrails'   => array(
@@ -2308,7 +2261,7 @@ final class Controller {
 					array(
 						'order'   => 4,
 						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted draft write_actions.',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the supported draft write_actions.',
 					),
 				),
 				'guardrails'   => array(
@@ -2362,7 +2315,7 @@ final class Controller {
 					array(
 						'order'   => 5,
 						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute only allowlisted draft and media write_actions.',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute only supported draft and media write_actions.',
 					),
 				),
 				'guardrails'   => array(
@@ -2607,7 +2560,7 @@ final class Controller {
 					array(
 						'order'   => 4,
 						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted create-draft and update-post-blocks write_actions.',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the supported create-draft and update-post-blocks write_actions.',
 					),
 				),
 				'guardrails'              => array(
@@ -2693,7 +2646,7 @@ final class Controller {
 					array(
 						'order'   => 4,
 						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted create-draft and update-post-blocks write_actions.',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the supported create-draft and update-post-blocks write_actions.',
 					),
 				),
 				'guardrails'              => array(
@@ -2896,7 +2849,7 @@ final class Controller {
 						array(
 							'order'   => 6,
 							'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-							'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the allowlisted template override, template, and template-part write_actions.',
+							'purpose' => 'Approve through Core when pending, run commit-preflight, then execute the supported template override, template, and template-part write_actions.',
 						),
 						array(
 							'order'   => 7,
@@ -3247,7 +3200,7 @@ final class Controller {
 					array(
 						'order'   => 5,
 						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute only allowlisted media write_actions.',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute only supported media write_actions.',
 					),
 				),
 				'guardrails'              => array(
@@ -3289,7 +3242,7 @@ final class Controller {
 					array(
 						'order'   => 3,
 						'route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute only allowlisted media and exact patch write_actions.',
+						'purpose' => 'Approve through Core when pending, run commit-preflight, then execute only supported media and exact patch write_actions.',
 					),
 				),
 				'guardrails'              => array(
@@ -3568,15 +3521,13 @@ final class Controller {
 			'POST /ai-provider-log-correlation-smoke' => 'Run a provider log correlation smoke request.',
 			'GET /proposals' => 'List Core proposal statuses for polling.',
 			'GET /proposals/{proposal_id}' => 'Read one Core proposal status by proposal_id.',
-			'GET /proposals/{proposal_id}/media-optimization-readiness' => 'Read Adapter-owned execution readiness checks for one media optimization proposal.',
-			'POST /proposals' => 'Create a Core proposal for governed work.',
-			'POST /proposals/from-plan' => 'Forward a read-only plan output to Core plan-to-proposal intake.',
-			'POST /proposals/{proposal_id}/approve' => 'Disabled stub; approvals happen in Npcink Governance Core admin.',
-			'POST /proposals/{proposal_id}/reject' => 'Disabled stub; rejections happen in Npcink Governance Core admin.',
-			'POST /proposals/{proposal_id}/commit-preflight' => 'Advanced diagnostic route: run Core commit preflight without final writes and cache the one-time handoff for the next Adapter execute call; dry-run verification stops here.',
-			'POST /execute-approved-proposal' => 'Final write route: execute one approved proposal after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
-			'POST /proposals/{proposal_id}/execute' => 'Final write route: execute one approved proposal by id after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
-			'POST /proposals/{proposal_id}/approve-and-execute' => 'Final write route: approve a pending proposal through Core, then preflight and execute one allowlisted single input or write_actions with dry_run=false and commit=true.',
+				'GET /proposals/{proposal_id}/media-optimization-readiness' => 'Read Adapter-owned execution readiness checks for one media optimization proposal.',
+				'POST /proposals' => 'Create a Core proposal for governed work.',
+				'POST /proposals/from-plan' => 'Forward a read-only plan output to Core plan-to-proposal intake.',
+				'POST /proposals/{proposal_id}/commit-preflight' => 'Advanced diagnostic route: run Core commit preflight without final writes and cache the one-time handoff for the next Adapter execute call; dry-run verification stops here.',
+				'POST /execute-approved-proposal' => 'Final write route: execute one approved proposal after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
+				'POST /proposals/{proposal_id}/execute' => 'Final write route: execute one approved proposal by id after Core commit preflight or a cached Adapter preflight handoff; normalizes ability input to dry_run=false and commit=true.',
+				'POST /proposals/{proposal_id}/approve-and-execute' => 'Final write route: approve a pending proposal through Core, then preflight and execute one supported single input or write_actions payload with dry_run=false and commit=true.',
 			'GET /terms' => 'List terms; use returned id with GET /term?id={id}; pass taxonomy when known.',
 			'GET /term' => 'Read one term by list row id. Adapter infers taxonomy from id when possible; term_id is accepted as an alias for id.',
 		);
@@ -3902,7 +3853,7 @@ final class Controller {
 			'legacy_derivative_proposal_payload_available' => true,
 			'ability_guard'          => array(
 				'required_plan_ability_id' => 'npcink-abilities-toolkit/build-media-optimization-plan',
-				'adapter_plan_allowlisted' => Plan_Ability_Allowlist::contains( 'npcink-abilities-toolkit/build-media-optimization-plan' ),
+					'adapter_plan_supported' => Supported_Plan_Abilities::contains( 'npcink-abilities-toolkit/build-media-optimization-plan' ),
 				'missing_capability_behavior' => 'surface_plan_ability_unavailable_do_not_split_into_two_proposals',
 			),
 		);
@@ -4930,24 +4881,6 @@ final class Controller {
 	}
 
 	/**
-	 * Returns a disabled approval proxy response.
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function approval_proxy_disabled(): WP_REST_Response {
-		return new WP_REST_Response(
-			array(
-				'code'                   => 'npcink_openclaw_adapter_approval_proxy_disabled',
-				'message'                => __( 'Direct approve/reject proxy routes are disabled. Use POST /proposals/{proposal_id}/approve-and-execute for the Adapter unified user action, or use Npcink Governance Core admin for split approval decisions.', 'npcink-ai-client-adapter' ),
-				'approval_proxy_enabled' => false,
-				'approval_surface'       => 'npcink_governance_core_admin',
-				'unified_action_route'   => 'POST /proposals/{proposal_id}/approve-and-execute',
-			),
-			403
-		);
-	}
-
-	/**
 	 * Creates a Core proposal.
 	 *
 	 * @param WP_REST_Request $request Request.
@@ -5019,13 +4952,13 @@ final class Controller {
 		$started = microtime( true );
 		$plan_ability_id = sanitize_text_field( (string) $request->get_param( 'plan_ability_id' ) );
 		$event_context = $this->observability_request_context( $request, array( 'ability_id' => $plan_ability_id ) );
-		if ( ! Plan_Ability_Allowlist::contains( $plan_ability_id ) ) {
-			$error = new WP_Error(
-				'npcink_openclaw_adapter_plan_ability_not_allowed',
-				__( 'This planning ability is not accepted by the adapter plan-to-proposal bridge.', 'npcink-ai-client-adapter' ),
+			if ( ! Supported_Plan_Abilities::contains( $plan_ability_id ) ) {
+				$error = new WP_Error(
+					'npcink_openclaw_adapter_plan_ability_unsupported',
+					__( 'This planning ability is not implemented by the adapter plan-to-proposal bridge.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'                   => 400,
-					'allowed_plan_ability_ids' => Plan_Ability_Allowlist::ids(),
+					'supported_plan_ability_ids' => Supported_Plan_Abilities::ids(),
 				)
 			);
 			$error = $this->error_with_operator_feedback( $error, $this->plan_handoff_operator_feedback( $error, $plan_ability_id ) );
@@ -5147,7 +5080,7 @@ final class Controller {
 					'reason'            => $valid_input->get_error_message(),
 				);
 
-				foreach ( array( 'field', 'allowed_input_fields', 'allowed_values', 'reference' ) as $key ) {
+				foreach ( array( 'field', 'supported_input_fields', 'allowed_values', 'reference' ) as $key ) {
 					if ( array_key_exists( $key, $error_data ) ) {
 						$blocked[ $key ] = $error_data[ $key ];
 					}
@@ -5293,7 +5226,7 @@ final class Controller {
 	}
 
 	/**
-	 * Approves a pending proposal through Core and executes allowlisted input.
+	 * Approves a pending proposal through Core and executes supported input.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -5481,14 +5414,14 @@ final class Controller {
 			return true;
 		}
 
-		return new WP_Error(
-			'npcink_openclaw_adapter_execute_ability_not_allowed',
-			__( 'This proposal ability is not allowed for adapter execution.', 'npcink-ai-client-adapter' ),
+			return new WP_Error(
+				'npcink_openclaw_adapter_execute_profile_unsupported',
+				__( 'This proposal ability is not implemented by Adapter execution profiles.', 'npcink-ai-client-adapter' ),
 			array(
 				'status'                      => 403,
 				'proposal_id'                 => $proposal_id,
 				'ability_id'                  => $ability_id,
-				'allowed_execute_ability_ids' => self::allowed_execute_ability_ids(),
+				'supported_execute_ability_ids' => self::supported_execute_ability_ids(),
 			)
 		);
 	}
@@ -5559,7 +5492,7 @@ final class Controller {
 	}
 
 	/**
-	 * Validates the Adapter-owned execution input shape for one allowlisted ability.
+	 * Validates the Adapter-owned execution input shape for one supported ability.
 	 *
 	 * @param string              $proposal_id Proposal id.
 	 * @param string              $ability_id Ability id.
@@ -5588,22 +5521,22 @@ final class Controller {
 			return $bounded_input;
 		}
 
-		$allowed_input_fields = (array) ( $profile['allowed_input_fields'] ?? array() );
-		if ( ! empty( $allowed_input_fields ) ) {
+		$supported_input_fields = (array) ( $profile['supported_input_fields'] ?? array() );
+		if ( ! empty( $supported_input_fields ) ) {
 			foreach ( array_keys( $input ) as $field ) {
 				$field = (string) $field;
-				if ( in_array( $field, $allowed_input_fields, true ) ) {
+				if ( in_array( $field, $supported_input_fields, true ) ) {
 					continue;
 				}
 
-				return new WP_Error(
-					'npcink_openclaw_adapter_ability_input_field_not_allowed',
-					__( 'Proposal input includes a field that is not allowed for this ability.', 'npcink-ai-client-adapter' ),
+					return new WP_Error(
+						'npcink_openclaw_adapter_ability_input_field_unsupported',
+						__( 'Proposal input includes a field outside this ability schema.', 'npcink-ai-client-adapter' ),
 					array_merge(
 						$error_data,
 						array(
 							'field'                => $field,
-							'allowed_input_fields' => $allowed_input_fields,
+							'supported_input_fields' => $supported_input_fields,
 						)
 					)
 				);
@@ -5783,10 +5716,10 @@ final class Controller {
 				);
 			}
 
-			if ( ! empty( $input['create_missing'] ) ) {
-				return new WP_Error(
-					'npcink_openclaw_adapter_create_missing_terms_not_allowed',
-					__( 'set-post-terms execution cannot create missing terms in this adapter policy.', 'npcink-ai-client-adapter' ),
+				if ( ! empty( $input['create_missing'] ) ) {
+					return new WP_Error(
+						'npcink_openclaw_adapter_create_missing_terms_unsupported',
+						__( 'set-post-terms execution does not implement creating missing terms.', 'npcink-ai-client-adapter' ),
 					$error_data
 				);
 			}
@@ -6146,10 +6079,10 @@ final class Controller {
 					);
 				}
 
-				if ( array_key_exists( 'commit_execution', $raw_action ) && false !== (bool) $raw_action['commit_execution'] ) {
-					return new WP_Error(
-						'npcink_openclaw_adapter_write_action_commit_execution_not_allowed',
-						__( 'Write actions must keep commit_execution=false before Adapter execution.', 'npcink-ai-client-adapter' ),
+					if ( array_key_exists( 'commit_execution', $raw_action ) && false !== (bool) $raw_action['commit_execution'] ) {
+						return new WP_Error(
+							'npcink_openclaw_adapter_write_action_commit_execution_unsupported',
+							__( 'Write actions must keep commit_execution=false before Adapter execution.', 'npcink-ai-client-adapter' ),
 						array(
 							'status'       => 409,
 							'proposal_id'  => $proposal_id,
@@ -6444,10 +6377,10 @@ final class Controller {
 			);
 		}
 
-		if ( false !== (bool) ( $preflight['commit_execution'] ?? true ) ) {
-			return new WP_Error(
-				'npcink_openclaw_adapter_core_execution_not_allowed',
-				__( 'Core commit preflight must not execute final writes.', 'npcink-ai-client-adapter' ),
+			if ( false !== (bool) ( $preflight['commit_execution'] ?? true ) ) {
+				return new WP_Error(
+					'npcink_openclaw_adapter_core_execution_unsupported',
+					__( 'Core commit preflight must not execute final writes.', 'npcink-ai-client-adapter' ),
 				array(
 					'status'      => 409,
 					'proposal_id' => $proposal_id,

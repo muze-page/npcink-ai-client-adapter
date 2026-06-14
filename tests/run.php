@@ -45,15 +45,15 @@ maa_adapter_assert( false === strpos( $legacy_main, 'Plugin Name:' ), 'Legacy bo
 maa_adapter_assert( false !== strpos( $legacy_main, 'npcink-ai-client-adapter.php' ), 'Legacy bootstrap delegates to the renamed main plugin file.' );
 
 $controller = maa_adapter_read( $root . '/includes/Rest/Controller.php' );
-$plan_ability_allowlist = maa_adapter_read( $root . '/includes/Rest/Plan_Ability_Allowlist.php' );
+$supported_plan_abilities = maa_adapter_read( $root . '/includes/Rest/Supported_Plan_Abilities.php' );
 $execution_profile_registry = maa_adapter_read( $root . '/includes/Rest/Execution_Profile_Registry.php' );
-$controller_contract = $controller . "\n" . $plan_ability_allowlist . "\n" . $execution_profile_registry;
-maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'final class Plan_Ability_Allowlist' ), 'Plan ability allowlist registry exists.' );
-maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'public static function ids' ), 'Plan ability allowlist exposes ids.' );
-maa_adapter_assert( false !== strpos( $plan_ability_allowlist, 'public static function contains' ), 'Plan ability allowlist exposes membership checks.' );
+$controller_contract = $controller . "\n" . $supported_plan_abilities . "\n" . $execution_profile_registry;
+maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'final class Supported_Plan_Abilities' ), 'Supported plan ability registry exists.' );
+maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'public static function ids' ), 'Supported plan ability exposes ids.' );
+maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'public static function contains' ), 'Supported plan ability exposes membership checks.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'final class Execution_Profile_Registry' ), 'Execution profile registry exists.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'public static function profiles' ), 'Execution profile registry exposes profiles.' );
-maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abilities-toolkit/update-post-blocks' ), 'Execution profile registry keeps governed block writes allowlisted.' );
+maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abilities-toolkit/update-post-blocks' ), 'Execution profile registry keeps governed block writes supported.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-post-blocks' ), 'Controller can read back post blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-blocks' ), 'Controller can read back template blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-part-blocks' ), 'Controller can read back template part blocks after execution.' );
@@ -71,7 +71,7 @@ foreach (
 		'npcink-toolbox/build-site-knowledge-review-plan',
 	) as $required_plan_ability
 ) {
-	maa_adapter_assert( false !== strpos( $plan_ability_allowlist, $required_plan_ability ), 'Plan ability allowlist contains required ability: ' . $required_plan_ability );
+	maa_adapter_assert( false !== strpos( $supported_plan_abilities, $required_plan_ability ), 'Supported plan ability contains required ability: ' . $required_plan_ability );
 }
 	foreach (
 		array(
@@ -233,16 +233,16 @@ foreach (
 			'include_delete_candidates',
 			'include_trash_parent_media',
 			'include_unattached_nonproduction_media',
-			'allowed_plan_ability_ids',
-			'npcink_openclaw_adapter_plan_ability_not_allowed',
+			'supported_plan_ability_ids',
+			'npcink_openclaw_adapter_plan_ability_unsupported',
 			'execution_profiles',
 			'validate_proposal_create_input',
 			'validate_plan_write_action_inputs',
 			'invalid_output_reference_token',
-			'allowed_execute_ability_ids',
-			'allowed_input_fields',
+			'supported_execute_ability_ids',
+			'supported_input_fields',
 			'enum_fields',
-			'npcink_openclaw_adapter_ability_input_field_not_allowed',
+			'npcink_openclaw_adapter_ability_input_field_unsupported',
 			'source_type',
 			'npcink_openclaw_adapter_media_source_type_invalid',
 			'owned',
@@ -307,14 +307,14 @@ foreach (
 			'batch_write_actions',
 			'normalize_execution_actions',
 			'execute_normalized_action',
-			'npcink_openclaw_adapter_execute_ability_not_allowed',
+			'npcink_openclaw_adapter_execute_profile_unsupported',
 			'npcink_openclaw_adapter_execution_input_ambiguous',
 			'npcink_openclaw_adapter_write_action_invalid',
 			'npcink_openclaw_adapter_write_action_target_required',
 			'npcink_openclaw_adapter_write_actions_limit_exceeded',
-			'npcink_openclaw_adapter_write_action_commit_execution_not_allowed',
+			'npcink_openclaw_adapter_write_action_commit_execution_unsupported',
 			'npcink_openclaw_adapter_preflight_not_authorized',
-			'npcink_openclaw_adapter_core_execution_not_allowed',
+			'npcink_openclaw_adapter_core_execution_unsupported',
 			'npcink_openclaw_adapter_proposal_rejected',
 			'npcink_openclaw_adapter_preflight_item_blocked',
 			'operator_feedback',
@@ -450,14 +450,11 @@ foreach (
 		"'pages'",
 		"'site-operations-dashboard'",
 		'/proposals',
-		'/proposals/from-plan',
-		'create_proposals_from_plan',
-		'list_proposals',
-		'get_proposal',
-		'approval_proxy_disabled',
-		'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/approve',
-		'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/reject',
-		'/commit-preflight',
+			'/proposals/from-plan',
+			'create_proposals_from_plan',
+			'list_proposals',
+			'get_proposal',
+			'/commit-preflight',
 		"current_user_can( 'manage_options' )",
 		'/npcink-governance-core/v1/capabilities',
 		'/npcink-governance-core/v1/proposals',
@@ -504,11 +501,10 @@ foreach (
 		'proposal_list_url',
 		'proposal_detail_url',
 		'read_shortcuts',
-		'wordpress_rest_application_password',
-		'proposal_status',
-		'proposals:read',
-		'approval_proxy_enabled',
-		'approval_surface',
+			'wordpress_rest_application_password',
+			'proposal_status',
+			'proposals:read',
+			'approval_surface',
 		'npcink_governance_core_admin',
 		'log_context',
 		'wpai_request_log_context',
@@ -530,13 +526,9 @@ foreach (
 		'proposal_status_routes',
 		'plan_proposal_routes',
 		'core_app_token_configured',
-		'core_app_token_required_scopes',
-		'GET /proposals',
-		'GET /proposals/{proposal_id}',
-			'POST /proposals/{proposal_id}/approve',
-			'POST /proposals/{proposal_id}/reject',
-			'npcink_openclaw_adapter_approval_proxy_disabled',
-			'unified_action_route',
+			'core_app_token_required_scopes',
+			'GET /proposals',
+			'GET /proposals/{proposal_id}',
 			'approve-and-execute',
 			'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN',
 		'npcink_openclaw_adapter_core_app_token',
@@ -660,9 +652,26 @@ foreach (
 		'derivative_relative_file',
 		'backup_id',
 	) as $required
+	) {
+		maa_adapter_assert( false !== strpos( $controller_contract, $required ), 'Controller contract contains required text: ' . $required );
+	}
+
+foreach (
+	array(
+		'approval_proxy_disabled',
+		'npcink_openclaw_adapter_approval_proxy_disabled',
+		'approval_proxy_enabled',
+		'Approval disabled stub',
+		'Reject disabled stub',
+		'Direct approve/reject proxy routes are disabled',
+	) as $removed_trialware_signal
 ) {
-	maa_adapter_assert( false !== strpos( $controller_contract, $required ), 'Controller contract contains required text: ' . $required );
+	maa_adapter_assert( false === strpos( $controller_contract, $removed_trialware_signal ), 'Controller release surface removes locked-feature signal: ' . $removed_trialware_signal );
 }
+maa_adapter_assert( false === strpos( $controller, "'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/approve'," ), 'Controller does not register standalone approve route.' );
+maa_adapter_assert( false === strpos( $controller, "'/proposals/(?P<proposal_id>[A-Za-z0-9_-]+)/reject'," ), 'Controller does not register standalone reject route.' );
+maa_adapter_assert( false === strpos( $controller, "'POST /proposals/{proposal_id}/approve' =>" ), 'Help purpose map does not include standalone approve route.' );
+maa_adapter_assert( false === strpos( $controller, "'POST /proposals/{proposal_id}/reject' =>" ), 'Help purpose map does not include standalone reject route.' );
 $smoke_route = substr( $controller, (int) strpos( $controller, "'/ai-provider-log-correlation-smoke'" ), 1400 );
 maa_adapter_assert( false !== strpos( $smoke_route, "array( \$this, 'can_use_admin_session' )" ), 'AI provider smoke route requires administrator session auth.' );
 maa_adapter_assert( false === strpos( $smoke_route, "array( \$this, 'can_use_adapter' )" ), 'AI provider smoke route is not available through signed adapter clients.' );
@@ -683,7 +692,7 @@ maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['proposal_mo
 maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['batch_approval'] = true;" ), 'Adapter makes dependent plan batch approval explicit before Core from-plan forwarding.' );
 maa_adapter_assert( false !== strpos( $controller, 'min( self::MAX_PROPOSAL_LIST_LIMIT, max( 1, absint' ), 'Adapter list routes clamp caller supplied limits.' );
 maa_adapter_assert( false === strpos( $controller, 'HTTP_USER_AGENT' ), 'Public pairing rate limit is not weakened by caller-controlled user agents.' );
-maa_adapter_assert( false === strpos( $controller, '$allowed_execute_ability_ids' ), 'Controller derives execute allowlist from execution profiles.' );
+maa_adapter_assert( false === strpos( $controller, '$supported_execute_ability_ids' ), 'Controller derives execute supported profiles from execution profiles.' );
 maa_adapter_assert( false === strpos( $controller, 'include_log_tail' ), 'Adapter does not implement old include_log_tail compatibility.' );
 maa_adapter_assert( false === strpos( $controller, 'include_error_log' ), 'Adapter does not use old include_error_log diagnostics input.' );
 maa_adapter_assert( false === strpos( $controller, 'can_approve_proposals' ), 'Adapter does not call Core proposal approval permission path.' );
@@ -701,7 +710,7 @@ foreach ( array( "'input'", "'plan'", "'preview'", "'response'", "'upstream_data
 }
 $observability = maa_adapter_read( $root . '/includes/Observability.php' );
 foreach ( array( 'sanitize_payload', "'event_id'", "'adapter_request_id'", "'status_code'", "'executed_count'", "'failed_count'" ) as $required ) {
-	maa_adapter_assert( false !== strpos( $observability, $required ), 'Observability bridge keeps allowlisted field: ' . $required );
+	maa_adapter_assert( false !== strpos( $observability, $required ), 'Observability bridge keeps supported field: ' . $required );
 }
 foreach ( array( "'input'", "'plan'", "'preview'", "'response'", "'upstream_data'", "'authorization'", "'token'", "'secret'", "'prompt'", "'content'" ) as $forbidden ) {
 	maa_adapter_assert( false === strpos( $observability, $forbidden ), 'Observability bridge excludes raw field: ' . $forbidden );
@@ -797,24 +806,21 @@ foreach (
 		'Route catalog',
 		'details class="maa-section"',
 		'Proposal list',
-		'Proposal detail',
-		'Plan to proposals',
-		'Commit preflight',
-		'Approve and execute',
-		'Approval disabled stub',
-		'Reject disabled stub',
-		'Example requests',
+			'Proposal detail',
+			'Plan to proposals',
+			'Commit preflight',
+			'Approve and execute',
+			'Example requests',
 		'Handoff prompt',
 		'Boundary',
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD',
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 		'Copy this Application Password now.',
-		'Paste it only into the AI client dedicated secret field',
-		'GET /help',
-		'GET /proposals/{proposal_id}',
-		'approval_proxy_enabled=false',
-		'approve-and-execute',
-			'Current execution allowlist: npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/update-post-blocks, npcink-abilities-toolkit/update-template-blocks, npcink-abilities-toolkit/upsert-template-blocks, npcink-abilities-toolkit/update-template-part-blocks, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/restore-media-backup, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, npcink-abilities-toolkit/approve-comment',
+			'Paste it only into the AI client dedicated secret field',
+			'GET /help',
+			'GET /proposals/{proposal_id}',
+			'approve-and-execute',
+			'Adapter execution profiles currently support npcink-abilities-toolkit/trash-post, npcink-abilities-toolkit/create-draft, npcink-abilities-toolkit/update-post, npcink-abilities-toolkit/patch-post-content, npcink-abilities-toolkit/update-post-blocks, npcink-abilities-toolkit/update-template-blocks, npcink-abilities-toolkit/upsert-template-blocks, npcink-abilities-toolkit/update-template-part-blocks, npcink-abilities-toolkit/patch-setting-value, npcink-abilities-toolkit/set-post-seo-meta, npcink-abilities-toolkit/set-post-slug, npcink-abilities-toolkit/set-post-terms, npcink-abilities-toolkit/delete-term, npcink-abilities-toolkit/update-media-details, npcink-abilities-toolkit/upload-media-from-url, npcink-abilities-toolkit/set-post-featured-image, npcink-abilities-toolkit/optimize-media-asset, npcink-abilities-toolkit/replace-media-file, npcink-abilities-toolkit/restore-media-backup, npcink-abilities-toolkit/adopt-cloud-media-derivative, npcink-abilities-toolkit/rename-media-file, npcink-abilities-toolkit/delete-media-permanently, npcink-abilities-toolkit/reply-comment, npcink-abilities-toolkit/trash-comment, and npcink-abilities-toolkit/approve-comment',
 		'Adapter execute routes are final write paths and normalize ability input to dry_run=false and commit=true',
 		'for dry-run-only verification, stop at commit-preflight and do not call execute',
 		'Failure code handling',
@@ -1080,12 +1086,10 @@ foreach (
 		'npcink-abilities-toolkit/delete-media-permanently',
 		'npcink-abilities-toolkit/reply-comment',
 		'npcink-abilities-toolkit/trash-comment',
-		'npcink-abilities-toolkit/approve-comment',
-		'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN',
-		'npcink_openclaw_adapter_core_app_token',
-		'npcink_openclaw_adapter_approval_proxy_disabled',
-		'approval_proxy_enabled=false',
-		'approval_surface=npcink_governance_core_admin',
+			'npcink-abilities-toolkit/approve-comment',
+			'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN',
+			'npcink_openclaw_adapter_core_app_token',
+			'approval_surface=npcink_governance_core_admin',
 		'POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability',
 		'GET /wp-json/npcink-openclaw-adapter/v1/media-attachment-by-url?url={uploads_url}',
 		'proposals:read',
@@ -1301,7 +1305,7 @@ foreach (
 		'redactOutput',
 		'isSensitiveOutputKey',
 		'read-request create requires --ability-id, --purpose, and --data-classes.',
-		'false values are expected boundary controls, not an execution-disabled signal.',
+		'false values indicate Core keeps final execution authority separate from Adapter diagnostics.',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $magick_adapter_tool, $required ), 'Packaged unified local CLI contains expected behavior: ' . $required );
@@ -1443,14 +1447,12 @@ foreach (
 		'/proposals?limit=10',
 		'/proposals/PROPOSAL_ID',
 		'proposals:read',
-		'audit_timeline',
-		'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN',
-			'npcink_openclaw_adapter_core_app_token',
-			'npcink_openclaw_adapter_approval_proxy_disabled',
-			'approve-and-execute',
-			'npcink_openclaw_adapter_execute_ability_not_allowed',
-			'approval_proxy_enabled=false',
-		'approval_surface=npcink_governance_core_admin',
+			'audit_timeline',
+			'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN',
+				'npcink_openclaw_adapter_core_app_token',
+				'approve-and-execute',
+				'npcink_openclaw_adapter_execute_profile_unsupported',
+			'approval_surface=npcink_governance_core_admin',
 		'log_context',
 		'wpai_request_log_context',
 		'proposal_id',
@@ -1492,7 +1494,7 @@ foreach (
 			'Dry-run-only verification stops at Adapter commit-preflight',
 			'normalizes ability input to `dry_run=false` and `commit=true`',
 			'execution_mode=batch_write_actions',
-			'outside that execution allowlist',
+			'outside that execution supported profiles',
 		) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $quickstart, $required ), 'Quickstart contains required text: ' . $required );
@@ -1546,15 +1548,11 @@ foreach (
 		'POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute',
 		'GET /wp-json/npcink-openclaw-adapter/v1/recent-error-log-tail',
 		'GET /wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics',
-		'GET /wp-json/npcink-openclaw-adapter/v1/posts',
-		'GET /wp-json/npcink-openclaw-adapter/v1/post-context',
-		'GET /wp-json/npcink-openclaw-adapter/v1/users',
-		'GET /wp-json/npcink-openclaw-adapter/v1/menu',
-		'POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve',
-		'POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/reject',
-		'npcink_openclaw_adapter_approval_proxy_disabled',
-		'approval_proxy_enabled=false',
-		'approval_surface=npcink_governance_core_admin',
+			'GET /wp-json/npcink-openclaw-adapter/v1/posts',
+			'GET /wp-json/npcink-openclaw-adapter/v1/post-context',
+			'GET /wp-json/npcink-openclaw-adapter/v1/users',
+			'GET /wp-json/npcink-openclaw-adapter/v1/menu',
+			'approval_surface=npcink_governance_core_admin',
 		'proposals:read',
 		'audit_timeline',
 		'AI Request Logs',
@@ -1636,7 +1634,7 @@ foreach (
 		'Approved Proposal Execution Contract',
 		'Unified Approve And Execute Contract',
 		'openclaw-batch-execution-policy.md',
-		'batch containing any non-allowlisted action fails',
+		'batch containing any non-supported action fails',
 		'npcink-abilities-toolkit/trash-post',
 		'npcink-abilities-toolkit/create-draft',
 		'npcink-abilities-toolkit/update-post',
@@ -1747,11 +1745,10 @@ foreach (
 		'generation provider/model',
 		'explicit `ai_provider`',
 		'`ai_model` sent to the provider smoke',
-		'adapter_request_id',
-		'governance_source=npcink-governance-core',
-		'provider request log',
-		'npcink_openclaw_adapter_approval_proxy_disabled',
-		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
+			'adapter_request_id',
+			'governance_source=npcink-governance-core',
+			'provider request log',
+			'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan',
 		'npcink-abilities-toolkit/build-media-inventory-fix-plan',
 		'npcink-abilities-toolkit/build-media-reference-repair-plan',
@@ -2038,9 +2035,9 @@ foreach (
 		'adapter refuses direct execution for destructive ability',
 		'adapter health exposes approved proposal execution route',
 		'adapter health exposes approve-and-execute route',
-		'adapter health exposes trash-post execute allowlist',
-		'adapter health exposes rename-media-file execute allowlist',
-		'adapter health exposes delete-media-permanently execute allowlist',
+		'adapter health exposes trash-post execute supported profiles',
+		'adapter health exposes rename-media-file execute supported profiles',
+		'adapter health exposes delete-media-permanently execute supported profiles',
 		'adapter help exposes execute-approved-proposal route',
 		'adapter help exposes proposal execute route',
 		'adapter help exposes proposal approve-and-execute route',
@@ -2083,14 +2080,14 @@ foreach (
 		'adapter duplicate approve-and-execute preserves original adapter request id',
 		'adapter rejects duplicate create-draft approve-and-execute request',
 		'adapter creates write_actions batch proposal for approve-and-execute smoke',
-		'adapter batch approve-and-execute succeeds for allowlisted write_actions',
+		'adapter batch approve-and-execute succeeds for supported write_actions',
 		'adapter batch approve-and-execute reports batch execution mode',
 		'adapter batch approve-and-execute returns per-action results',
 		'adapter creates output-reference write_actions batch proposal',
 		'adapter batch approve-and-execute succeeds with output references',
 		'adapter output-reference batch updates the created draft',
 		'adapter output-reference batch leaves created draft trashed',
-		'adapter batch approve-and-execute rejects non-allowlisted write_action',
+		'adapter batch approve-and-execute rejects non-supported write_action',
 		'adapter bad batch does not execute allowed action before failing closed',
 		'adapter approve-and-execute succeeds for already approved proposal',
 		'adapter approve-and-execute records approved status before execution',
@@ -2149,7 +2146,7 @@ foreach (
 		'adapter creates trash-comment proposal for approve-and-execute smoke',
 		'adapter proposal create rejects trash-comment without comment_id',
 		'adapter proposal create rejects approve-comment without comment_id',
-		'adapter approve-and-execute rejects non-allowlisted ability',
+		'adapter approve-and-execute rejects non-supported ability',
 		'adapter capabilities expose content inventory fix plan through Core',
 		'adapter capabilities expose nonproduction content cleanup plan through Core',
 		'adapter capabilities expose media inventory fix plan through Core',
@@ -2190,8 +2187,8 @@ foreach (
 		'adapter plan-to-proposal response preserves proposal list state',
 		'adapter help exposes proposal list route',
 		'adapter help exposes proposal detail route',
-		'adapter help keeps approval proxy disabled',
-		'adapter help keeps rejection proxy disabled',
+		'adapter help does not expose standalone approval route',
+		'adapter help does not expose standalone rejection route',
 		'adapter health exposes Core app token configured state without token value',
 		'adapter help exposes Core app token configured state without token value',
 		'adapter smoke created scoped Core app token',
@@ -2219,10 +2216,10 @@ foreach (
 		'adapter diagnostic fail-closed route keeps Core as read authorization truth',
 		'adapter diagnostic fail-closed route reports adapter action',
 		'adapter diagnostic fail-closed route returns next steps',
-		'adapter approval stub returns disabled response',
-			'adapter rejection stub returns disabled response',
-			'adapter approval stub does not change Core proposal status',
-			'adapter rejection stub does not change Core proposal status',
+		'adapter standalone approval route is absent',
+			'adapter standalone rejection route is absent',
+			'absent standalone approval route does not change Core proposal status',
+			'absent standalone rejection route does not change Core proposal status',
 			'maa_adapter_smoke_text_generation_model',
 			'AI provider smoke found a configured text generation model',
 			'adapter provider smoke succeeds with configured text model',
@@ -2875,10 +2872,10 @@ foreach (
 		'cannot be embedded into larger strings',
 		'fail closed',
 		'Maximum batch size is 200 actions',
-		'Partial success is not a normal success mode',
-		'execution_mode=batch_write_actions',
-		'expand the Adapter execution allowlist',
-		'turn disabled approve/reject stubs into real proxies',
+			'Partial success is not a normal success mode',
+			'execution_mode=batch_write_actions',
+			'expand the Adapter execution supported profiles',
+			'add generic proposal approval proxying',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $batch_policy, $required ), 'Batch execution policy contains required text: ' . $required );

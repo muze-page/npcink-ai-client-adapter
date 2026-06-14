@@ -28,7 +28,7 @@ bounded failed execution records, returned `proposal_id`, `correlation_id`,
 `ability_id`, `execution_record`, and `core_commit_execution=false`, plus Core
 Audit and AI Request Logs correlation.
 
-The next change to OpenClaw routes, the Adapter execution allowlist, or log
+The next change to OpenClaw routes, the Adapter execution supported profiles, or log
 correlation fields must rerun this acceptance checklist.
 
 ## Purpose
@@ -93,8 +93,7 @@ Run this order for a local acceptance pass:
 4. Require these health values:
    - `core_capabilities=true`
    - `abilities_catalog=true`
-   - `approval_proxy_enabled=false`
-   - `approval_surface=npcink_governance_core_admin`
+   -    - `approval_surface=npcink_governance_core_admin`
    - `core_proxy_execute=false`
    - `commit_execution=false`
 5. Call `GET /help` and confirm route discovery includes:
@@ -311,7 +310,7 @@ Run this order for a local acceptance pass:
     `error_code`, failed action metadata, executed and failed counts, Core
     correlation fields, and `commit_execution=false`. Adapter does not store the full proposal or create a retry queue; OpenClaw should show the failure and require a new operator-reviewed proposal when retry is needed.
     For batch plan-shaped proposals, confirm `input.write_actions[]` executes
-    only when every item targets the Adapter execution allowlist and passes
+    only when every item targets the Adapter execution supported profiles and passes
     ability-specific input checks. Confirm the response includes
     `execution_mode=batch_write_actions`, `executed_count`, `failed_count`,
     and per-action `results[]`.
@@ -336,7 +335,7 @@ Run this order for a local acceptance pass:
     `dry_run=false` and `commit=true`, returned `proposal_id`,
     `correlation_id`, and `ability_id`, and did not execute pending,
     dry-run-only, or preflight-failed proposals.
-19. Confirm rejected proposals, non-allowlisted proposals, and preflight-blocked
+19. Confirm rejected proposals, non-supported proposals, and preflight-blocked
     proposals do not execute through approve-and-execute.
 20. Pass `proposal_id` and `correlation_id` into later reads as query fields or
     as POST `/run-read-ability` `log_context`.
@@ -432,10 +431,10 @@ OpenClaw must stop and report the reason when Adapter or Core returns:
 - `429` when Core app-key rate policy rejects an internal Core request;
 - `npcink_openclaw_adapter_proposal_required` when a caller tries to execute a
   proposal-required ability as a direct read;
-- `npcink_openclaw_adapter_approval_proxy_disabled` when a caller tries to approve or
-  reject through Adapter's standalone disabled stubs;
-- `npcink_openclaw_adapter_execute_ability_not_allowed` when the proposal ability is
-  outside Adapter's execution allowlist;
+- `npcink_openclaw_adapter_execute_profile_unsupported` when a caller tries to approve or
+  reject through Adapter's standalone generic approval proxy routes;
+- `npcink_openclaw_adapter_execute_profile_unsupported` when the proposal ability is
+  outside Adapter's execution supported profiles;
 - `npcink_openclaw_adapter_write_action_invalid`,
   `npcink_openclaw_adapter_write_action_target_required`,
   `npcink_openclaw_adapter_write_actions_limit_exceeded`, or
@@ -464,7 +463,7 @@ approval decisions.
 This acceptance pass must not add or require:
 
 - generic Adapter approval or rejection proxying;
-- final WordPress write execution outside the current allowlisted
+- final WordPress write execution outside the current supported
   approve-and-execute path;
 - Core `/execute` or `/proxy-execute`;
 - MCP runtime;
@@ -527,9 +526,9 @@ OpenClaw consumer acceptance is complete when:
 - research-backed Pattern pages use `pattern_page_research_brief` as
   suggestion-only evidence before choosing page variables, section variants,
   visual assets, and proof angles;
-- disabled Adapter approve/reject stubs return HTTP 403 and do not change Core
+- Adapter does not publish standalone approval or rejection routes
   proposal state;
-- plan `write_actions` are executed only through the accepted allowlisted batch
+- plan `write_actions` are executed only through the accepted supported batch
   policy after Core approval and preflight;
 - `skipped_destructive_candidates` are never reported as Adapter-executed
   mutations;

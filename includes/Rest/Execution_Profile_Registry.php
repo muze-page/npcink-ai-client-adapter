@@ -27,7 +27,7 @@ final class Execution_Profile_Registry {
 	public static function profiles(): array {
 		return array(
 			'npcink-abilities-toolkit/trash-post'      => array(
-				'allowed_input_fields'  => array( 'post_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
 					'code'    => 'npcink_openclaw_adapter_post_id_required',
 					'message' => __( 'trash-post execution input must include post_id.', 'npcink-ai-client-adapter' ),
@@ -36,7 +36,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/create-draft'    => array(
-				'allowed_input_fields'  => array( 'post_type', 'status', 'title', 'content', 'content_format', 'excerpt', 'soft_block_reason', 'soft_block_summary', 'meta', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_type', 'status', 'title', 'content', 'content_format', 'excerpt', 'soft_block_reason', 'soft_block_summary', 'meta', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'status'         => array(
 						'allowed' => array( 'draft' ),
@@ -58,7 +58,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => true,
 			),
 			'npcink-abilities-toolkit/update-post'     => array(
-				'allowed_input_fields'  => array( 'post_id', 'title', 'content', 'content_format', 'excerpt', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'title', 'content', 'content_format', 'excerpt', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'content_format' => array(
 						'allowed' => array( 'html', 'markdown', 'plain' ),
@@ -78,7 +78,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/patch-post-content' => array(
-				'allowed_input_fields'  => array( 'post_id', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
 					'code'    => 'npcink_openclaw_adapter_post_id_required',
 					'message' => __( 'patch-post-content execution input must include post_id.', 'npcink-ai-client-adapter' ),
@@ -91,7 +91,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/update-post-blocks' => array(
-				'allowed_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'mode' => array(
 						'allowed' => array( 'replace', 'append' ),
@@ -112,7 +112,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/update-template-blocks' => array(
-				'allowed_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'mode' => array(
 						'allowed' => array( 'replace' ),
@@ -133,7 +133,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/upsert-template-blocks' => array(
-				'allowed_input_fields'  => array( 'post_id', 'slug', 'theme', 'title', 'source_template_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'slug', 'theme', 'title', 'source_template_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'mode' => array(
 						'allowed' => array( 'replace' ),
@@ -156,7 +156,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => true,
 			),
 			'npcink-abilities-toolkit/update-template-part-blocks' => array(
-				'allowed_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'mode', 'validate_roundtrip', 'blocks', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'mode' => array(
 						'allowed' => array( 'replace' ),
@@ -177,7 +177,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/patch-setting-value' => array(
-				'allowed_input_fields'  => array( 'target_type', 'target_name', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'target_type', 'target_name', 'operations', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'target_type' => array(
 						'allowed' => array( 'option', 'theme_mod' ),
@@ -199,7 +199,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/set-post-seo-meta' => array(
-				'allowed_input_fields'  => array( 'post_id', 'seo_title', 'seo_description', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'seo_title', 'seo_description', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
 					'code'    => 'npcink_openclaw_adapter_post_id_required',
 					'message' => __( 'set-post-seo-meta execution input must include post_id.', 'npcink-ai-client-adapter' ),
@@ -212,7 +212,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/set-post-slug'   => array(
-				'allowed_input_fields'  => array( 'post_id', 'slug', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'slug', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
 					'code'    => 'npcink_openclaw_adapter_post_id_required',
 					'message' => __( 'set-post-slug execution input must include post_id.', 'npcink-ai-client-adapter' ),
@@ -226,7 +226,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/set-post-terms'  => array(
-				'allowed_input_fields'  => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'terms', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'taxonomy', 'mode', 'term_ids', 'terms', 'create_missing', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'mode' => array(
 						'allowed' => array( 'replace', 'append', 'remove' ),
@@ -242,7 +242,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/delete-term'     => array(
-				'allowed_input_fields'      => array( 'taxonomy', 'term_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'      => array( 'taxonomy', 'term_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'       => array(
 					'term_id' => array(
 						'code'    => 'npcink_openclaw_adapter_term_id_required',
@@ -253,7 +253,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'       => false,
 			),
 			'npcink-abilities-toolkit/update-media-details' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'title', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'source_type' => array(
 						'allowed' => array( 'owned', 'ai_generated', 'stock', 'external', 'test' ),
@@ -275,7 +275,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/upload-media-from-url' => array(
-				'allowed_input_fields'  => array( 'url', 'title', 'file_name', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'attach_to_post_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'url', 'title', 'file_name', 'alt', 'caption', 'description', 'source_type', 'source_page_url', 'photographer_name', 'attribution_text', 'copyright_notice', 'attach_to_post_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'source_type' => array(
 						'allowed' => array( 'owned', 'ai_generated', 'stock', 'external', 'test' ),
@@ -292,7 +292,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/set-post-featured-image' => array(
-				'allowed_input_fields'  => array( 'post_id', 'attachment_id', 'media_url', 'media_title', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'attachment_id', 'media_url', 'media_title', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
 					'code'    => 'npcink_openclaw_adapter_post_id_required',
 					'message' => __( 'set-post-featured-image execution input must include post_id.', 'npcink-ai-client-adapter' ),
@@ -305,7 +305,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => true,
 			),
 			'npcink-abilities-toolkit/optimize-media-asset' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'target_max_width', 'preferred_format', 'quality', 'derivative_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'target_max_width', 'preferred_format', 'quality', 'derivative_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'preferred_format' => array(
 						'allowed' => array( 'webp', 'jpeg', 'png' ),
@@ -322,7 +322,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/replace-media-file' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'derivative_relative_file', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'derivative_relative_file', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
@@ -332,7 +332,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/restore-media-backup' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'backup_id', 'expected_current_relative_file', 'expected_current_mime_type', 'target_conflict_mode', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'backup_id', 'expected_current_relative_file', 'expected_current_mime_type', 'target_conflict_mode', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'target_conflict_mode' => array(
 						'allowed' => array( 'fail', 'overwrite' ),
@@ -355,7 +355,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/adopt-cloud-media-derivative' => array(
-				'allowed_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'expected_content_reference_post_ids', 'expected_content_reference_post_count', 'expected_content_reference_replacement_count', 'content_reference_repairs', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'expected_content_reference_post_ids', 'expected_content_reference_post_count', 'expected_content_reference_replacement_count', 'content_reference_repairs', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
@@ -370,7 +370,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/rename-media-file' => array(
-				'allowed_input_fields'     => array( 'attachment_id', 'target_file_name', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_current_md5', 'expected_current_sha256', 'conflict_mode', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'     => array( 'attachment_id', 'target_file_name', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_current_md5', 'expected_current_sha256', 'conflict_mode', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'              => array(
 					'conflict_mode' => array(
 						'allowed' => array( 'fail', 'unique' ),
@@ -396,7 +396,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'      => false,
 			),
 			'npcink-abilities-toolkit/delete-media-permanently' => array(
-				'allowed_input_fields'     => array( 'attachment_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'     => array( 'attachment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'      => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
@@ -409,7 +409,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'      => false,
 			),
 			'npcink-abilities-toolkit/reply-comment'   => array(
-				'allowed_input_fields'  => array( 'comment_id', 'content', 'content_format', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'comment_id', 'content', 'content_format', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'content_format' => array(
 						'allowed' => array( 'html', 'markdown', 'plain' ),
@@ -430,7 +430,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => true,
 			),
 			'npcink-abilities-toolkit/trash-comment'   => array(
-				'allowed_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'comment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_comment_id_required',
@@ -440,7 +440,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => true,
 			),
 			'npcink-abilities-toolkit/approve-comment' => array(
-				'allowed_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'comment_id', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'comment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_comment_id_required',

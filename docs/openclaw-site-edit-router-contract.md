@@ -19,7 +19,7 @@ through:
 2. reviewed plan artifact;
 3. `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`;
 4. Core approval and commit-preflight;
-5. Adapter allowlisted execution profile;
+5. Adapter supported execution profile;
 6. read-back verification.
 
 Guardrails:

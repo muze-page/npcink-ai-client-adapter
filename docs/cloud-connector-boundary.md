@@ -21,7 +21,7 @@ Cloud execution truth.
 | --- | --- | --- |
 | `npcink-abilities-toolkit` | Canonical WordPress ability definitions, schemas, callbacks, permissions, dry-run previews, and read-only workflow recipe metadata. | Cloud calls, model routing, queues, billing, quota, approval state, audit truth, workflow runtime, or final writes. |
 | `npcink-governance-core` | Governance, ability intake, proposal records, approval/rejection, commit preflight, scoped app keys, rate limits, and audit records. | Ability definitions, cloud execution, task queues, model routing, product workflows, or final write execution. |
-| `npcink-openclaw-adapter` | OpenClaw-facing REST routes, non-secret WordPress connection manifest, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, one allowlisted approve-and-execute orchestration path, and optional calls into the Cloud Addon seam. | Cloud settings, Cloud API key storage, Cloud request signing, `/cloud/*` routes, ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, generic approve/reject proxying, or final write authority. |
+| `npcink-openclaw-adapter` | OpenClaw-facing REST routes, non-secret WordPress connection manifest, read ability execution through WordPress Abilities API, Core proposal/preflight proxying, one supported approve-and-execute orchestration path, and optional calls into the Cloud Addon seam. | Cloud settings, Cloud API key storage, Cloud request signing, `/cloud/*` routes, ability registry, approval store, workflow runtime, durable queue, model router, provider credentials, Cloud analytics truth, generic approve/reject proxying, or final write authority. |
 | `npcink-cloud-addon` | Cloud Base URL/API key settings, signed hosted runtime transport, run/result reads, entitlement and stats projections, media derivative transport helpers, and opt-in metadata-only plugin observability upload. | OpenClaw product UX, Core governance truth, local ability truth, approval truth, WordPress writes, prompt/router/preset control, scheduler truth, workflow/task queue control, or billing truth. |
 | `npcink-cloud` | Hosted runtime, Cloud API, worker execution, run status, provider telemetry, usage/stats, health, entitlement, quota, diagnostics, and Cloud-side analysis generation. | WordPress control plane, local ability truth, local approval truth, OpenClaw projection truth, or WordPress writes. |
 
@@ -55,7 +55,7 @@ Adapter may add bounded Cloud Addon integration code for:
   payload when the operation is read-only or already approved by Core.
 
 Adapter must keep these calls thin. It delegates Cloud credentials, signing,
-endpoint allowlists, durable execution, retry, queueing, analytics, and
+endpoint supported profiless, durable execution, retry, queueing, analytics, and
 Cloud-side projections to `npcink-cloud-addon` and `npcink-cloud`.
 
 Adapter must not register Adapter-owned `/cloud/*` routes unless a future ADR
@@ -104,7 +104,7 @@ or proposal input for local review.
    - structured recommendation.
 
 4. Final WordPress writes remain local and governed. Adapter may execute only a
-   narrow allowlisted ability after Core approval and Core commit-preflight
+   narrow supported ability after Core approval and Core commit-preflight
    through the explicit approve-and-execute path. Adapter must not become a
    generic final write executor unless a future ADR explicitly changes that
    boundary.
@@ -164,7 +164,7 @@ Do not add these to Adapter:
 
 2. Add Cloud-backed OpenClaw behavior only through Cloud Addon:
    - collect local context through existing Abilities routes;
-   - call a Cloud Addon helper or runtime client allowlisted method;
+   - call a Cloud Addon helper or runtime client supported method;
    - return Cloud `run_id`, status, result, or proposal input as a projection;
    - do not write WordPress.
 
@@ -179,7 +179,7 @@ Do not add these to Adapter:
    - Adapter does not store Cloud API keys or sign Cloud requests;
    - Cloud Addon calls do not expose standalone approve/reject proxying;
    - Cloud Addon calls do not execute final writes outside Adapter's
-     Core-approved allowlisted path;
+     Core-approved supported path;
    - write-like Cloud outputs require Core proposal/preflight handoff.
 
 ## Decision Summary

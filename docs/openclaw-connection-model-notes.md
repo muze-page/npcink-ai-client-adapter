@@ -123,7 +123,7 @@ Do not move these responsibilities into Adapter:
 - Cloud control plane or Cloud OpenClaw platform.
 
 Core remains the proposal, approval, preflight, execution-outcome, and audit
-truth. Adapter remains the thin OpenClaw channel layer and final allowlisted
+truth. Adapter remains the thin OpenClaw channel layer and final supported
 executor after Core preflight.
 
 ## Rejected Alternatives

@@ -9,7 +9,7 @@ OpenClaw can create or receive plan-shaped proposals whose `input` contains
 multiple `write_actions[]`. The previous Adapter execution contract only
 accepted a top-level `input.post_id`, so OpenClaw could reach Core
 commit-preflight and still have no Adapter-owned way to perform the final
-allowlisted WordPress write loop.
+supported WordPress write loop.
 
 This policy extends the Adapter execution input contract without changing the
 governance boundary.
@@ -45,7 +45,7 @@ or:
 }
 ```
 
-V1 supports only the Adapter execution allowlist, currently:
+V1 supports only the Adapter execution supported profiles, currently:
 
 - `target_ability_id=npcink-abilities-toolkit/trash-post`
 - `target_ability_id=npcink-abilities-toolkit/create-draft`
@@ -86,7 +86,7 @@ Capability discovery is not enough to execute a write ability.
 
 Each profile entry is the implementation checklist for one executable ability:
 
-- `ability_id` is included in the derived execution allowlist;
+- `ability_id` is included in the derived execution supported profiles;
 - required scalar input checks are declared in the profile;
 - enum input checks such as media `source_type` are declared in the profile;
 - special Adapter-owned guards are declared by profile flags;
@@ -118,7 +118,7 @@ Plan action ids must be unique before Adapter forwards the plan to Core.
 
 - Maximum batch size is 200 actions.
 - Partial success is not a normal success mode.
-- If any action is malformed, non-allowlisted, not proposal-ready, has
+- If any action is malformed, non-supported, not proposal-ready, has
   unresolved `requires_input`, or has `commit_execution=true`, Adapter fails
   closed before executing any action.
 - If Core preflight blocks the proposal, Adapter executes no actions.
@@ -128,7 +128,7 @@ Plan action ids must be unique before Adapter forwards the plan to Core.
 - If an execution error occurs after prior actions have executed, Adapter stops
   and returns the upstream error with `executed_results` for inspection.
 - Terms, comments, media delete, and arbitrary write abilities outside the
-  Adapter execution allowlist are not executable in this V1 policy.
+  Adapter execution supported profiles are not executable in this V1 policy.
 - An action input may use an exact `$outputs.<prior_action_id>.<field>`
   reference to a previous action result in the same batch. Adapter resolves
   those references immediately before executing the action, then revalidates
@@ -159,12 +159,12 @@ returns `execution_mode=single_post`, `post_ids`, `executed_count`,
 This policy does not:
 
 - add a generic write executor;
-- expand the Adapter execution allowlist without a dedicated execution profile
+- expand the Adapter execution supported profiles without a dedicated execution profile
   and implementation;
 - make Core execute final WordPress mutations;
 - turn Adapter into an MCP runtime or workflow runtime;
 - make Adapter store approval state;
-- turn disabled approve/reject stubs into real proxies.
+- add generic proposal approval proxying.
 
 ## Next Changes
 

@@ -16,7 +16,7 @@ making Adapter a page renderer or generic write executor.
 
 The Toolkit owns pattern registry, variable validation, class whitelisting, and
 Gutenberg block rendering. Adapter only forwards the read-only plan to Core and
-executes allowlisted write actions after Core approval and commit-preflight.
+executes supported write actions after Core approval and commit-preflight.
 
 ## Supported Input
 

@@ -19,9 +19,8 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-op
 ```
 
 The status output includes derived `boundary` and `proposal_execution` fields.
-In a healthy Adapter connection, `approval_proxy_enabled=false`,
-`core_proxy_execute=false`, and `commit_execution=false` are expected boundary
-controls, not an execution-disabled signal. To decide whether a specific
+In a healthy Adapter connection, `core_proxy_execute=false` and `commit_execution=false` indicate that Core keeps
+final execution authority separate from Adapter diagnostics. To decide whether a specific
 proposal can execute, read `GET /proposals/{proposal_id}` and then use the
 Adapter approve-and-execute or execute routes after Core approval and
 commit-preflight.
