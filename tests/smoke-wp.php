@@ -174,6 +174,35 @@ function maa_adapter_smoke_rest_result( string $method, string $route, array $pa
 	);
 }
 
+/**
+ * Asserts the current machine-readable Adapter contract snapshot.
+ *
+ * @param array<string,mixed> $payload REST payload.
+ * @param string              $label Assertion label.
+ * @return void
+ */
+function maa_adapter_smoke_assert_contract_snapshot( array $payload, string $label ): void {
+	$expected = array(
+		'schema_version'                       => 'npcink_openclaw_adapter_contract.v1',
+		'adapter_contract_version'             => '1',
+		'client_policy_version'                => '1',
+		'execution_profile_registry_version'   => '1',
+		'supported_plan_abilities_version'     => '1',
+		'execution_profile_registry_hash'      => 'sha256:cbf4526e77729afbf29143687d0ccbacac61f3817595120130c9042d0695ea87',
+		'supported_execute_ability_ids_hash'   => 'sha256:c09978a7d53804457b58a1d5233ea18bc1d06eb8a1485da74ae35ccd32ea4ac6',
+		'supported_plan_ability_ids_hash'      => 'sha256:ae1d26d8fff0e6c80ef063962450efef743fc213d581577c8cad32314517de4d',
+		'max_execution_actions'                => 200,
+		'core_proxy_execute'                   => false,
+		'commit_execution'                     => false,
+	);
+	$contract = is_array( $payload['contract'] ?? null ) ? $payload['contract'] : array();
+
+	maa_adapter_smoke_assert( array_keys( $expected ) === array_keys( $contract ), $label . ' contract snapshot exposes only expected keys' );
+	foreach ( $expected as $key => $value ) {
+		maa_adapter_smoke_assert( $value === ( $contract[ $key ] ?? null ), $label . ' contract snapshot matches ' . $key );
+	}
+}
+
 if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payload' ) ) {
 	/**
 	 * Local smoke double for the Cloud Addon proposal payload builder.
@@ -1273,6 +1302,7 @@ maa_adapter_smoke_assert( 'npcink_openclaw_adapter_contract.v1' === (string) ( $
 maa_adapter_smoke_assert( '1' === (string) ( $health['contract']['adapter_contract_version'] ?? '' ), 'adapter health exposes adapter contract version' );
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $health['contract']['execution_profile_registry_hash'] ?? '' ), 'sha256:' ), 'adapter health exposes execution profile registry hash' );
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $health['contract']['supported_plan_ability_ids_hash'] ?? '' ), 'sha256:' ), 'adapter health exposes supported plan ability hash' );
+maa_adapter_smoke_assert_contract_snapshot( $health, 'adapter health' );
 maa_adapter_smoke_assert( in_array( 'profile_path', (array) ( $health['client_policy']['forbidden_outputs'] ?? array() ), true ), 'adapter health policy forbids profile path output' );
 maa_adapter_smoke_assert( in_array( 'key_id', (array) ( $health['client_policy']['forbidden_outputs'] ?? array() ), true ), 'adapter health policy forbids key id output' );
 maa_adapter_smoke_assert( in_array( 'database_direct', (array) ( $health['client_policy']['forbidden_local_access'] ?? array() ), true ), 'adapter health policy forbids direct database access' );
@@ -1355,6 +1385,8 @@ $manifest = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/connecti
 maa_adapter_smoke_assert( 'npcink_openclaw_adapter_client_policy.v1' === (string) ( $manifest['client_policy']['schema_version'] ?? '' ), 'adapter connection manifest exposes machine-readable client policy' );
 maa_adapter_smoke_assert( 'npcink_openclaw_adapter_contract.v1' === (string) ( $manifest['contract']['schema_version'] ?? '' ), 'adapter connection manifest exposes contract metadata' );
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $manifest['contract']['supported_execute_ability_ids_hash'] ?? '' ), 'sha256:' ), 'adapter connection manifest exposes execution ability hash' );
+maa_adapter_smoke_assert_contract_snapshot( $manifest, 'adapter connection manifest' );
+maa_adapter_smoke_assert( $health['contract'] === $manifest['contract'], 'adapter connection manifest contract snapshot matches health' );
 maa_adapter_smoke_assert( in_array( 'custom_scripts_for_wordpress_data', (array) ( $manifest['client_policy']['forbidden_local_access'] ?? array() ), true ), 'adapter manifest policy forbids custom data scripts' );
 maa_adapter_smoke_assert( true === (bool) ( $manifest['client_policy']['allowed_transport']['adapter_relative_routes_only'] ?? false ), 'adapter manifest policy requires adapter-relative routes' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
@@ -1382,6 +1414,8 @@ maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-block-theme-
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-pattern-page-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes pattern page plan supported profiles' );
 maa_adapter_smoke_assert( 'npcink_openclaw_adapter_contract.v1' === (string) ( $help['contract']['schema_version'] ?? '' ), 'adapter help exposes contract metadata' );
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $help['contract']['execution_profile_registry_hash'] ?? '' ), 'sha256:' ), 'adapter help exposes execution profile registry hash' );
+maa_adapter_smoke_assert_contract_snapshot( $help, 'adapter help' );
+maa_adapter_smoke_assert( $health['contract'] === $help['contract'], 'adapter help contract snapshot matches health' );
 maa_adapter_smoke_assert( 'npcink-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan' === (string) ( $help['openclaw_recipes']['media_adoption_enhancement_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes media adoption enhancement recipe entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
@@ -3460,6 +3494,85 @@ $bad_batch_result = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-ada
 maa_adapter_smoke_assert( 403 === (int) $bad_batch_result['status'], 'adapter batch approve-and-execute rejects non-supported write_action' );
 maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $bad_batch_post_id ), 'adapter bad batch does not execute allowed action before failing closed' );
 maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $bad_batch_second_post_id ), 'adapter bad batch does not execute non-supported action' );
+
+$core_proxy_batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $core_proxy_batch_post_id;
+$core_proxy_batch_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan',
+		'title'      => 'Adapter core proxy batch reject smoke',
+		'summary'    => 'Adapter must fail closed when write_actions requests Core proxy execution.',
+		'input'      => array(
+			'write_actions' => array(
+				array(
+					'action_id'          => 'core-proxy-trash-post',
+					'target_ability_id'  => 'npcink-abilities-toolkit/trash-post',
+					'input'              => array(
+						'post_id' => $core_proxy_batch_post_id,
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval'  => true,
+					'core_proxy_execute' => true,
+					'commit_execution'   => false,
+					'proposal_ready'     => true,
+				),
+			),
+		),
+		'preview'    => array(
+			'action'           => 'core_proxy_batch_reject',
+			'proposal_ready'   => true,
+			'commit_execution' => false,
+		),
+	)
+);
+$core_proxy_batch_proposal_id = (string) ( $core_proxy_batch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $core_proxy_batch_proposal_id;
+$core_proxy_batch_result = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $core_proxy_batch_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $core_proxy_batch_result['status'], 'adapter batch approve-and-execute rejects core_proxy_execute write_action' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_write_action_core_proxy_execute_unsupported' === (string) ( $core_proxy_batch_result['data']['code'] ?? '' ), 'adapter core_proxy_execute rejection uses stable error code' );
+maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $core_proxy_batch_post_id ), 'adapter core_proxy_execute batch does not execute allowed action' );
+
+$commit_execution_batch_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $commit_execution_batch_post_id;
+$commit_execution_batch_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/build-nonproduction-content-cleanup-plan',
+		'title'      => 'Adapter commit execution batch reject smoke',
+		'summary'    => 'Adapter must fail closed when write_actions requests commit execution before Adapter execution.',
+		'input'      => array(
+			'write_actions' => array(
+				array(
+					'action_id'         => 'commit-execution-trash-post',
+					'target_ability_id' => 'npcink-abilities-toolkit/trash-post',
+					'input'             => array(
+						'post_id' => $commit_execution_batch_post_id,
+						'dry_run' => true,
+						'commit'  => false,
+					),
+					'requires_approval' => true,
+					'commit_execution'  => true,
+					'proposal_ready'    => true,
+				),
+			),
+		),
+		'preview'    => array(
+			'action'           => 'commit_execution_batch_reject',
+			'proposal_ready'   => true,
+			'commit_execution' => false,
+		),
+	)
+);
+$commit_execution_batch_proposal_id = (string) ( $commit_execution_batch_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $commit_execution_batch_proposal_id;
+$commit_execution_batch_result = maa_adapter_smoke_rest_result( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $commit_execution_batch_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( 409 === (int) $commit_execution_batch_result['status'], 'adapter batch approve-and-execute rejects commit_execution write_action' );
+maa_adapter_smoke_assert( 'npcink_openclaw_adapter_write_action_commit_execution_unsupported' === (string) ( $commit_execution_batch_result['data']['code'] ?? '' ), 'adapter commit_execution rejection uses stable error code' );
+maa_adapter_smoke_assert( 'publish' === (string) get_post_status( $commit_execution_batch_post_id ), 'adapter commit_execution batch does not execute allowed action' );
 
 $approved_skip_post_id = maa_adapter_smoke_create_trash_post_fixture();
 $maa_adapter_smoke_cleanup_post_ids[] = $approved_skip_post_id;

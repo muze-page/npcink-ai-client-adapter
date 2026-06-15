@@ -6195,6 +6195,18 @@ final class Controller {
 					);
 				}
 
+				if ( array_key_exists( 'core_proxy_execute', $raw_action ) && false !== (bool) $raw_action['core_proxy_execute'] ) {
+					return new WP_Error(
+						'npcink_openclaw_adapter_write_action_core_proxy_execute_unsupported',
+						__( 'Write actions must keep core_proxy_execute=false before Adapter execution.', 'npcink-ai-client-adapter' ),
+						array(
+							'status'       => 409,
+							'proposal_id'  => $proposal_id,
+							'action_index' => $index,
+						)
+					);
+				}
+
 					if ( array_key_exists( 'commit_execution', $raw_action ) && false !== (bool) $raw_action['commit_execution'] ) {
 						return new WP_Error(
 							'npcink_openclaw_adapter_write_action_commit_execution_unsupported',
