@@ -5,7 +5,7 @@ Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.0
 Requires Plugins: npcink-abilities-toolkit
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,6 +41,12 @@ Adapter provides an explicit `approve-and-execute` user action for supported exe
 Adapter executes supported execution profiles after Core approval and commit-preflight. Current profiles include draft, post update, taxonomy, media metadata/upload/featured-image, media derivative, comment, and bounded destructive operations documented in the OpenClaw batch execution policy.
 
 == Changelog ==
+
+= 0.2.1 =
+
+* Add contract snapshot smoke coverage across health, help, and connection manifest responses.
+* Reject batch write actions that request `core_proxy_execute=true` before Adapter execution.
+* Expand negative smoke coverage for `core_proxy_execute` and `commit_execution` batch fail-closed behavior.
 
 = 0.2.0 =
 
