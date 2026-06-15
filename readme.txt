@@ -5,7 +5,7 @@ Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.0
 Requires Plugins: npcink-abilities-toolkit
-Stable tag: 0.1.1
+Stable tag: 0.2.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -41,6 +41,12 @@ Adapter provides an explicit `approve-and-execute` user action for supported exe
 Adapter executes supported execution profiles after Core approval and commit-preflight. Current profiles include draft, post update, taxonomy, media metadata/upload/featured-image, media derivative, comment, and bounded destructive operations documented in the OpenClaw batch execution policy.
 
 == Changelog ==
+
+= 0.2.0 =
+
+* Add machine-readable Adapter contract metadata and stable contract hashes on health, help, and manifest responses.
+* Add the local AI client acceptance command for non-destructive Adapter/Core boundary checks.
+* Align block theme visual acceptance, batch review feedback, and release package smoke documentation with the governed execution profile boundary.
 
 = 0.1.1 =
 
