@@ -10,6 +10,7 @@
     "lint:php": "find . -name '*.php' -not -path './.git/*' -not -path './build/*' -print0 | xargs -0 -n1 php -l",
     "test": "php tests/run.php",
     "smoke:wp": "bash tests/smoke-wp.sh",
+    "accept:local-ai-client": "bash tests/local-ai-client-acceptance.sh",
     "accept:block-theme-openclaw": "bash tests/block-theme-openclaw-acceptance.sh",
     "visual:wp": "bash tests/visual-acceptance.sh",
     "eval:lab": "sh scripts/eval-lab.sh",

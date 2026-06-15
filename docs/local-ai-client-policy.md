@@ -49,6 +49,7 @@ before selecting routes. The current schema is:
 ```json
 {
   "schema_version": "npcink_openclaw_adapter_client_policy.v1",
+  "policy_version": "1",
   "client_posture": "adapter_only_fail_closed",
   "forbidden_outputs": [],
   "forbidden_local_access": [],
@@ -58,6 +59,15 @@ before selecting routes. The current schema is:
   "recommended_cli": {}
 }
 ```
+
+`GET /connection/manifest`, `GET /health`, and `GET /help` also expose a
+separate `contract` object. Clients may cache or compare
+`adapter_contract_version`, `execution_profile_registry_version`,
+`supported_plan_abilities_version`, `execution_profile_registry_hash`,
+`supported_execute_ability_ids_hash`, and `supported_plan_ability_ids_hash` to
+detect whether the Adapter contract matches an acceptance-tested build. These
+fields are informational compatibility metadata; they do not authorize reads or
+writes.
 
 Required client behavior:
 

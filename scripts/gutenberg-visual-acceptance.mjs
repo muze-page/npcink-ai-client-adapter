@@ -35,6 +35,16 @@ function pass(message, details = {}) {
   return { ok: true, message, details };
 }
 
+function isBlockThemeFixture(fixture) {
+  return fixture.fixture_type === 'block_theme_template' || fixture.fixture_type === 'block_theme_homepage';
+}
+
+function requiredBlocks(fixture) {
+  return Array.isArray(fixture.required_blocks)
+    ? fixture.required_blocks.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+}
+
 async function pageSignals(page) {
   return page.evaluate(() => {
     const viewportWidth = document.documentElement.clientWidth;
@@ -76,6 +86,7 @@ async function pageSignals(page) {
       return {
         tag: element.tagName.toLowerCase(),
         text: (element.textContent || '').replace(/\s+/g, ' ').trim(),
+        href: element instanceof HTMLAnchorElement ? element.href : '',
         visible: visible(element),
         left: rect.left,
         right: rect.right,
@@ -99,6 +110,44 @@ async function pageSignals(page) {
       }
     });
 
+    const main = document.querySelector('main');
+    const mainHeadings = main
+      ? Array.from(main.querySelectorAll('h1,h2,h3,h4,h5,h6')).filter(visible).map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName.toLowerCase(),
+          text: (element.textContent || '').replace(/\s+/g, ' ').trim(),
+          top: rect.top,
+          left: rect.left,
+          right: rect.right,
+        };
+      })
+      : [];
+    const buttonLinks = Array.from(document.querySelectorAll('main .wp-block-button__link, main .wp-block-buttons a')).filter(visible).map((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        text: (element.textContent || '').replace(/\s+/g, ' ').trim(),
+        href: element instanceof HTMLAnchorElement ? element.href : '',
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+      };
+    });
+    const blockVisible = (selector) => Array.from(document.querySelectorAll(selector)).some(visible);
+    const frontPageTemplateSignals = {
+      mainExists: main !== null && visible(main),
+      mainHeadingCount: mainHeadings.length,
+      mainH1Count: mainHeadings.filter((heading) => heading.tag === 'h1').length,
+      mainHeadingTexts: mainHeadings.map((heading) => heading.text).filter(Boolean),
+      firstMainHeadingTop: mainHeadings.length > 0 ? mainHeadings[0].top : null,
+      buttonLinks,
+      latestPostsVisible: blockVisible('main .wp-block-latest-posts, main .wp-block-latest-posts__list'),
+      categoriesVisible: blockVisible('main .wp-block-categories, main .wp-block-categories-list, main ul.wp-block-categories'),
+      postContentVisible: blockVisible('main .wp-block-post-content'),
+      headerVisible: blockVisible('header, .wp-block-template-part:first-of-type'),
+      footerVisible: blockVisible('footer, .wp-block-template-part:last-of-type'),
+    };
+
     return {
       title: document.title,
       isNotFound:
@@ -115,12 +164,15 @@ async function pageSignals(page) {
       controls,
       paddedSections,
       backgroundColorCount: backgrounds.size,
+      blockThemeTemplate: frontPageTemplateSignals,
     };
   });
 }
 
 function evaluateFixtureViewport(fixture, viewport, signals) {
   const checks = [];
+  const blockThemeFixture = isBlockThemeFixture(fixture);
+  const requestedRequiredBlocks = requiredBlocks(fixture);
   checks.push(signals.isNotFound ? fail('front end opened a not-found page instead of the fixture', { title: signals.title, front_end_url: fixture.front_end_url }) : pass('front end opened the fixture page'));
   checks.push(signals.horizontalOverflow ? fail('front end has horizontal overflow', { scrollWidth: signals.scrollWidth, viewportWidth: signals.viewportWidth }) : pass('front end has no horizontal overflow'));
 
@@ -131,13 +183,19 @@ function evaluateFixtureViewport(fixture, viewport, signals) {
   checks.push(emptyHeadings.length === 0 ? pass('visible headings are non-empty') : fail('visible headings include empty text', { emptyHeadings }));
 
   const visibleImages = signals.images.filter((image) => image.visible);
-  checks.push(visibleImages.length > 0 ? pass('visible images exist', { count: visibleImages.length }) : fail('no visible images found'));
+  const requireImages = fixture.require_images !== false && !blockThemeFixture;
+  checks.push(!requireImages || visibleImages.length > 0 ? pass('visible images exist or are not required', { count: visibleImages.length, required: requireImages }) : fail('no visible images found'));
 
-  const brokenImages = visibleImages.filter((image) => !image.src || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0);
-  checks.push(brokenImages.length === 0 ? pass('visible images loaded') : fail('visible images include broken sources', { brokenImages }));
+  const validateImages = fixture.validate_images !== false;
+  if (validateImages) {
+    const brokenImages = visibleImages.filter((image) => !image.src || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0);
+    checks.push(brokenImages.length === 0 ? pass('visible images loaded') : fail('visible images include broken sources', { brokenImages }));
 
-  const imagesWithoutAlt = visibleImages.filter((image) => image.alt.trim() === '');
-  checks.push(imagesWithoutAlt.length === 0 ? pass('visible images have alt text') : fail('visible images include missing alt text', { imagesWithoutAlt }));
+    const imagesWithoutAlt = visibleImages.filter((image) => image.alt.trim() === '');
+    checks.push(imagesWithoutAlt.length === 0 ? pass('visible images have alt text') : fail('visible images include missing alt text', { imagesWithoutAlt }));
+  } else {
+    checks.push(pass('visible image completeness checks are disabled', { count: visibleImages.length }));
+  }
 
   const controls = signals.controls.filter((control) => control.text.length > 0);
   checks.push(controls.length > 0 ? pass('visible CTA/control text exists', { count: controls.length }) : fail('no visible CTA/control text found'));
@@ -145,8 +203,37 @@ function evaluateFixtureViewport(fixture, viewport, signals) {
   const overflowingControls = controls.filter((control) => control.left < -1 || control.right > signals.viewportWidth + 1);
   checks.push(overflowingControls.length === 0 ? pass('visible controls stay within viewport') : fail('visible controls overflow viewport', { overflowingControls }));
 
-  const requiredPaddedSections = fixture.fixture_type === 'pattern_page_plan' ? 4 : 2;
+  const requiredPaddedSections = fixture.minimum_padded_sections !== undefined
+    ? Number(fixture.minimum_padded_sections)
+    : (blockThemeFixture ? 1 : (fixture.fixture_type === 'pattern_page_plan' ? 4 : 2));
   checks.push(signals.paddedSections >= requiredPaddedSections ? pass('key sections have visible spacing', { paddedSections: signals.paddedSections }) : fail('too few visibly padded sections', { paddedSections: signals.paddedSections, requiredPaddedSections }));
+
+  if (blockThemeFixture) {
+    const templateSignals = signals.blockThemeTemplate || {};
+    const firstHeadingTop = Number(templateSignals.firstMainHeadingTop);
+    const buttonLinks = Array.isArray(templateSignals.buttonLinks) ? templateSignals.buttonLinks : [];
+    const validButtonLinks = buttonLinks.filter((link) => {
+      const href = String(link.href || '').trim();
+      return link.text && href && href !== '#' && !href.toLowerCase().startsWith('javascript:');
+    });
+
+    checks.push(templateSignals.mainExists ? pass('block theme template renders a visible main area') : fail('block theme template has no visible main area'));
+    checks.push((templateSignals.mainH1Count || 0) > 0 ? pass('block theme template renders a main H1', { count: templateSignals.mainH1Count }) : fail('block theme template has no visible main H1'));
+    checks.push(Number.isFinite(firstHeadingTop) && firstHeadingTop < Number(viewport.height) * 0.85 ? pass('block theme main heading appears in the first viewport', { firstMainHeadingTop: firstHeadingTop }) : fail('block theme main heading appears too low or is missing', { firstMainHeadingTop: templateSignals.firstMainHeadingTop, viewportHeight: viewport.height }));
+
+    if (requestedRequiredBlocks.includes('cta')) {
+      checks.push(validButtonLinks.length > 0 ? pass('block theme template renders a usable CTA button', { count: validButtonLinks.length }) : fail('block theme template is missing a usable CTA button'));
+    }
+    if (requestedRequiredBlocks.includes('latest_posts')) {
+      checks.push(templateSignals.latestPostsVisible ? pass('block theme template renders latest posts') : fail('block theme template is missing latest posts'));
+    }
+    if (requestedRequiredBlocks.includes('categories') || requestedRequiredBlocks.includes('category_links')) {
+      checks.push(templateSignals.categoriesVisible ? pass('block theme template renders category links') : fail('block theme template is missing category links'));
+    }
+    if (requestedRequiredBlocks.includes('post_content')) {
+      checks.push(templateSignals.postContentVisible ? pass('block theme template renders post content') : fail('block theme template is missing post content'));
+    }
+  }
 
   const warnings = [];
   if (signals.backgroundColorCount < 2) {
@@ -167,6 +254,7 @@ function evaluateFixtureViewport(fixture, viewport, signals) {
     ok: checks.every((check) => check.ok),
     fixture_type: fixture.fixture_type,
     post_id: fixture.post_id,
+    template_slug: fixture.template_slug,
     viewport,
     checks,
     warnings,
@@ -179,6 +267,7 @@ function evaluateFixtureViewport(fixture, viewport, signals) {
       isNotFound: signals.isNotFound,
       scrollWidth: signals.scrollWidth,
       viewportWidth: signals.viewportWidth,
+      blockThemeTemplate: signals.blockThemeTemplate,
     },
   };
 }
@@ -259,6 +348,7 @@ try {
       ok: editorResult.ok,
       fixture_type: fixture.fixture_type,
       post_id: fixture.post_id,
+      template_slug: fixture.template_slug,
       editor: true,
       block_editor_url: fixture.block_editor_url,
       ...editorResult,
@@ -284,15 +374,16 @@ const reportPath = path.join(outputDir, 'report.json');
 fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
 for (const result of results) {
+  const fixtureIdentifier = result.post_id || result.template_slug || 'fixture';
   if (result.editor && result.skipped) {
-    console.log(`[skip] editor ${result.fixture_type}#${result.post_id}: ${result.reason}`);
+    console.log(`[skip] editor ${result.fixture_type}#${fixtureIdentifier}: ${result.reason}`);
     continue;
   }
   const target = result.editor ? 'editor' : `${result.viewport.name} ${result.viewport.width}x${result.viewport.height}`;
-  console.log(`[${result.ok ? 'ok' : 'fail'}] ${result.fixture_type}#${result.post_id} ${target}`);
+  console.log(`[${result.ok ? 'ok' : 'fail'}] ${result.fixture_type}#${fixtureIdentifier} ${target}`);
   if (Array.isArray(result.warnings)) {
     for (const warning of result.warnings) {
-      console.log(`[warn] ${result.fixture_type}#${result.post_id} ${target}: ${warning.code}`);
+      console.log(`[warn] ${result.fixture_type}#${fixtureIdentifier} ${target}: ${warning.code}`);
     }
   }
 }

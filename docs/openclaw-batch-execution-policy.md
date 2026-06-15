@@ -143,6 +143,7 @@ Batch execution responses include:
 - `execution_mode=batch_write_actions`
 - `executed_count`
 - `failed_count`
+- `batch_review_feedback` when Core supplied `preview.batch_review_summary`
 - `results[]`
 - per-action `action_id`
 - per-action `target_ability_id`
@@ -153,6 +154,13 @@ Batch execution responses include:
 Single-post execution keeps the existing response fields and additionally
 returns `execution_mode=single_post`, `post_ids`, `executed_count`,
 `failed_count`, and `results[]`.
+
+Adapter also exposes `batch_review_feedback` on successful
+`POST /proposals/from-plan` and `POST /proposals/{proposal_id}/commit-preflight`
+responses when Core provides the batch review summary. The object is display
+and recovery guidance only: it can show `operator_next_action`,
+`blocked_count`, `needs_input_count`, `retryable`, and `target_ability_ids`,
+but it is not a queue record, retry lease, scheduler, or write authorization.
 
 ## Non-Goals
 

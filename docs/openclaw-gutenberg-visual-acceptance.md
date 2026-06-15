@@ -12,6 +12,8 @@ Applies to:
 
 - `openclaw_recipes.pattern_page_plan`
 - `openclaw_recipes.article_block_plan`
+- `openclaw_recipes.block_theme_site_plan` when the fixture represents a
+  rendered Site Editor template such as `front-page`, `single`, or `page`
 
 Adapter exposes the acceptance contract from `GET /help`, forwards the plan to
 Core, and executes only approved write actions. Toolkit still owns the rendered
@@ -78,6 +80,37 @@ MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT=/tmp/openclaw-gutenberg-visual-acceptance.json
 composer visual:wp
 ```
 
+For block theme template layout acceptance, an operator or OpenClaw harness can
+provide a manual manifest instead of smoke-generated post fixtures:
+
+```json
+{
+  "viewports": [
+    { "name": "desktop", "width": 1440, "height": 1000 },
+    { "name": "tablet", "width": 768, "height": 1024 },
+    { "name": "mobile", "width": 390, "height": 844 }
+  ],
+  "fixtures": [
+    {
+      "fixture_type": "block_theme_template",
+      "template_slug": "front-page",
+      "front_end_url": "https://magick-ai.local/",
+      "required_blocks": ["cta", "latest_posts", "categories"],
+      "require_images": false,
+      "validate_images": false
+    }
+  ]
+}
+```
+
+Run it with:
+
+```bash
+MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1 \
+MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT=/tmp/openclaw-block-theme-front-page.json \
+composer visual:wp
+```
+
 Set `WP_ADMIN_USER` and `WP_ADMIN_PASSWORD` only in local development when the
 runner should also open `block_editor_url` and check for invalid block recovery
 prompts. Without those variables, editor checks are skipped and front-end checks
@@ -107,6 +140,18 @@ For each retained fixture, verify:
 - mobile layout wraps or stacks without clipping;
 - images load from reviewed existing media URLs;
 - CTA buttons and long headings do not overflow on mobile.
+
+For `fixture_type=block_theme_template`, the runner also checks that:
+
+- the rendered template has a visible `main` area;
+- a main H1 is visible and appears within the first viewport;
+- required CTA buttons have non-empty text and usable links;
+- required latest-posts and category-links modules are visible;
+- image existence checks may be disabled with `require_images=false`, because a
+  homepage template can be valid without media;
+- visible image loading and alt checks may be disabled with
+  `validate_images=false` for template-only layout acceptance. Keep the default
+  image validation on when validating the full rendered page experience.
 
 ## Design Quality Checks
 

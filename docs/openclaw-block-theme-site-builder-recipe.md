@@ -36,7 +36,7 @@ supported write actions after Core approval and commit-preflight.
 
 ## Supported MVP
 
-The first supported intent is:
+The supported intents are:
 
 `intent=add_breadcrumbs`
 
@@ -48,6 +48,19 @@ The first supported intent is:
   "show_current_item": true,
   "show_home_item": true,
   "show_on_home_page": false
+}
+```
+
+`intent=customize_template_layout`
+
+```json
+{
+  "intent": "customize_template_layout",
+  "target_templates": ["front-page"],
+  "layout_profile": "homepage_landing",
+  "include_latest_posts": true,
+  "include_category_links": true,
+  "include_cta": true
 }
 ```
 
@@ -89,6 +102,8 @@ Supported natural-language mappings:
 | --- | --- |
 | "Add breadcrumbs to blog posts." | `{"intent":"add_breadcrumbs","target_templates":["single"],"separator":"/","show_current_item":true,"show_home_item":true,"show_on_home_page":false}` |
 | "Add breadcrumbs to posts and pages." | `{"intent":"add_breadcrumbs","target_templates":["single","page"],"separator":"/","show_current_item":true,"show_home_item":true,"show_on_home_page":false}` |
+| "Make the homepage a simple landing page with latest posts, categories, and a button." | `{"intent":"customize_template_layout","target_templates":["front-page"],"layout_profile":"homepage_landing","include_latest_posts":true,"include_category_links":true,"include_cta":true}` |
+| "Make article pages use a standard article layout." | `{"intent":"customize_template_layout","target_templates":["single"],"layout_profile":"article_standard"}` |
 
 Failure behavior:
 
@@ -145,7 +160,7 @@ Failure behavior:
 - `file_template_write_mode=create_wp_template_override`
 - `allowed_intents=["add_breadcrumbs","customize_template_layout"]`
 - `allowed_layout_profiles=["article_standard","page_standard","homepage_landing"]`
-- `allowed_template_targets=["single","page","archive","index"]`
+- `allowed_template_targets=["single","page","front-page","home","archive","index"]`
 - `global_styles_write_allowed=false`
 - `navigation_write_allowed=false`
 - `generic_write_executor=false`
@@ -168,13 +183,22 @@ composer accept:block-theme-openclaw
 
 The command writes
 `build/block-theme-openclaw-acceptance/report.json`. It exercises the
-Adapter-only startup checks, natural-language breadcrumb routing, block-theme
-context reads, template block readbacks, contract inspection, a controlled
-broken breadcrumb fixture, and future-facing unsupported layout prompts. The
-default run reports unsupported future capability gaps without failing the
-current MVP. Set
-`MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_STRICT_FUTURE=1` when those gaps
-should fail the run.
+Adapter-only startup checks, natural-language breadcrumb routing,
+natural-language template layout routing, block-theme context reads, template
+block readbacks, contract inspection, and a controlled broken breadcrumb
+fixture. It does not execute writes.
+
+For frontend render acceptance after a real approved template execution, provide
+a manual `block_theme_template` visual manifest and run:
+
+```bash
+MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1 \
+MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT=/tmp/openclaw-block-theme-front-page.json \
+composer visual:wp
+```
+
+The shared manifest shape and browser checks live in
+[`openclaw-gutenberg-visual-acceptance.md`](openclaw-gutenberg-visual-acceptance.md).
 
 After execution, verify:
 

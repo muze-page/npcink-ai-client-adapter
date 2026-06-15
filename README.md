@@ -317,7 +317,13 @@ replacement URLs or replace files outside Core-approved execution.
 Adapter-owned derived fields: `adapter_status`, `execution_status`,
 `effective_status`, `executable`, `non_executable_reason`, `preflight_status`,
 `review_summary`, and, for media optimization batches,
-`media_optimization_readiness`. `status` remains the raw Core governance
+`media_optimization_readiness`. Adapter also forwards Core batch review
+summaries as `batch_review_feedback` on `/proposals/from-plan`,
+`/proposals/{proposal_id}/commit-preflight`, and final execute responses when
+Core provides `preview.batch_review_summary`. This gives clients
+`operator_next_action`, blocked counts, target ability ids, and retryability
+without creating an Adapter queue, scheduler, approval store, or unattended
+execution runtime. `status` remains the raw Core governance
 status, while `effective_status` folds Adapter execution evidence into values
 such as `executed` without changing Core's approval truth. The same media
 readiness object is available through
@@ -1035,6 +1041,19 @@ Run the LocalWP smoke test:
 ```bash
 composer smoke:wp
 ```
+
+Run the non-destructive local AI client acceptance pass for an existing signed
+CLI profile:
+
+```bash
+MAA_ADAPTER_ACCEPTANCE_PROFILE=local composer accept:local-ai-client
+```
+
+Set `MAA_ADAPTER_ACCEPTANCE_SENSITIVE_READ_*`,
+`MAA_ADAPTER_ACCEPTANCE_PREFLIGHT_PROPOSAL_ID`, or
+`MAA_ADAPTER_ACCEPTANCE_COMMIT_PROPOSAL_ID` only for explicit sensitive-read,
+preflight, or final-write acceptance. See
+[`docs/local-ai-client-acceptance.md`](docs/local-ai-client-acceptance.md).
 
 Run the retained-fixture browser visual acceptance pass for Gutenberg page and
 article fixtures:

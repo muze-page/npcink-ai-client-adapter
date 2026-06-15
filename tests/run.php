@@ -115,6 +115,17 @@ foreach (
 		'write_execution',
 		'client_policy',
 		'npcink_openclaw_adapter_client_policy.v1',
+		'policy_version',
+		'adapter_contract_metadata',
+		'npcink_openclaw_adapter_contract.v1',
+		'adapter_contract_version',
+		'execution_profile_registry_version',
+		'supported_plan_abilities_version',
+		'execution_profile_registry_hash',
+		'supported_execute_ability_ids_hash',
+		'supported_plan_ability_ids_hash',
+		'contract_sha256',
+		'contract_hash_value',
 		'adapter_only_fail_closed',
 		'forbidden_outputs',
 		'forbidden_local_access',
@@ -319,6 +330,15 @@ foreach (
 			'npcink_openclaw_adapter_preflight_item_blocked',
 			'operator_feedback',
 			'error_with_operator_feedback',
+			'batch_review_feedback',
+			'batch_review_feedback_from_proposals',
+			'batch_review_feedback_from_preflight',
+			'batch_review_feedback_from_summary',
+			'npcink_openclaw_adapter_batch_review_feedback.v1',
+			'core-batch-review-summary-v1',
+			'operator_next_action',
+			'resolve_blocked_items_before_commit_preflight',
+			'final_execution_owner',
 			'plan_handoff_operator_feedback',
 			'proposal_status_operator_feedback',
 			'preflight_operator_feedback',
@@ -573,6 +593,8 @@ foreach (
 			'template_similarity_score_max',
 			'operator_browser_check',
 			'front_end_has_no_horizontal_overflow',
+			'block_theme_template_renders_main_h1',
+			'block_theme_latest_posts_visible_when_required',
 			'block_editor_has_no_invalid_block_recovery_prompt',
 			'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
 			'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
@@ -1168,6 +1190,8 @@ foreach (
 		'Prompt text',
 		'composer plugin-check:release',
 		'composer package:release',
+		'composer accept:local-ai-client',
+		'docs/local-ai-client-acceptance.md',
 		'Local smoke and HTTP acceptance tests must register every created fixture',
 		'automatic cleanup before assertions can fail',
 		'negative-loop cases must not rely on final write execution',
@@ -1346,6 +1370,9 @@ foreach (
 		'Adapter-Owned Controls',
 		'Customer-Selected Client Boundary',
 		'npcink_openclaw_adapter_client_policy.v1',
+		'policy_version',
+		'adapter_contract_version',
+		'execution_profile_registry_hash',
 		'forbidden_outputs',
 		'forbidden_local_access',
 		'adapter_relative_routes_only=true',
@@ -1363,6 +1390,7 @@ foreach (
 		'"package:release"',
 		'"package:suite"',
 		'"plugin-check:release"',
+		'"accept:local-ai-client": "bash tests/local-ai-client-acceptance.sh"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
 		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
 		'php-8.2.29+0',
@@ -1373,6 +1401,41 @@ foreach (
 	maa_adapter_assert( false !== strpos( $composer, $required ), 'composer.json contains required text: ' . $required );
 }
 maa_adapter_assert( false === strpos( $composer, '@eval:lab' ) && false === strpos( $composer, '@eval:project:quality' ), 'Default Adapter test and release scripts do not require eval-lab.' );
+
+$local_ai_client_acceptance_sh = maa_adapter_read( $root . '/tests/local-ai-client-acceptance.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_ACCEPTANCE_PROFILE',
+		'GET /health',
+		'GET /connection/manifest',
+		'GET /help',
+		'npcink-abilities-toolkit/site-info',
+		'MAA_ADAPTER_ACCEPTANCE_SENSITIVE_READ_REQUEST_ID',
+		'--intent=preflight',
+		'MAA_ADAPTER_ACCEPTANCE_ALLOW_COMMIT',
+		'--intent=commit',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $local_ai_client_acceptance_sh, $required ), 'Local AI client acceptance script contains required text: ' . $required );
+}
+
+$local_ai_client_acceptance_doc = maa_adapter_read( $root . '/docs/local-ai-client-acceptance.md' );
+foreach (
+	array(
+		'Local AI Client Acceptance',
+		'non-destructive',
+		'composer accept:local-ai-client',
+		'MAA_ADAPTER_ACCEPTANCE_SENSITIVE_READ_ABILITY',
+		'MAA_ADAPTER_ACCEPTANCE_PREFLIGHT_PROPOSAL_ID',
+		'MAA_ADAPTER_ACCEPTANCE_ALLOW_COMMIT=1',
+		'client_policy',
+		'contract',
+		'unsupported abilities or unapproved proposals fail closed',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $local_ai_client_acceptance_doc, $required ), 'Local AI client acceptance doc contains required text: ' . $required );
+}
+
 $eval_lab_proxy = maa_adapter_read( $root . '/scripts/eval-lab.sh' );
 maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'MAGICK_AI_EVAL_LAB_PATH' ) && false !== strpos( $eval_lab_proxy, 'composer eval:task -- "$@"' ), 'Eval-lab proxy supports override path and task registry dispatch.' );
 maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'composer "$SCRIPT" -- "$@"' ), 'Eval-lab proxy keeps legacy Composer entrypoint compatibility.' );
@@ -1841,6 +1904,8 @@ $block_theme_openclaw_acceptance_sh = maa_adapter_read( $root . '/tests/block-th
 foreach (
 	array(
 		'MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_OUT',
+		'WP_CLI_MYSQL_SOCKET',
+		'mysqli.default_socket=$WP_CLI_MYSQL_SOCKET',
 		'wp-content/plugins/npcink-ai-client-adapter',
 		'wp plugin activate npcink-ai-client-adapter',
 		'eval-file "$ROOT_DIR/tests/block-theme-openclaw-acceptance.php"',
@@ -1927,6 +1992,14 @@ foreach (
 		'MAA_ADAPTER_VISUAL_ACCEPTANCE_BROWSER_CHANNEL',
 		"browserLaunchOptions.channel = 'chrome'",
 		'horizontalOverflow',
+		'block_theme_template',
+		'required_blocks',
+		'require_images',
+		'validate_images',
+		'block theme template renders a visible main area',
+		'block theme template renders a main H1',
+		'block theme template renders latest posts',
+		'block theme template renders category links',
 		'visible images loaded',
 		'visible images have alt text',
 		'visible controls stay within viewport',
@@ -2519,6 +2592,7 @@ foreach (
 		'OpenClaw Gutenberg Visual Acceptance',
 		'openclaw_recipes.pattern_page_plan',
 		'openclaw_recipes.article_block_plan',
+		'openclaw_recipes.block_theme_site_plan',
 		'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
 		'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
 		'composer visual:wp',
@@ -2547,6 +2621,10 @@ foreach (
 		'do not share the exact same section order',
 		'openclaw-gutenberg-design-system.md',
 		'Do not fix visual issues by adding arbitrary CSS',
+		'fixture_type=block_theme_template',
+		'block theme template layout acceptance',
+		'require_images=false',
+		'validate_images=false',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $gutenberg_visual_acceptance, $required ), 'Gutenberg visual acceptance doc contains required text: ' . $required );
@@ -2680,6 +2758,12 @@ foreach (
 			'npcink-abilities-toolkit/upsert-template-blocks',
 			'npcink-abilities-toolkit/update-template-part-blocks',
 			'intent=add_breadcrumbs',
+			'intent=customize_template_layout',
+			'homepage_landing',
+			'allowed_layout_profiles=["article_standard","page_standard","homepage_landing"]',
+			'allowed_template_targets=["single","page","front-page","home","archive","index"]',
+			'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
+			'block_theme_template',
 			'contract_status=pass',
 			'contract_inspection_required_after_execution=true',
 			'global_styles_write_allowed=false',

@@ -46,6 +46,10 @@ final class Controller {
 	const MAX_AI_SMOKE_PROMPT_CHARS   = 200;
 	const MAX_LIGHT_POST_BODY_BYTES   = 4096;
 	const MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES = 10485760;
+	const ADAPTER_CONTRACT_VERSION    = '1';
+	const CLIENT_POLICY_VERSION       = '1';
+	const EXECUTION_PROFILE_REGISTRY_VERSION = '1';
+	const SUPPORTED_PLAN_ABILITIES_VERSION   = '1';
 
 	/**
 	 * Current request log context while an ability is running.
@@ -74,6 +78,30 @@ final class Controller {
 	 */
 	private static function supported_execute_ability_ids(): array {
 		return array_keys( self::execution_profiles() );
+	}
+
+	/**
+	 * Returns machine-readable Adapter contract metadata for clients.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function adapter_contract_metadata(): array {
+		$execute_ability_ids = self::supported_execute_ability_ids();
+		$plan_ability_ids    = Supported_Plan_Abilities::ids();
+
+		return array(
+			'schema_version'                       => 'npcink_openclaw_adapter_contract.v1',
+			'adapter_contract_version'             => self::ADAPTER_CONTRACT_VERSION,
+			'client_policy_version'                => self::CLIENT_POLICY_VERSION,
+			'execution_profile_registry_version'   => self::EXECUTION_PROFILE_REGISTRY_VERSION,
+			'supported_plan_abilities_version'     => self::SUPPORTED_PLAN_ABILITIES_VERSION,
+			'execution_profile_registry_hash'      => $this->contract_sha256( self::execution_profiles() ),
+			'supported_execute_ability_ids_hash'   => $this->contract_sha256( $execute_ability_ids ),
+			'supported_plan_ability_ids_hash'      => $this->contract_sha256( $plan_ability_ids ),
+			'max_execution_actions'                => self::MAX_EXECUTION_ACTIONS,
+			'core_proxy_execute'                   => false,
+			'commit_execution'                     => false,
+		);
 	}
 
 	/**
@@ -1361,6 +1389,7 @@ final class Controller {
 				),
 			),
 			'client_policy'  => $this->client_policy(),
+			'contract'       => $this->adapter_contract_metadata(),
 		);
 
 		$base['integrity'] = array(
@@ -1379,6 +1408,7 @@ final class Controller {
 	private function client_policy(): array {
 		return array(
 			'schema_version' => 'npcink_openclaw_adapter_client_policy.v1',
+			'policy_version' => self::CLIENT_POLICY_VERSION,
 			'policy_owner'   => 'npcink-ai-client-adapter',
 			'client_posture' => 'adapter_only_fail_closed',
 			'forbidden_outputs' => array(
@@ -1477,6 +1507,38 @@ final class Controller {
 		$value = $this->sort_array_keys_recursive( $value );
 		$json  = wp_json_encode( $value, JSON_UNESCAPED_SLASHES );
 		return is_string( $json ) ? $json : '';
+	}
+
+	/**
+	 * Returns a stable sha256 digest for machine-readable contract data.
+	 *
+	 * @param mixed $value Contract value.
+	 * @return string
+	 */
+	private function contract_sha256( $value ): string {
+		return 'sha256:' . hash( 'sha256', $this->canonical_json( $this->contract_hash_value( $value ) ) );
+	}
+
+	/**
+	 * Removes human-translated strings from contract hash input.
+	 *
+	 * @param mixed $value Contract value.
+	 * @return mixed
+	 */
+	private function contract_hash_value( $value ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		$filtered = array();
+		foreach ( $value as $key => $child ) {
+			if ( 'message' === $key ) {
+				continue;
+			}
+			$filtered[ $key ] = $this->contract_hash_value( $child );
+		}
+
+		return $filtered;
 	}
 
 	/**
@@ -1842,6 +1904,7 @@ final class Controller {
 					'commit_execution'       => false,
 					'approval_surface'       => 'npcink_governance_core_admin',
 					'core_app_token_configured' => '' !== $this->core_app_token(),
+				'contract'              => $this->adapter_contract_metadata(),
 				'client_policy'         => $this->client_policy(),
 				'ai_request_log_context_fields' => array(
 					'proposal_id',
@@ -2065,6 +2128,7 @@ final class Controller {
 					),
 					'approval_surface' => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
+				'contract' => $this->adapter_contract_metadata(),
 				'client_policy' => $this->client_policy(),
 				'distribution_mode' => 'adapter_entry_with_separate_governance_and_ability_plugins',
 				'dependencies' => $this->dependency_status()['items'],
@@ -2762,12 +2826,13 @@ final class Controller {
 							'role'         => 'WordPress block theme site planner',
 							'instruction'  => 'Map the user request to the narrow block theme input schema, run inspect-block-theme-surface with the same normalized input, and build a plan only when the inspector recommends build_block_theme_site_plan. For single-template check or post-execution verification, read the target blocks and run inspect-gutenberg-composition-contract before proposing another fix. If the request is outside allowed_intents or allowed_template_targets, return a warning and do not invent write_actions.',
 							'output_shape' => array(
-								'intent'              => 'add_breadcrumbs',
+								'intent'              => 'add_breadcrumbs or customize_template_layout',
 								'target_templates'    => array( 'single' ),
 								'separator'           => '/',
 								'show_current_item'   => true,
 								'show_home_item'      => true,
 								'show_on_home_page'   => false,
+								'layout_profile'      => 'article_standard, page_standard, or homepage_landing when intent=customize_template_layout',
 							),
 							'forbidden_outputs' => array(
 								'raw_template_html',
@@ -2873,8 +2938,9 @@ final class Controller {
 						'proposal_handoff_requires_write_actions' => true,
 							'template_write_owner'   => 'npcink-abilities-toolkit',
 							'file_template_write_mode' => 'create_wp_template_override',
-						'allowed_intents'        => array( 'add_breadcrumbs' ),
-						'allowed_template_targets' => array( 'single', 'page', 'archive', 'index' ),
+						'allowed_intents'        => array( 'add_breadcrumbs', 'customize_template_layout' ),
+						'allowed_layout_profiles' => array( 'article_standard', 'page_standard', 'homepage_landing' ),
+						'allowed_template_targets' => array( 'single', 'page', 'front-page', 'home', 'archive', 'index' ),
 						'global_styles_write_allowed' => false,
 						'navigation_write_allowed' => false,
 						'core_proxy_execute'     => false,
@@ -2882,6 +2948,42 @@ final class Controller {
 						'cloud_control_plane'    => false,
 						'generic_write_executor' => false,
 					),
+					'visual_acceptance'       => array(
+						'mode'                  => 'operator_browser_check',
+						'targets'               => array( 'front_end', 'site_editor' ),
+						'fixture_type'          => 'block_theme_template',
+						'viewports'             => array(
+							array(
+								'name'   => 'desktop',
+								'width'  => 1440,
+								'height' => 1000,
+							),
+							array(
+								'name'   => 'tablet',
+								'width'  => 768,
+								'height' => 1024,
+							),
+							array(
+								'name'   => 'mobile',
+								'width'  => 390,
+								'height' => 844,
+							),
+						),
+						'required_checks'      => array(
+							'front_end_has_no_horizontal_overflow',
+							'block_theme_template_renders_visible_main',
+							'block_theme_template_renders_main_h1',
+							'block_theme_main_heading_appears_in_first_viewport',
+							'block_theme_cta_button_is_usable_when_required',
+							'block_theme_latest_posts_visible_when_required',
+							'block_theme_category_links_visible_when_required',
+							'block_editor_has_no_invalid_block_recovery_prompt',
+						),
+						'smoke_artifact_env'   => 'MAA_ADAPTER_VISUAL_ACCEPTANCE_OUT',
+						'fixture_retention_env' => 'MAA_ADAPTER_KEEP_VISUAL_ACCEPTANCE_FIXTURES',
+						'manual_manifest_supported' => true,
+					),
+					'visual_acceptance_docs'  => 'docs/openclaw-gutenberg-visual-acceptance.md',
 					'docs'                     => 'docs/openclaw-block-theme-site-builder-recipe.md',
 				),
 				'pattern_page_research_brief' => array(
@@ -4984,6 +5086,15 @@ final class Controller {
 		$response = $this->dispatch_upstream( 'POST', '/npcink-governance-core/v1/proposals/from-plan', $params );
 		if ( is_wp_error( $response ) ) {
 			$response = $this->error_with_operator_feedback( $response, $this->plan_handoff_operator_feedback( $response, $plan_ability_id ) );
+		} elseif ( $response instanceof WP_REST_Response ) {
+			$data = $response->get_data();
+			if ( is_array( $data ) ) {
+				$batch_review_feedback = $this->batch_review_feedback_from_proposals( $data );
+				if ( ! empty( $batch_review_feedback ) ) {
+					$data['batch_review_feedback'] = $batch_review_feedback;
+					$response->set_data( $data );
+				}
+			}
 		}
 		$this->emit_operation_event( 'adapter.proposal.plan_ingest', $started, is_wp_error( $response ) ? $response : null, $event_context );
 
@@ -5133,6 +5244,10 @@ final class Controller {
 				$handoff = $this->store_preflight_handoff( $proposal_id, $proposal, $data );
 				$data['adapter_preflight_handoff_cached'] = is_array( $handoff );
 				$data['adapter_execution_route']          = '/wp-json/' . self::NAMESPACE . '/proposals/' . rawurlencode( $proposal_id ) . '/execute';
+				$batch_review_feedback = $this->batch_review_feedback_from_preflight( $data, $proposal );
+				if ( ! empty( $batch_review_feedback ) ) {
+					$data['batch_review_feedback'] = $batch_review_feedback;
+				}
 				$response->set_data( $data );
 			}
 		}
@@ -5363,6 +5478,7 @@ final class Controller {
 				'core_commit_execution' => false,
 				'approval_context'      => $execution['approval_context'],
 				'preflight_source'      => $execution['preflight_source'],
+				'batch_review_feedback' => $execution['batch_review_feedback'],
 				'executed_count'        => $execution['executed_count'],
 				'failed_count'          => $execution['failed_count'],
 				'execution_record'      => $execution['execution_record'],
@@ -6570,6 +6686,7 @@ final class Controller {
 			'approval_context'    => $approval_context,
 			'preflight_source'    => $preflight_source,
 			'preflight'           => $preflight,
+			'batch_review_feedback' => $this->batch_review_feedback_from_preflight( $preflight, $proposal ),
 			'execution_mode'      => $execution_mode,
 			'executed_count'      => count( $results ),
 			'failed_count'        => 0,
@@ -6605,6 +6722,128 @@ final class Controller {
 		$error->add_data( $data );
 
 		return $error;
+	}
+
+	/**
+	 * Builds batch review feedback for a Core from-plan response.
+	 *
+	 * @param array<string,mixed> $data Core response.
+	 * @return array<string,mixed>
+	 */
+	private function batch_review_feedback_from_proposals( array $data ): array {
+		$proposals = is_array( $data['proposals'] ?? null ) ? array_values( $data['proposals'] ) : array();
+		$items     = array();
+
+		foreach ( $proposals as $proposal ) {
+			if ( ! is_array( $proposal ) ) {
+				continue;
+			}
+			$feedback = $this->batch_review_feedback_from_summary( $this->proposal_batch_review_summary( $proposal ), $proposal );
+			if ( ! empty( $feedback ) ) {
+				$items[] = $feedback;
+			}
+		}
+
+		if ( empty( $items ) ) {
+			return array();
+		}
+
+		$blocked_count = 0;
+		$needs_input_count = 0;
+		$retryable = false;
+		$operator_next_action = 'review_and_approve_or_reject';
+		foreach ( $items as $item ) {
+			$blocked_count += absint( $item['blocked_count'] ?? 0 );
+			$needs_input_count += absint( $item['needs_input_count'] ?? 0 );
+			$retryable = $retryable || true === (bool) ( $item['retryable'] ?? false );
+			if ( 'resolve_blocked_items_before_commit_preflight' === (string) ( $item['operator_next_action'] ?? '' ) ) {
+				$operator_next_action = 'resolve_blocked_items_before_commit_preflight';
+			}
+		}
+
+		return array(
+			'schema_version'       => 'npcink_openclaw_adapter_batch_review_feedback.v1',
+			'item_count'           => count( $items ),
+			'blocked_count'        => $blocked_count,
+			'needs_input_count'    => $needs_input_count,
+			'retryable'            => $retryable,
+			'operator_next_action' => $operator_next_action,
+			'core_execution'       => false,
+			'commit_execution'     => false,
+			'items'                => $items,
+		);
+	}
+
+	/**
+	 * Builds batch review feedback from Core commit-preflight data.
+	 *
+	 * @param array<string,mixed> $preflight Core preflight response.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<string,mixed>
+	 */
+	private function batch_review_feedback_from_preflight( array $preflight, array $proposal = array() ): array {
+		$item_preflight = is_array( $preflight['proposal_item_preflight'] ?? null ) ? $preflight['proposal_item_preflight'] : array();
+		$summary        = is_array( $item_preflight['batch_review_summary'] ?? null ) ? $item_preflight['batch_review_summary'] : array();
+		if ( empty( $summary ) ) {
+			$summary = $this->proposal_batch_review_summary( $proposal );
+		}
+
+		return $this->batch_review_feedback_from_summary( $summary, $proposal );
+	}
+
+	/**
+	 * Returns the Core batch review summary from a proposal preview.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<string,mixed>
+	 */
+	private function proposal_batch_review_summary( array $proposal ): array {
+		$preview = is_array( $proposal['preview'] ?? null ) ? $proposal['preview'] : array();
+		return is_array( $preview['batch_review_summary'] ?? null ) ? $preview['batch_review_summary'] : array();
+	}
+
+	/**
+	 * Normalizes Core batch review summary into Adapter-facing feedback.
+	 *
+	 * @param array<string,mixed> $summary Core summary.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<string,mixed>
+	 */
+	private function batch_review_feedback_from_summary( array $summary, array $proposal = array() ): array {
+		if ( empty( $summary ) ) {
+			return array();
+		}
+
+		$target_ability_ids = array_values(
+			array_filter(
+				array_map(
+					static function ( $ability_id ): string {
+						return sanitize_text_field( (string) $ability_id );
+					},
+					(array) ( $summary['target_ability_ids'] ?? array() )
+				)
+			)
+		);
+
+		return array(
+			'schema_version'        => 'npcink_openclaw_adapter_batch_review_feedback.v1',
+			'core_summary_version'  => sanitize_key( (string) ( $summary['summary_version'] ?? 'core-batch-review-summary-v1' ) ),
+			'proposal_id'           => sanitize_text_field( (string) ( $proposal['proposal_id'] ?? '' ) ),
+			'ability_id'            => sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) ),
+			'action_count'          => absint( $summary['action_count'] ?? 0 ),
+			'executable_count'      => absint( $summary['executable_count'] ?? 0 ),
+			'blocked_count'         => absint( $summary['blocked_count'] ?? 0 ),
+			'needs_input_count'     => absint( $summary['needs_input_count'] ?? 0 ),
+			'warning_count'         => absint( $summary['warning_count'] ?? 0 ),
+			'target_ability_ids'    => $target_ability_ids,
+			'proposal_ready'        => true === (bool) ( $summary['proposal_ready'] ?? false ),
+			'retryable'             => true === (bool) ( $summary['retryable'] ?? false ),
+			'operator_next_action'  => sanitize_key( (string) ( $summary['operator_next_action'] ?? '' ) ),
+			'final_execution_owner' => sanitize_key( (string) ( $summary['final_execution_owner'] ?? 'adapter_after_core_preflight' ) ),
+			'core_execution'        => false,
+			'commit_execution'      => false,
+			'blocked_items'         => is_array( $summary['blocked_items'] ?? null ) ? array_values( $summary['blocked_items'] ) : array(),
+		);
 	}
 
 	/**
@@ -6706,6 +6945,7 @@ final class Controller {
 		$item_preflight = is_array( $preflight['proposal_item_preflight'] ?? null ) ? $preflight['proposal_item_preflight'] : array();
 		$blocked        = is_array( $item_preflight['blocked_items'] ?? null ) ? $item_preflight['blocked_items'] : array();
 		$needs_input    = array_values( array_map( 'sanitize_key', (array) ( $item_preflight['needs_input'] ?? array() ) ) );
+		$batch_review_feedback = $this->batch_review_feedback_from_preflight( $preflight, $proposal );
 		$reasons        = $this->operator_reasons_from_blocked_items( $blocked );
 
 		foreach ( $needs_input as $field ) {
@@ -6755,6 +6995,7 @@ final class Controller {
 				'status'                  => sanitize_key( (string) ( $proposal['status'] ?? '' ) ),
 				'core_error_code'         => $core_error_code,
 				'proposal_item_preflight' => $item_preflight,
+				'batch_review_feedback'   => $batch_review_feedback,
 				'commit_execution'        => false,
 			),
 		);
