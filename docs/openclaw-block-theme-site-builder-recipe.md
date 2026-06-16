@@ -200,6 +200,20 @@ composer visual:wp
 The shared manifest shape and browser checks live in
 [`openclaw-gutenberg-visual-acceptance.md`](openclaw-gutenberg-visual-acceptance.md).
 
+For faster local profile iteration before asking OpenClaw to create a real
+proposal, run the local-only article template visual harness:
+
+```bash
+composer dev:article-template-visual
+```
+
+The command builds the current Toolkit `article_standard` candidate through the
+Adapter read path, temporarily applies the generated `single` template blocks to
+the local WordPress site, runs browser visual acceptance, and restores the original template content on exit.
+This is a development shortcut only. It does not create a Core proposal, does
+not approve or execute an OpenClaw write, and must not replace the final governed
+OpenClaw acceptance pass.
+
 After execution, verify:
 
 - changed templates still parse as Gutenberg blocks;

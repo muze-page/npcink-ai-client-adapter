@@ -1423,6 +1423,7 @@ foreach (
 		'"plugin-check:release"',
 		'"accept:local-ai-client": "bash tests/local-ai-client-acceptance.sh"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
+		'"dev:article-template-visual": "bash tests/dev-article-template-visual.sh"',
 		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
 		'php-8.2.29+0',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
@@ -2035,6 +2036,42 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $visual_acceptance_sh, $required ), 'Visual acceptance shell contains required text: ' . $required );
+}
+
+$dev_article_template_visual_sh = maa_adapter_read( $root . '/tests/dev-article-template-visual.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_REPORT_DIR',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_BACKUP',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_KEEP_TEMPLATE',
+		'restore_template',
+		'trap restore_template EXIT',
+		'tests/dev-article-template-visual.php',
+		'composer visual:wp',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
+		'WP_CLI_MYSQL_SOCKET',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_article_template_visual_sh, $required ), 'Dev article template visual shell contains required text: ' . $required );
+}
+
+$dev_article_template_visual_php = maa_adapter_read( $root . '/tests/dev-article-template-visual.php' );
+foreach (
+	array(
+		'local_dev_only',
+		'/npcink-openclaw-adapter/v1/run-read-ability',
+		'npcink-abilities-toolkit/build-block-theme-site-plan',
+		'customize_template_layout',
+		'article_standard',
+		'serialize_blocks',
+		'wp_update_post',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_MODE',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_POST_ID',
+		'minimum_padded_sections',
+		'block_theme_template',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_article_template_visual_php, $required ), 'Dev article template visual PHP contains required text: ' . $required );
 }
 
 $visual_acceptance_cleanup = maa_adapter_read( $root . '/tests/cleanup-visual-acceptance.php' );
@@ -2842,6 +2879,9 @@ foreach (
 			'allowed_layout_profiles=["article_standard","page_standard","homepage_landing"]',
 			'allowed_template_targets=["single","page","front-page","home","archive","index"]',
 			'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
+			'composer dev:article-template-visual',
+			'local-only article template visual harness',
+			'restores the original template content on exit',
 			'block_theme_template',
 			'contract_status=pass',
 			'contract_inspection_required_after_execution=true',
