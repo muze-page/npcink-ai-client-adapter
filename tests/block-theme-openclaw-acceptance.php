@@ -426,6 +426,136 @@ function maa_adapter_btoa_apply_stale_article_template_fixture( int $post_id ): 
 	);
 }
 
+/**
+ * Runs a governed template layout execution scenario with local restore.
+ *
+ * @param array<string,mixed>          $config Scenario config.
+ * @param array<int,array<string,mixed>> $assertions Assertions.
+ * @return array<string,mixed>
+ */
+function maa_adapter_btoa_run_template_layout_execution_scenario( array $config, array &$assertions ): array {
+	$key              = sanitize_key( (string) ( $config['key'] ?? 'template_layout' ) );
+	$prompt           = (string) ( $config['prompt'] ?? '' );
+	$target_slug      = sanitize_key( (string) ( $config['target_slug'] ?? '' ) );
+	$expected_profile = sanitize_key( (string) ( $config['layout_profile'] ?? '' ) );
+	$profile_version  = (string) ( $config['profile_version'] ?? '' );
+	$required_blocks  = is_array( $config['required_blocks'] ?? null ) ? $config['required_blocks'] : array();
+	$required_classes = is_array( $config['required_classes'] ?? null ) ? $config['required_classes'] : array();
+	$required_attrs   = is_array( $config['required_attrs'] ?? null ) ? $config['required_attrs'] : array();
+
+	$report = array(
+		'enabled'          => true,
+		'prompt'           => $prompt,
+		'target_slug'      => $target_slug,
+		'layout_profile'   => $expected_profile,
+		'created_proposal' => false,
+		'executed_write'   => false,
+	);
+
+	$route_response = maa_adapter_btoa_run_read_ability(
+		'npcink-abilities-toolkit/route-content-intent',
+		array( 'prompt' => $prompt ),
+		$assertions
+	);
+	$route = maa_adapter_btoa_route_data( $route_response );
+	$plan_input = is_array( $route['recommended_plan_input'] ?? null ) ? $route['recommended_plan_input'] : array();
+	if ( is_array( $config['plan_input_overrides'] ?? null ) ) {
+		$plan_input = array_merge( $plan_input, $config['plan_input_overrides'] );
+	}
+	$report['route'] = $route;
+
+	maa_adapter_btoa_assert( $assertions, 'block_theme_site_plan' === (string) ( $route['route'] ?? '' ), $key . ' routes to block_theme_site_plan' );
+	maa_adapter_btoa_assert( $assertions, 'site_template_layout' === (string) ( $route['route_key'] ?? '' ), $key . ' uses site_template_layout route key' );
+	maa_adapter_btoa_assert( $assertions, 'customize_template_layout' === (string) ( $plan_input['intent'] ?? '' ), $key . ' recommends layout customization' );
+	maa_adapter_btoa_assert( $assertions, $expected_profile === sanitize_key( (string) ( $plan_input['layout_profile'] ?? '' ) ), $key . ' recommends expected profile' );
+	maa_adapter_btoa_assert( $assertions, in_array( $target_slug, array_map( 'sanitize_key', (array) ( $plan_input['target_templates'] ?? array() ) ), true ), $key . ' recommends expected template target' );
+
+	$context_response = maa_adapter_btoa_run_read_ability( 'npcink-abilities-toolkit/get-block-theme-context', array(), $assertions );
+	$context = maa_adapter_btoa_ability_data( $context_response );
+	$target_override = is_array( $context['existing_overrides'][ $target_slug ] ?? null ) ? $context['existing_overrides'][ $target_slug ] : array();
+	$target_post_id  = absint( $target_override['post_id'] ?? 0 );
+	maa_adapter_btoa_assert( $assertions, $target_post_id > 0, $key . ' finds an existing template override' );
+
+	$template_backup = array();
+	if ( $target_post_id > 0 ) {
+		$template_backup = maa_adapter_btoa_template_backup( $target_post_id );
+		maa_adapter_btoa_apply_stale_article_template_fixture( $target_post_id );
+	}
+
+	$plan_response = maa_adapter_btoa_run_read_ability(
+		'npcink-abilities-toolkit/build-block-theme-site-plan',
+		$plan_input,
+		$assertions
+	);
+	$plan = maa_adapter_btoa_ability_data( $plan_response );
+	$profile_row = is_array( $plan['template_layout_contract']['profiles'][0] ?? null ) ? $plan['template_layout_contract']['profiles'][0] : array();
+	$quality_codes = (array) ( $plan['preview'][0]['block_editor_quality_gate']['finding_codes'] ?? array() );
+	$report['profile_version'] = (string) ( $profile_row['profile_version'] ?? '' );
+	$report['quality_finding_codes'] = $quality_codes;
+
+	maa_adapter_btoa_assert( $assertions, $profile_version === (string) ( $profile_row['profile_version'] ?? '' ), $key . ' plan uses expected profile version' );
+	maa_adapter_btoa_assert( $assertions, 'replace_template_layout_with_preserved_template_parts' === (string) ( $profile_row['operation'] ?? '' ), $key . ' plan declares the Core intake operation' );
+	maa_adapter_btoa_assert( $assertions, ! empty( $plan['write_actions'] ?? array() ), $key . ' plan produces write actions for stale fixture' );
+
+	$proposal_response = maa_adapter_btoa_rest(
+		'POST',
+		'/npcink-openclaw-adapter/v1/proposals/from-plan',
+		array(
+			'plan_ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+			'plan'            => $plan,
+			'plan_input'      => $plan_input,
+		),
+		$assertions
+	);
+	$proposal_id = (string) ( $proposal_response['proposal_id'] ?? ( $proposal_response['proposals'][0]['proposal_id'] ?? '' ) );
+	$report['proposal_id'] = $proposal_id;
+	$report['created_proposal'] = '' !== $proposal_id;
+	maa_adapter_btoa_assert( $assertions, '' !== $proposal_id, $key . ' proposal is created' );
+	maa_adapter_btoa_assert( $assertions, 'pending' === (string) ( $proposal_response['status'] ?? ( $proposal_response['proposals'][0]['status'] ?? '' ) ), $key . ' proposal starts pending' );
+
+	$execute_response = array();
+	if ( '' !== $proposal_id ) {
+		$execute_response = maa_adapter_btoa_rest(
+			'POST',
+			'/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve-and-execute',
+			array( 'intent' => 'commit' ),
+			$assertions
+		);
+		$report['executed_write'] = true;
+		$report['execution_record_status'] = (string) ( $execute_response['execution_record']['status'] ?? ( $execute_response['execution']['status'] ?? '' ) );
+		maa_adapter_btoa_assert( $assertions, is_array( $execute_response['execution_record'] ?? null ) || is_array( $execute_response['execution'] ?? null ), $key . ' proposal returns execution evidence' );
+		maa_adapter_btoa_assert( $assertions, 'succeeded' === $report['execution_record_status'], $key . ' execution succeeds' );
+	}
+
+	$readback = maa_adapter_btoa_read_template( $target_slug, $assertions );
+	$blocks = is_array( $readback['data']['blocks'] ?? null ) ? $readback['data']['blocks'] : array();
+	$block_names = maa_adapter_btoa_collect_block_names( $blocks );
+	foreach ( $required_blocks as $required_block ) {
+		maa_adapter_btoa_assert( $assertions, in_array( (string) $required_block, $block_names, true ), $key . ' readback includes ' . (string) $required_block );
+	}
+	foreach ( array( 'core/html', 'core/freeform' ) as $forbidden_block ) {
+		maa_adapter_btoa_assert( $assertions, ! in_array( $forbidden_block, $block_names, true ), $key . ' readback excludes ' . $forbidden_block );
+	}
+	foreach ( $required_classes as $required_class ) {
+		maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_class( $blocks, (string) $required_class ), $key . ' readback includes ' . (string) $required_class );
+	}
+	foreach ( $required_attrs as $attr_check ) {
+		$block_name = (string) ( $attr_check['block'] ?? '' );
+		$attr       = (string) ( $attr_check['attr'] ?? '' );
+		$value      = (string) ( $attr_check['value'] ?? '' );
+		$label      = (string) ( $attr_check['label'] ?? ( $block_name . ' ' . $attr . '=' . $value ) );
+		maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_attr( $blocks, $block_name, $attr, $value ), $key . ' readback includes ' . $label );
+	}
+
+	if ( ! empty( $template_backup ) ) {
+		maa_adapter_btoa_restore_template_backup( $template_backup );
+	}
+
+	$report['readback_summary']  = maa_adapter_btoa_template_summary( is_array( $readback['data'] ?? null ) ? $readback['data'] : array() );
+	$report['restored_template'] = ! empty( $template_backup );
+	return $report;
+}
+
 $assertions = array();
 $product_gaps = array();
 $report     = array(
@@ -716,6 +846,71 @@ if ( $article_execution_enabled ) {
 	);
 }
 $report['scenarios']['article_standard_proposal_execute_readback'] = $article_execution_report;
+
+// Scenario 5: opt-in governed page and homepage template proposal, execution, readback, and local restore.
+$additional_layout_execution_reports = array(
+	'page_standard'     => array(
+		'enabled'          => $article_execution_enabled,
+		'created_proposal' => false,
+		'executed_write'   => false,
+	),
+	'homepage_landing' => array(
+		'enabled'          => $article_execution_enabled,
+		'created_proposal' => false,
+		'executed_write'   => false,
+	),
+);
+if ( $article_execution_enabled ) {
+	$additional_layout_execution_reports['page_standard'] = maa_adapter_btoa_run_template_layout_execution_scenario(
+		array(
+			'key'             => 'page standard execution',
+			'prompt'          => '帮我把普通页面模板整理成标准页面布局：面包屑在页面标题上方，保留页面标题、特色图和正文。',
+			'target_slug'     => 'page',
+			'layout_profile'  => 'page_standard',
+			'profile_version' => 'page_standard@0.1',
+			'required_blocks' => array(
+				'core/template-part',
+				'core/group',
+				'core/post-title',
+				'core/post-featured-image',
+				'core/post-content',
+			),
+			'required_classes' => array(
+				'openclaw-breadcrumbs',
+				'openclaw-template-layout-page_standard',
+			),
+		),
+		$assertions
+	);
+	$additional_layout_execution_reports['homepage_landing'] = maa_adapter_btoa_run_template_layout_execution_scenario(
+		array(
+			'key'             => 'homepage landing execution',
+			'prompt'          => '帮我把首页模板整理成落地页：顶部有大标题和介绍，下面有行动按钮，再展示最新文章和分类入口。',
+			'target_slug'     => 'front-page',
+			'layout_profile'  => 'homepage_landing',
+			'profile_version' => 'homepage_landing@0.2',
+			'required_blocks' => array(
+				'core/template-part',
+				'core/group',
+				'core/heading',
+				'core/paragraph',
+				'core/buttons',
+				'core/button',
+				'core/latest-posts',
+				'core/categories',
+			),
+			'required_classes' => array(
+				'openclaw-template-layout-homepage_landing',
+			),
+		),
+		$assertions
+	);
+	foreach ( $additional_layout_execution_reports as $execution_report ) {
+		$created_proposal = $created_proposal || ! empty( $execution_report['created_proposal'] );
+		$executed_write   = $executed_write || ! empty( $execution_report['executed_write'] );
+	}
+}
+$report['scenarios']['additional_template_layout_proposal_execute_readback'] = $additional_layout_execution_reports;
 
 $report['assertions'] = $assertions;
 $failed = array_values(
