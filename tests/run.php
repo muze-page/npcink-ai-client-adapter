@@ -65,6 +65,43 @@ maa_adapter_assert( false !== strpos( $controller, 'must_not_submit_proposal' ),
 maa_adapter_assert( false !== strpos( $controller, 'Change global styles and write a theme.json color patch.' ), 'Controller negative examples cover global styles and theme.json requests.' );
 foreach (
 	array(
+		'docs/architecture/adapter-boundary.md'    => array(
+			'thin OpenClaw channel layer',
+			'core_proxy_execute=false',
+			'commit_execution=false',
+			'Client-key fingerprint binding is intentionally cross-plugin',
+			'/npcink-governance-core/v1/contract',
+			'/npcink-abilities-toolkit/v1/contract',
+		),
+		'docs/contracts/client-policy.md'         => array(
+			'npcink_openclaw_adapter_client_policy.v1',
+			'adapter_only_fail_closed',
+			'ability_id_plus_input_hash',
+			'proposal -> Core approval -> commit-preflight -> explicit commit intent -> Adapter execution profile',
+		),
+		'docs/contracts/execution-profiles.md'    => array(
+			'Adapter execution profiles are the only Adapter-owned final-write allowlist',
+			'Execution_Profile_Registry.php',
+			'execution_profile_registry_hash',
+			'block-theme-template.update_draft',
+			'npcink-abilities-toolkit/update-template-blocks',
+		),
+		'docs/acceptance/local-ai-client-smoke.md' => array(
+			'composer accept:local-ai-client',
+			'composer accept:local-ai-client-fixture',
+			'MAA_ADAPTER_FIXTURE_ALLOW_COMMIT=1',
+			'composer smoke:package-install',
+		),
+	) as $doc_path => $required_doc_texts
+) {
+	$doc = maa_adapter_read( $root . '/' . $doc_path );
+	maa_adapter_assert( '' !== $doc, 'Documentation exists: ' . $doc_path );
+	foreach ( $required_doc_texts as $required_doc_text ) {
+		maa_adapter_assert( false !== strpos( $doc, $required_doc_text ), 'Documentation contains required text in ' . $doc_path . ': ' . $required_doc_text );
+	}
+}
+foreach (
+	array(
 		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'npcink-abilities-toolkit/build-media-optimization-plan',
 		'npcink-abilities-toolkit/build-article-optimization-apply-plan',
