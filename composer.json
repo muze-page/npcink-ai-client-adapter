@@ -16,6 +16,7 @@
     "accept:block-theme-openclaw": "bash tests/block-theme-openclaw-acceptance.sh",
     "visual:wp": "bash tests/visual-acceptance.sh",
     "dev:article-template-visual": "bash tests/dev-article-template-visual.sh",
+    "dev:block-theme-template-visual": "bash tests/dev-block-theme-template-visual.sh",
     "eval:lab": "sh scripts/eval-lab.sh",
     "eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate \"project=$PWD\" mode=working_diff",
     "check:wporg": "@php scripts/check-wordpress-org-review-rules.php",

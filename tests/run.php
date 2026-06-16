@@ -1471,6 +1471,7 @@ foreach (
 		'"accept:local-ai-client-fixture": "bash tests/local-ai-client-fixture-acceptance.sh"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
 		'"dev:article-template-visual": "bash tests/dev-article-template-visual.sh"',
+		'"dev:block-theme-template-visual": "bash tests/dev-block-theme-template-visual.sh"',
 		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
 		'php-8.2.29+0',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
@@ -2119,6 +2120,47 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $dev_article_template_visual_php, $required ), 'Dev article template visual PHP contains required text: ' . $required );
+}
+
+$dev_block_theme_template_visual_sh = maa_adapter_read( $root . '/tests/dev-block-theme-template-visual.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_REPORT_DIR',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_PROFILE',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_BACKUP',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_KEEP_TEMPLATE',
+		'restore_template',
+		'trap restore_template EXIT',
+		'tests/dev-block-theme-template-visual.php',
+		'composer visual:wp',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
+		'WP_CLI_MYSQL_SOCKET',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_block_theme_template_visual_sh, $required ), 'Dev block theme template visual shell contains required text: ' . $required );
+}
+
+$dev_block_theme_template_visual_php = maa_adapter_read( $root . '/tests/dev-block-theme-template-visual.php' );
+foreach (
+	array(
+		'local_dev_only',
+		'/npcink-openclaw-adapter/v1/run-read-ability',
+		'npcink-abilities-toolkit/build-block-theme-site-plan',
+		'customize_template_layout',
+		'article_standard',
+		'page_standard',
+		'homepage_landing',
+		'serialize_blocks',
+		'wp_update_post',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_MODE',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_POST_ID',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_PAGE_ID',
+		'minimum_padded_sections',
+		'block_theme_template',
+		'block_theme_homepage',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_block_theme_template_visual_php, $required ), 'Dev block theme template visual PHP contains required text: ' . $required );
 }
 
 $package_install_smoke_sh = maa_adapter_read( $root . '/tests/package-install-smoke.sh' );
@@ -2967,7 +3009,9 @@ foreach (
 			'allowed_template_targets=["single","page","front-page","home","archive","index"]',
 			'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
 			'composer dev:article-template-visual',
+			'composer dev:block-theme-template-visual',
 			'local-only article template visual harness',
+			'local-only block theme template visual harness',
 			'restores the original template content on exit',
 			'block_theme_template',
 			'contract_status=pass',
