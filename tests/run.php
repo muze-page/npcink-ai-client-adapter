@@ -67,6 +67,7 @@ foreach (
 	array(
 		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'npcink-abilities-toolkit/build-media-optimization-plan',
+		'npcink-abilities-toolkit/build-article-optimization-apply-plan',
 		'npcink-abilities-toolkit/build-pattern-page-plan',
 		'npcink-toolbox/build-site-knowledge-review-plan',
 	) as $required_plan_ability
@@ -581,6 +582,7 @@ foreach (
 			'npcink-abilities-toolkit/build-media-optimization-plan',
 			'npcink-abilities-toolkit/build-media-adoption-enhancement-plan',
 			'npcink-abilities-toolkit/build-media-rename-plan',
+			'npcink-abilities-toolkit/build-article-optimization-apply-plan',
 				'npcink-abilities-toolkit/build-article-block-plan',
 				'npcink-abilities-toolkit/build-block-theme-site-plan',
 				'npcink-abilities-toolkit/build-pattern-page-plan',
@@ -1140,6 +1142,7 @@ foreach (
 			'npcink-abilities-toolkit/build-media-optimization-plan',
 			'npcink-abilities-toolkit/build-media-adoption-preflight-summary',
 			'npcink-abilities-toolkit/build-media-rename-plan',
+			'npcink-abilities-toolkit/build-article-optimization-apply-plan',
 				'npcink-abilities-toolkit/build-article-block-plan',
 				'npcink-abilities-toolkit/build-block-theme-site-plan',
 				'npcink-abilities-toolkit/build-pattern-page-plan',
@@ -1719,6 +1722,7 @@ foreach (
 		'npcink-abilities-toolkit/build-media-inventory-fix-plan',
 		'npcink-abilities-toolkit/build-media-reference-repair-plan',
 		'npcink-abilities-toolkit/build-media-settings-reference-repair-plan',
+		'npcink-abilities-toolkit/build-article-optimization-apply-plan',
 		'npcink-abilities-toolkit/build-pattern-page-plan',
 		'npcink-toolbox/build-article-write-plan',
 		'npcink-toolbox/build-article-batch-write-plan',
