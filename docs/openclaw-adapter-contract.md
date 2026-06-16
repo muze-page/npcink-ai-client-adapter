@@ -189,6 +189,7 @@ direct reads:
 - `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`
 - `npcink-abilities-toolkit/build-media-optimization-plan`
 - `npcink-abilities-toolkit/build-media-rename-plan`
+- `npcink-abilities-toolkit/build-article-optimization-apply-plan`
 - `npcink-abilities-toolkit/build-block-theme-site-plan`
 - `npcink-abilities-toolkit/build-pattern-page-plan`
 - `npcink-toolbox/build-article-write-plan`
@@ -420,6 +421,23 @@ and responsive quality metadata. Adapter must only forward the plan to Core and
 execute supported write actions after Core approval and commit-preflight.
 The recipe also exposes `visual_acceptance` with the same front-end/editor
 targets and viewport set used by the pattern page flow.
+
+The adapter plan-to-proposal bridge also supports reviewed article optimization
+apply plans from Toolkit:
+
+- entrypoint ability:
+  `npcink-abilities-toolkit/build-article-optimization-apply-plan`
+- source recipe: `workflow/wordpress_article_optimization`
+- plan handoff route: `POST /proposals/from-plan`
+- status route: `GET /proposals/{proposal_id}`
+- final route: `POST /proposals/{proposal_id}/approve-and-execute`
+- final write ability: `npcink-abilities-toolkit/update-post`
+- artifact type: `article_optimization_apply_plan`
+- proposal mode: `single`
+
+Adapter forwards the reviewed apply plan to Core and keeps direct WordPress
+writes disabled in the plan phase. Execution remains gated by Core approval and
+Adapter commit-preflight.
 
 The shared browser checklist lives in
 [`openclaw-gutenberg-visual-acceptance.md`](openclaw-gutenberg-visual-acceptance.md).

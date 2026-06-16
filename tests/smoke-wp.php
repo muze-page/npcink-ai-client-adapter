@@ -194,7 +194,7 @@ function maa_adapter_smoke_assert_contract_snapshot( array $payload, string $lab
 		'toolkit_plugin_min_version'           => '0.5.1',
 		'execution_profile_registry_hash'      => 'sha256:cbf4526e77729afbf29143687d0ccbacac61f3817595120130c9042d0695ea87',
 		'supported_execute_ability_ids_hash'   => 'sha256:c09978a7d53804457b58a1d5233ea18bc1d06eb8a1485da74ae35ccd32ea4ac6',
-		'supported_plan_ability_ids_hash'      => 'sha256:ae1d26d8fff0e6c80ef063962450efef743fc213d581577c8cad32314517de4d',
+		'supported_plan_ability_ids_hash'      => 'sha256:78b57694daffb149f2a58859c4c40292ec85e3c3781170e624110a22dadcfcbc',
 		'max_execution_actions'                => 200,
 		'core_proxy_execute'                   => false,
 		'commit_execution'                     => false,
@@ -1354,6 +1354,7 @@ maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-optimization-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media optimization plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media adoption enhancement plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-rename-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media rename plan supported profiles' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-optimization-apply-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article optimization apply plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-block-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article block plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-block-theme-site-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes block theme site plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-pattern-page-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes pattern page plan supported profiles' );
@@ -1413,6 +1414,7 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/arti
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article batch plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes Site Knowledge review plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes media adoption enhancement plan supported profiles' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-optimization-apply-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article optimization apply plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-block-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article block plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-block-theme-site-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes block theme site plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-pattern-page-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes pattern page plan supported profiles' );

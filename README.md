@@ -631,6 +631,7 @@ Plan-to-proposal flow:
 	   `npcink-abilities-toolkit/build-media-settings-reference-repair-plan`, or
 		   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`, or
 		   `npcink-abilities-toolkit/build-media-rename-plan`, or
+		   `npcink-abilities-toolkit/build-article-optimization-apply-plan`, or
 		   `npcink-abilities-toolkit/build-block-theme-site-plan`, or
 		   `npcink-abilities-toolkit/build-pattern-page-plan`, or
 	   `npcink-toolbox/build-article-write-plan`, or
@@ -691,6 +692,13 @@ Plan-to-proposal flow:
 		   for lightweight post-execution/readback contract checks where
 		   readback failure is recorded as verification metadata.
 		   See [OpenClaw Site Edit Router Contract](docs/openclaw-site-edit-router-contract.md).
+		   For reviewed article optimization excerpt updates, use
+		   `npcink-abilities-toolkit/build-article-optimization-apply-plan`;
+		   Core creates one proposal and Adapter later executes only approved
+		   `npcink-abilities-toolkit/update-post` actions after Core approval and
+		   commit-preflight. The planning source remains
+		   `workflow/wordpress_article_optimization`; direct WordPress writes stay
+		   disabled in the plan output.
 		   For reviewed Gutenberg page pattern drafts, use
 		   `npcink-abilities-toolkit/build-pattern-page-plan`; Core creates one
 	   batch proposal and Adapter later executes only approved
