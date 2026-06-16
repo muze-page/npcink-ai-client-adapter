@@ -130,6 +130,18 @@ The default acceptance checks:
 Optional modes cover sensitive read request creation, approved sensitive read,
 proposal preflight, and explicit final write execution.
 
+A later signed local CLI E2E pass exercised the destructive-but-cleaned
+`npcink-abilities-toolkit/create-draft` proposal flow through real local
+Adapter/Core/Toolkit routes. The evidence record is:
+
+```text
+docs/local-ai-client-e2e-acceptance-2026-06-15.md
+```
+
+That pass created proposal `1e4f63ca-ac29-458e-8edd-532af30de3c4`, executed it
+with explicit commit intent, read back draft post `282608`, and deleted the
+fixture after verification.
+
 ### Tests and Static Contracts
 
 `tests/run.php` now checks the contract metadata strings, the new Composer
@@ -205,8 +217,12 @@ Remaining actions are release or collaboration operations:
 - push Adapter `master`;
 - open a PR or review thread if the project wants review before merging;
 - distribute or install-test `build/npcink-ai-client-adapter.zip`;
-- use `docs/local-ai-client-acceptance.md` for a real local AI client or
-  OpenClaw-compatible acceptance conversation.
+- use `docs/local-ai-client-acceptance.md` and
+  `docs/local-ai-client-e2e-acceptance-2026-06-15.md` for a real local AI
+  client or OpenClaw-compatible acceptance conversation;
+- implement Core-emitted and Toolkit-emitted runtime contract endpoints in
+  their owning repositories before Adapter consumes them as stronger
+  cross-repository proofs.
 
 Re-run the verification commands only when files change, before a push or PR,
 or before a formal release package is distributed.

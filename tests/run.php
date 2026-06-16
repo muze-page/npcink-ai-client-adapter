@@ -121,6 +121,10 @@ foreach (
 		'adapter_contract_version',
 		'execution_profile_registry_version',
 		'supported_plan_abilities_version',
+		'core_contract_min_version',
+		'core_plugin_min_version',
+		'toolkit_contract_min_version',
+		'toolkit_plugin_min_version',
 		'execution_profile_registry_hash',
 		'supported_execute_ability_ids_hash',
 		'supported_plan_ability_ids_hash',
@@ -1350,13 +1354,16 @@ foreach (
 		'Tested up to: 7.0',
 		'Requires PHP: 8.0',
 		'Requires Plugins: npcink-abilities-toolkit',
-		'Stable tag: 0.2.1',
+		'Stable tag: 0.3.0',
 		'License: GPL-2.0-or-later',
 		'structured missing dependency error',
 		'machine-readable `client_policy`',
 		'local CLI also redacts profile paths',
 		'Npcink Governance Core remains the governance backend',
 		'npcink-abilities-toolkit/trash-post',
+		'= 0.3.0 =',
+		'Add Adapter-declared Core and Abilities Toolkit compatibility floors to the machine-readable contract metadata',
+		'Record a signed local AI client create-draft proposal, approve-and-execute, readback, and cleanup acceptance pass',
 		'= 0.2.1 =',
 		'Reject batch write actions that request `core_proxy_execute=true` before Adapter execution',
 		'= 0.2.0 =',
@@ -1378,6 +1385,10 @@ foreach (
 		'npcink_openclaw_adapter_client_policy.v1',
 		'policy_version',
 		'adapter_contract_version',
+		'core_contract_min_version',
+		'core_plugin_min_version',
+		'toolkit_contract_min_version',
+		'toolkit_plugin_min_version',
 		'execution_profile_registry_hash',
 		'forbidden_outputs',
 		'forbidden_local_access',
@@ -1440,6 +1451,27 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $local_ai_client_acceptance_doc, $required ), 'Local AI client acceptance doc contains required text: ' . $required );
+}
+
+$local_ai_client_e2e_doc = maa_adapter_read( $root . '/docs/local-ai-client-e2e-acceptance-2026-06-15.md' );
+foreach (
+	array(
+		'Local AI Client E2E Acceptance - 2026-06-15',
+		'packages/adapter-cli/bin/npcink-openclaw-adapter.mjs request --profile=local --insecure-local-tls',
+		'POST /proposals',
+		'POST /proposals/{proposal_id}/approve-and-execute --intent=commit',
+		'npcink-abilities-toolkit/create-draft',
+		'1e4f63ca-ac29-458e-8edd-532af30de3c4',
+		'post_id": 282608',
+		'cleaned_post_id=282608',
+		'Success: Deleted post 282607.',
+		'core_proxy_execute=false',
+		'commit_execution=false',
+		'core_contract_min_version',
+		'not Core-emitted or Toolkit-emitted runtime proofs',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $local_ai_client_e2e_doc, $required ), 'Local AI client E2E doc contains required text: ' . $required );
 }
 
 $eval_lab_proxy = maa_adapter_read( $root . '/scripts/eval-lab.sh' );
@@ -1592,6 +1624,13 @@ foreach (
 		'initial productization contract',
 		'npcink-abilities-toolkit',
 		'npcink-governance-core',
+		'Machine-Readable Contract Metadata',
+		'Adapter contract version `2`',
+		'core_contract_min_version',
+		'core_plugin_min_version',
+		'toolkit_contract_min_version',
+		'toolkit_plugin_min_version',
+		'not Core-emitted or Toolkit-emitted runtime proofs',
 		'core_proxy_execute',
 		'commit_execution',
 		'Npcink -> Adapter',

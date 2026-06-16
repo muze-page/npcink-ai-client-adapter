@@ -24,6 +24,25 @@ action.
 - `npcink-governance-core` for governance, proposal approval, commit preflight, and
   audit.
 
+## Machine-Readable Contract Metadata
+
+`GET /health`, `GET /help`, and `GET /connection/manifest` expose a shared
+`contract` object. Adapter contract version `2` includes:
+
+- Adapter/client policy/registry versions and stable hashes for execution
+  profiles, supported execute ability ids, and supported plan ability ids;
+- `core_proxy_execute=false`;
+- `commit_execution=false`;
+- Adapter-declared compatibility floors for Governance Core and Abilities
+  Toolkit: `core_contract_min_version`, `core_plugin_min_version`,
+  `toolkit_contract_min_version`, and `toolkit_plugin_min_version`.
+
+The compatibility floors are Adapter declarations for client-side drift
+detection. They are not Core-emitted or Toolkit-emitted runtime proofs, and they
+do not authorize reads or writes. Core approval, read-preflight,
+commit-preflight, and WordPress Abilities execution remain the authoritative
+runtime checks.
+
 ## Read Ability Contract
 
 The adapter may execute only capability rows where Core returns:

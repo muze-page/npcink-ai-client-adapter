@@ -184,10 +184,14 @@ function maa_adapter_smoke_rest_result( string $method, string $route, array $pa
 function maa_adapter_smoke_assert_contract_snapshot( array $payload, string $label ): void {
 	$expected = array(
 		'schema_version'                       => 'npcink_openclaw_adapter_contract.v1',
-		'adapter_contract_version'             => '1',
+		'adapter_contract_version'             => '2',
 		'client_policy_version'                => '1',
 		'execution_profile_registry_version'   => '1',
 		'supported_plan_abilities_version'     => '1',
+		'core_contract_min_version'            => '1',
+		'core_plugin_min_version'              => '0.1.0',
+		'toolkit_contract_min_version'         => '1',
+		'toolkit_plugin_min_version'           => '0.5.1',
 		'execution_profile_registry_hash'      => 'sha256:cbf4526e77729afbf29143687d0ccbacac61f3817595120130c9042d0695ea87',
 		'supported_execute_ability_ids_hash'   => 'sha256:c09978a7d53804457b58a1d5233ea18bc1d06eb8a1485da74ae35ccd32ea4ac6',
 		'supported_plan_ability_ids_hash'      => 'sha256:ae1d26d8fff0e6c80ef063962450efef743fc213d581577c8cad32314517de4d',
@@ -1299,7 +1303,7 @@ maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $health
 maa_adapter_smoke_assert( 'npcink_openclaw_adapter_client_policy.v1' === (string) ( $health['client_policy']['schema_version'] ?? '' ), 'adapter health exposes machine-readable client policy' );
 maa_adapter_smoke_assert( '1' === (string) ( $health['client_policy']['policy_version'] ?? '' ), 'adapter health exposes client policy version' );
 maa_adapter_smoke_assert( 'npcink_openclaw_adapter_contract.v1' === (string) ( $health['contract']['schema_version'] ?? '' ), 'adapter health exposes contract metadata' );
-maa_adapter_smoke_assert( '1' === (string) ( $health['contract']['adapter_contract_version'] ?? '' ), 'adapter health exposes adapter contract version' );
+maa_adapter_smoke_assert( '2' === (string) ( $health['contract']['adapter_contract_version'] ?? '' ), 'adapter health exposes adapter contract version' );
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $health['contract']['execution_profile_registry_hash'] ?? '' ), 'sha256:' ), 'adapter health exposes execution profile registry hash' );
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $health['contract']['supported_plan_ability_ids_hash'] ?? '' ), 'sha256:' ), 'adapter health exposes supported plan ability hash' );
 maa_adapter_smoke_assert_contract_snapshot( $health, 'adapter health' );

@@ -46,10 +46,14 @@ final class Controller {
 	const MAX_AI_SMOKE_PROMPT_CHARS   = 200;
 	const MAX_LIGHT_POST_BODY_BYTES   = 4096;
 	const MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES = 10485760;
-	const ADAPTER_CONTRACT_VERSION    = '1';
+	const ADAPTER_CONTRACT_VERSION    = '2';
 	const CLIENT_POLICY_VERSION       = '1';
 	const EXECUTION_PROFILE_REGISTRY_VERSION = '1';
 	const SUPPORTED_PLAN_ABILITIES_VERSION   = '1';
+	const CORE_CONTRACT_MIN_VERSION          = '1';
+	const CORE_PLUGIN_MIN_VERSION            = '0.1.0';
+	const TOOLKIT_CONTRACT_MIN_VERSION       = '1';
+	const TOOLKIT_PLUGIN_MIN_VERSION         = '0.5.1';
 
 	/**
 	 * Current request log context while an ability is running.
@@ -95,6 +99,10 @@ final class Controller {
 			'client_policy_version'                => self::CLIENT_POLICY_VERSION,
 			'execution_profile_registry_version'   => self::EXECUTION_PROFILE_REGISTRY_VERSION,
 			'supported_plan_abilities_version'     => self::SUPPORTED_PLAN_ABILITIES_VERSION,
+			'core_contract_min_version'            => self::CORE_CONTRACT_MIN_VERSION,
+			'core_plugin_min_version'              => self::CORE_PLUGIN_MIN_VERSION,
+			'toolkit_contract_min_version'         => self::TOOLKIT_CONTRACT_MIN_VERSION,
+			'toolkit_plugin_min_version'           => self::TOOLKIT_PLUGIN_MIN_VERSION,
 			'execution_profile_registry_hash'      => $this->contract_sha256( self::execution_profiles() ),
 			'supported_execute_ability_ids_hash'   => $this->contract_sha256( $execute_ability_ids ),
 			'supported_plan_ability_ids_hash'      => $this->contract_sha256( $plan_ability_ids ),

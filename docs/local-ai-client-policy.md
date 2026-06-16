@@ -65,9 +65,18 @@ separate `contract` object. Clients may cache or compare
 `adapter_contract_version`, `execution_profile_registry_version`,
 `supported_plan_abilities_version`, `execution_profile_registry_hash`,
 `supported_execute_ability_ids_hash`, and `supported_plan_ability_ids_hash` to
-detect whether the Adapter contract matches an acceptance-tested build. These
-fields are informational compatibility metadata; they do not authorize reads or
-writes.
+detect whether the Adapter contract matches an acceptance-tested build.
+
+The contract also exposes Adapter-declared compatibility floors:
+`core_contract_min_version`, `core_plugin_min_version`,
+`toolkit_contract_min_version`, and `toolkit_plugin_min_version`. These are the
+minimum Core and Abilities Toolkit contract/plugin versions this Adapter build
+was designed and accepted against. They are not Core-emitted or
+Toolkit-emitted runtime proofs, and they do not replace Core approval,
+read-preflight, commit-preflight, or WordPress Abilities execution checks.
+
+All contract fields are informational compatibility metadata; they do not
+authorize reads or writes.
 
 Required client behavior:
 
