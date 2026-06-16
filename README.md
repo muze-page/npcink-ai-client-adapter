@@ -79,6 +79,16 @@ Routes that require Core or WordPress Abilities API fail closed with
 `npcink_openclaw_adapter_missing_dependency`. See
 [Npcink AI Suite Distribution Contract](docs/distribution-contract.md).
 
+When Core and the Abilities Toolkit expose their admin-only runtime contract
+endpoints, Adapter also includes a bounded `dependency_contracts` summary on
+`/health`, `/help`, and `/connection/manifest`. The summary verifies the Core
+`npcink_governance_core_contract.v1` and Toolkit
+`npcink_abilities_toolkit_contract.v1` schema versions against Adapter's
+declared minimum floors, then carries only compatibility and boundary fields,
+such as Core's `provider_secret_storage=false` posture and Toolkit's
+`host_governed_writes=true` write control. It does not copy Core proposal,
+approval, or audit state, and it does not expose secrets.
+
 ## REST Surface
 
 All routes require `manage_options` through normal WordPress REST
