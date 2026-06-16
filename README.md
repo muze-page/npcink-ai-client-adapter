@@ -1049,6 +1049,18 @@ Build a release zip with the same package boundary:
 composer package:release
 ```
 
+Run the package install smoke against the generated zip:
+
+```bash
+composer smoke:package-install
+```
+
+This temporarily installs `build/npcink-ai-client-adapter.zip` into the
+configured local WordPress site, verifies that only `Npcink AI Client Adapter`
+is visible as a plugin, checks that the legacy bootstrap is not independently
+activatable, confirms the compatible REST namespace, and restores the previous
+local plugin directory or symlink on exit.
+
 The release surface is defined by `.distignore`. It excludes development-only
 artifacts such as `tests/`, `AGENTS.md`, `.gitignore`, Composer metadata, and
 local dependency folders from package-oriented Plugin Check runs. Do not delete
@@ -1066,6 +1078,17 @@ CLI profile:
 ```bash
 MAA_ADAPTER_ACCEPTANCE_PROFILE=local composer accept:local-ai-client
 ```
+
+Run the signed local AI client fixture acceptance pass:
+
+```bash
+MAA_ADAPTER_ACCEPTANCE_PROFILE=local composer accept:local-ai-client-fixture
+```
+
+By default this creates and reads a Core proposal, then verifies that the CLI
+refuses final Adapter execution without `--intent=commit`. To run the final
+approve-and-execute fixture, set `MAA_ADAPTER_FIXTURE_ALLOW_COMMIT=1`; the
+script deletes the created draft post with WP-CLI by default.
 
 Set `MAA_ADAPTER_ACCEPTANCE_SENSITIVE_READ_*`,
 `MAA_ADAPTER_ACCEPTANCE_PREFLIGHT_PROPOSAL_ID`, or

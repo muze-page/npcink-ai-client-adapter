@@ -25,6 +25,37 @@ The default check runs:
 - `GET /help`;
 - public `read-ability` for `npcink-abilities-toolkit/site-info`.
 
+## Fixture Proposal Check
+
+Run the signed fixture flow when you need proposal lifecycle coverage without
+manually preparing a proposal id:
+
+```bash
+MAA_ADAPTER_ACCEPTANCE_PROFILE=local \
+MAA_ADAPTER_ACCEPTANCE_INSECURE_LOCAL_TLS=1 \
+composer accept:local-ai-client-fixture
+```
+
+The default fixture flow creates a Core proposal for
+`npcink-abilities-toolkit/create-draft`, reads it back, and verifies that the
+local CLI refuses `approve-and-execute` unless the caller explicitly passes
+`--intent=commit`. It stops before final write execution.
+
+To include final write execution:
+
+```bash
+MAA_ADAPTER_ACCEPTANCE_PROFILE=local \
+MAA_ADAPTER_ACCEPTANCE_INSECURE_LOCAL_TLS=1 \
+MAA_ADAPTER_FIXTURE_ALLOW_COMMIT=1 \
+composer accept:local-ai-client-fixture
+```
+
+The commit-enabled fixture uses Adapter `approve-and-execute`, verifies the
+created draft post id, verifies duplicate execution rejection with
+`npcink_openclaw_adapter_execution_already_completed`, and deletes the created
+draft post by default. Set `MAA_ADAPTER_FIXTURE_CLEANUP_POST=0` only when you
+intentionally want to inspect the created draft.
+
 ## Sensitive Read Check
 
 To create a Core-owned sensitive read request, pass an ability id and input
