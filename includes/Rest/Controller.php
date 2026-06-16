@@ -7461,6 +7461,69 @@ final class Controller {
 			);
 		}
 
+		$approval_site_binding = $this->validate_core_context_site_binding( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
+		if ( is_wp_error( $approval_site_binding ) ) {
+			return $approval_site_binding;
+		}
+		if ( ! empty( $execution_handoff ) ) {
+			$handoff_site_binding = $this->validate_core_context_site_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+			if ( is_wp_error( $handoff_site_binding ) ) {
+				return $handoff_site_binding;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validates optional Core site/blog binding fields when present.
+	 *
+	 * @param array<string,mixed> $context Core-provided context.
+	 * @param string              $code_prefix Error code prefix.
+	 * @param int                 $status HTTP status.
+	 * @return true|WP_Error
+	 */
+	private function validate_core_context_site_binding( array $context, string $code_prefix, int $status ) {
+		// Error families include npcink_openclaw_adapter_preflight_site_url_mismatch, npcink_openclaw_adapter_preflight_handoff_blog_id_mismatch, npcink_openclaw_adapter_core_read_grant_site_url_mismatch, and npcink_openclaw_adapter_core_read_grant_blog_id_mismatch.
+		$site_url = sanitize_text_field( (string) ( $context['site_url'] ?? '' ) );
+		if ( '' !== $site_url && untrailingslashit( $site_url ) !== untrailingslashit( site_url() ) ) {
+			return new WP_Error(
+				$code_prefix . '_site_url_mismatch',
+				__( 'Core authorization context was issued for a different site URL.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'        => $status,
+					'expected_site' => untrailingslashit( site_url() ),
+					'context_site'  => untrailingslashit( $site_url ),
+				)
+			);
+		}
+
+		$home_url = sanitize_text_field( (string) ( $context['home_url'] ?? '' ) );
+		if ( '' !== $home_url && untrailingslashit( $home_url ) !== untrailingslashit( home_url() ) ) {
+			return new WP_Error(
+				$code_prefix . '_home_url_mismatch',
+				__( 'Core authorization context was issued for a different home URL.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'       => $status,
+					'expected_home' => untrailingslashit( home_url() ),
+					'context_home' => untrailingslashit( $home_url ),
+				)
+			);
+		}
+
+		$blog_id = absint( $context['blog_id'] ?? 0 );
+		if ( $blog_id > 0 && $blog_id !== get_current_blog_id() ) {
+			return new WP_Error(
+				$code_prefix . '_blog_id_mismatch',
+				__( 'Core authorization context was issued for a different blog id.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'          => $status,
+					'expected_blog_id' => get_current_blog_id(),
+					'context_blog_id'  => $blog_id,
+				)
+			);
+		}
+
 		return true;
 	}
 
@@ -8193,6 +8256,11 @@ final class Controller {
 			);
 		}
 
+		$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+		if ( is_wp_error( $site_binding ) ) {
+			return $site_binding;
+		}
+
 		$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
 		if ( false === $expires_at || $expires_at <= time() ) {
 			return new WP_Error(
@@ -8220,6 +8288,9 @@ final class Controller {
 			'approved_input_hash'         => sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) ),
 			'correlation_id'              => sanitize_text_field( (string) ( $context['correlation_id'] ?? '' ) ),
 			'policy_version'              => sanitize_text_field( (string) ( $context['policy_version'] ?? '' ) ),
+			'site_url'                    => sanitize_text_field( (string) ( $context['site_url'] ?? '' ) ),
+			'home_url'                    => sanitize_text_field( (string) ( $context['home_url'] ?? '' ) ),
+			'blog_id'                     => absint( $context['blog_id'] ?? 0 ),
 			'sensitivity'                 => sanitize_key( (string) ( $context['sensitivity'] ?? 'sensitive' ) ),
 			'data_classes'                => $this->sanitize_string_list( is_array( $context['data_classes'] ?? null ) ? (array) $context['data_classes'] : array() ),
 			'redaction_level'             => sanitize_key( (string) ( $context['redaction_level'] ?? 'strict' ) ),

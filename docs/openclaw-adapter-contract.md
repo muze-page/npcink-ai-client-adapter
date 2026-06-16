@@ -64,6 +64,17 @@ raw secrets. If the current REST authentication context cannot read a dependency
 contract endpoint, Adapter reports that dependency summary as unavailable rather
 than elevating privileges.
 
+When Core approval, commit-preflight, or sensitive read authorization contexts
+include optional `site_url`, `home_url`, or `blog_id` bindings, Adapter verifies
+those fields against the current WordPress site before executing the handoff or
+authorized read. A mismatch fails closed with the matching
+`npcink_openclaw_adapter_preflight_*_mismatch`,
+`npcink_openclaw_adapter_preflight_handoff_*_mismatch`, or
+`npcink_openclaw_adapter_core_read_grant_*_mismatch` error. Client-key
+fingerprint binding remains a Core/Adapter cross-contract item: Adapter can
+enforce it only after Core emits the signed client fingerprint in the preflight
+or read authorization context.
+
 ## Read Ability Contract
 
 The adapter may execute only capability rows where Core returns:

@@ -149,6 +149,11 @@ foreach (
 		'database_direct',
 		'filesystem_secret_read_allowed',
 		'ability_id_plus_input_hash',
+		'npcink_openclaw_adapter_core_read_grant_site_url_mismatch',
+		'npcink_openclaw_adapter_core_read_grant_blog_id_mismatch',
+		'site_url',
+		'home_url',
+		'blog_id',
 		'run_read_ability( string $ability_id, array $input, array $log_context = array(), array $read_authorization = array() )',
 		'/media-metadata-optimization',
 		'media_metadata_optimization_route',
@@ -371,9 +376,12 @@ foreach (
 			'consume_cached_preflight_handoff',
 			'prune_preflight_handoffs',
 			'validate_preflight_binding',
+			'validate_core_context_site_binding',
 			'proposal_input_hash',
 			'npcink_openclaw_adapter_preflight_input_hash_mismatch',
 			'npcink_openclaw_adapter_preflight_policy_version_invalid',
+			'npcink_openclaw_adapter_preflight_site_url_mismatch',
+			'npcink_openclaw_adapter_preflight_handoff_blog_id_mismatch',
 			'core-preflight-v1',
 			'approved_input_hash',
 			'policy_version',
@@ -1421,7 +1429,9 @@ foreach (
 		'"package:release"',
 		'"package:suite"',
 		'"plugin-check:release"',
+		'"smoke:package-install": "bash tests/package-install-smoke.sh"',
 		'"accept:local-ai-client": "bash tests/local-ai-client-acceptance.sh"',
+		'"accept:local-ai-client-fixture": "bash tests/local-ai-client-fixture-acceptance.sh"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
 		'"dev:article-template-visual": "bash tests/dev-article-template-visual.sh"',
 		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
@@ -2072,6 +2082,46 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $dev_article_template_visual_php, $required ), 'Dev article template visual PHP contains required text: ' . $required );
+}
+
+$package_install_smoke_sh = maa_adapter_read( $root . '/tests/package-install-smoke.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_PACKAGE_SMOKE_ZIP',
+		'build/npcink-ai-client-adapter.zip',
+		'restore_original_plugin',
+		'trap restore_original_plugin EXIT',
+		'wp-content/plugins/npcink-ai-client-adapter',
+		'wp plugin install',
+		'Npcink AI Client Adapter',
+		'npcink-openclaw-adapter.php',
+		'Legacy bootstrap',
+		'Plugin Name:',
+		'/npcink-openclaw-adapter/v1/health',
+		'npcink_openclaw_adapter_contract.v1',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $package_install_smoke_sh, $required ), 'Package install smoke shell contains required text: ' . $required );
+}
+
+$local_ai_client_fixture_acceptance_sh = maa_adapter_read( $root . '/tests/local-ai-client-fixture-acceptance.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_FIXTURE_ALLOW_COMMIT',
+		'MAA_ADAPTER_FIXTURE_CLEANUP_POST',
+		'Adapter CLI fixture draft proposal',
+		'npcink-abilities-toolkit/create-draft',
+		'POST /proposals --body-file',
+		'GET "/proposals/$proposal_id"',
+		'approve-and-execute',
+		'--intent=commit',
+		'Final route succeeded without --intent=commit',
+		'npcink_openclaw_adapter_execution_already_completed',
+		'wp post delete',
+		'local AI client fixture acceptance: ok',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $local_ai_client_fixture_acceptance_sh, $required ), 'Local AI client fixture acceptance shell contains required text: ' . $required );
 }
 
 $visual_acceptance_cleanup = maa_adapter_read( $root . '/tests/cleanup-visual-acceptance.php' );
