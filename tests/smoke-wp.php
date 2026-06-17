@@ -1603,6 +1603,89 @@ maa_adapter_smoke_assert( 'direct_read_internal' === (string) ( $content_plan_re
 maa_adapter_smoke_assert( 'internal' === (string) ( $content_plan_response['sensitivity'] ?? '' ), 'adapter plan read carries internal sensitivity' );
 maa_adapter_smoke_assert( false === (bool) ( $content_plan_response['redaction_required'] ?? true ), 'adapter plan read does not require redaction' );
 
+$article_optimization_title = 'Adapter Article Optimization Candidate ' . maa_adapter_smoke_run_id();
+$article_optimization_post_id = wp_insert_post(
+	array(
+		'post_title'   => $article_optimization_title,
+		'post_content' => 'Adapter article optimization smoke content. The original post should remain unchanged while the plan is reviewed.',
+		'post_excerpt' => 'Original adapter smoke excerpt.',
+		'post_status'  => 'draft',
+		'post_type'    => 'post',
+	),
+	true
+);
+maa_adapter_smoke_assert( ! is_wp_error( $article_optimization_post_id ) && (int) $article_optimization_post_id > 0, 'adapter article optimization fixture post is created' );
+$article_optimization_post_id = (int) $article_optimization_post_id;
+$maa_adapter_smoke_cleanup_post_ids[] = $article_optimization_post_id;
+$article_optimization_excerpt = 'Reviewed adapter smoke excerpt for Core proposal intake.';
+$article_optimization_plan_input = array(
+	'post'              => array(
+		'id'      => $article_optimization_post_id,
+		'title'   => $article_optimization_title,
+		'status'  => 'draft',
+		'excerpt' => 'Original adapter smoke excerpt.',
+	),
+	'report'            => array(
+		'summary' => array(
+			'status'                => 'needs_attention',
+			'high_priority_count'   => 1,
+			'total_recommendations' => 2,
+		),
+		'geo' => array(
+			'summary' => array(
+				'faq_candidate_count' => 1,
+			),
+		),
+	),
+	'optimization_plan' => array(
+		'excerpt_mode' => 'apply',
+		'seo_mode'     => 'suggest',
+	),
+	'generated_excerpt' => array(
+		'proposal_text' => $article_optimization_excerpt,
+	),
+);
+$article_optimization_plan_response = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/build-article-optimization-apply-plan',
+		'input'      => $article_optimization_plan_input,
+	)
+);
+$article_optimization_plan = is_array( $article_optimization_plan_response['result']['data'] ?? null ) ? $article_optimization_plan_response['result']['data'] : array();
+maa_adapter_smoke_assert( 'article_optimization_apply_plan' === (string) ( $article_optimization_plan['artifact_type'] ?? '' ), 'adapter article optimization read returns apply plan artifact' );
+maa_adapter_smoke_assert( 'workflow/wordpress_article_optimization' === (string) ( $article_optimization_plan['source_recipe_ref'] ?? '' ), 'adapter article optimization read preserves source recipe ref' );
+maa_adapter_smoke_assert( false === (bool) ( $article_optimization_plan['direct_wordpress_write'] ?? true ), 'adapter article optimization plan disables direct WordPress writes' );
+$article_optimization_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id'    => 'npcink-abilities-toolkit/build-article-optimization-apply-plan',
+		'plan'               => $article_optimization_plan_response['result'],
+		'plan_input'         => $article_optimization_plan_input,
+		'adapter_request_id' => 'adapter-article-optimization-e2e-request',
+		'correlation_id'     => 'adapter-article-optimization-e2e-correlation',
+		'caller'             => array(
+			'external_thread_id' => 'adapter-article-optimization-e2e-smoke',
+		),
+	)
+);
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-article-optimization-apply-plan' === (string) ( $article_optimization_bridge['plan_ability_id'] ?? '' ), 'adapter forwards article optimization plan to Core' );
+maa_adapter_smoke_assert( false === (bool) ( $article_optimization_bridge['commit_execution'] ?? true ), 'adapter article optimization handoff preserves commit_execution=false' );
+maa_adapter_smoke_assert( 1 === (int) ( $article_optimization_bridge['proposal_count'] ?? 0 ), 'adapter article optimization plan creates one Core proposal' );
+$article_optimization_proposal = is_array( $article_optimization_bridge['proposals'][0] ?? null ) ? $article_optimization_bridge['proposals'][0] : array();
+$article_optimization_proposal_id = (string) ( $article_optimization_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $article_optimization_proposal_id;
+maa_adapter_smoke_assert( '' !== $article_optimization_proposal_id, 'adapter article optimization bridge returned proposal id' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-post' === (string) ( $article_optimization_proposal['ability_id'] ?? '' ), 'adapter article optimization creates update-post proposal' );
+maa_adapter_smoke_assert( $article_optimization_excerpt === (string) ( $article_optimization_proposal['input']['excerpt'] ?? '' ), 'adapter article optimization proposal preserves reviewed excerpt' );
+$article_optimization_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $article_optimization_proposal_id ) );
+maa_adapter_smoke_assert( $article_optimization_proposal_id === (string) ( $article_optimization_detail['proposal_id'] ?? '' ), 'adapter article optimization proposal detail is readable through adapter' );
+maa_adapter_smoke_assert( 'workflow/wordpress_article_optimization' === (string) ( $article_optimization_detail['preview']['article_optimization']['source_recipe_ref'] ?? '' ), 'adapter article optimization detail preserves recipe ref' );
+maa_adapter_smoke_assert( false === (bool) ( $article_optimization_detail['preview']['article_optimization']['direct_wordpress_write'] ?? true ), 'adapter article optimization detail keeps direct writes disabled' );
+maa_adapter_smoke_assert( 'Original adapter smoke excerpt.' === (string) get_post_field( 'post_excerpt', $article_optimization_post_id ), 'adapter article optimization handoff does not mutate the post excerpt' );
+
 $media_plan_response = maa_adapter_smoke_rest(
 	'POST',
 	'/npcink-openclaw-adapter/v1/run-read-ability',
