@@ -4,49 +4,48 @@ Status: active for `Npcink -> Adapter`.
 
 ## Purpose
 
-The Adapter admin page is the OpenClaw connection surface. It gives OpenClaw
-one productized WordPress entry point while preserving Core as governance truth
-and Abilities API as the ability execution source.
+The Adapter admin page is the OpenClaw connection surface. It helps an
+administrator connect an AI client to this WordPress site while preserving
+Adapter as a thin channel layer, Core as governance truth, and Abilities API as
+the read execution source.
 
 ## Default View
 
-The default page should answer:
+The default page should answer only:
 
 - is Adapter healthy;
-- which site this client should use;
-- how to connect a local client through the signed key-pair path;
-- where to fall back to a simple Application Password connection;
-- how many signed key-pair devices are currently authorized.
+- which site and Adapter URL this client should use;
+- how to connect through the secure signed key-pair path;
+- which signed key-pair devices are already authorized and where to revoke
+  them;
+- how to fall back to a simple WordPress Application Password connection.
 
-Primary action:
+Primary actions:
 
 - `Secure key-pair connection`, with `Copy connect command` as the primary
-  action and `Manage devices` as the secondary action.
-- `Simple key connection`, with the Application Password creation form as a
-  secondary disclosure for clients that have a dedicated secret field.
-
-Default device management:
-
-- show active authorized signed key-pair devices as a compact count;
-- keep the device table behind an explicit disclosure;
-- allow admins to revoke authorized signed key-pair devices with confirmation.
+  action.
+- `Manage devices`, which opens the authorized signed key-pair device list
+  without adding a separate control surface.
+- `Simple key connection`, with `Create Application Password connection` as the
+  fallback action for clients that have a dedicated secret field.
 
 Default copyable values:
 
-- Adapter base URL;
-- signed key-pair connect command.
+- Site URL;
+- Adapter URL;
+- signed key-pair connect command;
+- signed key-pair status command;
+- connection manifest URL;
+- client env placeholders without secrets.
 
-Do not show command bodies, status commands, route catalogs, manifest URLs,
-environment placeholders, proposal lookup, or developer boundary notes in the
-default connection screen.
+## Developer Reference
 
-## Advanced Details
+Do not put developer diagnostics on the default admin page. Keep these in
+`docs/admin-developer-reference.md` or equivalent developer documentation:
 
-Keep these behind explicit advanced sections:
-
+- low-level key-pair client diagnostics;
 - diagnostics URLs;
-- read shortcut route catalog, showing only a short preview before the full
-  list;
+- read shortcut route catalog;
 - proposal route examples;
 - AI Request Logs correlation smoke details;
 - disabled approval/rejection stub explanation;
@@ -81,15 +80,16 @@ explicitly describes a machine/debug value.
 Adapter admin must not add:
 
 - Core proposal approval tables or audit tables;
+- Proposal ID status lookup or a duplicate Core review queue on the main page;
 - ability definitions, schema editing, or callback ownership;
 - Cloud Base URL/API key, entitlement, billing, or runtime settings;
 - workflow runtime, queues, MCP runtime, Agent Gateway catalogs, router,
   prompt, preset, or provider credential settings;
 - generic approval/rejection proxy UX.
 
-The Proposal ID lookup is allowed because it keeps Adapter as the OpenClaw
-operator entry point while Core remains approval truth. It must stay a focused
-status bridge, not a duplicate Core review queue.
+Proposal, route, and diagnostics details can exist in developer documentation
+because they support integration work without turning the admin page into a
+second control surface.
 
 ## Verification
 

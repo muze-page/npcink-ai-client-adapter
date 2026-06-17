@@ -77,8 +77,26 @@
 	margin-bottom: 16px;
 	min-width: 0;
 }
+.npcink-openclaw-adapter-connection .maa-pairing-summary,
+.npcink-openclaw-adapter-connection .maa-pairing-access,
+.npcink-openclaw-adapter-connection .maa-pairing-diagnostics {
+	max-width: 860px;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-access {
+	margin-top: 16px;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-access ul {
+	margin: 0 0 12px 18px;
+	list-style: disc;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-access li {
+	margin-bottom: 6px;
+}
 .npcink-openclaw-adapter-connection .maa-section-highlight {
 	border-left: 4px solid #2271b1;
+}
+.npcink-openclaw-adapter-connection .maa-method-card {
+	min-height: 100%;
 }
 .npcink-openclaw-adapter-connection .maa-method-card-recommended {
 	border-left: 4px solid #2271b1;
@@ -94,10 +112,6 @@
 .npcink-openclaw-adapter-connection .maa-section-intro {
 	margin: 0 0 14px;
 	color: #50575e;
-}
-.npcink-openclaw-adapter-connection .maa-pairing-form .description {
-	display: block;
-	margin-top: 4px;
 }
 .npcink-openclaw-adapter-connection .maa-section-heading {
 	display: flex;
@@ -162,23 +176,6 @@
 }
 .npcink-openclaw-adapter-connection .maa-inline-disclosure[open] > summary::after {
 	content: "-";
-}
-.npcink-openclaw-adapter-connection .maa-device-manager {
-	margin-top: 16px;
-}
-.npcink-openclaw-adapter-connection .maa-action-disclosure {
-	margin-top: 10px;
-}
-.npcink-openclaw-adapter-connection .maa-action-disclosure > summary {
-	display: inline-block;
-	list-style: none;
-	cursor: pointer;
-}
-.npcink-openclaw-adapter-connection .maa-action-disclosure > summary::-webkit-details-marker {
-	display: none;
-}
-.npcink-openclaw-adapter-connection .maa-action-disclosure form {
-	margin-top: 16px;
 }
 .npcink-openclaw-adapter-connection details.maa-advanced-group {
 	margin-top: 12px;
@@ -321,14 +318,18 @@
 	align-items: center;
 	margin-top: 12px;
 }
-.npcink-openclaw-adapter-connection .maa-device-table th,
-.npcink-openclaw-adapter-connection .maa-device-table td {
-	vertical-align: middle;
-}
 .npcink-openclaw-adapter-connection .maa-advanced-group {
 	margin-top: 16px;
 	padding-top: 14px;
 	border-top: 1px solid #dcdcde;
+}
+.npcink-openclaw-adapter-connection .maa-developer-note {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0 0 16px;
+	color: #646970;
 }
 .npcink-openclaw-adapter-connection .maa-advanced-group:first-of-type {
 	margin-top: 0;

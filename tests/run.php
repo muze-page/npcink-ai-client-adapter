@@ -829,10 +829,6 @@ $plan_write_input_validation = substr( $controller, (int) strpos( $controller, '
 maa_adapter_assert( false !== strpos( $plan_write_input_validation, "\$proposal_ready = array_key_exists( 'proposal_ready', \$raw_action )" ) && false !== strpos( $plan_write_input_validation, "\$requires_input = array_values( array_map( 'sanitize_key', (array) ( \$raw_action['requires_input'] ?? array() ) ) )" ) && false !== strpos( $plan_write_input_validation, 'if ( ! $proposal_ready && ! empty( $requires_input ) )' ), 'Adapter forwards requires-input blocked plan actions to Core instead of requiring executable proposal input locally.' );
 maa_adapter_assert( false !== strpos( $controller, 'min( self::MAX_PROPOSAL_LIST_LIMIT, max( 1, absint' ), 'Adapter list routes clamp caller supplied limits.' );
 maa_adapter_assert( false === strpos( $controller, 'HTTP_USER_AGENT' ), 'Public pairing rate limit is not weakened by caller-controlled user agents.' );
-maa_adapter_assert( false !== strpos( $controller, "approve_device_pairing( string \$user_code, string \$admin_label = '' )" ), 'Controller accepts an administrator label during device pairing approval.' );
-maa_adapter_assert( false !== strpos( $controller, '$admin_label = $this->bounded_text_field( $admin_label, 80 );' ), 'Controller bounds administrator device labels before storage.' );
-maa_adapter_assert( false !== strpos( $controller, "'admin_label'   => \$admin_label" ), 'Controller stores administrator device labels with key-pair records.' );
-maa_adapter_assert( false !== strpos( $controller, "'admin_label'   => (string) ( \$record['admin_label'] ?? '' )" ), 'Controller exposes administrator device labels to the current administrator key-pair view.' );
 maa_adapter_assert( false === strpos( $controller, '$supported_execute_ability_ids' ), 'Controller derives execute supported profiles from execution profiles.' );
 maa_adapter_assert( false === strpos( $controller, 'include_log_tail' ), 'Adapter does not implement old include_log_tail compatibility.' );
 maa_adapter_assert( false === strpos( $controller, 'include_error_log' ), 'Adapter does not use old include_error_log diagnostics input.' );
@@ -891,20 +887,21 @@ foreach (
 			'Simple key connection',
 			'Recommended path: pair a local signed key',
 			'Copy connect command',
-			'Copy Adapter URL',
 			'Authorized devices',
 			'Manage devices',
 			'data-maa-open-target="maa-authorized-devices"',
-			'active_key_pair_count',
+			'Revoke a device when it is no longer used or was approved by mistake',
 			'Create Application Password connection',
+			'Developer routes, proposal diagnostics, and verbose handoff text are documented',
+			'docs/admin-developer-reference.md',
 			'add_submenu_page',
 			'PARENT_MENU_SLUG',
 			'WP_Application_Passwords::create_new_application_password',
 		'Include LocalWP TLS setting',
 		'LocalWP TLS option',
 		'Use only for localhost or .local testing',
+			'Copy manifest URL',
 			'Site',
-			'adapter_proposal_id',
 			'proposal_lookup',
 			'render_proposal_lookup_result',
 		'Open in Core',
@@ -918,6 +915,9 @@ foreach (
 			'$this->display_datetime( $updated )',
 			"\$this->display_datetime( (string) ( \$record['last_used_at'] ?? '' ) )",
 			'key_pair_summary_text',
+			'Adapter URL',
+			'WordPress user',
+			'Copy env placeholder',
 			'Connection manifest',
 		'content_discoverability_suggestions',
 		'ai_article_draft_with_discoverability',
@@ -943,6 +943,7 @@ foreach (
 		'wordpress_application_password',
 		'password_uuid',
 		'Secret must be stored through the AI client credential store or dedicated secret field',
+			'Proposal detail',
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD',
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 			'Copy this Application Password now.',
@@ -981,6 +982,7 @@ foreach (
 		'local_cli_read_request_create_template',
 		'local_cli_read_request_status_template',
 		'local_cli_read_ability_template',
+		'Copy status command',
 		'local_cli_setup_text',
 		'render_key_pair_clients_table',
 		'local_cli_connect_command',
@@ -990,26 +992,43 @@ foreach (
 		'--intent=preflight',
 		'--intent=commit',
 		'final execute routes require --intent=commit',
-			'Do not read, cat, print, summarize, or copy the local keypair profile file',
+		'Do not read, cat, print, summarize, or copy the local keypair profile file',
 			'REVOKE_KEY_ACTION',
-			'admin_label',
-			'Device note',
-			'Example: Muze MacBook or office OpenClaw',
-			'Optional administrator-only label for later management',
-			'It is not used for authentication or authorization',
-			'maa-pairing-form',
-			'maa-device-table',
-			'Revoke this device? It must pair again before it can connect.',
-			'Revoke authorization',
+			'Npcink client approved',
 			'Connection approved.',
-		'Return to the terminal or local AI client',
-		'private key was never sent to WordPress',
-		'Connection rejected.',
-		'PAIR_MENU_SLUG',
-		'result_status',
+			'Return to the terminal or local AI client',
+			'private key was never sent to WordPress',
+			'If you did not start this pairing, revoke this client',
+			'Manage paired clients',
+			'Device reported by client',
+			'Used pairing code',
+			'Approved access',
+			'Read approved Adapter and WordPress Abilities API routes.',
+			'Create Core-governed proposals for reviewed writes.',
+			'This approval does not grant direct WordPress write, approval, publish',
+			'Diagnostic details',
+			'IDs and fingerprints for support; these are not client setup secrets.',
+			'Client key record ID',
+			'Connection rejected.',
+			'Npcink client rejected',
+			'PAIR_MENU_SLUG',
+			'result_status',
+			'/connection/manifest',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $connection_page, $required ), 'Connection page contains required text: ' . $required );
+}
+foreach (
+	array(
+		'maa-tabs',
+		'data-maa-tab-target',
+		'id="maa-advanced"',
+		'Continue proposal',
+		'Advanced details',
+		'Connection values',
+	) as $removed
+) {
+	maa_adapter_assert( false === strpos( $connection_page, $removed ), 'Connection page omits removed main-page surface: ' . $removed );
 }
 foreach (
 	array(
@@ -1063,11 +1082,13 @@ foreach (
 			'Copy connect command',
 			'Manage devices',
 			'authorized signed key-pair devices',
-			'Do not show command bodies',
+			'low-level key-pair client diagnostics',
+			'Proposal ID status lookup',
 			'Created Handoff',
 			'Copy Application Password',
 			'duplicate Core review queue',
 			'read shortcut route catalog',
+			'docs/admin-developer-reference.md',
 			'Core proposal approval tables',
 		'ability definitions',
 		'Cloud Base URL/API key',
@@ -1080,15 +1101,22 @@ foreach (
 	maa_adapter_assert( false !== strpos( $admin_surface_standard, $required ), 'Admin surface standard documents Adapter page boundary: ' . $required );
 }
 
-$admin_js = maa_adapter_read( $root . '/assets/admin.js' );
+$admin_developer_reference = maa_adapter_read( $root . '/docs/admin-developer-reference.md' );
 foreach (
 	array(
-		'data-maa-open-target',
-		'target.open = true',
-		'scrollIntoView',
+		'Adapter Developer Reference',
+		'Connection Routes',
+		'Proposal Routes',
+		'Read Shortcuts',
+		'AI Request Logs Correlation',
+		'Admin Boundary',
+		'secure signed key-pair connection',
+		'simple WordPress Application Password connection',
+		'core_proxy_execute=false',
+		'commit_execution=false',
 	) as $required
 ) {
-	maa_adapter_assert( false !== strpos( $admin_js, $required ), 'Admin JS opens targeted disclosure panels: ' . $required );
+	maa_adapter_assert( false !== strpos( $admin_developer_reference, $required ), 'Admin developer reference carries removed advanced detail: ' . $required );
 }
 
 $cloud_boundary = maa_adapter_read( $root . '/docs/cloud-connector-boundary.md' );
