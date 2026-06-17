@@ -245,6 +245,317 @@ function maa_adapter_btoa_strict_future_gaps(): bool {
 	return '1' === (string) getenv( 'MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_STRICT_FUTURE' );
 }
 
+/**
+ * Returns whether the governed execution scenario should run.
+ *
+ * @return bool
+ */
+function maa_adapter_btoa_commit_enabled(): bool {
+	$value = (string) getenv( 'MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_COMMIT' );
+	return '1' === $value || 'true' === strtolower( $value );
+}
+
+/**
+ * Collects recursive block names from a block tree.
+ *
+ * @param array<int,array<string,mixed>> $blocks Blocks.
+ * @return string[]
+ */
+function maa_adapter_btoa_collect_block_names( array $blocks ): array {
+	$names = array();
+	$walk  = static function ( array $items ) use ( &$walk, &$names ): void {
+		foreach ( $items as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			$name = (string) ( $block['blockName'] ?? '' );
+			if ( '' !== $name ) {
+				$names[] = $name;
+			}
+			$walk( is_array( $block['innerBlocks'] ?? null ) ? array_values( $block['innerBlocks'] ) : array() );
+		}
+	};
+	$walk( $blocks );
+	return array_values( array_unique( array_filter( $names ) ) );
+}
+
+/**
+ * Returns whether a block tree includes a class name.
+ *
+ * @param array<int,array<string,mixed>> $blocks Blocks.
+ * @param string                         $class_name Class name.
+ * @return bool
+ */
+function maa_adapter_btoa_blocks_have_class( array $blocks, string $class_name ): bool {
+	$found = false;
+	$walk  = static function ( array $items ) use ( &$walk, &$found, $class_name ): void {
+		foreach ( $items as $block ) {
+			if ( ! is_array( $block ) || $found ) {
+				continue;
+			}
+			$classes = preg_split( '/\s+/', (string) ( $block['attrs']['className'] ?? '' ) );
+			if ( in_array( $class_name, is_array( $classes ) ? $classes : array(), true ) ) {
+				$found = true;
+				return;
+			}
+			$walk( is_array( $block['innerBlocks'] ?? null ) ? array_values( $block['innerBlocks'] ) : array() );
+		}
+	};
+	$walk( $blocks );
+	return $found;
+}
+
+/**
+ * Returns whether a block tree includes a block with an attr value.
+ *
+ * @param array<int,array<string,mixed>> $blocks Blocks.
+ * @param string                         $block_name Block name.
+ * @param string                         $attr Attr name.
+ * @param string                         $value Expected value.
+ * @return bool
+ */
+function maa_adapter_btoa_blocks_have_attr( array $blocks, string $block_name, string $attr, string $value ): bool {
+	$found = false;
+	$walk  = static function ( array $items ) use ( &$walk, &$found, $block_name, $attr, $value ): void {
+		foreach ( $items as $block ) {
+			if ( ! is_array( $block ) || $found ) {
+				continue;
+			}
+			if ( $block_name === (string) ( $block['blockName'] ?? '' ) && $value === (string) ( $block['attrs'][ $attr ] ?? '' ) ) {
+				$found = true;
+				return;
+			}
+			$walk( is_array( $block['innerBlocks'] ?? null ) ? array_values( $block['innerBlocks'] ) : array() );
+		}
+	};
+	$walk( $blocks );
+	return $found;
+}
+
+/**
+ * Returns a local wp_template backup by post id.
+ *
+ * This is local acceptance cleanup only; the tested flow itself still uses
+ * Adapter proposal creation and approve-and-execute.
+ *
+ * @param int $post_id Template post id.
+ * @return array<string,mixed>
+ */
+function maa_adapter_btoa_template_backup( int $post_id ): array {
+	$post = get_post( $post_id );
+	return array(
+		'post_id'      => $post_id,
+		'post_content' => $post instanceof WP_Post ? (string) $post->post_content : '',
+	);
+}
+
+/**
+ * Restores a local wp_template backup.
+ *
+ * @param array<string,mixed> $backup Backup.
+ * @return void
+ */
+function maa_adapter_btoa_restore_template_backup( array $backup ): void {
+	$post_id = absint( $backup['post_id'] ?? 0 );
+	if ( $post_id <= 0 ) {
+		return;
+	}
+	wp_update_post(
+		array(
+			'ID'           => $post_id,
+			'post_content' => (string) ( $backup['post_content'] ?? '' ),
+		)
+	);
+}
+
+/**
+ * Applies a minimal stale article template fixture for governed repair testing.
+ *
+ * @param int $post_id Template post id.
+ * @return void
+ */
+function maa_adapter_btoa_apply_stale_article_template_fixture( int $post_id ): void {
+	if ( $post_id <= 0 || ! function_exists( 'serialize_blocks' ) ) {
+		return;
+	}
+
+	$blocks = array(
+		array(
+			'blockName'    => 'core/template-part',
+			'attrs'        => array( 'slug' => 'header', 'theme' => 'twentytwentyfive' ),
+			'innerBlocks'  => array(),
+			'innerHTML'    => '',
+			'innerContent' => array(),
+		),
+		array(
+			'blockName'    => 'core/group',
+			'attrs'        => array( 'tagName' => 'main' ),
+			'innerBlocks'  => array(
+				array(
+					'blockName'    => 'core/post-title',
+					'attrs'        => array( 'level' => 1 ),
+					'innerBlocks'  => array(),
+					'innerHTML'    => '',
+					'innerContent' => array(),
+				),
+				array(
+					'blockName'    => 'core/post-content',
+					'attrs'        => array(),
+					'innerBlocks'  => array(),
+					'innerHTML'    => '',
+					'innerContent' => array(),
+				),
+			),
+			'innerHTML'    => '',
+			'innerContent' => array(),
+		),
+		array(
+			'blockName'    => 'core/template-part',
+			'attrs'        => array( 'slug' => 'footer', 'theme' => 'twentytwentyfive' ),
+			'innerBlocks'  => array(),
+			'innerHTML'    => '',
+			'innerContent' => array(),
+		),
+	);
+
+	wp_update_post(
+		array(
+			'ID'           => $post_id,
+			'post_content' => serialize_blocks( $blocks ),
+		)
+	);
+}
+
+/**
+ * Runs a governed template layout execution scenario with local restore.
+ *
+ * @param array<string,mixed>          $config Scenario config.
+ * @param array<int,array<string,mixed>> $assertions Assertions.
+ * @return array<string,mixed>
+ */
+function maa_adapter_btoa_run_template_layout_execution_scenario( array $config, array &$assertions ): array {
+	$key              = sanitize_key( (string) ( $config['key'] ?? 'template_layout' ) );
+	$prompt           = (string) ( $config['prompt'] ?? '' );
+	$target_slug      = sanitize_key( (string) ( $config['target_slug'] ?? '' ) );
+	$expected_profile = sanitize_key( (string) ( $config['layout_profile'] ?? '' ) );
+	$profile_version  = (string) ( $config['profile_version'] ?? '' );
+	$required_blocks  = is_array( $config['required_blocks'] ?? null ) ? $config['required_blocks'] : array();
+	$required_classes = is_array( $config['required_classes'] ?? null ) ? $config['required_classes'] : array();
+	$required_attrs   = is_array( $config['required_attrs'] ?? null ) ? $config['required_attrs'] : array();
+
+	$report = array(
+		'enabled'          => true,
+		'prompt'           => $prompt,
+		'target_slug'      => $target_slug,
+		'layout_profile'   => $expected_profile,
+		'created_proposal' => false,
+		'executed_write'   => false,
+	);
+
+	$route_response = maa_adapter_btoa_run_read_ability(
+		'npcink-abilities-toolkit/route-content-intent',
+		array( 'prompt' => $prompt ),
+		$assertions
+	);
+	$route = maa_adapter_btoa_route_data( $route_response );
+	$plan_input = is_array( $route['recommended_plan_input'] ?? null ) ? $route['recommended_plan_input'] : array();
+	if ( is_array( $config['plan_input_overrides'] ?? null ) ) {
+		$plan_input = array_merge( $plan_input, $config['plan_input_overrides'] );
+	}
+	$report['route'] = $route;
+
+	maa_adapter_btoa_assert( $assertions, 'block_theme_site_plan' === (string) ( $route['route'] ?? '' ), $key . ' routes to block_theme_site_plan' );
+	maa_adapter_btoa_assert( $assertions, 'site_template_layout' === (string) ( $route['route_key'] ?? '' ), $key . ' uses site_template_layout route key' );
+	maa_adapter_btoa_assert( $assertions, 'customize_template_layout' === (string) ( $plan_input['intent'] ?? '' ), $key . ' recommends layout customization' );
+	maa_adapter_btoa_assert( $assertions, $expected_profile === sanitize_key( (string) ( $plan_input['layout_profile'] ?? '' ) ), $key . ' recommends expected profile' );
+	maa_adapter_btoa_assert( $assertions, in_array( $target_slug, array_map( 'sanitize_key', (array) ( $plan_input['target_templates'] ?? array() ) ), true ), $key . ' recommends expected template target' );
+
+	$context_response = maa_adapter_btoa_run_read_ability( 'npcink-abilities-toolkit/get-block-theme-context', array(), $assertions );
+	$context = maa_adapter_btoa_ability_data( $context_response );
+	$target_override = is_array( $context['existing_overrides'][ $target_slug ] ?? null ) ? $context['existing_overrides'][ $target_slug ] : array();
+	$target_post_id  = absint( $target_override['post_id'] ?? 0 );
+	maa_adapter_btoa_assert( $assertions, $target_post_id > 0, $key . ' finds an existing template override' );
+
+	$template_backup = array();
+	if ( $target_post_id > 0 ) {
+		$template_backup = maa_adapter_btoa_template_backup( $target_post_id );
+		maa_adapter_btoa_apply_stale_article_template_fixture( $target_post_id );
+	}
+
+	$plan_response = maa_adapter_btoa_run_read_ability(
+		'npcink-abilities-toolkit/build-block-theme-site-plan',
+		$plan_input,
+		$assertions
+	);
+	$plan = maa_adapter_btoa_ability_data( $plan_response );
+	$profile_row = is_array( $plan['template_layout_contract']['profiles'][0] ?? null ) ? $plan['template_layout_contract']['profiles'][0] : array();
+	$quality_codes = (array) ( $plan['preview'][0]['block_editor_quality_gate']['finding_codes'] ?? array() );
+	$report['profile_version'] = (string) ( $profile_row['profile_version'] ?? '' );
+	$report['quality_finding_codes'] = $quality_codes;
+
+	maa_adapter_btoa_assert( $assertions, $profile_version === (string) ( $profile_row['profile_version'] ?? '' ), $key . ' plan uses expected profile version' );
+	maa_adapter_btoa_assert( $assertions, 'replace_template_layout_with_preserved_template_parts' === (string) ( $profile_row['operation'] ?? '' ), $key . ' plan declares the Core intake operation' );
+	maa_adapter_btoa_assert( $assertions, ! empty( $plan['write_actions'] ?? array() ), $key . ' plan produces write actions for stale fixture' );
+
+	$proposal_response = maa_adapter_btoa_rest(
+		'POST',
+		'/npcink-openclaw-adapter/v1/proposals/from-plan',
+		array(
+			'plan_ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+			'plan'            => $plan,
+			'plan_input'      => $plan_input,
+		),
+		$assertions
+	);
+	$proposal_id = (string) ( $proposal_response['proposal_id'] ?? ( $proposal_response['proposals'][0]['proposal_id'] ?? '' ) );
+	$report['proposal_id'] = $proposal_id;
+	$report['created_proposal'] = '' !== $proposal_id;
+	maa_adapter_btoa_assert( $assertions, '' !== $proposal_id, $key . ' proposal is created' );
+	maa_adapter_btoa_assert( $assertions, 'pending' === (string) ( $proposal_response['status'] ?? ( $proposal_response['proposals'][0]['status'] ?? '' ) ), $key . ' proposal starts pending' );
+
+	$execute_response = array();
+	if ( '' !== $proposal_id ) {
+		$execute_response = maa_adapter_btoa_rest(
+			'POST',
+			'/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve-and-execute',
+			array( 'intent' => 'commit' ),
+			$assertions
+		);
+		$report['executed_write'] = true;
+		$report['execution_record_status'] = (string) ( $execute_response['execution_record']['status'] ?? ( $execute_response['execution']['status'] ?? '' ) );
+		maa_adapter_btoa_assert( $assertions, is_array( $execute_response['execution_record'] ?? null ) || is_array( $execute_response['execution'] ?? null ), $key . ' proposal returns execution evidence' );
+		maa_adapter_btoa_assert( $assertions, 'succeeded' === $report['execution_record_status'], $key . ' execution succeeds' );
+	}
+
+	$readback = maa_adapter_btoa_read_template( $target_slug, $assertions );
+	$blocks = is_array( $readback['data']['blocks'] ?? null ) ? $readback['data']['blocks'] : array();
+	$block_names = maa_adapter_btoa_collect_block_names( $blocks );
+	foreach ( $required_blocks as $required_block ) {
+		maa_adapter_btoa_assert( $assertions, in_array( (string) $required_block, $block_names, true ), $key . ' readback includes ' . (string) $required_block );
+	}
+	foreach ( array( 'core/html', 'core/freeform' ) as $forbidden_block ) {
+		maa_adapter_btoa_assert( $assertions, ! in_array( $forbidden_block, $block_names, true ), $key . ' readback excludes ' . $forbidden_block );
+	}
+	foreach ( $required_classes as $required_class ) {
+		maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_class( $blocks, (string) $required_class ), $key . ' readback includes ' . (string) $required_class );
+	}
+	foreach ( $required_attrs as $attr_check ) {
+		$block_name = (string) ( $attr_check['block'] ?? '' );
+		$attr       = (string) ( $attr_check['attr'] ?? '' );
+		$value      = (string) ( $attr_check['value'] ?? '' );
+		$label      = (string) ( $attr_check['label'] ?? ( $block_name . ' ' . $attr . '=' . $value ) );
+		maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_attr( $blocks, $block_name, $attr, $value ), $key . ' readback includes ' . $label );
+	}
+
+	if ( ! empty( $template_backup ) ) {
+		maa_adapter_btoa_restore_template_backup( $template_backup );
+	}
+
+	$report['readback_summary']  = maa_adapter_btoa_template_summary( is_array( $readback['data'] ?? null ) ? $readback['data'] : array() );
+	$report['restored_template'] = ! empty( $template_backup );
+	return $report;
+}
+
 $assertions = array();
 $product_gaps = array();
 $report     = array(
@@ -253,6 +564,9 @@ $report     = array(
 	'scenarios'     => array(),
 	'assertions'    => array(),
 );
+$created_proposal = false;
+$executed_write   = false;
+$template_backup  = array();
 
 $health       = maa_adapter_btoa_rest( 'GET', '/npcink-openclaw-adapter/v1/health', array(), $assertions );
 $help         = maa_adapter_btoa_rest( 'GET', '/npcink-openclaw-adapter/v1/help', array(), $assertions );
@@ -413,6 +727,191 @@ $report['scenarios']['template_layout_route'] = array(
 	'created_proposal' => false,
 );
 
+// Scenario 4: opt-in governed article template proposal, execution, readback, and local restore.
+$article_execution_enabled = maa_adapter_btoa_commit_enabled();
+$article_execution_report  = array(
+	'enabled'          => $article_execution_enabled,
+	'created_proposal' => false,
+	'executed_write'   => false,
+);
+if ( $article_execution_enabled ) {
+	$article_prompt = '帮我把文章页模板整理成标准文章页布局：面包屑在标题区域上方，标题下面显示作者、日期和分类；保留特色图、正文、标签、上一篇下一篇、评论和相关文章。';
+	$article_route_response = maa_adapter_btoa_run_read_ability(
+		'npcink-abilities-toolkit/route-content-intent',
+		array( 'prompt' => $article_prompt ),
+		$assertions
+	);
+	$article_route = maa_adapter_btoa_route_data( $article_route_response );
+	$article_plan_input = is_array( $article_route['recommended_plan_input'] ?? null ) ? $article_route['recommended_plan_input'] : array();
+	maa_adapter_btoa_assert( $assertions, 'block_theme_site_plan' === (string) ( $article_route['route'] ?? '' ), 'article standard execution routes to block_theme_site_plan' );
+	maa_adapter_btoa_assert( $assertions, 'site_template_layout' === (string) ( $article_route['route_key'] ?? '' ), 'article standard execution uses site_template_layout route key' );
+	maa_adapter_btoa_assert( $assertions, 'customize_template_layout' === (string) ( $article_plan_input['intent'] ?? '' ), 'article standard execution recommends layout customization' );
+	maa_adapter_btoa_assert( $assertions, 'article_standard' === (string) ( $article_plan_input['layout_profile'] ?? '' ), 'article standard execution recommends article_standard profile' );
+
+	$article_context_response = maa_adapter_btoa_run_read_ability( 'npcink-abilities-toolkit/get-block-theme-context', array(), $assertions );
+	$article_context = maa_adapter_btoa_ability_data( $article_context_response );
+	$single_override = is_array( $article_context['existing_overrides']['single'] ?? null ) ? $article_context['existing_overrides']['single'] : array();
+	$single_post_id  = absint( $single_override['post_id'] ?? 0 );
+	maa_adapter_btoa_assert( $assertions, $single_post_id > 0, 'article standard execution finds an existing single template override' );
+	if ( $single_post_id > 0 ) {
+		$template_backup = maa_adapter_btoa_template_backup( $single_post_id );
+		maa_adapter_btoa_apply_stale_article_template_fixture( $single_post_id );
+	}
+
+	$article_plan_response = maa_adapter_btoa_run_read_ability(
+		'npcink-abilities-toolkit/build-block-theme-site-plan',
+		$article_plan_input,
+		$assertions
+	);
+	$article_plan_envelope = is_array( $article_plan_response['result'] ?? null ) ? $article_plan_response['result'] : array();
+	$article_plan          = maa_adapter_btoa_ability_data( $article_plan_response );
+	$article_profile_row   = is_array( $article_plan['template_layout_contract']['profiles'][0] ?? null ) ? $article_plan['template_layout_contract']['profiles'][0] : array();
+	maa_adapter_btoa_assert( $assertions, 'article_standard@0.4' === (string) ( $article_profile_row['profile_version'] ?? '' ), 'article standard plan uses article_standard@0.4' );
+	maa_adapter_btoa_assert( $assertions, 'replace_template_layout_with_preserved_template_parts' === (string) ( $article_profile_row['operation'] ?? '' ), 'article standard plan declares the Core intake operation' );
+	maa_adapter_btoa_assert( $assertions, in_array( 'post_navigation', (array) ( $article_profile_row['modules'] ?? array() ), true ), 'article standard plan declares post_navigation module' );
+	maa_adapter_btoa_assert( $assertions, in_array( 'comments', (array) ( $article_profile_row['modules'] ?? array() ), true ), 'article standard plan declares comments module' );
+	$article_quality_codes = (array) ( $article_plan['preview'][0]['block_editor_quality_gate']['finding_codes'] ?? array() );
+	foreach ( array( 'hero_media_missing', 'bento_grid_missing', 'faq_missing', 'final_cta_missing' ) as $landing_only_code ) {
+		maa_adapter_btoa_assert( $assertions, ! in_array( $landing_only_code, $article_quality_codes, true ), 'article standard quality gate omits ' . $landing_only_code );
+	}
+
+	$proposal_response = maa_adapter_btoa_rest(
+		'POST',
+		'/npcink-openclaw-adapter/v1/proposals/from-plan',
+		array(
+			'plan_ability_id' => 'npcink-abilities-toolkit/build-block-theme-site-plan',
+			'plan'            => $article_plan,
+			'plan_input'      => $article_plan_input,
+		),
+		$assertions
+	);
+	$proposal_id = (string) ( $proposal_response['proposal_id'] ?? ( $proposal_response['proposals'][0]['proposal_id'] ?? '' ) );
+	$created_proposal = '' !== $proposal_id;
+	$execute_response = array();
+	maa_adapter_btoa_assert( $assertions, $created_proposal, 'article standard proposal is created' );
+	maa_adapter_btoa_assert( $assertions, 'pending' === (string) ( $proposal_response['status'] ?? ( $proposal_response['proposals'][0]['status'] ?? '' ) ), 'article standard proposal starts pending' );
+
+	if ( '' !== $proposal_id ) {
+		$execute_response = maa_adapter_btoa_rest(
+			'POST',
+			'/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $proposal_id ) . '/approve-and-execute',
+			array( 'intent' => 'commit' ),
+			$assertions
+		);
+		$executed_write = true;
+		maa_adapter_btoa_assert( $assertions, is_array( $execute_response['execution_record'] ?? null ) || is_array( $execute_response['execution'] ?? null ), 'article standard proposal returns execution evidence' );
+		maa_adapter_btoa_assert( $assertions, 'succeeded' === (string) ( $execute_response['execution_record']['status'] ?? ( $execute_response['execution']['status'] ?? '' ) ), 'article standard execution succeeds' );
+	}
+
+	$single_after = maa_adapter_btoa_read_template( 'single', $assertions );
+	$after_blocks = is_array( $single_after['data']['blocks'] ?? null ) ? $single_after['data']['blocks'] : array();
+	$after_block_names = maa_adapter_btoa_collect_block_names( $after_blocks );
+	foreach ( array( 'core/template-part', 'core/group', 'core/post-title', 'core/post-author-name', 'core/post-date', 'core/post-terms', 'core/post-featured-image', 'core/post-content', 'core/post-navigation-link', 'core/comments', 'core/latest-posts' ) as $required_block ) {
+		maa_adapter_btoa_assert( $assertions, in_array( $required_block, $after_block_names, true ), 'article standard readback includes ' . $required_block );
+	}
+	foreach ( array( 'core/html', 'core/freeform' ) as $forbidden_block ) {
+		maa_adapter_btoa_assert( $assertions, ! in_array( $forbidden_block, $after_block_names, true ), 'article standard readback excludes ' . $forbidden_block );
+	}
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_class( $after_blocks, 'openclaw-template-title-stack' ), 'article standard readback includes title stack' );
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_class( $after_blocks, 'openclaw-template-content-stack' ), 'article standard readback includes content stack' );
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_class( $after_blocks, 'openclaw-template-post-navigation' ), 'article standard readback includes post navigation band' );
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_class( $after_blocks, 'openclaw-template-related' ), 'article standard readback includes related posts band' );
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_attr( $after_blocks, 'core/post-terms', 'term', 'category' ), 'article standard readback includes category terms' );
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_attr( $after_blocks, 'core/post-terms', 'term', 'post_tag' ), 'article standard readback includes tag terms' );
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_attr( $after_blocks, 'core/post-navigation-link', 'type', 'previous' ), 'article standard readback includes previous post link' );
+	maa_adapter_btoa_assert( $assertions, maa_adapter_btoa_blocks_have_attr( $after_blocks, 'core/post-navigation-link', 'type', 'next' ), 'article standard readback includes next post link' );
+
+	if ( ! empty( $template_backup ) ) {
+		maa_adapter_btoa_restore_template_backup( $template_backup );
+	}
+
+	$article_execution_report = array(
+		'enabled'              => true,
+		'prompt'               => $article_prompt,
+		'route'                => $article_route,
+		'profile_version'      => (string) ( $article_profile_row['profile_version'] ?? '' ),
+		'quality_finding_codes' => $article_quality_codes,
+		'proposal_id'          => $proposal_id,
+		'proposal_status_after_execute' => (string) ( $execute_response['status'] ?? ( $execute_response['proposal']['status'] ?? '' ) ),
+		'execution_record_status' => (string) ( $execute_response['execution_record']['status'] ?? ( $execute_response['execution']['status'] ?? '' ) ),
+		'created_proposal'     => $created_proposal,
+		'executed_write'       => $executed_write,
+		'readback_summary'     => maa_adapter_btoa_template_summary( is_array( $single_after['data'] ?? null ) ? $single_after['data'] : array() ),
+		'restored_template'    => ! empty( $template_backup ),
+	);
+} else {
+	$product_gaps[] = array(
+		'code'    => 'article_standard_commit_acceptance_skipped',
+		'message' => 'Set MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_COMMIT=1 to run proposal creation, approve-and-execute, readback, and local restore for article_standard@0.4.',
+	);
+}
+$report['scenarios']['article_standard_proposal_execute_readback'] = $article_execution_report;
+
+// Scenario 5: opt-in governed page and homepage template proposal, execution, readback, and local restore.
+$additional_layout_execution_reports = array(
+	'page_standard'     => array(
+		'enabled'          => $article_execution_enabled,
+		'created_proposal' => false,
+		'executed_write'   => false,
+	),
+	'homepage_landing' => array(
+		'enabled'          => $article_execution_enabled,
+		'created_proposal' => false,
+		'executed_write'   => false,
+	),
+);
+if ( $article_execution_enabled ) {
+	$additional_layout_execution_reports['page_standard'] = maa_adapter_btoa_run_template_layout_execution_scenario(
+		array(
+			'key'             => 'page standard execution',
+			'prompt'          => '帮我把普通页面模板整理成标准页面布局：面包屑在页面标题上方，保留页面标题、特色图和正文。',
+			'target_slug'     => 'page',
+			'layout_profile'  => 'page_standard',
+			'profile_version' => 'page_standard@0.1',
+			'required_blocks' => array(
+				'core/template-part',
+				'core/group',
+				'core/post-title',
+				'core/post-featured-image',
+				'core/post-content',
+			),
+			'required_classes' => array(
+				'openclaw-breadcrumbs',
+				'openclaw-template-layout-page_standard',
+			),
+		),
+		$assertions
+	);
+	$additional_layout_execution_reports['homepage_landing'] = maa_adapter_btoa_run_template_layout_execution_scenario(
+		array(
+			'key'             => 'homepage landing execution',
+			'prompt'          => '帮我把首页模板整理成落地页：顶部有大标题和介绍，下面有行动按钮，再展示最新文章和分类入口。',
+			'target_slug'     => 'front-page',
+			'layout_profile'  => 'homepage_landing',
+			'profile_version' => 'homepage_landing@0.2',
+			'required_blocks' => array(
+				'core/template-part',
+				'core/group',
+				'core/heading',
+				'core/paragraph',
+				'core/buttons',
+				'core/button',
+				'core/latest-posts',
+				'core/categories',
+			),
+			'required_classes' => array(
+				'openclaw-template-layout-homepage_landing',
+			),
+		),
+		$assertions
+	);
+	foreach ( $additional_layout_execution_reports as $execution_report ) {
+		$created_proposal = $created_proposal || ! empty( $execution_report['created_proposal'] );
+		$executed_write   = $executed_write || ! empty( $execution_report['executed_write'] );
+	}
+}
+$report['scenarios']['additional_template_layout_proposal_execute_readback'] = $additional_layout_execution_reports;
+
 $report['assertions'] = $assertions;
 $failed = array_values(
 	array_filter(
@@ -429,8 +928,8 @@ $report['final_decision'] = array(
 	'failed_count'   => count( $failed ),
 	'product_gap_count' => count( $product_gaps ),
 	'strict_future_gaps' => $strict_future_gaps,
-	'created_proposal' => false,
-	'executed_write' => false,
+	'created_proposal' => $created_proposal,
+	'executed_write' => $executed_write,
 );
 $report['product_gaps'] = $product_gaps;
 

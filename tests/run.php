@@ -65,6 +65,43 @@ maa_adapter_assert( false !== strpos( $controller, 'must_not_submit_proposal' ),
 maa_adapter_assert( false !== strpos( $controller, 'Change global styles and write a theme.json color patch.' ), 'Controller negative examples cover global styles and theme.json requests.' );
 foreach (
 	array(
+		'docs/architecture/adapter-boundary.md'    => array(
+			'thin OpenClaw channel layer',
+			'core_proxy_execute=false',
+			'commit_execution=false',
+			'Client-key fingerprint binding is intentionally cross-plugin',
+			'/npcink-governance-core/v1/contract',
+			'/npcink-abilities-toolkit/v1/contract',
+		),
+		'docs/contracts/client-policy.md'         => array(
+			'npcink_openclaw_adapter_client_policy.v1',
+			'adapter_only_fail_closed',
+			'ability_id_plus_input_hash',
+			'proposal -> Core approval -> commit-preflight -> explicit commit intent -> Adapter execution profile',
+		),
+		'docs/contracts/execution-profiles.md'    => array(
+			'Adapter execution profiles are the only Adapter-owned final-write allowlist',
+			'Execution_Profile_Registry.php',
+			'execution_profile_registry_hash',
+			'block-theme-template.update_draft',
+			'npcink-abilities-toolkit/update-template-blocks',
+		),
+		'docs/acceptance/local-ai-client-smoke.md' => array(
+			'composer accept:local-ai-client',
+			'composer accept:local-ai-client-fixture',
+			'MAA_ADAPTER_FIXTURE_ALLOW_COMMIT=1',
+			'composer smoke:package-install',
+		),
+	) as $doc_path => $required_doc_texts
+) {
+	$doc = maa_adapter_read( $root . '/' . $doc_path );
+	maa_adapter_assert( '' !== $doc, 'Documentation exists: ' . $doc_path );
+	foreach ( $required_doc_texts as $required_doc_text ) {
+		maa_adapter_assert( false !== strpos( $doc, $required_doc_text ), 'Documentation contains required text in ' . $doc_path . ': ' . $required_doc_text );
+	}
+}
+foreach (
+	array(
 		'npcink-abilities-toolkit/build-content-inventory-fix-plan',
 		'npcink-abilities-toolkit/build-media-optimization-plan',
 		'npcink-abilities-toolkit/build-article-optimization-apply-plan',
@@ -118,6 +155,11 @@ foreach (
 		'npcink_openclaw_adapter_client_policy.v1',
 		'policy_version',
 		'adapter_contract_metadata',
+		'dependency_contracts',
+		'dependency_contracts_ready',
+		'dependency_contract_summary',
+		'dependency_contract_boundary_summary',
+		'rest_error_code_from_data',
 		'npcink_openclaw_adapter_contract.v1',
 		'adapter_contract_version',
 		'execution_profile_registry_version',
@@ -131,6 +173,12 @@ foreach (
 		'supported_plan_ability_ids_hash',
 		'contract_sha256',
 		'contract_hash_value',
+		'/npcink-governance-core/v1/contract',
+		'/npcink-abilities-toolkit/v1/contract',
+		'npcink_governance_core_contract.v1',
+		'npcink_abilities_toolkit_contract.v1',
+		'provider_secret_storage',
+		'host_governed_writes',
 		'adapter_only_fail_closed',
 		'forbidden_outputs',
 		'forbidden_local_access',
@@ -138,6 +186,11 @@ foreach (
 		'database_direct',
 		'filesystem_secret_read_allowed',
 		'ability_id_plus_input_hash',
+		'npcink_openclaw_adapter_core_read_grant_site_url_mismatch',
+		'npcink_openclaw_adapter_core_read_grant_blog_id_mismatch',
+		'site_url',
+		'home_url',
+		'blog_id',
 		'run_read_ability( string $ability_id, array $input, array $log_context = array(), array $read_authorization = array() )',
 		'/media-metadata-optimization',
 		'media_metadata_optimization_route',
@@ -360,9 +413,12 @@ foreach (
 			'consume_cached_preflight_handoff',
 			'prune_preflight_handoffs',
 			'validate_preflight_binding',
+			'validate_core_context_site_binding',
 			'proposal_input_hash',
 			'npcink_openclaw_adapter_preflight_input_hash_mismatch',
 			'npcink_openclaw_adapter_preflight_policy_version_invalid',
+			'npcink_openclaw_adapter_preflight_site_url_mismatch',
+			'npcink_openclaw_adapter_preflight_handoff_blog_id_mismatch',
 			'core-preflight-v1',
 			'approved_input_hash',
 			'policy_version',
@@ -1410,8 +1466,12 @@ foreach (
 		'"package:release"',
 		'"package:suite"',
 		'"plugin-check:release"',
+		'"smoke:package-install": "bash tests/package-install-smoke.sh"',
 		'"accept:local-ai-client": "bash tests/local-ai-client-acceptance.sh"',
+		'"accept:local-ai-client-fixture": "bash tests/local-ai-client-fixture-acceptance.sh"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
+		'"dev:article-template-visual": "bash tests/dev-article-template-visual.sh"',
+		'"dev:block-theme-template-visual": "bash tests/dev-block-theme-template-visual.sh"',
 		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
 		'php-8.2.29+0',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
@@ -1634,6 +1694,11 @@ foreach (
 		'toolkit_contract_min_version',
 		'toolkit_plugin_min_version',
 		'not Core-emitted or Toolkit-emitted runtime proofs',
+		'dependency_contracts',
+		'npcink_governance_core_contract.v1',
+		'npcink_abilities_toolkit_contract.v1',
+		'provider_secret_storage',
+		'host_governed_writes',
 		'core_proxy_execute',
 		'commit_execution',
 		'Npcink -> Adapter',
@@ -2021,6 +2086,123 @@ foreach (
 	maa_adapter_assert( false !== strpos( $visual_acceptance_sh, $required ), 'Visual acceptance shell contains required text: ' . $required );
 }
 
+$dev_article_template_visual_sh = maa_adapter_read( $root . '/tests/dev-article-template-visual.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_REPORT_DIR',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_BACKUP',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_KEEP_TEMPLATE',
+		'restore_template',
+		'trap restore_template EXIT',
+		'tests/dev-article-template-visual.php',
+		'composer visual:wp',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
+		'WP_CLI_MYSQL_SOCKET',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_article_template_visual_sh, $required ), 'Dev article template visual shell contains required text: ' . $required );
+}
+
+$dev_article_template_visual_php = maa_adapter_read( $root . '/tests/dev-article-template-visual.php' );
+foreach (
+	array(
+		'local_dev_only',
+		'/npcink-openclaw-adapter/v1/run-read-ability',
+		'npcink-abilities-toolkit/build-block-theme-site-plan',
+		'customize_template_layout',
+		'article_standard',
+		'serialize_blocks',
+		'wp_update_post',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_MODE',
+		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_POST_ID',
+		'minimum_padded_sections',
+		'block_theme_template',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_article_template_visual_php, $required ), 'Dev article template visual PHP contains required text: ' . $required );
+}
+
+$dev_block_theme_template_visual_sh = maa_adapter_read( $root . '/tests/dev-block-theme-template-visual.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_REPORT_DIR',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_PROFILE',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_BACKUP',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_KEEP_TEMPLATE',
+		'restore_template',
+		'trap restore_template EXIT',
+		'tests/dev-block-theme-template-visual.php',
+		'composer visual:wp',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
+		'WP_CLI_MYSQL_SOCKET',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_block_theme_template_visual_sh, $required ), 'Dev block theme template visual shell contains required text: ' . $required );
+}
+
+$dev_block_theme_template_visual_php = maa_adapter_read( $root . '/tests/dev-block-theme-template-visual.php' );
+foreach (
+	array(
+		'local_dev_only',
+		'/npcink-openclaw-adapter/v1/run-read-ability',
+		'npcink-abilities-toolkit/build-block-theme-site-plan',
+		'customize_template_layout',
+		'article_standard',
+		'page_standard',
+		'homepage_landing',
+		'serialize_blocks',
+		'wp_update_post',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_MODE',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_POST_ID',
+		'MAA_ADAPTER_BLOCK_THEME_VISUAL_PAGE_ID',
+		'minimum_padded_sections',
+		'block_theme_template',
+		'block_theme_homepage',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $dev_block_theme_template_visual_php, $required ), 'Dev block theme template visual PHP contains required text: ' . $required );
+}
+
+$package_install_smoke_sh = maa_adapter_read( $root . '/tests/package-install-smoke.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_PACKAGE_SMOKE_ZIP',
+		'build/npcink-ai-client-adapter.zip',
+		'restore_original_plugin',
+		'trap restore_original_plugin EXIT',
+		'wp-content/plugins/npcink-ai-client-adapter',
+		'wp plugin install',
+		'Npcink AI Client Adapter',
+		'npcink-openclaw-adapter.php',
+		'Legacy bootstrap',
+		'Plugin Name:',
+		'/npcink-openclaw-adapter/v1/health',
+		'npcink_openclaw_adapter_contract.v1',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $package_install_smoke_sh, $required ), 'Package install smoke shell contains required text: ' . $required );
+}
+
+$local_ai_client_fixture_acceptance_sh = maa_adapter_read( $root . '/tests/local-ai-client-fixture-acceptance.sh' );
+foreach (
+	array(
+		'MAA_ADAPTER_FIXTURE_ALLOW_COMMIT',
+		'MAA_ADAPTER_FIXTURE_CLEANUP_POST',
+		'Adapter CLI fixture draft proposal',
+		'npcink-abilities-toolkit/create-draft',
+		'POST /proposals --body-file',
+		'GET "/proposals/$proposal_id"',
+		'approve-and-execute',
+		'--intent=commit',
+		'Final route succeeded without --intent=commit',
+		'npcink_openclaw_adapter_execution_already_completed',
+		'wp post delete',
+		'local AI client fixture acceptance: ok',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $local_ai_client_fixture_acceptance_sh, $required ), 'Local AI client fixture acceptance shell contains required text: ' . $required );
+}
+
 $visual_acceptance_cleanup = maa_adapter_read( $root . '/tests/cleanup-visual-acceptance.php' );
 foreach (
 	array(
@@ -2160,10 +2342,14 @@ foreach (
 		'adapter health exposes trash-post execute supported profiles',
 		'adapter health exposes rename-media-file execute supported profiles',
 		'adapter health exposes delete-media-permanently execute supported profiles',
+		'adapter health reports dependency contracts ready',
+		'adapter health detects Core provider secret storage disabled',
 		'maa_adapter_smoke_assert_contract_snapshot',
 		'contract snapshot exposes only expected keys',
 		'adapter connection manifest contract snapshot matches health',
+		'adapter connection manifest includes ready dependency contracts',
 		'adapter help contract snapshot matches health',
+		'adapter help includes ready dependency contracts',
 		'adapter help exposes execute-approved-proposal route',
 		'adapter help exposes proposal execute route',
 		'adapter help exposes proposal approve-and-execute route',
@@ -2822,6 +3008,11 @@ foreach (
 			'allowed_layout_profiles=["article_standard","page_standard","homepage_landing"]',
 			'allowed_template_targets=["single","page","front-page","home","archive","index"]',
 			'MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE=1',
+			'composer dev:article-template-visual',
+			'composer dev:block-theme-template-visual',
+			'local-only article template visual harness',
+			'local-only block theme template visual harness',
+			'restores the original template content on exit',
 			'block_theme_template',
 			'contract_status=pass',
 			'contract_inspection_required_after_execution=true',

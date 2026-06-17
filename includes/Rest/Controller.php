@@ -113,6 +113,149 @@ final class Controller {
 	}
 
 	/**
+	 * Returns detected Core and Toolkit runtime contract summaries.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function dependency_contracts(): array {
+		$core    = $this->dependency_contract_summary(
+			'npcink-governance-core',
+			'/npcink-governance-core/v1/contract',
+			'npcink_governance_core_contract.v1',
+			'core_contract_version',
+			self::CORE_CONTRACT_MIN_VERSION,
+			self::CORE_PLUGIN_MIN_VERSION
+		);
+		$toolkit = $this->dependency_contract_summary(
+			'npcink-abilities-toolkit',
+			'/npcink-abilities-toolkit/v1/contract',
+			'npcink_abilities_toolkit_contract.v1',
+			'toolkit_contract_version',
+			self::TOOLKIT_CONTRACT_MIN_VERSION,
+			self::TOOLKIT_PLUGIN_MIN_VERSION
+		);
+
+		return array(
+			'ready'                    => ! empty( $core['compatible'] ) && ! empty( $toolkit['compatible'] ),
+			'npcink-governance-core'   => $core,
+			'npcink-abilities-toolkit' => $toolkit,
+		);
+	}
+
+	/**
+	 * Returns a bounded summary for one dependency contract endpoint.
+	 *
+	 * @param string $dependency Dependency key.
+	 * @param string $route REST route.
+	 * @param string $expected_schema Expected schema version.
+	 * @param string $contract_version_key Contract version field.
+	 * @param string $min_contract_version Minimum contract version.
+	 * @param string $min_plugin_version Minimum plugin version.
+	 * @return array<string,mixed>
+	 */
+	private function dependency_contract_summary( string $dependency, string $route, string $expected_schema, string $contract_version_key, string $min_contract_version, string $min_plugin_version ): array {
+		if ( ! $this->rest_route_available( $route ) ) {
+			return array(
+				'available'   => false,
+				'compatible'  => false,
+				'route'       => $route,
+				'status_code' => 404,
+				'error_code'  => 'route_unavailable',
+			);
+		}
+
+		$request  = new WP_REST_Request( WP_REST_Server::READABLE, $route );
+		$response = rest_do_request( $request );
+		$status   = method_exists( $response, 'get_status' ) ? absint( $response->get_status() ) : 500;
+		$data     = method_exists( $response, 'get_data' ) ? $response->get_data() : null;
+		if ( $status < 200 || $status >= 300 || ! is_array( $data ) ) {
+			return array(
+				'available'   => false,
+				'compatible'  => false,
+				'route'       => $route,
+				'status_code' => $status,
+				'error_code'  => $this->rest_error_code_from_data( $data ),
+			);
+		}
+
+		$schema_version     = (string) ( $data['schema_version'] ?? '' );
+		$contract_version   = (string) ( $data[ $contract_version_key ] ?? '' );
+		$plugin_version     = (string) ( $data['plugin_version'] ?? '' );
+		$schema_supported   = $expected_schema === $schema_version;
+		$contract_supported = '' !== $contract_version && version_compare( $contract_version, $min_contract_version, '>=' );
+		$plugin_supported   = '' !== $plugin_version && version_compare( $plugin_version, $min_plugin_version, '>=' );
+
+		$summary = array(
+			'available'                  => true,
+			'compatible'                 => $schema_supported && $contract_supported && $plugin_supported,
+			'route'                      => $route,
+			'status_code'                => $status,
+			'schema_version'             => $schema_version,
+			'contract_version'           => $contract_version,
+			'plugin_version'             => $plugin_version,
+			'minimum_contract_version'   => $min_contract_version,
+			'minimum_plugin_version'     => $min_plugin_version,
+			'schema_supported'           => $schema_supported,
+			'contract_version_supported' => $contract_supported,
+			'plugin_version_supported'   => $plugin_supported,
+		);
+
+		return array_merge( $summary, $this->dependency_contract_boundary_summary( $dependency, $data ) );
+	}
+
+	/**
+	 * Returns safe boundary fields from a dependency contract.
+	 *
+	 * @param string              $dependency Dependency key.
+	 * @param array<string,mixed> $contract Dependency contract.
+	 * @return array<string,mixed>
+	 */
+	private function dependency_contract_boundary_summary( string $dependency, array $contract ): array {
+		if ( 'npcink-governance-core' === $dependency ) {
+			$runtime_controls = is_array( $contract['runtime_controls'] ?? null ) ? $contract['runtime_controls'] : array();
+			$boundary         = is_array( $contract['boundary'] ?? null ) ? $contract['boundary'] : array();
+
+			return array(
+				'core_proxy_execute'      => (bool) ( $runtime_controls['core_proxy_execute'] ?? true ),
+				'commit_execution'        => (bool) ( $runtime_controls['commit_execution'] ?? true ),
+				'provider_secret_storage' => (bool) ( $runtime_controls['provider_secret_storage'] ?? true ),
+				'final_write_authority'   => (string) ( $boundary['final_write_authority'] ?? '' ),
+			);
+		}
+
+		if ( 'npcink-abilities-toolkit' === $dependency ) {
+			$write_controls = is_array( $contract['write_controls'] ?? null ) ? $contract['write_controls'] : array();
+
+			return array(
+				'ability_count'          => absint( $contract['ability_count'] ?? 0 ),
+				'ability_ids_hash'       => (string) ( $contract['ability_ids_hash'] ?? '' ),
+				'ability_contracts_hash' => (string) ( $contract['ability_contracts_hash'] ?? '' ),
+				'workflow_recipes_hash'  => (string) ( $contract['workflow_recipes_hash'] ?? '' ),
+				'dry_run_default'        => (bool) ( $write_controls['dry_run_default'] ?? false ),
+				'commit_default'         => (bool) ( $write_controls['commit_default'] ?? true ),
+				'host_governed_writes'   => (bool) ( $write_controls['host_governed_writes'] ?? false ),
+				'final_commit_owner'     => (string) ( $write_controls['final_commit_owner'] ?? '' ),
+			);
+		}
+
+		return array();
+	}
+
+	/**
+	 * Extracts a REST error code from response data.
+	 *
+	 * @param mixed $data Response data.
+	 * @return string
+	 */
+	private function rest_error_code_from_data( $data ): string {
+		if ( is_array( $data ) && is_scalar( $data['code'] ?? null ) ) {
+			return sanitize_key( (string) $data['code'] );
+		}
+
+		return 'dependency_contract_unavailable';
+	}
+
+	/**
 	 * Registers REST routes.
 	 *
 	 * @return void
@@ -1398,6 +1541,7 @@ final class Controller {
 			),
 			'client_policy'  => $this->client_policy(),
 			'contract'       => $this->adapter_contract_metadata(),
+			'dependency_contracts' => $this->dependency_contracts(),
 		);
 
 		$base['integrity'] = array(
@@ -1894,6 +2038,7 @@ final class Controller {
 	 */
 	public function health(): WP_REST_Response {
 		$dependencies = $this->dependency_status();
+		$dependency_contracts = $this->dependency_contracts();
 
 		return new WP_REST_Response(
 			array(
@@ -1905,6 +2050,8 @@ final class Controller {
 				'abilities_toolkit'      => (bool) ( $dependencies['items']['npcink-abilities-toolkit']['available'] ?? false ),
 				'dependencies_ready'     => empty( $dependencies['missing'] ),
 				'dependencies'           => $dependencies['items'],
+				'dependency_contracts_ready' => (bool) ( $dependency_contracts['ready'] ?? false ),
+				'dependency_contracts'   => $dependency_contracts,
 				'dependency_count'       => count( $dependencies['items'] ),
 					'missing_dependencies'   => $dependencies['missing'],
 					'cloud_addon'            => $this->cloud_addon_health(),
@@ -2137,6 +2284,7 @@ final class Controller {
 					'approval_surface' => 'npcink_governance_core_admin',
 				'core_app_token_configured' => '' !== $this->core_app_token(),
 				'contract' => $this->adapter_contract_metadata(),
+				'dependency_contracts' => $this->dependency_contracts(),
 				'client_policy' => $this->client_policy(),
 				'distribution_mode' => 'adapter_entry_with_separate_governance_and_ability_plugins',
 				'dependencies' => $this->dependency_status()['items'],
@@ -7313,6 +7461,69 @@ final class Controller {
 			);
 		}
 
+		$approval_site_binding = $this->validate_core_context_site_binding( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
+		if ( is_wp_error( $approval_site_binding ) ) {
+			return $approval_site_binding;
+		}
+		if ( ! empty( $execution_handoff ) ) {
+			$handoff_site_binding = $this->validate_core_context_site_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+			if ( is_wp_error( $handoff_site_binding ) ) {
+				return $handoff_site_binding;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validates optional Core site/blog binding fields when present.
+	 *
+	 * @param array<string,mixed> $context Core-provided context.
+	 * @param string              $code_prefix Error code prefix.
+	 * @param int                 $status HTTP status.
+	 * @return true|WP_Error
+	 */
+	private function validate_core_context_site_binding( array $context, string $code_prefix, int $status ) {
+		// Error families include npcink_openclaw_adapter_preflight_site_url_mismatch, npcink_openclaw_adapter_preflight_handoff_blog_id_mismatch, npcink_openclaw_adapter_core_read_grant_site_url_mismatch, and npcink_openclaw_adapter_core_read_grant_blog_id_mismatch.
+		$site_url = sanitize_text_field( (string) ( $context['site_url'] ?? '' ) );
+		if ( '' !== $site_url && untrailingslashit( $site_url ) !== untrailingslashit( site_url() ) ) {
+			return new WP_Error(
+				$code_prefix . '_site_url_mismatch',
+				__( 'Core authorization context was issued for a different site URL.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'        => $status,
+					'expected_site' => untrailingslashit( site_url() ),
+					'context_site'  => untrailingslashit( $site_url ),
+				)
+			);
+		}
+
+		$home_url = sanitize_text_field( (string) ( $context['home_url'] ?? '' ) );
+		if ( '' !== $home_url && untrailingslashit( $home_url ) !== untrailingslashit( home_url() ) ) {
+			return new WP_Error(
+				$code_prefix . '_home_url_mismatch',
+				__( 'Core authorization context was issued for a different home URL.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'       => $status,
+					'expected_home' => untrailingslashit( home_url() ),
+					'context_home' => untrailingslashit( $home_url ),
+				)
+			);
+		}
+
+		$blog_id = absint( $context['blog_id'] ?? 0 );
+		if ( $blog_id > 0 && $blog_id !== get_current_blog_id() ) {
+			return new WP_Error(
+				$code_prefix . '_blog_id_mismatch',
+				__( 'Core authorization context was issued for a different blog id.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'          => $status,
+					'expected_blog_id' => get_current_blog_id(),
+					'context_blog_id'  => $blog_id,
+				)
+			);
+		}
+
 		return true;
 	}
 
@@ -8045,6 +8256,11 @@ final class Controller {
 			);
 		}
 
+		$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+		if ( is_wp_error( $site_binding ) ) {
+			return $site_binding;
+		}
+
 		$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
 		if ( false === $expires_at || $expires_at <= time() ) {
 			return new WP_Error(
@@ -8072,6 +8288,9 @@ final class Controller {
 			'approved_input_hash'         => sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) ),
 			'correlation_id'              => sanitize_text_field( (string) ( $context['correlation_id'] ?? '' ) ),
 			'policy_version'              => sanitize_text_field( (string) ( $context['policy_version'] ?? '' ) ),
+			'site_url'                    => sanitize_text_field( (string) ( $context['site_url'] ?? '' ) ),
+			'home_url'                    => sanitize_text_field( (string) ( $context['home_url'] ?? '' ) ),
+			'blog_id'                     => absint( $context['blog_id'] ?? 0 ),
 			'sensitivity'                 => sanitize_key( (string) ( $context['sensitivity'] ?? 'sensitive' ) ),
 			'data_classes'                => $this->sanitize_string_list( is_array( $context['data_classes'] ?? null ) ? (array) $context['data_classes'] : array() ),
 			'redaction_level'             => sanitize_key( (string) ( $context['redaction_level'] ?? 'strict' ) ),

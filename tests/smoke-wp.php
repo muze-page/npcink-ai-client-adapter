@@ -1307,6 +1307,14 @@ maa_adapter_smoke_assert( '2' === (string) ( $health['contract']['adapter_contra
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $health['contract']['execution_profile_registry_hash'] ?? '' ), 'sha256:' ), 'adapter health exposes execution profile registry hash' );
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $health['contract']['supported_plan_ability_ids_hash'] ?? '' ), 'sha256:' ), 'adapter health exposes supported plan ability hash' );
 maa_adapter_smoke_assert_contract_snapshot( $health, 'adapter health' );
+maa_adapter_smoke_assert( true === (bool) ( $health['dependency_contracts_ready'] ?? false ), 'adapter health reports dependency contracts ready' );
+maa_adapter_smoke_assert( 'npcink_governance_core_contract.v1' === (string) ( $health['dependency_contracts']['npcink-governance-core']['schema_version'] ?? '' ), 'adapter health detects Core contract schema' );
+maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-governance-core']['core_proxy_execute'] ?? true ), 'adapter health detects Core proxy execution disabled' );
+maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-governance-core']['commit_execution'] ?? true ), 'adapter health detects Core commit execution disabled' );
+maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-governance-core']['provider_secret_storage'] ?? true ), 'adapter health detects Core provider secret storage disabled' );
+maa_adapter_smoke_assert( 'npcink_abilities_toolkit_contract.v1' === (string) ( $health['dependency_contracts']['npcink-abilities-toolkit']['schema_version'] ?? '' ), 'adapter health detects Toolkit contract schema' );
+maa_adapter_smoke_assert( true === (bool) ( $health['dependency_contracts']['npcink-abilities-toolkit']['host_governed_writes'] ?? false ), 'adapter health detects Toolkit host-governed writes' );
+maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-abilities-toolkit']['commit_default'] ?? true ), 'adapter health detects Toolkit commit default disabled' );
 maa_adapter_smoke_assert( in_array( 'profile_path', (array) ( $health['client_policy']['forbidden_outputs'] ?? array() ), true ), 'adapter health policy forbids profile path output' );
 maa_adapter_smoke_assert( in_array( 'key_id', (array) ( $health['client_policy']['forbidden_outputs'] ?? array() ), true ), 'adapter health policy forbids key id output' );
 maa_adapter_smoke_assert( in_array( 'database_direct', (array) ( $health['client_policy']['forbidden_local_access'] ?? array() ), true ), 'adapter health policy forbids direct database access' );
@@ -1392,6 +1400,7 @@ maa_adapter_smoke_assert( 'npcink_openclaw_adapter_contract.v1' === (string) ( $
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $manifest['contract']['supported_execute_ability_ids_hash'] ?? '' ), 'sha256:' ), 'adapter connection manifest exposes execution ability hash' );
 maa_adapter_smoke_assert_contract_snapshot( $manifest, 'adapter connection manifest' );
 maa_adapter_smoke_assert( $health['contract'] === $manifest['contract'], 'adapter connection manifest contract snapshot matches health' );
+maa_adapter_smoke_assert( true === (bool) ( $manifest['dependency_contracts']['ready'] ?? false ), 'adapter connection manifest includes ready dependency contracts' );
 maa_adapter_smoke_assert( in_array( 'custom_scripts_for_wordpress_data', (array) ( $manifest['client_policy']['forbidden_local_access'] ?? array() ), true ), 'adapter manifest policy forbids custom data scripts' );
 maa_adapter_smoke_assert( true === (bool) ( $manifest['client_policy']['allowed_transport']['adapter_relative_routes_only'] ?? false ), 'adapter manifest policy requires adapter-relative routes' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/proposals' ), 'adapter help exposes proposal list route' );
@@ -1422,6 +1431,7 @@ maa_adapter_smoke_assert( 'npcink_openclaw_adapter_contract.v1' === (string) ( $
 maa_adapter_smoke_assert( 0 === strpos( (string) ( $help['contract']['execution_profile_registry_hash'] ?? '' ), 'sha256:' ), 'adapter help exposes execution profile registry hash' );
 maa_adapter_smoke_assert_contract_snapshot( $help, 'adapter help' );
 maa_adapter_smoke_assert( $health['contract'] === $help['contract'], 'adapter help contract snapshot matches health' );
+maa_adapter_smoke_assert( true === (bool) ( $help['dependency_contracts']['ready'] ?? false ), 'adapter help includes ready dependency contracts' );
 maa_adapter_smoke_assert( 'npcink-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan' === (string) ( $help['openclaw_recipes']['media_adoption_enhancement_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes media adoption enhancement recipe entrypoint ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );

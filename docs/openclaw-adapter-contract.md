@@ -43,6 +43,38 @@ do not authorize reads or writes. Core approval, read-preflight,
 commit-preflight, and WordPress Abilities execution remain the authoritative
 runtime checks.
 
+When the dependency plugins provide their admin-only contract endpoints, the
+same three Adapter surfaces also expose `dependency_contracts` and
+`dependency_contracts_ready`. Adapter reads
+`/npcink-governance-core/v1/contract` and
+`/npcink-abilities-toolkit/v1/contract`, checks
+`npcink_governance_core_contract.v1` and
+`npcink_abilities_toolkit_contract.v1` against the declared floors, and returns
+only a bounded compatibility summary. The Core summary includes boundary fields
+such as `core_proxy_execute=false`, `commit_execution=false`,
+`provider_secret_storage=false`, and the declared final-write authority. The
+Toolkit summary includes ability/hash fingerprints and write controls such as
+`host_governed_writes=true`, `dry_run_default=true`, and
+`commit_default=false`.
+
+`dependency_contracts` is a runtime proof complement to the version floors, not
+a new source of truth. It must not include Core proposal bodies, approval
+records, audit timelines, ability callback internals, provider credentials, or
+raw secrets. If the current REST authentication context cannot read a dependency
+contract endpoint, Adapter reports that dependency summary as unavailable rather
+than elevating privileges.
+
+When Core approval, commit-preflight, or sensitive read authorization contexts
+include optional `site_url`, `home_url`, or `blog_id` bindings, Adapter verifies
+those fields against the current WordPress site before executing the handoff or
+authorized read. A mismatch fails closed with the matching
+`npcink_openclaw_adapter_preflight_*_mismatch`,
+`npcink_openclaw_adapter_preflight_handoff_*_mismatch`, or
+`npcink_openclaw_adapter_core_read_grant_*_mismatch` error. Client-key
+fingerprint binding remains a Core/Adapter cross-contract item: Adapter can
+enforce it only after Core emits the signed client fingerprint in the preflight
+or read authorization context.
+
 ## Read Ability Contract
 
 The adapter may execute only capability rows where Core returns:
