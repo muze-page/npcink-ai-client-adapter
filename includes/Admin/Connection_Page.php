@@ -1507,7 +1507,7 @@ final class Connection_Page {
 			return;
 		endif;
 		?>
-		<table class="widefat striped">
+		<table class="widefat striped maa-device-table">
 			<thead>
 				<tr>
 					<th><?php echo esc_html__( 'Client', 'npcink-ai-client-adapter' ); ?></th>
