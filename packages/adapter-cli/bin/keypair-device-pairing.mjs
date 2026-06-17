@@ -137,7 +137,7 @@ function signedHeaders(privateKey, keyId, method, route, queryParams = {}, body 
   const nonce = base64url(randomBytes(18));
   const contentSha256 = `sha256:${createHash('sha256').update(body).digest('hex')}`;
   const canonical = [
-    'MAGICK-AI-ADAPTER-V1',
+    'NPCINK-AI-CLIENT-ADAPTER-V1',
     method.toUpperCase(),
     route,
     canonicalJson(queryParams),
@@ -174,7 +174,7 @@ const start = await requestJson('POST', `${adapterBaseUrl}/connect/device/start`
     alg: 'Ed25519',
     public_key: publicJwk.x,
   },
-  requested_scopes: ['magick.read', 'magick.propose', 'magick.status'],
+  requested_scopes: ['npcink.read', 'npcink.propose', 'npcink.status'],
 });
 
 const opened = openApprovalUrl(start.verification_uri_complete);

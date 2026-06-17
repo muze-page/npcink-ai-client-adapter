@@ -29,8 +29,7 @@ final class Connection_Page {
 	const PROPOSAL_LOOKUP_ACTION = 'npcink_openclaw_adapter_proposal_lookup';
 	const PROPOSAL_LOOKUP_NONCE = '_npcink_openclaw_adapter_lookup_nonce';
 	const DATETIME_DISPLAY_FORMAT = 'Y-m-d H:i:s';
-	const LOCAL_CLI_MODE = 'development_local_checkout';
-	const LOCAL_CLI_LOCAL_SCRIPT = '/Users/muze/gitee/magick-ai-adapter/packages/adapter-cli/bin/npcink-openclaw-adapter.mjs';
+	const LOCAL_CLI_PACKAGE = '@npcink/openclaw-adapter-cli@0.2.0';
 
 	/**
 	 * Admin page hook suffixes that should receive Adapter assets.
@@ -1412,7 +1411,7 @@ final class Connection_Page {
 			. "{$request_prefix} GET /health\n"
 			. "{$request_prefix} GET /help\n"
 			. "{$request_prefix} GET /capabilities\n"
-			. "{$request_prefix} POST /proposals/from-plan --body-file=/tmp/magick-proposal.json\n"
+			. "{$request_prefix} POST /proposals/from-plan --body-file=/tmp/npcink-proposal.json\n"
 			. "{$request_prefix} POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight\n"
 			. "{$request_prefix} POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit\n\n"
 			. "Sensitive read helpers:\n"
@@ -1573,11 +1572,7 @@ final class Connection_Page {
 	 * @return string
 	 */
 	private function local_cli_prefix(): string {
-		if ( 'development_local_checkout' === self::LOCAL_CLI_MODE ) {
-			return 'cd ~ && node ' . escapeshellarg( self::LOCAL_CLI_LOCAL_SCRIPT );
-		}
-
-		return 'cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.1.1 -- npcink-openclaw-adapter';
+		return 'cd ~ && npm exec --yes --package ' . escapeshellarg( self::LOCAL_CLI_PACKAGE ) . ' -- npcink-openclaw-adapter';
 	}
 
 	/**

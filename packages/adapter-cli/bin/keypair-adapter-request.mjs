@@ -159,7 +159,7 @@ function signedHeaders(privateKey, keyId, methodValue, restRoute, queryParams, b
   const nonce = base64url(randomBytes(18));
   const contentSha256 = `sha256:${createHash('sha256').update(body).digest('hex')}`;
   const canonical = [
-    'MAGICK-AI-ADAPTER-V1',
+    'NPCINK-AI-CLIENT-ADAPTER-V1',
     methodValue,
     restRoute,
     canonicalJson(queryParams),

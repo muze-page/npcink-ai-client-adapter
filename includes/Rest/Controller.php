@@ -1487,8 +1487,8 @@ final class Controller {
 		$username = $user && $user->exists() ? (string) $user->user_login : '';
 		$base     = array(
 			'schema_version' => 'npcink_openclaw_adapter_connection.v1',
-			'kind'           => 'magick.ai/wordpress-adapter-connection',
-			'manifest_id'    => 'mag_manifest_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $username ), 0, 24 ),
+			'kind'           => 'npcink.ai/wordpress-adapter-connection',
+			'manifest_id'    => 'npcink_manifest_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $username ), 0, 24 ),
 			'connection_id'  => 'local-wordpress',
 			'site'           => array(
 				'site_url'         => home_url(),
@@ -1723,9 +1723,9 @@ final class Controller {
 	 */
 	private function connection_requested_scopes( array $requested ): array {
 		$allowed = array(
-			'magick.read'    => true,
-			'magick.propose' => true,
-			'magick.status'  => true,
+			'npcink.read'    => true,
+			'npcink.propose' => true,
+			'npcink.status'  => true,
 		);
 		$scopes  = array();
 
@@ -1972,7 +1972,7 @@ final class Controller {
 		return implode(
 			"\n",
 			array(
-				'MAGICK-AI-ADAPTER-V1',
+				'NPCINK-AI-CLIENT-ADAPTER-V1',
 				strtoupper( $request->get_method() ),
 				$request->get_route(),
 				$this->canonical_json( $request->get_query_params() ),
@@ -1996,18 +1996,18 @@ final class Controller {
 		$method = strtoupper( $request->get_method() );
 
 		if ( false !== strpos( $route, '/proposals' ) || false !== strpos( $route, '/execute-approved-proposal' ) ) {
-			return ! empty( $scopes['magick.propose'] );
+			return ! empty( $scopes['npcink.propose'] );
 		}
 
 		if ( false !== strpos( $route, '/media-derivative-runs' ) || false !== strpos( $route, '/media-derivative-proposal-payload' ) ) {
-			return ! empty( $scopes['magick.propose'] );
+			return ! empty( $scopes['npcink.propose'] );
 		}
 
 		if ( 'GET' === $method && ( false !== strpos( $route, '/health' ) || false !== strpos( $route, '/help' ) || false !== strpos( $route, '/capabilities' ) || false !== strpos( $route, '/connection/' ) ) ) {
-			return ! empty( $scopes['magick.status'] );
+			return ! empty( $scopes['npcink.status'] );
 		}
 
-		return ! empty( $scopes['magick.read'] );
+		return ! empty( $scopes['npcink.read'] );
 	}
 
 	/**
