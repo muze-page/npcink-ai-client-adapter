@@ -185,16 +185,23 @@ final class Controller {
 			);
 		}
 
-		$schema_version     = (string) ( $data['schema_version'] ?? '' );
-		$contract_version   = (string) ( $data[ $contract_version_key ] ?? '' );
-		$plugin_version     = (string) ( $data['plugin_version'] ?? '' );
-		$schema_supported   = $expected_schema === $schema_version;
-		$contract_supported = '' !== $contract_version && version_compare( $contract_version, $min_contract_version, '>=' );
-		$plugin_supported   = '' !== $plugin_version && version_compare( $plugin_version, $min_plugin_version, '>=' );
+		$schema_version      = (string) ( $data['schema_version'] ?? '' );
+		$contract_version    = (string) ( $data[ $contract_version_key ] ?? '' );
+		$plugin_version      = (string) ( $data['plugin_version'] ?? '' );
+		$schema_supported    = $expected_schema === $schema_version;
+		$contract_supported  = '' !== $contract_version && version_compare( $contract_version, $min_contract_version, '>=' );
+		$plugin_supported    = '' !== $plugin_version && version_compare( $plugin_version, $min_plugin_version, '>=' );
+		$boundary_summary    = $this->dependency_contract_boundary_summary( $dependency, $data );
+		$semantics_supported = true;
+		if ( 'npcink-governance-core' === $dependency ) {
+			$semantics_supported = ! empty( $boundary_summary['core_boundary_supported'] )
+				&& ! empty( $boundary_summary['site_binding'] )
+				&& ! empty( $boundary_summary['signed_client_fingerprint_binding'] );
+		}
 
 		$summary = array(
 			'available'                  => true,
-			'compatible'                 => $schema_supported && $contract_supported && $plugin_supported,
+			'compatible'                 => $schema_supported && $contract_supported && $plugin_supported && $semantics_supported,
 			'route'                      => $route,
 			'status_code'                => $status,
 			'schema_version'             => $schema_version,
@@ -205,9 +212,10 @@ final class Controller {
 			'schema_supported'           => $schema_supported,
 			'contract_version_supported' => $contract_supported,
 			'plugin_version_supported'   => $plugin_supported,
+			'contract_semantics_supported' => $semantics_supported,
 		);
 
-		return array_merge( $summary, $this->dependency_contract_boundary_summary( $dependency, $data ) );
+		return array_merge( $summary, $boundary_summary );
 	}
 
 	/**
@@ -221,12 +229,44 @@ final class Controller {
 		if ( 'npcink-governance-core' === $dependency ) {
 			$runtime_controls = is_array( $contract['runtime_controls'] ?? null ) ? $contract['runtime_controls'] : array();
 			$boundary         = is_array( $contract['boundary'] ?? null ) ? $contract['boundary'] : array();
+			$context_bindings        = is_array( $contract['context_bindings'] ?? null ) ? $contract['context_bindings'] : array();
+			$site_binding            = is_array( $context_bindings['site_binding'] ?? null ) ? $context_bindings['site_binding'] : array();
+			$client_binding          = is_array( $context_bindings['client_key_fingerprint'] ?? null ) ? $context_bindings['client_key_fingerprint'] : array();
+			$site_fields             = is_array( $site_binding['fields'] ?? null ) ? $site_binding['fields'] : array();
+			$site_emitted_in         = is_array( $site_binding['emitted_in'] ?? null ) ? $site_binding['emitted_in'] : array();
+			$client_aliases          = is_array( $client_binding['aliases'] ?? null ) ? $client_binding['aliases'] : array();
+			$client_emitted_in       = is_array( $client_binding['emitted_in'] ?? null ) ? $client_binding['emitted_in'] : array();
+			$core_proxy_execute      = (bool) ( $runtime_controls['core_proxy_execute'] ?? true );
+			$commit_execution        = (bool) ( $runtime_controls['commit_execution'] ?? true );
+			$provider_secret_storage = (bool) ( $runtime_controls['provider_secret_storage'] ?? true );
+			$final_write_authority   = (string) ( $boundary['final_write_authority'] ?? '' );
+			$site_binding_supported  = in_array( 'site_url', $site_fields, true )
+				&& in_array( 'home_url', $site_fields, true )
+				&& in_array( 'blog_id', $site_fields, true )
+				&& in_array( 'approval_context', $site_emitted_in, true )
+				&& in_array( 'execution_handoff', $site_emitted_in, true )
+				&& in_array( 'read_authorization_context', $site_emitted_in, true )
+				&& true === (bool) ( $site_binding['fail_closed'] ?? false );
+			$signed_client_fingerprint_binding = true === (bool) ( $client_binding['emitted'] ?? false )
+				&& 'signed_client_fingerprint' === (string) ( $client_binding['field'] ?? '' )
+				&& in_array( 'client_key_fingerprint', $client_aliases, true )
+				&& in_array( 'approval_context', $client_emitted_in, true )
+				&& in_array( 'execution_handoff', $client_emitted_in, true )
+				&& in_array( 'read_authorization_context', $client_emitted_in, true )
+				&& 'supported_when_forwarded_by_trusted_adapter' === (string) ( $client_binding['status'] ?? '' )
+				&& true === (bool) ( $client_binding['fail_closed'] ?? false );
 
 			return array(
-				'core_proxy_execute'      => (bool) ( $runtime_controls['core_proxy_execute'] ?? true ),
-				'commit_execution'        => (bool) ( $runtime_controls['commit_execution'] ?? true ),
-				'provider_secret_storage' => (bool) ( $runtime_controls['provider_secret_storage'] ?? true ),
-				'final_write_authority'   => (string) ( $boundary['final_write_authority'] ?? '' ),
+				'core_proxy_execute'                 => $core_proxy_execute,
+				'commit_execution'                   => $commit_execution,
+				'provider_secret_storage'            => $provider_secret_storage,
+				'final_write_authority'              => $final_write_authority,
+				'core_boundary_supported'            => false === $core_proxy_execute
+					&& false === $commit_execution
+					&& false === $provider_secret_storage
+					&& 'adapter_or_host_after_core_preflight' === $final_write_authority,
+				'site_binding'                       => $site_binding_supported,
+				'signed_client_fingerprint_binding' => $signed_client_fingerprint_binding,
 			);
 		}
 
@@ -8549,17 +8589,17 @@ final class Controller {
 			);
 		}
 
-			$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
-			if ( is_wp_error( $site_binding ) ) {
-				return $site_binding;
-			}
-			$client_binding = $this->validate_core_context_signed_client_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
-			if ( is_wp_error( $client_binding ) ) {
-				return $client_binding;
-			}
+		$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+		if ( is_wp_error( $site_binding ) ) {
+			return $site_binding;
+		}
+		$client_binding = $this->validate_core_context_signed_client_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+		if ( is_wp_error( $client_binding ) ) {
+			return $client_binding;
+		}
 
-			$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
-			if ( false === $expires_at || $expires_at <= time() ) {
+		$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
+		if ( false === $expires_at || $expires_at <= time() ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_expired',
 				__( 'Core read authorization context is expired.', 'npcink-ai-client-adapter' ),

@@ -1312,6 +1312,9 @@ maa_adapter_smoke_assert( 'npcink_governance_core_contract.v1' === (string) ( $h
 maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-governance-core']['core_proxy_execute'] ?? true ), 'adapter health detects Core proxy execution disabled' );
 maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-governance-core']['commit_execution'] ?? true ), 'adapter health detects Core commit execution disabled' );
 maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-governance-core']['provider_secret_storage'] ?? true ), 'adapter health detects Core provider secret storage disabled' );
+maa_adapter_smoke_assert( true === (bool) ( $health['dependency_contracts']['npcink-governance-core']['core_boundary_supported'] ?? false ), 'adapter health detects supported Core execution boundary' );
+maa_adapter_smoke_assert( true === (bool) ( $health['dependency_contracts']['npcink-governance-core']['site_binding'] ?? false ), 'adapter health detects Core site context binding' );
+maa_adapter_smoke_assert( true === (bool) ( $health['dependency_contracts']['npcink-governance-core']['signed_client_fingerprint_binding'] ?? false ), 'adapter health detects Core signed client fingerprint binding' );
 maa_adapter_smoke_assert( 'npcink_abilities_toolkit_contract.v1' === (string) ( $health['dependency_contracts']['npcink-abilities-toolkit']['schema_version'] ?? '' ), 'adapter health detects Toolkit contract schema' );
 maa_adapter_smoke_assert( true === (bool) ( $health['dependency_contracts']['npcink-abilities-toolkit']['host_governed_writes'] ?? false ), 'adapter health detects Toolkit host-governed writes' );
 maa_adapter_smoke_assert( false === (bool) ( $health['dependency_contracts']['npcink-abilities-toolkit']['commit_default'] ?? true ), 'adapter health detects Toolkit commit default disabled' );
