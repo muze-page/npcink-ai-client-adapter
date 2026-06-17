@@ -52,10 +52,13 @@ same three Adapter surfaces also expose `dependency_contracts` and
 `npcink_abilities_toolkit_contract.v1` against the declared floors, and returns
 only a bounded compatibility summary. The Core summary includes boundary fields
 such as `core_proxy_execute=false`, `commit_execution=false`,
-`provider_secret_storage=false`, and the declared final-write authority. The
-Toolkit summary includes ability/hash fingerprints and write controls such as
-`host_governed_writes=true`, `dry_run_default=true`, and
-`commit_default=false`.
+`provider_secret_storage=false`, the declared final-write authority, and whether
+Core's contract advertises fail-closed site and signed-client fingerprint
+bindings for `approval_context`, `execution_handoff`, and
+`read_authorization_context`. Adapter treats those Core binding fields as part
+of dependency readiness, not as a new source of approval truth. The Toolkit
+summary includes ability/hash fingerprints and write controls such as
+`host_governed_writes=true`, `dry_run_default=true`, and `commit_default=false`.
 
 `dependency_contracts` is a runtime proof complement to the version floors, not
 a new source of truth. It must not include Core proposal bodies, approval
