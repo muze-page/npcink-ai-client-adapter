@@ -1317,14 +1317,16 @@ final class Controller {
 	/**
 	 * Approves a device pairing for the current administrator.
 	 *
-	 * @param string $user_code User code.
+	 * @param string $user_code   User code.
+	 * @param string $admin_label Optional administrator label.
 	 * @return array<string,mixed>|WP_Error
 	 */
-	public function approve_device_pairing( string $user_code ) {
-		$started = microtime( true );
-		$user_code = strtoupper( sanitize_text_field( $user_code ) );
-		$pairings  = $this->device_pairings();
-		$pairing   = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
+	public function approve_device_pairing( string $user_code, string $admin_label = '' ) {
+		$started     = microtime( true );
+		$user_code   = strtoupper( sanitize_text_field( $user_code ) );
+		$admin_label = $this->bounded_text_field( $admin_label, 80 );
+		$pairings    = $this->device_pairings();
+		$pairing     = is_array( $pairings[ $user_code ] ?? null ) ? $pairings[ $user_code ] : array();
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
 			$error = new WP_Error( 'npcink_openclaw_adapter_pairing_not_found', __( 'Device pairing was not found or expired.', 'npcink-ai-client-adapter' ) );
 			$this->emit_operation_event( 'adapter.device_pairing.approve', $started, $error );
@@ -1339,10 +1341,11 @@ final class Controller {
 		$key_id        = 'mk_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $user_id . '|' . $fingerprint ), 0, 24 );
 		$connection_id = 'mag_conn_' . substr( hash( 'sha256', home_url() . '|' . $key_id ), 0, 24 );
 		$record        = array(
-			'key_id'        => $key_id,
-			'connection_id' => $connection_id,
-			'user_id'       => $user_id,
-			'client_name'   => (string) ( $client['name'] ?? '' ),
+				'key_id'        => $key_id,
+				'connection_id' => $connection_id,
+				'admin_label'   => $admin_label,
+				'user_id'       => $user_id,
+				'client_name'   => (string) ( $client['name'] ?? '' ),
 			'device_name'   => (string) ( $client['device_name'] ?? '' ),
 			'broker'        => (string) ( $client['broker'] ?? '' ),
 			'broker_version' => (string) ( $client['broker_version'] ?? '' ),
@@ -1360,10 +1363,11 @@ final class Controller {
 
 		$pairing['status']           = 'approved';
 		$pairing['approved_at']      = gmdate( 'c' );
-		$pairing['approved_user_id'] = $user_id;
-		$pairing['key_id']           = $key_id;
-		$pairing['connection_id']    = $connection_id;
-		$pairing['scopes_effective'] = $record['scopes'];
+			$pairing['approved_user_id'] = $user_id;
+			$pairing['key_id']           = $key_id;
+			$pairing['connection_id']    = $connection_id;
+			$pairing['admin_label']      = $admin_label;
+			$pairing['scopes_effective'] = $record['scopes'];
 		$pairings[ $user_code ]      = $pairing;
 		update_option( self::DEVICE_PAIRING_OPTION, $this->prune_device_pairings( $pairings ), false );
 
@@ -1883,9 +1887,10 @@ final class Controller {
 	 */
 	private function public_client_key_record( array $record ): array {
 		return array(
-			'key_id'        => (string) ( $record['key_id'] ?? '' ),
-			'connection_id' => (string) ( $record['connection_id'] ?? '' ),
-			'client_name'   => (string) ( $record['client_name'] ?? '' ),
+				'key_id'        => (string) ( $record['key_id'] ?? '' ),
+				'connection_id' => (string) ( $record['connection_id'] ?? '' ),
+				'admin_label'   => (string) ( $record['admin_label'] ?? '' ),
+				'client_name'   => (string) ( $record['client_name'] ?? '' ),
 			'device_name'   => (string) ( $record['device_name'] ?? '' ),
 			'fingerprint'   => (string) ( $record['fingerprint'] ?? '' ),
 			'scopes'        => is_array( $record['scopes'] ?? null ) ? array_values( $record['scopes'] ) : array(),

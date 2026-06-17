@@ -58,4 +58,19 @@
 			});
 		});
 	});
+
+	root.querySelectorAll('[data-maa-open-target]').forEach(function (button) {
+		button.addEventListener('click', function () {
+			var target = document.getElementById(button.getAttribute('data-maa-open-target'));
+			if (!target) {
+				return;
+			}
+
+			if (target.tagName && target.tagName.toLowerCase() === 'details') {
+				target.open = true;
+			}
+
+			target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+		});
+	});
 })();

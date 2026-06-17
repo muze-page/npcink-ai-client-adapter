@@ -13,41 +13,37 @@ and Abilities API as the ability execution source.
 The default page should answer:
 
 - is Adapter healthy;
-- can Adapter reach Core capabilities;
-- can Adapter reach WordPress Abilities API;
-- which site and endpoint this client should use;
+- which site this client should use;
 - how to connect a local client through the signed key-pair path;
 - where to fall back to a simple Application Password connection;
-- how to continue a proposal from a returned Proposal ID.
+- how many signed key-pair devices are currently authorized.
 
 Primary action:
 
-- `Client connection`, with `Copy connect command` as the primary action.
-- `Simple connection`, with the Application Password creation form as a
+- `Secure key-pair connection`, with `Copy connect command` as the primary
+  action and `Manage devices` as the secondary action.
+- `Simple key connection`, with the Application Password creation form as a
   secondary disclosure for clients that have a dedicated secret field.
+
+Default device management:
+
+- show active authorized signed key-pair devices as a compact count;
+- keep the device table behind an explicit disclosure;
+- allow admins to revoke authorized signed key-pair devices with confirmation.
 
 Default copyable values:
 
-- Site URL;
 - Adapter base URL;
-- WordPress username;
-- connection manifest URL;
-- client env placeholders without secrets.
+- signed key-pair connect command.
 
-Default workflow bridge:
-
-- Proposal ID status lookup through Adapter's read-only proposal proxy,
-  visible in the default page;
-- link to the matching Core approval detail;
-- copyable Adapter status and approved-execution endpoints;
-- status-specific next-step copy for `pending`, `approved`, `rejected`,
-  `expired`, and `archived`.
+Do not show command bodies, status commands, route catalogs, manifest URLs,
+environment placeholders, proposal lookup, or developer boundary notes in the
+default connection screen.
 
 ## Advanced Details
 
 Keep these behind explicit advanced sections:
 
-- authorized key-pair client management and revoke actions;
 - diagnostics URLs;
 - read shortcut route catalog, showing only a short preview before the full
   list;

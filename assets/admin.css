@@ -1,50 +1,13 @@
 .npcink-openclaw-adapter-connection {
 	max-width: 1180px;
 }
-.npcink-openclaw-adapter-connection .maa-tabs {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0;
-	margin: 18px 0 0;
-	border-bottom: 1px solid #c3c4c7;
-}
-.npcink-openclaw-adapter-connection .maa-tab {
-	display: inline-block;
-	margin: 0;
-	padding: 9px 14px;
-	border: 1px solid transparent;
-	border-bottom: 0;
-	background: transparent;
-	color: #1d2327;
-	cursor: pointer;
-	font-weight: 600;
-}
-.npcink-openclaw-adapter-connection .maa-tab:hover {
-	color: #135e96;
-}
-.npcink-openclaw-adapter-connection .maa-tab.is-active {
-	margin-bottom: -1px;
-	border-color: #c3c4c7;
-	background: #fff;
-	color: #1d2327;
-}
-.npcink-openclaw-adapter-connection .maa-tab:focus {
-	box-shadow: 0 0 0 1px #2271b1;
-	outline: 2px solid transparent;
-}
-.npcink-openclaw-adapter-connection .maa-tab-panel {
-	padding-top: 0;
-}
-.npcink-openclaw-adapter-connection .maa-tab-panel.is-active {
-	display: block;
-}
-.npcink-openclaw-adapter-connection .maa-workspace {
+.npcink-openclaw-adapter-connection .maa-method-grid {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 16px;
 	align-items: start;
 }
-.npcink-openclaw-adapter-connection .maa-workspace > * {
+.npcink-openclaw-adapter-connection .maa-method-grid > * {
 	min-width: 0;
 }
 .npcink-openclaw-adapter-connection .maa-summary {
@@ -117,6 +80,9 @@
 .npcink-openclaw-adapter-connection .maa-section-highlight {
 	border-left: 4px solid #2271b1;
 }
+.npcink-openclaw-adapter-connection .maa-method-card-recommended {
+	border-left: 4px solid #2271b1;
+}
 .npcink-openclaw-adapter-connection .maa-section h2 {
 	margin: 0 0 10px;
 	font-size: 16px;
@@ -128,6 +94,10 @@
 .npcink-openclaw-adapter-connection .maa-section-intro {
 	margin: 0 0 14px;
 	color: #50575e;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-form .description {
+	display: block;
+	margin-top: 4px;
 }
 .npcink-openclaw-adapter-connection .maa-section-heading {
 	display: flex;
@@ -192,6 +162,23 @@
 }
 .npcink-openclaw-adapter-connection .maa-inline-disclosure[open] > summary::after {
 	content: "-";
+}
+.npcink-openclaw-adapter-connection .maa-device-manager {
+	margin-top: 16px;
+}
+.npcink-openclaw-adapter-connection .maa-action-disclosure {
+	margin-top: 10px;
+}
+.npcink-openclaw-adapter-connection .maa-action-disclosure > summary {
+	display: inline-block;
+	list-style: none;
+	cursor: pointer;
+}
+.npcink-openclaw-adapter-connection .maa-action-disclosure > summary::-webkit-details-marker {
+	display: none;
+}
+.npcink-openclaw-adapter-connection .maa-action-disclosure form {
+	margin-top: 16px;
 }
 .npcink-openclaw-adapter-connection details.maa-advanced-group {
 	margin-top: 12px;
@@ -334,6 +321,10 @@
 	align-items: center;
 	margin-top: 12px;
 }
+.npcink-openclaw-adapter-connection .maa-device-table th,
+.npcink-openclaw-adapter-connection .maa-device-table td {
+	vertical-align: middle;
+}
 .npcink-openclaw-adapter-connection .maa-advanced-group {
 	margin-top: 16px;
 	padding-top: 14px;
@@ -350,7 +341,7 @@
 	border-top: 1px solid #dcdcde;
 }
 @media (max-width: 960px) {
-	.npcink-openclaw-adapter-connection .maa-workspace {
+	.npcink-openclaw-adapter-connection .maa-method-grid {
 		grid-template-columns: 1fr;
 	}
 }
