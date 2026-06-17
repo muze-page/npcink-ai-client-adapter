@@ -877,6 +877,8 @@ foreach (
 }
 
 $connection_page = maa_adapter_read( $root . '/includes/Admin/Connection_Page.php' );
+$admin_css       = maa_adapter_read( $root . '/assets/admin.css' );
+$admin_js        = maa_adapter_read( $root . '/assets/admin.js' );
 maa_adapter_assert( false !== strpos( $connection_page, "const PARENT_MENU_SLUG = 'npcink-ai';" ), 'Connection page targets the shared Npcink AI parent menu slug.' );
 foreach (
 	array(
@@ -985,6 +987,7 @@ foreach (
 		'Copy status command',
 		'local_cli_setup_text',
 		'render_key_pair_clients_table',
+		'maa-device-table',
 		'local_cli_connect_command',
 		'local_cli_status_command',
 		'LOCAL_CLI_PACKAGE',
@@ -1029,6 +1032,24 @@ foreach (
 	) as $removed
 ) {
 	maa_adapter_assert( false === strpos( $connection_page, $removed ), 'Connection page omits removed main-page surface: ' . $removed );
+}
+foreach (
+	array(
+		'maa-device-manager',
+		'maa-device-table',
+		'vertical-align: middle',
+	) as $required_css
+) {
+	maa_adapter_assert( false !== strpos( $admin_css, $required_css ), 'Admin CSS keeps device management table polish: ' . $required_css );
+}
+foreach (
+	array(
+		'[data-maa-open-target]',
+		'target.open = true',
+		'scrollIntoView',
+	) as $required_js
+) {
+	maa_adapter_assert( false !== strpos( $admin_js, $required_js ), 'Admin JavaScript opens target disclosures from secondary actions: ' . $required_js );
 }
 foreach (
 	array(

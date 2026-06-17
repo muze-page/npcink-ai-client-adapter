@@ -177,6 +177,13 @@
 .npcink-openclaw-adapter-connection .maa-inline-disclosure[open] > summary::after {
 	content: "-";
 }
+.npcink-openclaw-adapter-connection .maa-device-manager {
+	margin-top: 16px;
+}
+.npcink-openclaw-adapter-connection .maa-device-table th,
+.npcink-openclaw-adapter-connection .maa-device-table td {
+	vertical-align: middle;
+}
 .npcink-openclaw-adapter-connection details.maa-advanced-group {
 	margin-top: 12px;
 	border: 1px solid #dcdcde;
