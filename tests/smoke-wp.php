@@ -1686,6 +1686,101 @@ maa_adapter_smoke_assert( 'workflow/wordpress_article_optimization' === (string)
 maa_adapter_smoke_assert( false === (bool) ( $article_optimization_detail['preview']['article_optimization']['direct_wordpress_write'] ?? true ), 'adapter article optimization detail keeps direct writes disabled' );
 maa_adapter_smoke_assert( 'Original adapter smoke excerpt.' === (string) get_post_field( 'post_excerpt', $article_optimization_post_id ), 'adapter article optimization handoff does not mutate the post excerpt' );
 
+$article_media_handoff_attachment_id = maa_adapter_smoke_create_media_plan_attachment();
+$maa_adapter_smoke_cleanup_attachment_ids[] = $article_media_handoff_attachment_id;
+$article_media_handoff_input = array(
+	'article'                   => array(
+		'title'   => 'Adapter Article Media Handoff Candidate ' . maa_adapter_smoke_run_id(),
+		'excerpt' => 'Adapter article media handoff smoke context.',
+	),
+	'resolved_image_source'     => array(
+		'featured' => array(
+			'image_origin'     => 'ai_generated',
+			'prompt'           => 'Generated adapter media handoff proof image',
+			'title'            => 'Reviewed media handoff title',
+			'alt'              => 'Reviewed media handoff alt text',
+			'caption'          => 'Reviewed media handoff caption.',
+			'description'      => 'Reviewed media handoff description.',
+			'copyright_notice' => 'Generated asset for this site',
+			'role'             => 'featured',
+			'provider_hint'    => 'adapter_smoke',
+			'section_heading'  => 'Workflow proof',
+		),
+	),
+	'generated_featured_upload' => array(
+		'attachment_id' => $article_media_handoff_attachment_id,
+		'url'           => wp_get_attachment_url( $article_media_handoff_attachment_id ),
+		'file_name'     => 'adapter-article-media-handoff-smoke.jpg',
+	),
+);
+$article_media_handoff_response = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/build-media-seo-assets',
+		'input'      => $article_media_handoff_input,
+	)
+);
+$article_media_handoff_assets = is_array( $article_media_handoff_response['result']['data'] ?? null ) ? $article_media_handoff_response['result']['data'] : array();
+$article_media_handoff_asset = is_array( $article_media_handoff_assets['items'][0] ?? null ) ? $article_media_handoff_assets['items'][0] : array();
+maa_adapter_smoke_assert( 1 === (int) ( $article_media_handoff_assets['summary']['asset_count'] ?? 0 ), 'adapter article media handoff returns one media SEO asset' );
+maa_adapter_smoke_assert( $article_media_handoff_attachment_id === (int) ( $article_media_handoff_asset['attachment_id'] ?? 0 ), 'adapter article media handoff binds the reviewed attachment id' );
+maa_adapter_smoke_assert( false === (bool) ( $article_media_handoff_response['commit_execution'] ?? true ), 'adapter article media handoff read does not execute commits' );
+maa_adapter_smoke_assert( ! isset( $article_media_handoff_assets['write_actions'] ), 'adapter article media handoff read does not emit write actions' );
+
+$article_media_handoff_proposal = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/update-media-details',
+		'title'      => 'Adapter article media handoff proposal smoke',
+		'summary'    => 'Adapter creates one Core proposal from reviewed article media handoff metadata without direct write execution.',
+		'input'      => array(
+			'attachment_id'    => $article_media_handoff_attachment_id,
+			'title'            => $article_media_handoff_asset['title'] ?? '',
+			'alt'              => $article_media_handoff_asset['alt'] ?? '',
+			'caption'          => $article_media_handoff_asset['caption'] ?? '',
+			'description'      => $article_media_handoff_asset['description'] ?? '',
+			'source_type'      => $article_media_handoff_asset['source_type'] ?? 'ai_generated',
+			'copyright_notice' => $article_media_handoff_asset['copyright_notice'] ?? '',
+			'dry_run'          => true,
+			'commit'           => false,
+		),
+		'preview'    => array(
+			'action'                => 'update_media_details',
+			'attachment_id'         => $article_media_handoff_attachment_id,
+			'changed_fields'        => array( 'title', 'alt', 'caption', 'description', 'source_type', 'copyright_notice' ),
+			'dry_run'               => true,
+			'commit_execution'      => false,
+			'article_media_handoff' => array(
+				'source_recipe_ref'              => 'workflow/wordpress_article_media_handoff',
+				'entrypoint_ability_id'          => 'npcink-abilities-toolkit/build-media-seo-assets',
+				'direct_wordpress_write'         => false,
+				'host_governed_write_boundary'   => true,
+				'disallowed_default_ability_ids' => array(
+					'npcink-abilities-toolkit/upload-media-from-url',
+					'npcink-abilities-toolkit/set-post-featured-image',
+				),
+			),
+		),
+		'caller'     => array(
+			'external_thread_id' => 'adapter-article-media-handoff-smoke',
+		),
+	)
+);
+$article_media_handoff_proposal_id = (string) ( $article_media_handoff_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $article_media_handoff_proposal_id;
+maa_adapter_smoke_assert( '' !== $article_media_handoff_proposal_id, 'adapter article media handoff creates Core proposal' );
+maa_adapter_smoke_assert( 'pending' === (string) ( $article_media_handoff_proposal['status'] ?? '' ), 'adapter article media handoff proposal starts pending' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-media-details' === (string) ( $article_media_handoff_proposal['ability_id'] ?? '' ), 'adapter article media handoff creates update-media-details proposal' );
+$article_media_handoff_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $article_media_handoff_proposal_id ) );
+maa_adapter_smoke_assert( $article_media_handoff_proposal_id === (string) ( $article_media_handoff_detail['proposal_id'] ?? '' ), 'adapter article media handoff proposal detail is readable through adapter' );
+maa_adapter_smoke_assert( 'workflow/wordpress_article_media_handoff' === (string) ( $article_media_handoff_detail['preview']['article_media_handoff']['source_recipe_ref'] ?? '' ), 'adapter article media handoff detail preserves recipe ref' );
+maa_adapter_smoke_assert( false === (bool) ( $article_media_handoff_detail['preview']['article_media_handoff']['direct_wordpress_write'] ?? true ), 'adapter article media handoff detail keeps direct writes disabled' );
+maa_adapter_smoke_assert( 'Adapter Media Plan Smoke' === (string) get_the_title( $article_media_handoff_attachment_id ), 'adapter article media handoff proposal does not mutate media title' );
+maa_adapter_smoke_assert( '' === (string) get_post_meta( $article_media_handoff_attachment_id, '_wp_attachment_image_alt', true ), 'adapter article media handoff proposal does not mutate media alt text' );
+maa_adapter_smoke_assert( '' === (string) get_post_meta( $article_media_handoff_attachment_id, '_npcink_ai_media_source_type', true ), 'adapter article media handoff proposal does not mutate media source type' );
+
 $media_plan_response = maa_adapter_smoke_rest(
 	'POST',
 	'/npcink-openclaw-adapter/v1/run-read-ability',
@@ -3058,6 +3153,7 @@ maa_adapter_smoke_assert( false === strpos( (string) wp_json_encode( $sensitive_
 
 $workflow_recipes = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/workflow-recipes' );
 maa_adapter_smoke_assert( isset( $workflow_recipes['result']['cases']['article_publish_preflight'] ), 'adapter returns workflow recipe list result' );
+maa_adapter_smoke_assert( isset( $workflow_recipes['result']['cases']['article_media_handoff'] ), 'adapter returns article media handoff workflow recipe' );
 
 $workflow_recipe = maa_adapter_smoke_rest(
 	'GET',
@@ -3068,6 +3164,16 @@ $workflow_recipe = maa_adapter_smoke_rest(
 );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-workflow-recipe' === (string) ( $workflow_recipe['ability_id'] ?? '' ), 'adapter runs workflow recipe detail ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-comment-compliance-handoff' === (string) ( $workflow_recipe['result']['entrypoint_ability_id'] ?? '' ), 'adapter returns workflow recipe detail result' );
+
+$article_media_workflow_recipe = maa_adapter_smoke_rest(
+	'GET',
+	'/npcink-openclaw-adapter/v1/workflow-recipe',
+	array(
+		'recipe_id' => 'workflow/wordpress_article_media_handoff',
+	)
+);
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-seo-assets' === (string) ( $article_media_workflow_recipe['result']['entrypoint_ability_id'] ?? '' ), 'adapter returns article media handoff entrypoint ability' );
+maa_adapter_smoke_assert( true === (bool) ( $article_media_workflow_recipe['result']['host_governed_write_boundary'] ?? false ), 'adapter returns article media handoff host-governed boundary' );
 
 $site_info = maa_adapter_smoke_rest(
 	'GET',
