@@ -1,57 +1,13 @@
 .npcink-openclaw-adapter-connection {
 	max-width: 1180px;
 }
-.npcink-openclaw-adapter-connection .maa-tabs {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0;
-	margin: 18px 0 0;
-	border-bottom: 1px solid #c3c4c7;
-}
-.npcink-openclaw-adapter-connection .maa-tab {
-	display: inline-block;
-	margin: 0;
-	padding: 9px 14px;
-	border: 1px solid transparent;
-	border-bottom: 0;
-	background: transparent;
-	color: #1d2327;
-	cursor: pointer;
-	font-weight: 600;
-}
-.npcink-openclaw-adapter-connection .maa-tab:hover {
-	color: #135e96;
-}
-.npcink-openclaw-adapter-connection .maa-tab.is-active {
-	margin-bottom: -1px;
-	border-color: #c3c4c7;
-	background: #fff;
-	color: #1d2327;
-}
-.npcink-openclaw-adapter-connection .maa-tab:focus {
-	box-shadow: 0 0 0 1px #2271b1;
-	outline: 2px solid transparent;
-}
-.npcink-openclaw-adapter-connection .maa-tab-panel {
-	display: none;
-	padding-top: 0;
-}
-.npcink-openclaw-adapter-connection .maa-tab-panel[hidden] {
-	display: none;
-}
-.npcink-openclaw-adapter-connection .maa-tab-panel.is-active {
-	display: block;
-}
-.npcink-openclaw-adapter-connection .maa-tab-panel.maa-workspace.is-active {
+.npcink-openclaw-adapter-connection .maa-method-grid {
 	display: grid;
-}
-.npcink-openclaw-adapter-connection .maa-workspace {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 16px;
 	align-items: start;
 }
-.npcink-openclaw-adapter-connection .maa-workspace > * {
+.npcink-openclaw-adapter-connection .maa-method-grid > * {
 	min-width: 0;
 }
 .npcink-openclaw-adapter-connection .maa-summary {
@@ -121,7 +77,28 @@
 	margin-bottom: 16px;
 	min-width: 0;
 }
+.npcink-openclaw-adapter-connection .maa-pairing-summary,
+.npcink-openclaw-adapter-connection .maa-pairing-access,
+.npcink-openclaw-adapter-connection .maa-pairing-diagnostics {
+	max-width: 860px;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-access {
+	margin-top: 16px;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-access ul {
+	margin: 0 0 12px 18px;
+	list-style: disc;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-access li {
+	margin-bottom: 6px;
+}
 .npcink-openclaw-adapter-connection .maa-section-highlight {
+	border-left: 4px solid #2271b1;
+}
+.npcink-openclaw-adapter-connection .maa-method-card {
+	min-height: 100%;
+}
+.npcink-openclaw-adapter-connection .maa-method-card-recommended {
 	border-left: 4px solid #2271b1;
 }
 .npcink-openclaw-adapter-connection .maa-section h2 {
@@ -346,6 +323,14 @@
 	padding-top: 14px;
 	border-top: 1px solid #dcdcde;
 }
+.npcink-openclaw-adapter-connection .maa-developer-note {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	margin: 0 0 16px;
+	color: #646970;
+}
 .npcink-openclaw-adapter-connection .maa-advanced-group:first-of-type {
 	margin-top: 0;
 	padding-top: 0;
@@ -357,7 +342,7 @@
 	border-top: 1px solid #dcdcde;
 }
 @media (max-width: 960px) {
-	.npcink-openclaw-adapter-connection .maa-workspace {
+	.npcink-openclaw-adapter-connection .maa-method-grid {
 		grid-template-columns: 1fr;
 	}
 }
