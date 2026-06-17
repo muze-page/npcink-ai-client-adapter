@@ -308,6 +308,113 @@ async function maybeCheckEditor(page, fixture) {
     : { ok: false, skipped: false, message: 'block editor showed invalid block recovery prompt', matched };
 }
 
+function buildAcceptanceSummary(results) {
+  const frontendResults = results.filter((result) => !result.editor);
+  const editorResults = results.filter((result) => result.editor);
+  const warnings = frontendResults.flatMap((result) => Array.isArray(result.warnings)
+    ? result.warnings.map((warning) => ({
+      fixture_type: result.fixture_type,
+      template_slug: result.template_slug || '',
+      post_id: result.post_id || 0,
+      viewport: result.viewport ? result.viewport.name : '',
+      code: warning.code || '',
+      message: warning.message || '',
+    }))
+    : []);
+  const failedChecks = frontendResults.flatMap((result) => Array.isArray(result.checks)
+    ? result.checks.filter((check) => !check.ok).map((check) => ({
+      fixture_type: result.fixture_type,
+      template_slug: result.template_slug || '',
+      post_id: result.post_id || 0,
+      viewport: result.viewport ? result.viewport.name : '',
+      message: check.message || '',
+      details: check.details || {},
+    }))
+    : []);
+  const screenshots = frontendResults.filter((result) => result.screenshot).map((result) => ({
+    fixture_type: result.fixture_type,
+    template_slug: result.template_slug || '',
+    post_id: result.post_id || 0,
+    viewport: result.viewport ? result.viewport.name : '',
+    path: result.screenshot,
+  }));
+
+  const templateResults = {};
+  for (const result of frontendResults) {
+    const key = `${result.fixture_type || 'fixture'}:${result.template_slug || result.post_id || 'unknown'}`;
+    const templateSignals = result.signals && result.signals.blockThemeTemplate ? result.signals.blockThemeTemplate : {};
+    if (!templateResults[key]) {
+      templateResults[key] = {
+        fixture_type: result.fixture_type,
+        template_slug: result.template_slug || '',
+        post_id: result.post_id || 0,
+        front_end_url: result.front_end_url || '',
+        viewports: [],
+        modules: {
+          main: false,
+          h1: false,
+          cta: false,
+          latest_posts: false,
+          categories: false,
+          post_content: false,
+          header: false,
+          footer: false,
+        },
+      };
+    }
+    templateResults[key].viewports.push({
+      name: result.viewport ? result.viewport.name : '',
+      width: result.viewport ? result.viewport.width : 0,
+      height: result.viewport ? result.viewport.height : 0,
+      ok: !!result.ok,
+    });
+    templateResults[key].modules.main = templateResults[key].modules.main || !!templateSignals.mainExists;
+    templateResults[key].modules.h1 = templateResults[key].modules.h1 || Number(templateSignals.mainH1Count || 0) > 0;
+    templateResults[key].modules.cta = templateResults[key].modules.cta || (Array.isArray(templateSignals.buttonLinks) && templateSignals.buttonLinks.length > 0);
+    templateResults[key].modules.latest_posts = templateResults[key].modules.latest_posts || !!templateSignals.latestPostsVisible;
+    templateResults[key].modules.categories = templateResults[key].modules.categories || !!templateSignals.categoriesVisible;
+    templateResults[key].modules.post_content = templateResults[key].modules.post_content || !!templateSignals.postContentVisible;
+    templateResults[key].modules.header = templateResults[key].modules.header || !!templateSignals.headerVisible;
+    templateResults[key].modules.footer = templateResults[key].modules.footer || !!templateSignals.footerVisible;
+  }
+
+  const editorSkipped = editorResults.filter((result) => result.skipped).map((result) => ({
+    fixture_type: result.fixture_type,
+    template_slug: result.template_slug || '',
+    post_id: result.post_id || 0,
+    reason: result.reason || '',
+  }));
+  const failedEditor = editorResults.filter((result) => !result.ok).map((result) => ({
+    fixture_type: result.fixture_type,
+    template_slug: result.template_slug || '',
+    post_id: result.post_id || 0,
+    message: result.message || result.reason || '',
+  }));
+
+  return {
+    artifact_type: 'openclaw_visual_acceptance_summary',
+    overall_result: failedChecks.length === 0 && failedEditor.length === 0 ? 'pass' : 'fail',
+    frontend: {
+      result_count: frontendResults.length,
+      passed_count: frontendResults.filter((result) => result.ok).length,
+      failed_count: frontendResults.filter((result) => !result.ok).length,
+    },
+    editor: {
+      result_count: editorResults.length,
+      passed_count: editorResults.filter((result) => result.ok && !result.skipped).length,
+      skipped_count: editorSkipped.length,
+      failed_count: failedEditor.length,
+      skipped: editorSkipped,
+      failed: failedEditor,
+    },
+    templates: Object.values(templateResults),
+    screenshots,
+    warnings,
+    failed_checks: failedChecks,
+    human_review_recommended: failedChecks.length > 0 || failedEditor.length > 0 || warnings.length > 0,
+  };
+}
+
 const browserLaunchOptions = { headless: true };
 if (process.env.MAA_ADAPTER_VISUAL_ACCEPTANCE_BROWSER_CHANNEL) {
   browserLaunchOptions.channel = process.env.MAA_ADAPTER_VISUAL_ACCEPTANCE_BROWSER_CHANNEL;
@@ -367,6 +474,7 @@ const report = {
   result_count: results.length,
   ok: results.every((result) => result.ok),
   warning_count: results.reduce((count, result) => count + (Array.isArray(result.warnings) ? result.warnings.length : 0), 0),
+  acceptance_summary: buildAcceptanceSummary(results),
   results,
 };
 

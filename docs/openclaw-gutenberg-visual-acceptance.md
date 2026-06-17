@@ -153,6 +153,22 @@ For `fixture_type=block_theme_template`, the runner also checks that:
   `validate_images=false` for template-only layout acceptance. Keep the default
   image validation on when validating the full rendered page experience.
 
+## Acceptance Summary
+
+The browser runner writes `build/visual-acceptance/report.json`. In addition to
+raw per-viewport checks, the report includes
+`acceptance_summary.artifact_type=openclaw_visual_acceptance_summary` for
+OpenClaw or an operator to review after proposal execution. The summary contains:
+
+- `overall_result` (`pass` or `fail`);
+- frontend pass/fail counts across desktop, tablet, and mobile;
+- editor pass/skip/fail counts;
+- template module visibility for `main`, H1, CTA, latest posts, categories,
+  post content, header, and footer;
+- screenshot paths grouped by viewport;
+- warning codes such as `low_background_variety`;
+- failed checks and whether human review is recommended.
+
 ## Design Quality Checks
 
 Browser acceptance should catch more than technical breakage. For visually
