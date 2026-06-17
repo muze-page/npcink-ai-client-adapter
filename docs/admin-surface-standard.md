@@ -24,7 +24,7 @@ Primary actions:
 
 - `Secure key-pair connection`, with `Copy connect command` as the primary
   action.
-- `Manage devices`, which opens the authorized signed key-pair device list
+- `Manage devices`, which opens the authorized signed key-pair devices list
   without adding a separate control surface.
 - `Simple key connection`, with `Create Application Password connection` as the
   fallback action for clients that have a dedicated secret field.
