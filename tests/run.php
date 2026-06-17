@@ -131,8 +131,10 @@ foreach (
 		'poll_device_pairing',
 		'approve_device_pairing',
 		'revoke_client_key_by_id',
-		'authenticate_signed_request',
-		'signed_request_credentials',
+			'authenticate_signed_request',
+			'current_signed_client_fingerprint',
+			'sanitize_signed_client_fingerprint',
+			'signed_request_credentials',
 		'DEVICE_PAIRING_TTL',
 		'SIGNATURE_NONCE_TTL',
 		'key_pair_device_pairing',
@@ -186,9 +188,12 @@ foreach (
 		'database_direct',
 		'filesystem_secret_read_allowed',
 		'ability_id_plus_input_hash',
-		'npcink_openclaw_adapter_core_read_grant_site_url_mismatch',
-		'npcink_openclaw_adapter_core_read_grant_blog_id_mismatch',
-		'site_url',
+			'npcink_openclaw_adapter_core_read_grant_site_url_mismatch',
+			'npcink_openclaw_adapter_core_read_grant_blog_id_mismatch',
+			'npcink_openclaw_adapter_core_read_grant_signed_client_fingerprint_mismatch',
+			'signed_client_fingerprint',
+			'client_key_fingerprint',
+			'site_url',
 		'home_url',
 		'blog_id',
 		'run_read_ability( string $ability_id, array $input, array $log_context = array(), array $read_authorization = array() )',
@@ -413,13 +418,30 @@ foreach (
 			'consume_cached_preflight_handoff',
 			'prune_preflight_handoffs',
 			'validate_preflight_binding',
+			'validate_execution_handoff_binding',
+			'proposal_handoff_ability_ids',
 			'validate_core_context_site_binding',
+			'validate_core_context_expiry',
+			'validate_core_context_signed_client_binding',
 			'proposal_input_hash',
 			'npcink_openclaw_adapter_preflight_input_hash_mismatch',
 			'npcink_openclaw_adapter_preflight_policy_version_invalid',
+			'npcink_openclaw_adapter_preflight_expired',
+			'npcink_openclaw_adapter_preflight_handoff_missing',
+			'npcink_openclaw_adapter_preflight_handoff_executor_invalid',
+			'npcink_openclaw_adapter_preflight_handoff_execution_surface_invalid',
+			'npcink_openclaw_adapter_preflight_handoff_core_proxy_execute_unsupported',
+			'npcink_openclaw_adapter_preflight_handoff_commit_execution_unsupported',
+			'npcink_openclaw_adapter_preflight_handoff_proposal_mismatch',
+			'npcink_openclaw_adapter_preflight_handoff_ability_mismatch',
+			'npcink_openclaw_adapter_preflight_handoff_correlation_mismatch',
 			'npcink_openclaw_adapter_preflight_site_url_mismatch',
 			'npcink_openclaw_adapter_preflight_handoff_blog_id_mismatch',
+			'npcink_openclaw_adapter_preflight_signed_client_fingerprint_mismatch',
+			'npcink_openclaw_adapter_preflight_handoff_signed_client_fingerprint_mismatch',
 			'core-preflight-v1',
+			'adapter_after_core_preflight',
+			'wp_abilities_rest',
 			'approved_input_hash',
 			'policy_version',
 			'adapter_preflight_handoff_cached',
@@ -763,11 +785,18 @@ maa_adapter_assert( false === strpos( $smoke_route, "array( \$this, 'can_use_ada
 $key_revoke_route = substr( $controller, (int) strpos( $controller, "'/connection/key-pairs/(?P<key_id>mk_[A-Za-z0-9_-]+)'" ), 360 );
 maa_adapter_assert( false !== strpos( $key_revoke_route, "array( \$this, 'can_use_admin_session' )" ), 'Client key revoke route requires administrator session auth.' );
 maa_adapter_assert( false === strpos( $key_revoke_route, "array( \$this, 'can_use_adapter' )" ), 'Client key revoke route is not available through signed adapter clients.' );
-$client_key_auth = substr( $controller, (int) strpos( $controller, 'private function authenticate_signed_request' ), 2600 );
-maa_adapter_assert( false !== strpos( $client_key_auth, 'should_update_client_key_last_used' ), 'Signed request auth throttles last-used option writes.' );
-$client_key_scope = substr( $controller, (int) strpos( $controller, 'private function client_key_scope_allows_request' ), 1400 );
-maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-runs'" ), 'Client key scopes treat media derivative runs as propose-scope routes.' );
-maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-proposal-payload'" ), 'Client key scopes treat media derivative proposal payloads as propose-scope routes.' );
+	$client_key_auth = substr( $controller, (int) strpos( $controller, 'private function authenticate_signed_request' ), 2600 );
+	maa_adapter_assert( false !== strpos( $client_key_auth, 'should_update_client_key_last_used' ), 'Signed request auth throttles last-used option writes.' );
+	maa_adapter_assert( false !== strpos( $client_key_auth, 'current_signed_client_fingerprint' ), 'Signed request auth records the current client fingerprint.' );
+	$upstream_dispatch = substr( $controller, (int) strpos( $controller, 'private function dispatch_upstream( string' ), 1600 );
+	maa_adapter_assert( false !== strpos( $upstream_dispatch, 'x-npcink-adapter-signed-client-fingerprint' ), 'Adapter forwards signed client fingerprint to Core app-token requests.' );
+	maa_adapter_assert( false !== strpos( $upstream_dispatch, 'x-npcink-adapter-client-key-fingerprint' ), 'Adapter forwards compatible client key fingerprint alias to Core app-token requests.' );
+	$client_key_scope = substr( $controller, (int) strpos( $controller, 'private function client_key_scope_allows_request' ), 1400 );
+	maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-runs'" ), 'Client key scopes treat media derivative runs as propose-scope routes.' );
+	maa_adapter_assert( false !== strpos( $client_key_scope, "'/media-derivative-proposal-payload'" ), 'Client key scopes treat media derivative proposal payloads as propose-scope routes.' );
+	maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.status'" ), 'Client key scopes preserve legacy Magick status scope compatibility.' );
+	maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.propose'" ), 'Client key scopes preserve legacy Magick propose scope compatibility.' );
+	maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.read'" ), 'Client key scopes preserve legacy Magick read scope compatibility.' );
 $public_artifact_projection = substr( $controller, (int) strpos( $controller, 'private function public_media_derivative_artifact_descriptor' ), 700 );
 maa_adapter_assert( false !== strpos( $public_artifact_projection, "'path', 'file_path', 'tmp_name', 'bytes', 'content'" ), 'Public media derivative artifact projections remove local paths and inline content.' );
 $preview_download = substr( $controller, (int) strpos( $controller, 'public function download_media_derivative_artifact_preview' ), 1800 );

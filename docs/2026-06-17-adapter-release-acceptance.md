@@ -40,8 +40,9 @@ the branch is pushed as-is.
   `docs/openclaw-adapter-contract.md`.
 - Added Adapter-side fail-closed validation for optional Core `site_url`,
   `home_url`, and `blog_id` context bindings when those fields are present.
-- Kept client-key fingerprint binding as a cross-contract item until Core emits
-  the signed client fingerprint in preflight and read authorization contexts.
+- Added Adapter-side forwarding and fail-closed validation for Core
+  `signed_client_fingerprint` / `client_key_fingerprint` bindings when Core
+  emits them in preflight and read authorization contexts.
 
 ## Validation Completed
 
@@ -114,7 +115,7 @@ Move the runtime contract endpoint work to the owning plugins, in this order:
    - Report proposal, approval, audit, and commit-preflight ownership.
    - Report `core_proxy_execute=false` and `commit_execution=false`.
    - Include signed context fields that Adapter can validate, including the
-     future client-key fingerprint field.
+     signed local client fingerprint field.
 
 2. Abilities Toolkit
    - Expose an admin-authenticated runtime contract endpoint.
@@ -127,6 +128,6 @@ Move the runtime contract endpoint work to the owning plugins, in this order:
 3. Adapter follow-up
    - Continue consuming Core and Toolkit contract summaries on `/health`,
      `/help`, and `/connection/manifest`.
-   - Add client-key fingerprint validation only after Core emits the signed
-     field.
+   - Keep signed-client fingerprint forwarding and validation covered by
+     static, fail-closed, and local-client fixture tests.
    - Keep the Adapter release gates in this record as the regression baseline.

@@ -73,11 +73,12 @@ These dependency summaries are compatibility proofs, not authority transfer.
 They must not copy Core proposal bodies, approval records, audit timelines,
 ability callback internals, provider credentials, or raw secrets.
 
-Client-key fingerprint binding is intentionally cross-plugin. Adapter can
-enforce it only after Core emits the signed client fingerprint in preflight and
-sensitive-read authorization contexts. Until then, Adapter enforces the context
-bindings Core already emits, including optional `site_url`, `home_url`, and
-`blog_id`.
+Client-key fingerprint binding is intentionally cross-plugin. Adapter forwards
+the authenticated local client key fingerprint to trusted Core app-token
+requests. When Core emits `signed_client_fingerprint` or the compatible
+`client_key_fingerprint` alias in preflight or sensitive-read authorization
+contexts, Adapter verifies it against the current signed local client alongside
+the existing `site_url`, `home_url`, and `blog_id` bindings.
 
 ## Source Documents
 

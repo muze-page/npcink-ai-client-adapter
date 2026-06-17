@@ -63,6 +63,13 @@ final class Controller {
 	private $current_request_log_context = array();
 
 	/**
+	 * Current signed local client fingerprint for the REST request.
+	 *
+	 * @var string
+	 */
+	private $current_signed_client_fingerprint = '';
+
+	/**
 	 * Returns Adapter-owned execution profiles for abilities that may run after
 	 * Core approval and commit preflight.
 	 *
@@ -989,6 +996,8 @@ final class Controller {
 	 * @return bool
 	 */
 	public function can_use_adapter( ?WP_REST_Request $request = null ): bool {
+		$this->current_signed_client_fingerprint = '';
+
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
 		}
@@ -1853,6 +1862,8 @@ final class Controller {
 	 * @return bool
 	 */
 	private function authenticate_signed_request( WP_REST_Request $request ): bool {
+		$this->current_signed_client_fingerprint = '';
+
 		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
 			return false;
 		}
@@ -1911,8 +1922,18 @@ final class Controller {
 			update_option( self::CLIENT_KEYS_OPTION, $keys, false );
 		}
 		wp_set_current_user( $user_id );
+		$this->current_signed_client_fingerprint = $this->sanitize_signed_client_fingerprint( (string) ( $record['fingerprint'] ?? '' ) );
 
 		return true;
+	}
+
+	/**
+	 * Returns the currently authenticated signed local client fingerprint.
+	 *
+	 * @return string
+	 */
+	private function current_signed_client_fingerprint(): string {
+		return $this->sanitize_signed_client_fingerprint( $this->current_signed_client_fingerprint );
 	}
 
 	/**
@@ -1996,18 +2017,18 @@ final class Controller {
 		$method = strtoupper( $request->get_method() );
 
 		if ( false !== strpos( $route, '/proposals' ) || false !== strpos( $route, '/execute-approved-proposal' ) ) {
-			return ! empty( $scopes['npcink.propose'] );
+			return ! empty( $scopes['npcink.propose'] ) || ! empty( $scopes['magick.propose'] );
 		}
 
 		if ( false !== strpos( $route, '/media-derivative-runs' ) || false !== strpos( $route, '/media-derivative-proposal-payload' ) ) {
-			return ! empty( $scopes['npcink.propose'] );
+			return ! empty( $scopes['npcink.propose'] ) || ! empty( $scopes['magick.propose'] );
 		}
 
 		if ( 'GET' === $method && ( false !== strpos( $route, '/health' ) || false !== strpos( $route, '/help' ) || false !== strpos( $route, '/capabilities' ) || false !== strpos( $route, '/connection/' ) ) ) {
-			return ! empty( $scopes['npcink.status'] );
+			return ! empty( $scopes['npcink.status'] ) || ! empty( $scopes['magick.status'] );
 		}
 
-		return ! empty( $scopes['npcink.read'] );
+		return ! empty( $scopes['npcink.read'] ) || ! empty( $scopes['magick.read'] );
 	}
 
 	/**
@@ -7325,6 +7346,11 @@ final class Controller {
 			return null;
 		}
 
+		$binding = $this->validate_preflight_binding( $proposal_id, $proposal, $preflight );
+		if ( is_wp_error( $binding ) ) {
+			return null;
+		}
+
 		$handoff = array(
 			'status'              => 'issued',
 			'proposal_id'         => $proposal_id,
@@ -7387,6 +7413,11 @@ final class Controller {
 			return null;
 		}
 
+		$binding = $this->validate_preflight_binding( $proposal_id, $proposal, $preflight );
+		if ( is_wp_error( $binding ) ) {
+			return null;
+		}
+
 		return $preflight;
 	}
 
@@ -7429,7 +7460,7 @@ final class Controller {
 		$approved_hash     = sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? '' ) );
 		$handoff_hash      = sanitize_text_field( (string) ( $execution_handoff['approved_input_hash'] ?? $approved_hash ) );
 
-		if ( '' === $approved_hash || $approved_hash !== $current_hash || ( ! empty( $execution_handoff ) && $handoff_hash !== $approved_hash ) ) {
+		if ( '' === $approved_hash || $approved_hash !== $current_hash || $handoff_hash !== $approved_hash ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_input_hash_mismatch',
 				__( 'Core commit preflight approved input hash does not match the current proposal input.', 'npcink-ai-client-adapter' ),
@@ -7446,7 +7477,7 @@ final class Controller {
 
 		$policy_version = sanitize_key( (string) ( $approval_context['policy_version'] ?? '' ) );
 		$handoff_policy = sanitize_key( (string) ( $execution_handoff['policy_version'] ?? $policy_version ) );
-		if ( 'core-preflight-v1' !== $policy_version || ( ! empty( $execution_handoff ) && 'core-preflight-v1' !== $handoff_policy ) ) {
+		if ( 'core-preflight-v1' !== $policy_version || 'core-preflight-v1' !== $handoff_policy ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_policy_version_invalid',
 				__( 'Core commit preflight policy version is not accepted by Adapter execution.', 'npcink-ai-client-adapter' ),
@@ -7461,18 +7492,187 @@ final class Controller {
 			);
 		}
 
+		$handoff_binding = $this->validate_execution_handoff_binding( $proposal_id, $proposal, $preflight, $approval_context, $execution_handoff );
+		if ( is_wp_error( $handoff_binding ) ) {
+			return $handoff_binding;
+		}
+
 		$approval_site_binding = $this->validate_core_context_site_binding( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
 		if ( is_wp_error( $approval_site_binding ) ) {
 			return $approval_site_binding;
 		}
-		if ( ! empty( $execution_handoff ) ) {
-			$handoff_site_binding = $this->validate_core_context_site_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
-			if ( is_wp_error( $handoff_site_binding ) ) {
-				return $handoff_site_binding;
-			}
+		$handoff_site_binding = $this->validate_core_context_site_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+		if ( is_wp_error( $handoff_site_binding ) ) {
+			return $handoff_site_binding;
+		}
+		$approval_expiry = $this->validate_core_context_expiry( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
+		if ( is_wp_error( $approval_expiry ) ) {
+			return $approval_expiry;
+		}
+		$handoff_expiry = $this->validate_core_context_expiry( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+		if ( is_wp_error( $handoff_expiry ) ) {
+			return $handoff_expiry;
+		}
+		$approval_client_binding = $this->validate_core_context_signed_client_binding( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
+		if ( is_wp_error( $approval_client_binding ) ) {
+			return $approval_client_binding;
+		}
+		$handoff_client_binding = $this->validate_core_context_signed_client_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+		if ( is_wp_error( $handoff_client_binding ) ) {
+			return $handoff_client_binding;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Verifies Core issued an Adapter-owned execution handoff for this proposal.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @param array<string,mixed> $preflight Core preflight payload.
+	 * @param array<string,mixed> $approval_context Core approval context.
+	 * @param array<string,mixed> $execution_handoff Core execution handoff.
+	 * @return true|WP_Error
+	 */
+	private function validate_execution_handoff_binding( string $proposal_id, array $proposal, array $preflight, array $approval_context, array $execution_handoff ) {
+		if ( empty( $execution_handoff ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_missing',
+				__( 'Core commit preflight did not return an Adapter execution handoff.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'           => 409,
+					'proposal_id'      => $proposal_id,
+					'commit_execution' => false,
+				)
+			);
+		}
+
+		$executor = sanitize_key( (string) ( $execution_handoff['executor'] ?? '' ) );
+		if ( 'adapter_after_core_preflight' !== $executor ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_executor_invalid',
+				__( 'Core execution handoff was not issued for Adapter after Core preflight.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'            => 409,
+					'proposal_id'       => $proposal_id,
+					'executor'          => $executor,
+					'expected_executor' => 'adapter_after_core_preflight',
+					'commit_execution'  => false,
+				)
+			);
+		}
+
+		$execution_surface = sanitize_key( (string) ( $execution_handoff['execution_surface'] ?? '' ) );
+		if ( 'wp_abilities_rest' !== $execution_surface ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_execution_surface_invalid',
+				__( 'Core execution handoff was not issued for the WordPress Abilities REST surface.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'                     => 409,
+					'proposal_id'                => $proposal_id,
+					'execution_surface'          => $execution_surface,
+					'expected_execution_surface' => 'wp_abilities_rest',
+					'commit_execution'           => false,
+				)
+			);
+		}
+
+		if ( false !== (bool) ( $execution_handoff['core_proxy_execute'] ?? true ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_core_proxy_execute_unsupported',
+				__( 'Core execution handoff must keep core_proxy_execute=false for Adapter execution.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'             => 409,
+					'proposal_id'        => $proposal_id,
+					'core_proxy_execute' => (bool) ( $execution_handoff['core_proxy_execute'] ?? true ),
+					'commit_execution'   => false,
+				)
+			);
+		}
+
+		if ( false !== (bool) ( $execution_handoff['commit_execution'] ?? true ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_commit_execution_unsupported',
+				__( 'Core execution handoff must keep commit_execution=false before Adapter execution.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'           => 409,
+					'proposal_id'      => $proposal_id,
+					'commit_execution' => (bool) ( $execution_handoff['commit_execution'] ?? true ),
+				)
+			);
+		}
+
+		$handoff_proposal_id = sanitize_text_field( (string) ( $execution_handoff['proposal_id'] ?? '' ) );
+		if ( $proposal_id !== $handoff_proposal_id ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_proposal_mismatch',
+				__( 'Core execution handoff proposal id does not match the Adapter execution request.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'              => 409,
+					'proposal_id'         => $proposal_id,
+					'handoff_proposal_id' => $handoff_proposal_id,
+					'commit_execution'    => false,
+				)
+			);
+		}
+
+		$handoff_ability_id = sanitize_text_field( (string) ( $execution_handoff['ability_id'] ?? '' ) );
+		$allowed_ability_ids = $this->proposal_handoff_ability_ids( $proposal );
+		if ( '' === $handoff_ability_id || ! in_array( $handoff_ability_id, $allowed_ability_ids, true ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_ability_mismatch',
+				__( 'Core execution handoff ability id does not match the approved proposal or write actions.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'              => 409,
+					'proposal_id'         => $proposal_id,
+					'handoff_ability_id'  => $handoff_ability_id,
+					'allowed_ability_ids' => $allowed_ability_ids,
+					'commit_execution'    => false,
+				)
+			);
+		}
+
+		$handoff_correlation_id = sanitize_text_field( (string) ( $execution_handoff['correlation_id'] ?? '' ) );
+		$correlation_id         = sanitize_text_field( (string) ( $preflight['correlation_id'] ?? ( $approval_context['correlation_id'] ?? '' ) ) );
+		if ( '' === $handoff_correlation_id || '' === $correlation_id || $handoff_correlation_id !== $correlation_id ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_correlation_mismatch',
+				__( 'Core execution handoff correlation id does not match the commit preflight correlation id.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'                  => 409,
+					'proposal_id'             => $proposal_id,
+					'correlation_id'          => $correlation_id,
+					'handoff_correlation_id'  => $handoff_correlation_id,
+					'commit_execution'        => false,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns proposal and target write-action ability ids accepted for a Core handoff.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<int,string>
+	 */
+	private function proposal_handoff_ability_ids( array $proposal ): array {
+		$ability_ids = array(
+			sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) ),
+		);
+
+		$input = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		$write_actions = is_array( $input['write_actions'] ?? null ) ? $input['write_actions'] : array();
+		foreach ( $write_actions as $action ) {
+			if ( ! is_array( $action ) ) {
+				continue;
+			}
+			$ability_ids[] = sanitize_text_field( (string) ( $action['target_ability_id'] ?? ( $action['ability_id'] ?? '' ) ) );
+		}
+
+		return array_values( array_unique( array_filter( $ability_ids ) ) );
 	}
 
 	/**
@@ -7525,6 +7725,99 @@ final class Controller {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Validates the Core-issued handoff TTL.
+	 *
+	 * @param array<string,mixed> $context Core-provided context.
+	 * @param string              $code_prefix Error code prefix.
+	 * @param int                 $status HTTP status.
+	 * @return true|WP_Error
+	 */
+	private function validate_core_context_expiry( array $context, string $code_prefix, int $status ) {
+		// Error families include npcink_openclaw_adapter_preflight_expired and npcink_openclaw_adapter_preflight_handoff_expired.
+		$expires_at = sanitize_text_field( (string) ( $context['expires_at'] ?? '' ) );
+		$expires_ts = '' === $expires_at ? false : strtotime( $expires_at );
+		if ( false === $expires_ts || $expires_ts <= time() ) {
+			return new WP_Error(
+				$code_prefix . '_expired',
+				__( 'Core authorization context is expired or missing a valid expiry.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'     => $status,
+					'expires_at' => $expires_at,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validates optional Core signed-client binding fields when present.
+	 *
+	 * @param array<string,mixed> $context Core-provided context.
+	 * @param string              $code_prefix Error code prefix.
+	 * @param int                 $status HTTP status.
+	 * @return true|WP_Error
+	 */
+	private function validate_core_context_signed_client_binding( array $context, string $code_prefix, int $status ) {
+		// Error families include npcink_openclaw_adapter_preflight_signed_client_fingerprint_mismatch, npcink_openclaw_adapter_preflight_handoff_signed_client_fingerprint_mismatch, and npcink_openclaw_adapter_core_read_grant_signed_client_fingerprint_mismatch.
+		$primary_raw = sanitize_text_field( (string) ( $context['signed_client_fingerprint'] ?? '' ) );
+		$alias_raw   = sanitize_text_field( (string) ( $context['client_key_fingerprint'] ?? '' ) );
+		$primary     = $this->sanitize_signed_client_fingerprint( $primary_raw );
+		$alias       = $this->sanitize_signed_client_fingerprint( $alias_raw );
+
+		if ( ( '' !== $primary_raw && '' === $primary ) || ( '' !== $alias_raw && '' === $alias ) ) {
+			return new WP_Error(
+				$code_prefix . '_signed_client_fingerprint_invalid',
+				__( 'Core authorization context includes an invalid signed client fingerprint.', 'npcink-ai-client-adapter' ),
+				array( 'status' => $status )
+			);
+		}
+
+		if ( '' !== $primary && '' !== $alias && ! hash_equals( $primary, $alias ) ) {
+			return new WP_Error(
+				$code_prefix . '_signed_client_fingerprint_alias_mismatch',
+				__( 'Core authorization context signed client fingerprint aliases do not match.', 'npcink-ai-client-adapter' ),
+				array( 'status' => $status )
+			);
+		}
+
+		$context_fingerprint = '' !== $primary ? $primary : $alias;
+		if ( '' === $context_fingerprint ) {
+			return true;
+		}
+
+		$current_fingerprint = $this->current_signed_client_fingerprint();
+		if ( '' === $current_fingerprint || ! hash_equals( $current_fingerprint, $context_fingerprint ) ) {
+			return new WP_Error(
+				$code_prefix . '_signed_client_fingerprint_mismatch',
+				__( 'Core authorization context was issued for a different signed local client.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'                       => $status,
+					'expected_client_fingerprint'  => $current_fingerprint,
+					'context_client_fingerprint'   => $context_fingerprint,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sanitizes a signed local client fingerprint.
+	 *
+	 * @param string $fingerprint Fingerprint.
+	 * @return string
+	 */
+	private function sanitize_signed_client_fingerprint( string $fingerprint ): string {
+		$fingerprint = sanitize_text_field( $fingerprint );
+		if ( 1 !== preg_match( '/^sha256:[a-f0-9]{64}$/', $fingerprint ) ) {
+			return '';
+		}
+
+		return $fingerprint;
 	}
 
 	/**
@@ -8256,13 +8549,17 @@ final class Controller {
 			);
 		}
 
-		$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
-		if ( is_wp_error( $site_binding ) ) {
-			return $site_binding;
-		}
+			$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+			if ( is_wp_error( $site_binding ) ) {
+				return $site_binding;
+			}
+			$client_binding = $this->validate_core_context_signed_client_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+			if ( is_wp_error( $client_binding ) ) {
+				return $client_binding;
+			}
 
-		$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
-		if ( false === $expires_at || $expires_at <= time() ) {
+			$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
+			if ( false === $expires_at || $expires_at <= time() ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_expired',
 				__( 'Core read authorization context is expired.', 'npcink-ai-client-adapter' ),
@@ -8288,10 +8585,12 @@ final class Controller {
 			'approved_input_hash'         => sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) ),
 			'correlation_id'              => sanitize_text_field( (string) ( $context['correlation_id'] ?? '' ) ),
 			'policy_version'              => sanitize_text_field( (string) ( $context['policy_version'] ?? '' ) ),
-			'site_url'                    => sanitize_text_field( (string) ( $context['site_url'] ?? '' ) ),
-			'home_url'                    => sanitize_text_field( (string) ( $context['home_url'] ?? '' ) ),
-			'blog_id'                     => absint( $context['blog_id'] ?? 0 ),
-			'sensitivity'                 => sanitize_key( (string) ( $context['sensitivity'] ?? 'sensitive' ) ),
+				'site_url'                    => sanitize_text_field( (string) ( $context['site_url'] ?? '' ) ),
+				'home_url'                    => sanitize_text_field( (string) ( $context['home_url'] ?? '' ) ),
+				'blog_id'                     => absint( $context['blog_id'] ?? 0 ),
+				'signed_client_fingerprint'   => $this->sanitize_signed_client_fingerprint( (string) ( $context['signed_client_fingerprint'] ?? '' ) ),
+				'client_key_fingerprint'      => $this->sanitize_signed_client_fingerprint( (string) ( $context['client_key_fingerprint'] ?? '' ) ),
+				'sensitivity'                 => sanitize_key( (string) ( $context['sensitivity'] ?? 'sensitive' ) ),
 			'data_classes'                => $this->sanitize_string_list( is_array( $context['data_classes'] ?? null ) ? (array) $context['data_classes'] : array() ),
 			'redaction_level'             => sanitize_key( (string) ( $context['redaction_level'] ?? 'strict' ) ),
 			'expires_at'                  => sanitize_text_field( (string) ( $context['expires_at'] ?? '' ) ),
@@ -8684,6 +8983,11 @@ final class Controller {
 
 		if ( '' !== $token && 0 === strpos( $route, '/npcink-governance-core/v1/' ) ) {
 			$request->set_header( 'x-npcink-governance-core-app-token', $token );
+			$fingerprint = $this->current_signed_client_fingerprint();
+			if ( '' !== $fingerprint ) {
+				$request->set_header( 'x-npcink-adapter-signed-client-fingerprint', $fingerprint );
+				$request->set_header( 'x-npcink-adapter-client-key-fingerprint', $fingerprint );
+			}
 			wp_set_current_user( 0 );
 		}
 

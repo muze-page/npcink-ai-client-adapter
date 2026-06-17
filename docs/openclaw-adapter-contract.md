@@ -67,13 +67,14 @@ than elevating privileges.
 When Core approval, commit-preflight, or sensitive read authorization contexts
 include optional `site_url`, `home_url`, or `blog_id` bindings, Adapter verifies
 those fields against the current WordPress site before executing the handoff or
-authorized read. A mismatch fails closed with the matching
-`npcink_openclaw_adapter_preflight_*_mismatch`,
-`npcink_openclaw_adapter_preflight_handoff_*_mismatch`, or
-`npcink_openclaw_adapter_core_read_grant_*_mismatch` error. Client-key
-fingerprint binding remains a Core/Adapter cross-contract item: Adapter can
-enforce it only after Core emits the signed client fingerprint in the preflight
-or read authorization context.
+authorized read. Adapter also forwards the authenticated local client key
+fingerprint to trusted Core app-token requests; when Core returns
+`signed_client_fingerprint` or the compatible `client_key_fingerprint` alias,
+Adapter verifies it against the current signed local client. A mismatch fails
+closed with the matching `npcink_openclaw_adapter_preflight_*_mismatch`,
+`npcink_openclaw_adapter_preflight_handoff_*_mismatch`,
+`npcink_openclaw_adapter_core_read_grant_*_mismatch`, or
+`*_signed_client_fingerprint_mismatch` error.
 
 ## Read Ability Contract
 
@@ -606,9 +607,17 @@ Dry-run-only proposal verification stops at Adapter commit-preflight. Adapter `e
 Before Adapter calls the WordPress Abilities API for a final supported write,
 it must verify Core's `approval_context.approved_input_hash` matches the current
 proposal input hash and that `approval_context.policy_version` is
-`core-preflight-v1`. If Core also returns an `execution_handoff`, its hash and
-policy version must match the same approved input and policy. Mismatches fail
-closed; Adapter must not repair, re-approve, or execute the proposal.
+`core-preflight-v1`. Core must also return an `execution_handoff` for the same
+approved input and policy. Adapter executes only when that handoff has
+`executor=adapter_after_core_preflight`, `execution_surface=wp_abilities_rest`,
+`core_proxy_execute=false`, `commit_execution=false`, the same `proposal_id`,
+the same commit-preflight `correlation_id`, and an `ability_id` matching either
+the proposal ability or one of the approved `write_actions[]` target abilities.
+Both `approval_context.expires_at` and `execution_handoff.expires_at` must be
+present and still valid. When Core includes `signed_client_fingerprint` or
+`client_key_fingerprint`, the value must match the currently authenticated local
+client key. Mismatches fail closed; Adapter must not repair, re-approve, or
+execute the proposal.
 
 ## Unified Approve And Execute Contract
 
