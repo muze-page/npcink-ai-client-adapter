@@ -153,7 +153,7 @@ Authorization: Npcink-Signature key_id="mk_...", timestamp="2026-06-01T12:00:00Z
 Canonical request:
 
 ```text
-MAGICK-AI-ADAPTER-V1
+NPCINK-AI-CLIENT-ADAPTER-V1
 METHOD
 ROUTE
 CANONICAL_QUERY_JSON
