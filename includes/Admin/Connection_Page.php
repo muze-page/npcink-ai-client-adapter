@@ -374,17 +374,19 @@ final class Connection_Page {
 		$key       = is_array( $pairing['key'] ?? null ) ? $pairing['key'] : array();
 		$scopes    = is_array( $pairing['scopes'] ?? null ) ? $pairing['scopes'] : array();
 		$status    = (string) ( $pairing['status'] ?? 'pending' );
+		$broker    = trim( (string) ( $client['broker'] ?? '' ) . ' ' . (string) ( $client['broker_version'] ?? '' ) );
 		?>
 		<div class="wrap npcink-openclaw-adapter-connection" data-maa-copied-label="<?php echo esc_attr__( 'Copied', 'npcink-ai-client-adapter' ); ?>">
-			<h1><?php echo esc_html__( 'Approve Npcink Client', 'npcink-ai-client-adapter' ); ?></h1>
+			<h1><?php echo esc_html( $this->pairing_page_title( $status ) ); ?></h1>
 			<?php if ( empty( $pairing ) ) : ?>
 				<div class="notice notice-error"><p><?php echo esc_html__( 'Device pairing code was not found or has expired.', 'npcink-ai-client-adapter' ); ?></p></div>
 			<?php else : ?>
 				<?php if ( 'approved' === $status ) : ?>
 					<div class="notice notice-success">
 						<p><strong><?php echo esc_html__( 'Connection approved.', 'npcink-ai-client-adapter' ); ?></strong></p>
-						<p><?php echo esc_html__( 'Return to the terminal or local AI client. The client will finish polling and save its local profile. Adapter stores only the public key; the private key was never sent to WordPress.', 'npcink-ai-client-adapter' ); ?></p>
+						<p><?php echo esc_html__( 'Return to the terminal or local AI client that started pairing. Wait for it to report ready; this browser page can be closed. Adapter stores only the public key; the private key was never sent to WordPress.', 'npcink-ai-client-adapter' ); ?></p>
 					</div>
+					<p class="description"><?php echo esc_html__( 'If you did not start this pairing, revoke this client from the Adapter page immediately.', 'npcink-ai-client-adapter' ); ?> <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG ) ); ?>"><?php echo esc_html__( 'Manage paired clients', 'npcink-ai-client-adapter' ); ?></a></p>
 				<?php elseif ( 'rejected' === $status ) : ?>
 					<div class="notice notice-warning">
 						<p><strong><?php echo esc_html__( 'Connection rejected.', 'npcink-ai-client-adapter' ); ?></strong></p>
@@ -393,20 +395,47 @@ final class Connection_Page {
 				<?php else : ?>
 					<p><?php echo esc_html__( 'Approve this local AI client only if you initiated the connection. Adapter stores only the public key; the private key stays on your computer.', 'npcink-ai-client-adapter' ); ?></p>
 				<?php endif; ?>
-				<table class="widefat striped" style="max-width: 860px;">
+				<table class="widefat striped maa-pairing-summary">
 					<tbody>
-						<tr><th scope="row"><?php echo esc_html__( 'User code', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( $user_code ); ?></code></td></tr>
 						<tr><th scope="row"><?php echo esc_html__( 'Client', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['name'] ?? '' ) ); ?></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Device', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['device_name'] ?? '' ) ); ?></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Broker', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( trim( (string) ( $client['broker'] ?? '' ) . ' ' . (string) ( $client['broker_version'] ?? '' ) ) ); ?></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Fingerprint', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $key['fingerprint'] ?? '' ) ); ?></code></td></tr>
-						<tr><th scope="row"><?php echo esc_html__( 'Scopes', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( implode( ', ', $scopes ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Device reported by client', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( (string) ( $client['device_name'] ?? '' ) ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Local verifier', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( $broker ); ?></td></tr>
+						<tr><th scope="row"><?php echo esc_html( 'pending' === $status ? __( 'User code', 'npcink-ai-client-adapter' ) : __( 'Used pairing code', 'npcink-ai-client-adapter' ) ); ?></th><td><code><?php echo esc_html( $user_code ); ?></code></td></tr>
+						<tr><th scope="row"><?php echo esc_html__( 'Started', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( $this->display_datetime( (string) ( $pairing['created_at'] ?? '' ) ) ); ?></td></tr>
 						<?php if ( 'approved' === $status ) : ?>
-							<tr><th scope="row"><?php echo esc_html__( 'Connection ID', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['connection_id'] ?? '' ) ); ?></code></td></tr>
-							<tr><th scope="row"><?php echo esc_html__( 'Key ID', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['key_id'] ?? '' ) ); ?></code></td></tr>
+							<tr><th scope="row"><?php echo esc_html__( 'Approved', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( $this->display_datetime( (string) ( $pairing['approved_at'] ?? '' ) ) ); ?></td></tr>
+						<?php endif; ?>
+						<?php if ( 'pending' === $status ) : ?>
+							<tr><th scope="row"><?php echo esc_html__( 'Expires', 'npcink-ai-client-adapter' ); ?></th><td><?php echo esc_html( $this->display_datetime( gmdate( 'c', (int) ( $pairing['expires_at'] ?? 0 ) ) ) ); ?></td></tr>
 						<?php endif; ?>
 					</tbody>
 				</table>
+				<div class="maa-section maa-section-highlight maa-pairing-access">
+					<h2><?php echo esc_html( 'approved' === $status ? __( 'Approved access', 'npcink-ai-client-adapter' ) : __( 'Requested access', 'npcink-ai-client-adapter' ) ); ?></h2>
+					<ul>
+						<?php foreach ( $this->pairing_scope_descriptions( $scopes ) as $scope_description ) : ?>
+							<li><?php echo esc_html( $scope_description ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+					<p><?php echo esc_html__( 'This approval does not grant direct WordPress write, approval, publish, provider credential, prompt, model routing, or production workload execution authority. Writes must still go through Core proposal, approval, and commit-preflight; Adapter remains the client channel.', 'npcink-ai-client-adapter' ); ?></p>
+				</div>
+				<details class="maa-section maa-pairing-diagnostics">
+					<summary>
+						<strong><?php echo esc_html__( 'Diagnostic details', 'npcink-ai-client-adapter' ); ?></strong>
+						<span><?php echo esc_html__( 'IDs and fingerprints for support; these are not client setup secrets.', 'npcink-ai-client-adapter' ); ?></span>
+					</summary>
+					<p class="description"><?php echo esc_html__( 'Do not paste these values into chat, tool commands, proposal payloads, or setup text unless a support workflow explicitly asks for diagnostic identifiers.', 'npcink-ai-client-adapter' ); ?></p>
+					<table class="widefat striped">
+						<tbody>
+							<tr><th scope="row"><?php echo esc_html__( 'Public key fingerprint', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $key['fingerprint'] ?? '' ) ); ?></code></td></tr>
+							<tr><th scope="row"><?php echo esc_html__( 'Scope IDs', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( implode( ', ', $scopes ) ); ?></code></td></tr>
+							<?php if ( 'approved' === $status ) : ?>
+								<tr><th scope="row"><?php echo esc_html__( 'Connection record ID', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['connection_id'] ?? '' ) ); ?></code></td></tr>
+								<tr><th scope="row"><?php echo esc_html__( 'Client key record ID', 'npcink-ai-client-adapter' ); ?></th><td><code><?php echo esc_html( (string) ( $pairing['key_id'] ?? '' ) ); ?></code></td></tr>
+							<?php endif; ?>
+						</tbody>
+					</table>
+				</details>
 				<?php if ( 'pending' === $status ) : ?>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 16px;">
 						<input type="hidden" name="action" value="<?php echo esc_attr( self::PAIR_ACTION ); ?>" />
@@ -418,12 +447,58 @@ final class Connection_Page {
 				<?php endif; ?>
 			<?php endif; ?>
 		</div>
-		<?php
-	}
+			<?php
+		}
 
-	/**
-	 * Handles device pairing approval or rejection.
-	 *
+		/**
+		 * Returns the page title for the current pairing state.
+		 *
+		 * @param string $status Pairing status.
+		 * @return string
+		 */
+		private function pairing_page_title( string $status ): string {
+			if ( 'approved' === $status ) {
+				return __( 'Npcink client approved', 'npcink-ai-client-adapter' );
+			}
+
+			if ( 'rejected' === $status ) {
+				return __( 'Npcink client rejected', 'npcink-ai-client-adapter' );
+			}
+
+			return __( 'Approve Npcink Client', 'npcink-ai-client-adapter' );
+		}
+
+		/**
+		 * Returns administrator-readable scope descriptions.
+		 *
+		 * @param array<int,mixed> $scopes Pairing scopes.
+		 * @return array<int,string>
+		 */
+		private function pairing_scope_descriptions( array $scopes ): array {
+			$known = array(
+				'npcink.read'    => __( 'Read approved Adapter and WordPress Abilities API routes.', 'npcink-ai-client-adapter' ),
+				'npcink.propose' => __( 'Create Core-governed proposals for reviewed writes.', 'npcink-ai-client-adapter' ),
+				'npcink.status'  => __( 'Check Adapter, Core proposal, and execution status.', 'npcink-ai-client-adapter' ),
+			);
+
+			$descriptions = array();
+			foreach ( $scopes as $scope ) {
+				$scope = (string) $scope;
+				if ( isset( $known[ $scope ] ) ) {
+					$descriptions[] = $known[ $scope ];
+				}
+			}
+
+			if ( empty( $descriptions ) ) {
+				$descriptions[] = __( 'No recognized Adapter scopes were requested.', 'npcink-ai-client-adapter' );
+			}
+
+			return $descriptions;
+		}
+
+		/**
+		 * Handles device pairing approval or rejection.
+		 *
 	 * @return void
 	 */
 	public function handle_pairing_decision(): void {
