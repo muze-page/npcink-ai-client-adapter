@@ -248,6 +248,7 @@ final class Connection_Page {
 		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
 		$lookup_id       = $this->proposal_lookup_id_from_request();
 		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
+		$default_tab     = '' !== $lookup_id ? 'proposal' : 'connect';
 		?>
 		<div
 			class="wrap npcink-openclaw-adapter-connection"
@@ -258,9 +259,9 @@ final class Connection_Page {
 			<p class="description"><?php echo esc_html__( 'Connect OpenClaw-compatible and similar AI clients to this WordPress site through the Adapter REST surface.', 'npcink-ai-client-adapter' ); ?></p>
 
 			<nav class="maa-tabs" aria-label="<?php echo esc_attr__( 'Adapter admin sections', 'npcink-ai-client-adapter' ); ?>">
-				<a class="maa-tab is-active" href="#maa-connect"><?php echo esc_html__( 'Client connection', 'npcink-ai-client-adapter' ); ?></a>
-				<a class="maa-tab" href="#maa-proposal"><?php echo esc_html__( 'Continue proposal', 'npcink-ai-client-adapter' ); ?></a>
-				<a class="maa-tab" href="#maa-advanced"><?php echo esc_html__( 'Advanced details', 'npcink-ai-client-adapter' ); ?></a>
+				<button type="button" class="maa-tab<?php echo 'connect' === $default_tab ? ' is-active' : ''; ?>" data-maa-tab-target="maa-connect" aria-controls="maa-connect" aria-selected="<?php echo 'connect' === $default_tab ? 'true' : 'false'; ?>"><?php echo esc_html__( 'Client connection', 'npcink-ai-client-adapter' ); ?></button>
+				<button type="button" class="maa-tab<?php echo 'proposal' === $default_tab ? ' is-active' : ''; ?>" data-maa-tab-target="maa-proposal" aria-controls="maa-proposal" aria-selected="<?php echo 'proposal' === $default_tab ? 'true' : 'false'; ?>"><?php echo esc_html__( 'Continue proposal', 'npcink-ai-client-adapter' ); ?></button>
+				<button type="button" class="maa-tab<?php echo 'advanced' === $default_tab ? ' is-active' : ''; ?>" data-maa-tab-target="maa-advanced" aria-controls="maa-advanced" aria-selected="<?php echo 'advanced' === $default_tab ? 'true' : 'false'; ?>"><?php echo esc_html__( 'Advanced details', 'npcink-ai-client-adapter' ); ?></button>
 			</nav>
 
 			<div class="maa-summary">
@@ -299,7 +300,7 @@ final class Connection_Page {
 				</div>
 			<?php endif; ?>
 
-			<div id="maa-connect" class="maa-workspace maa-workspace-main">
+			<div id="maa-connect" class="maa-tab-panel maa-workspace maa-workspace-main<?php echo 'connect' === $default_tab ? ' is-active' : ''; ?>"<?php echo 'connect' === $default_tab ? '' : ' hidden'; ?>>
 				<section class="maa-section maa-section-highlight">
 					<div class="maa-section-heading">
 						<div>
@@ -395,7 +396,7 @@ final class Connection_Page {
 				</section>
 			</div>
 
-			<section id="maa-proposal" class="maa-section maa-section-proposal">
+			<section id="maa-proposal" class="maa-tab-panel maa-section maa-section-proposal<?php echo 'proposal' === $default_tab ? ' is-active' : ''; ?>"<?php echo 'proposal' === $default_tab ? '' : ' hidden'; ?>>
 				<div class="maa-section-heading">
 					<div>
 						<h2><?php echo esc_html__( 'Continue proposal', 'npcink-ai-client-adapter' ); ?></h2>
@@ -419,11 +420,13 @@ final class Connection_Page {
 				<?php $this->render_proposal_lookup_result( $lookup_id, $lookup_result ); ?>
 			</section>
 
-			<details id="maa-advanced" class="maa-section">
-				<summary>
-					<strong><?php echo esc_html__( 'Advanced details', 'npcink-ai-client-adapter' ); ?></strong>
-					<span class="description"><?php echo esc_html__( 'Diagnostics, route catalog, key management, examples, and boundary notes.', 'npcink-ai-client-adapter' ); ?></span>
-				</summary>
+			<section id="maa-advanced" class="maa-tab-panel maa-section<?php echo 'advanced' === $default_tab ? ' is-active' : ''; ?>"<?php echo 'advanced' === $default_tab ? '' : ' hidden'; ?>>
+				<div class="maa-section-heading">
+					<div>
+						<h2><?php echo esc_html__( 'Advanced details', 'npcink-ai-client-adapter' ); ?></h2>
+						<p class="maa-section-intro"><?php echo esc_html__( 'Diagnostics, route catalog, key management, examples, and boundary notes.', 'npcink-ai-client-adapter' ); ?></p>
+					</div>
+				</div>
 
 				<details class="maa-advanced-group">
 					<summary><strong><?php echo esc_html__( 'Key-pair clients', 'npcink-ai-client-adapter' ); ?></strong></summary>
@@ -521,7 +524,7 @@ final class Connection_Page {
 						<p><code>core_proxy_execute=false</code></p>
 						<p><code>commit_execution=false</code></p>
 				</div>
-			</details>
+			</section>
 		</div>
 		<?php
 	}
