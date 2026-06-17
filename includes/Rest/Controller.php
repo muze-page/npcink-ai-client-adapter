@@ -7325,6 +7325,11 @@ final class Controller {
 			return null;
 		}
 
+		$binding = $this->validate_preflight_binding( $proposal_id, $proposal, $preflight );
+		if ( is_wp_error( $binding ) ) {
+			return null;
+		}
+
 		$handoff = array(
 			'status'              => 'issued',
 			'proposal_id'         => $proposal_id,
@@ -7387,6 +7392,11 @@ final class Controller {
 			return null;
 		}
 
+		$binding = $this->validate_preflight_binding( $proposal_id, $proposal, $preflight );
+		if ( is_wp_error( $binding ) ) {
+			return null;
+		}
+
 		return $preflight;
 	}
 
@@ -7429,7 +7439,7 @@ final class Controller {
 		$approved_hash     = sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? '' ) );
 		$handoff_hash      = sanitize_text_field( (string) ( $execution_handoff['approved_input_hash'] ?? $approved_hash ) );
 
-		if ( '' === $approved_hash || $approved_hash !== $current_hash || ( ! empty( $execution_handoff ) && $handoff_hash !== $approved_hash ) ) {
+		if ( '' === $approved_hash || $approved_hash !== $current_hash || $handoff_hash !== $approved_hash ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_input_hash_mismatch',
 				__( 'Core commit preflight approved input hash does not match the current proposal input.', 'npcink-ai-client-adapter' ),
@@ -7446,7 +7456,7 @@ final class Controller {
 
 		$policy_version = sanitize_key( (string) ( $approval_context['policy_version'] ?? '' ) );
 		$handoff_policy = sanitize_key( (string) ( $execution_handoff['policy_version'] ?? $policy_version ) );
-		if ( 'core-preflight-v1' !== $policy_version || ( ! empty( $execution_handoff ) && 'core-preflight-v1' !== $handoff_policy ) ) {
+		if ( 'core-preflight-v1' !== $policy_version || 'core-preflight-v1' !== $handoff_policy ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_preflight_policy_version_invalid',
 				__( 'Core commit preflight policy version is not accepted by Adapter execution.', 'npcink-ai-client-adapter' ),
@@ -7461,18 +7471,171 @@ final class Controller {
 			);
 		}
 
+		$handoff_binding = $this->validate_execution_handoff_binding( $proposal_id, $proposal, $preflight, $approval_context, $execution_handoff );
+		if ( is_wp_error( $handoff_binding ) ) {
+			return $handoff_binding;
+		}
+
 		$approval_site_binding = $this->validate_core_context_site_binding( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
 		if ( is_wp_error( $approval_site_binding ) ) {
 			return $approval_site_binding;
 		}
-		if ( ! empty( $execution_handoff ) ) {
-			$handoff_site_binding = $this->validate_core_context_site_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
-			if ( is_wp_error( $handoff_site_binding ) ) {
-				return $handoff_site_binding;
-			}
+		$handoff_site_binding = $this->validate_core_context_site_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+		if ( is_wp_error( $handoff_site_binding ) ) {
+			return $handoff_site_binding;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Verifies Core issued an Adapter-owned execution handoff for this proposal.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @param array<string,mixed> $preflight Core preflight payload.
+	 * @param array<string,mixed> $approval_context Core approval context.
+	 * @param array<string,mixed> $execution_handoff Core execution handoff.
+	 * @return true|WP_Error
+	 */
+	private function validate_execution_handoff_binding( string $proposal_id, array $proposal, array $preflight, array $approval_context, array $execution_handoff ) {
+		if ( empty( $execution_handoff ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_missing',
+				__( 'Core commit preflight did not return an Adapter execution handoff.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'           => 409,
+					'proposal_id'      => $proposal_id,
+					'commit_execution' => false,
+				)
+			);
+		}
+
+		$executor = sanitize_key( (string) ( $execution_handoff['executor'] ?? '' ) );
+		if ( 'adapter_after_core_preflight' !== $executor ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_executor_invalid',
+				__( 'Core execution handoff was not issued for Adapter after Core preflight.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'            => 409,
+					'proposal_id'       => $proposal_id,
+					'executor'          => $executor,
+					'expected_executor' => 'adapter_after_core_preflight',
+					'commit_execution'  => false,
+				)
+			);
+		}
+
+		$execution_surface = sanitize_key( (string) ( $execution_handoff['execution_surface'] ?? '' ) );
+		if ( 'wp_abilities_rest' !== $execution_surface ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_execution_surface_invalid',
+				__( 'Core execution handoff was not issued for the WordPress Abilities REST surface.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'                     => 409,
+					'proposal_id'                => $proposal_id,
+					'execution_surface'          => $execution_surface,
+					'expected_execution_surface' => 'wp_abilities_rest',
+					'commit_execution'           => false,
+				)
+			);
+		}
+
+		if ( false !== (bool) ( $execution_handoff['core_proxy_execute'] ?? true ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_core_proxy_execute_unsupported',
+				__( 'Core execution handoff must keep core_proxy_execute=false for Adapter execution.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'             => 409,
+					'proposal_id'        => $proposal_id,
+					'core_proxy_execute' => (bool) ( $execution_handoff['core_proxy_execute'] ?? true ),
+					'commit_execution'   => false,
+				)
+			);
+		}
+
+		if ( false !== (bool) ( $execution_handoff['commit_execution'] ?? true ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_commit_execution_unsupported',
+				__( 'Core execution handoff must keep commit_execution=false before Adapter execution.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'           => 409,
+					'proposal_id'      => $proposal_id,
+					'commit_execution' => (bool) ( $execution_handoff['commit_execution'] ?? true ),
+				)
+			);
+		}
+
+		$handoff_proposal_id = sanitize_text_field( (string) ( $execution_handoff['proposal_id'] ?? '' ) );
+		if ( $proposal_id !== $handoff_proposal_id ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_proposal_mismatch',
+				__( 'Core execution handoff proposal id does not match the Adapter execution request.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'              => 409,
+					'proposal_id'         => $proposal_id,
+					'handoff_proposal_id' => $handoff_proposal_id,
+					'commit_execution'    => false,
+				)
+			);
+		}
+
+		$handoff_ability_id = sanitize_text_field( (string) ( $execution_handoff['ability_id'] ?? '' ) );
+		$allowed_ability_ids = $this->proposal_handoff_ability_ids( $proposal );
+		if ( '' === $handoff_ability_id || ! in_array( $handoff_ability_id, $allowed_ability_ids, true ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_ability_mismatch',
+				__( 'Core execution handoff ability id does not match the approved proposal or write actions.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'              => 409,
+					'proposal_id'         => $proposal_id,
+					'handoff_ability_id'  => $handoff_ability_id,
+					'allowed_ability_ids' => $allowed_ability_ids,
+					'commit_execution'    => false,
+				)
+			);
+		}
+
+		$handoff_correlation_id = sanitize_text_field( (string) ( $execution_handoff['correlation_id'] ?? '' ) );
+		$correlation_id         = sanitize_text_field( (string) ( $preflight['correlation_id'] ?? ( $approval_context['correlation_id'] ?? '' ) ) );
+		if ( '' === $handoff_correlation_id || '' === $correlation_id || $handoff_correlation_id !== $correlation_id ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_preflight_handoff_correlation_mismatch',
+				__( 'Core execution handoff correlation id does not match the commit preflight correlation id.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'                  => 409,
+					'proposal_id'             => $proposal_id,
+					'correlation_id'          => $correlation_id,
+					'handoff_correlation_id'  => $handoff_correlation_id,
+					'commit_execution'        => false,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Returns proposal and target write-action ability ids accepted for a Core handoff.
+	 *
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<int,string>
+	 */
+	private function proposal_handoff_ability_ids( array $proposal ): array {
+		$ability_ids = array(
+			sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) ),
+		);
+
+		$input = is_array( $proposal['input'] ?? null ) ? $proposal['input'] : array();
+		$write_actions = is_array( $input['write_actions'] ?? null ) ? $input['write_actions'] : array();
+		foreach ( $write_actions as $action ) {
+			if ( ! is_array( $action ) ) {
+				continue;
+			}
+			$ability_ids[] = sanitize_text_field( (string) ( $action['target_ability_id'] ?? ( $action['ability_id'] ?? '' ) ) );
+		}
+
+		return array_values( array_unique( array_filter( $ability_ids ) ) );
 	}
 
 	/**

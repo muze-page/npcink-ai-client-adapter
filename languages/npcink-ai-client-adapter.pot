@@ -1114,6 +1114,38 @@ msgstr ""
 msgid "Core commit preflight policy version is not accepted by Adapter execution."
 msgstr ""
 
+#: includes/Rest/Controller.php:7505
+msgid "Core commit preflight did not return an Adapter execution handoff."
+msgstr ""
+
+#: includes/Rest/Controller.php:7518
+msgid "Core execution handoff was not issued for Adapter after Core preflight."
+msgstr ""
+
+#: includes/Rest/Controller.php:7533
+msgid "Core execution handoff was not issued for the WordPress Abilities REST surface."
+msgstr ""
+
+#: includes/Rest/Controller.php:7547
+msgid "Core execution handoff must keep core_proxy_execute=false for Adapter execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:7560
+msgid "Core execution handoff must keep commit_execution=false before Adapter execution."
+msgstr ""
+
+#: includes/Rest/Controller.php:7573
+msgid "Core execution handoff proposal id does not match the Adapter execution request."
+msgstr ""
+
+#: includes/Rest/Controller.php:7588
+msgid "Core execution handoff ability id does not match the approved proposal or write actions."
+msgstr ""
+
+#: includes/Rest/Controller.php:7604
+msgid "Core execution handoff correlation id does not match the commit preflight correlation id."
+msgstr ""
+
 #: includes/Rest/Controller.php:7108
 msgid "Adapter has already completed execution for this proposal."
 msgstr ""

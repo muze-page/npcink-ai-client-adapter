@@ -1244,6 +1244,50 @@ msgid ""
 "Core commit preflight policy version is not accepted by Adapter execution."
 msgstr "适配器执行不接受此核心提交预检策略版本。"
 
+#: includes/Rest/Controller.php:7505
+msgid "Core commit preflight did not return an Adapter execution handoff."
+msgstr "核心提交预检未返回适配器执行交接。"
+
+#: includes/Rest/Controller.php:7518
+msgid "Core execution handoff was not issued for Adapter after Core preflight."
+msgstr "核心执行交接不是为核心预检后的适配器执行签发的。"
+
+#: includes/Rest/Controller.php:7533
+msgid ""
+"Core execution handoff was not issued for the WordPress Abilities REST "
+"surface."
+msgstr "核心执行交接不是为 WordPress Abilities REST 执行面签发的。"
+
+#: includes/Rest/Controller.php:7547
+msgid ""
+"Core execution handoff must keep core_proxy_execute=false for Adapter "
+"execution."
+msgstr "核心执行交接必须保持 core_proxy_execute=false 才能由适配器执行。"
+
+#: includes/Rest/Controller.php:7560
+msgid ""
+"Core execution handoff must keep commit_execution=false before Adapter "
+"execution."
+msgstr "核心执行交接在适配器执行前必须保持 commit_execution=false。"
+
+#: includes/Rest/Controller.php:7573
+msgid ""
+"Core execution handoff proposal id does not match the Adapter execution "
+"request."
+msgstr "核心执行交接的提案 ID 与适配器执行请求不匹配。"
+
+#: includes/Rest/Controller.php:7588
+msgid ""
+"Core execution handoff ability id does not match the approved proposal or "
+"write actions."
+msgstr "核心执行交接的能力 ID 与已批准提案或写入动作不匹配。"
+
+#: includes/Rest/Controller.php:7604
+msgid ""
+"Core execution handoff correlation id does not match the commit preflight "
+"correlation id."
+msgstr "核心执行交接的 correlation id 与提交预检 correlation id 不匹配。"
+
 #: includes/Rest/Controller.php:7108
 msgid "Adapter has already completed execution for this proposal."
 msgstr "适配器已完成此提案的执行。"

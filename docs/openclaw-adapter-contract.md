@@ -606,9 +606,14 @@ Dry-run-only proposal verification stops at Adapter commit-preflight. Adapter `e
 Before Adapter calls the WordPress Abilities API for a final supported write,
 it must verify Core's `approval_context.approved_input_hash` matches the current
 proposal input hash and that `approval_context.policy_version` is
-`core-preflight-v1`. If Core also returns an `execution_handoff`, its hash and
-policy version must match the same approved input and policy. Mismatches fail
-closed; Adapter must not repair, re-approve, or execute the proposal.
+`core-preflight-v1`. Core must also return an `execution_handoff` for the same
+approved input and policy. Adapter executes only when that handoff has
+`executor=adapter_after_core_preflight`, `execution_surface=wp_abilities_rest`,
+`core_proxy_execute=false`, `commit_execution=false`, the same `proposal_id`,
+the same commit-preflight `correlation_id`, and an `ability_id` matching either
+the proposal ability or one of the approved `write_actions[]` target abilities.
+Mismatches fail closed; Adapter must not repair, re-approve, or execute the
+proposal.
 
 ## Unified Approve And Execute Contract
 
