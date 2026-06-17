@@ -5394,6 +5394,12 @@ final class Controller {
 				continue;
 			}
 
+			$proposal_ready = array_key_exists( 'proposal_ready', $raw_action ) ? (bool) $raw_action['proposal_ready'] : true;
+			$requires_input = array_values( array_map( 'sanitize_key', (array) ( $raw_action['requires_input'] ?? array() ) ) );
+			if ( ! $proposal_ready && ! empty( $requires_input ) ) {
+				continue;
+			}
+
 			$input       = is_array( $raw_action['input'] ?? null ) ? $raw_action['input'] : array();
 			$valid_refs  = $this->validate_output_references( 'proposal_create', $input, $available_outputs, $index );
 			$valid_input = is_wp_error( $valid_refs ) ? $valid_refs : $this->validate_proposal_create_input( $target_ability_id, $input, true, $index );
@@ -5547,8 +5553,15 @@ final class Controller {
 				'preflight_source'   => $execution['preflight_source'],
 				'commit_execution'   => false,
 				'execution_surface'  => 'wp_abilities_rest',
+				'selected_count'     => $execution['selected_count'],
+				'submitted_count'    => $execution['submitted_count'],
 				'executed_count'     => $execution['executed_count'],
 				'failed_count'       => $execution['failed_count'],
+				'blocked_count'      => $execution['blocked_count'],
+				'partial_success'    => $execution['partial_success'],
+				'retryable'          => $execution['retryable'],
+				'operator_next_action' => $execution['operator_next_action'],
+				'core_preflight_evidence' => $execution['core_preflight_evidence'],
 				'execution_record'   => $execution['execution_record'],
 				'results'            => $execution['results'],
 				'result'             => $execution['result'],
@@ -5696,14 +5709,29 @@ final class Controller {
 				'approval_context'      => $execution['approval_context'],
 				'preflight_source'      => $execution['preflight_source'],
 				'batch_review_feedback' => $execution['batch_review_feedback'],
+				'selected_count'        => $execution['selected_count'],
+				'submitted_count'       => $execution['submitted_count'],
 				'executed_count'        => $execution['executed_count'],
 				'failed_count'          => $execution['failed_count'],
+				'blocked_count'         => $execution['blocked_count'],
+				'partial_success'       => $execution['partial_success'],
+				'retryable'             => $execution['retryable'],
+				'operator_next_action'  => $execution['operator_next_action'],
+				'core_preflight_evidence' => $execution['core_preflight_evidence'],
 				'execution_record'      => $execution['execution_record'],
 				'results'               => $execution['results'],
 				'execution'             => array(
 					'success'            => true,
 					'post_status_before' => $execution['post_status_before'],
 					'post_status_after'  => $execution['post_status_after'],
+					'selected_count'     => $execution['selected_count'],
+					'submitted_count'    => $execution['submitted_count'],
+					'executed_count'     => $execution['executed_count'],
+					'failed_count'       => $execution['failed_count'],
+					'blocked_count'      => $execution['blocked_count'],
+					'partial_success'    => $execution['partial_success'],
+					'retryable'          => $execution['retryable'],
+					'operator_next_action' => $execution['operator_next_action'],
 					'result'             => $execution['result'],
 					'results'            => $execution['results'],
 				),
@@ -6469,6 +6497,8 @@ final class Controller {
 					'action_index'      => $index,
 					'ability_id'        => $target_ability_id,
 					'target_ability_id' => $target_ability_id,
+					'execution_profile' => $this->execution_profile_id_for_ability( $target_ability_id ),
+					'idempotency_key'   => $this->execution_action_idempotency_key( $proposal_id, $action_id, $action_input ),
 					'post_id'           => $post_id,
 					'input'             => $action_input,
 					'execution_mode'    => 'batch_write_actions',
@@ -6495,10 +6525,69 @@ final class Controller {
 				'action_index'      => 0,
 				'ability_id'        => $proposal_ability_id,
 				'target_ability_id' => $proposal_ability_id,
+				'execution_profile' => $this->execution_profile_id_for_ability( $proposal_ability_id ),
+				'idempotency_key'   => $this->execution_action_idempotency_key( $proposal_id, 'single-post', $input ),
 				'post_id'           => $top_level_post_id,
 				'input'             => $input,
 				'execution_mode'    => 'single_post',
 			),
+		);
+	}
+
+	/**
+	 * Returns the Adapter execution profile id for one final write ability.
+	 *
+	 * The V1 registry keys are the profile ids. Keeping this as a helper makes
+	 * the response contract explicit without introducing a second allowlist.
+	 *
+	 * @param string $ability_id Ability id.
+	 * @return string
+	 */
+	private function execution_profile_id_for_ability( string $ability_id ): string {
+		return sanitize_text_field( $ability_id );
+	}
+
+	/**
+	 * Returns or derives a bounded per-action execution idempotency key.
+	 *
+	 * @param string              $proposal_id Proposal id.
+	 * @param string              $action_id Action id.
+	 * @param array<string,mixed> $input Action input.
+	 * @return string
+	 */
+	private function execution_action_idempotency_key( string $proposal_id, string $action_id, array $input ): string {
+		$provided = sanitize_text_field( (string) ( $input['idempotency_key'] ?? '' ) );
+		if ( '' !== $provided ) {
+			return $provided;
+		}
+
+		return 'adapter-' . substr( hash( 'sha256', $proposal_id . '|' . $action_id ), 0, 24 );
+	}
+
+	/**
+	 * Builds a public selected-batch execution summary.
+	 *
+	 * @param array<int,array<string,mixed>> $actions Normalized actions.
+	 * @param array<int,array<string,mixed>> $results Executed results.
+	 * @param array<string,mixed>|null       $failed_action Failed action.
+	 * @return array<string,mixed>
+	 */
+	private function selected_batch_execution_summary( array $actions, array $results, ?array $failed_action = null ): array {
+		$selected_count  = count( $actions );
+		$executed_count  = count( $results );
+		$failed_count    = is_array( $failed_action ) ? 1 : 0;
+		$blocked_count   = max( 0, $selected_count - $executed_count - $failed_count );
+		$partial_success = $executed_count > 0 && $failed_count > 0;
+
+		return array(
+			'selected_count'       => $selected_count,
+			'submitted_count'      => $selected_count,
+			'executed_count'       => $executed_count,
+			'failed_count'         => $failed_count,
+			'blocked_count'        => $blocked_count,
+			'partial_success'      => $partial_success,
+			'retryable'            => false,
+			'operator_next_action' => $partial_success ? 'review_partial_failure_and_create_revised_proposal' : ( $failed_count > 0 ? 'review_failed_execution_and_create_revised_proposal' : 'review_execution_result' ),
 		);
 	}
 
@@ -6523,6 +6612,10 @@ final class Controller {
 		$post_status_before = false === $post_status_before ? '' : (string) $post_status_before;
 
 		$ability_input = is_array( $action['input'] ?? null ) ? $action['input'] : array();
+		$idempotency_key = sanitize_text_field( (string) ( $action['idempotency_key'] ?? '' ) );
+		if ( '' === $idempotency_key ) {
+			$idempotency_key = $this->execution_action_idempotency_key( $proposal_id, sanitize_key( (string) ( $action['action_id'] ?? '' ) ), $ability_input );
+		}
 		if ( ! empty( $profile['force_post_input'] ) ) {
 			$ability_input = array(
 				'post_id' => $post_id,
@@ -6532,6 +6625,9 @@ final class Controller {
 		} else {
 			$ability_input['dry_run'] = false;
 			$ability_input['commit']  = true;
+		}
+		if ( ! isset( $ability_input['idempotency_key'] ) ) {
+			$ability_input['idempotency_key'] = $idempotency_key;
 		}
 
 		$route           = '/wp-abilities/v1/abilities/' . $ability_id . '/run';
@@ -6543,6 +6639,8 @@ final class Controller {
 			array(
 				'ability_id'        => $ability_id,
 				'target_ability_id' => sanitize_text_field( (string) ( $action['target_ability_id'] ?? $ability_id ) ),
+				'execution_profile' => sanitize_text_field( (string) ( $action['execution_profile'] ?? $this->execution_profile_id_for_ability( $ability_id ) ) ),
+				'idempotency_key'   => $idempotency_key,
 				'action_id'         => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
 				'action_index'      => absint( $action['action_index'] ?? 0 ),
 				'proposal_id'       => $proposal_id,
@@ -6578,6 +6676,8 @@ final class Controller {
 			'action_index'       => absint( $action['action_index'] ?? 0 ),
 			'target_ability_id'  => sanitize_text_field( (string) ( $action['target_ability_id'] ?? $ability_id ) ),
 			'ability_id'         => $ability_id,
+			'execution_profile'  => sanitize_text_field( (string) ( $action['execution_profile'] ?? $this->execution_profile_id_for_ability( $ability_id ) ) ),
+			'idempotency_key'    => $idempotency_key,
 			'post_id'            => $post_id,
 			'status'             => 'executed',
 			'post_status_before' => $post_status_before,
@@ -6784,6 +6884,7 @@ final class Controller {
 				$action_index
 			);
 			if ( is_wp_error( $resolved_input ) ) {
+				$execution_summary = $this->selected_batch_execution_summary( $actions, $results, $action );
 				$execution_record = $this->store_failed_execution_record(
 					$proposal_id,
 					$proposal,
@@ -6801,6 +6902,17 @@ final class Controller {
 						array(
 							'correlation_id'   => $correlation_id,
 							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+							'action_index'     => $action_index,
+							'execution_profile' => sanitize_text_field( (string) ( $action['execution_profile'] ?? '' ) ),
+							'idempotency_key'  => sanitize_text_field( (string) ( $action['idempotency_key'] ?? '' ) ),
+							'selected_count'   => $execution_summary['selected_count'],
+							'submitted_count'  => $execution_summary['submitted_count'],
+							'executed_count'   => $execution_summary['executed_count'],
+							'failed_count'     => $execution_summary['failed_count'],
+							'blocked_count'    => $execution_summary['blocked_count'],
+							'partial_success'  => $execution_summary['partial_success'],
+							'retryable'        => $execution_summary['retryable'],
+							'operator_next_action' => $execution_summary['operator_next_action'],
 							'executed_results' => $results,
 							'execution_record' => $execution_record,
 						)
@@ -6819,6 +6931,7 @@ final class Controller {
 				$action_index
 			);
 			if ( is_wp_error( $valid_input ) ) {
+				$execution_summary = $this->selected_batch_execution_summary( $actions, $results, $action );
 				$execution_record = $this->store_failed_execution_record(
 					$proposal_id,
 					$proposal,
@@ -6836,6 +6949,17 @@ final class Controller {
 						array(
 							'correlation_id'   => $correlation_id,
 							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
+							'action_index'     => $action_index,
+							'execution_profile' => sanitize_text_field( (string) ( $action['execution_profile'] ?? '' ) ),
+							'idempotency_key'  => sanitize_text_field( (string) ( $action['idempotency_key'] ?? '' ) ),
+							'selected_count'   => $execution_summary['selected_count'],
+							'submitted_count'  => $execution_summary['submitted_count'],
+							'executed_count'   => $execution_summary['executed_count'],
+							'failed_count'     => $execution_summary['failed_count'],
+							'blocked_count'    => $execution_summary['blocked_count'],
+							'partial_success'  => $execution_summary['partial_success'],
+							'retryable'        => $execution_summary['retryable'],
+							'operator_next_action' => $execution_summary['operator_next_action'],
 							'executed_results' => $results,
 							'execution_record' => $execution_record,
 						)
@@ -6846,6 +6970,7 @@ final class Controller {
 
 			$result = $this->execute_normalized_action( $request, $proposal_id, $action, $approval_context, $correlation_id, $base_request_context );
 			if ( is_wp_error( $result ) ) {
+				$execution_summary = $this->selected_batch_execution_summary( $actions, $results, $action );
 				$error_data = $result->get_error_data();
 				$error_data = is_array( $error_data ) ? $error_data : array();
 				$status     = absint( $error_data['status'] ?? 0 );
@@ -6873,6 +6998,16 @@ final class Controller {
 							'correlation_id'   => $correlation_id,
 							'action_id'        => sanitize_key( (string) ( $action['action_id'] ?? '' ) ),
 							'action_index'     => absint( $action['action_index'] ?? 0 ),
+							'execution_profile' => sanitize_text_field( (string) ( $action['execution_profile'] ?? '' ) ),
+							'idempotency_key'  => sanitize_text_field( (string) ( $action['idempotency_key'] ?? '' ) ),
+							'selected_count'   => $execution_summary['selected_count'],
+							'submitted_count'  => $execution_summary['submitted_count'],
+							'executed_count'   => $execution_summary['executed_count'],
+							'failed_count'     => $execution_summary['failed_count'],
+							'blocked_count'    => $execution_summary['blocked_count'],
+							'partial_success'  => $execution_summary['partial_success'],
+							'retryable'        => $execution_summary['retryable'],
+							'operator_next_action' => $execution_summary['operator_next_action'],
 							'executed_results' => $results,
 							'execution_record' => $execution_record,
 						)
@@ -6905,6 +7040,7 @@ final class Controller {
 		$target_ability_ids = array_values( array_filter( $target_ability_ids ) );
 		$execution_mode     = count( $actions ) > 1 || 'batch_write_actions' === (string) ( $actions[0]['execution_mode'] ?? '' ) ? 'batch_write_actions' : 'single_post';
 		$response_ability_id = 1 === count( $target_ability_ids ) ? $target_ability_ids[0] : $proposal_ability_id;
+		$execution_summary  = $this->selected_batch_execution_summary( $actions, $results );
 
 		$execution = array(
 			'ability_id'          => $response_ability_id,
@@ -6915,18 +7051,39 @@ final class Controller {
 			'approval_context'    => $approval_context,
 			'preflight_source'    => $preflight_source,
 			'preflight'           => $preflight,
+			'core_preflight_evidence' => array(
+				'authorized'              => true,
+				'policy_version'          => sanitize_text_field( (string) ( $approval_context['policy_version'] ?? ( $preflight['policy_version'] ?? '' ) ) ),
+				'approved_input_hash'     => sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? ( $preflight['approved_input_hash'] ?? '' ) ) ),
+				'correlation_id'          => $correlation_id,
+				'preflight_source'        => $preflight_source,
+				'commit_execution'        => false,
+				'adapter_preflight_source' => sanitize_text_field( (string) ( $preflight['adapter_preflight_source'] ?? $preflight_source ) ),
+			),
 			'batch_review_feedback' => $this->batch_review_feedback_from_preflight( $preflight, $proposal ),
 			'execution_mode'      => $execution_mode,
-			'executed_count'      => count( $results ),
-			'failed_count'        => 0,
+			'selected_count'      => $execution_summary['selected_count'],
+			'submitted_count'     => $execution_summary['submitted_count'],
+			'executed_count'      => $execution_summary['executed_count'],
+			'failed_count'        => $execution_summary['failed_count'],
+			'blocked_count'       => $execution_summary['blocked_count'],
+			'partial_success'     => $execution_summary['partial_success'],
+			'retryable'           => $execution_summary['retryable'],
+			'operator_next_action' => $execution_summary['operator_next_action'],
 			'results'             => $results,
 			'post_status_before'  => (string) ( $first_result['post_status_before'] ?? '' ),
 			'post_status_after'   => (string) ( $first_result['post_status_after'] ?? '' ),
 			'result'              => 1 === count( $results ) ? ( $first_result['result'] ?? array() ) : array(
 				'success'        => true,
 				'execution_mode' => $execution_mode,
-				'executed_count' => count( $results ),
-				'failed_count'   => 0,
+				'selected_count' => $execution_summary['selected_count'],
+				'submitted_count' => $execution_summary['submitted_count'],
+				'executed_count' => $execution_summary['executed_count'],
+				'failed_count'   => $execution_summary['failed_count'],
+				'blocked_count'  => $execution_summary['blocked_count'],
+				'partial_success' => $execution_summary['partial_success'],
+				'retryable'      => $execution_summary['retryable'],
+				'operator_next_action' => $execution_summary['operator_next_action'],
 				'results'        => $results,
 			),
 		);
@@ -7959,8 +8116,15 @@ final class Controller {
 			'commit_execution'    => false,
 			'post_id'             => absint( $execution['post_id'] ?? 0 ),
 			'post_ids'            => array_values( array_map( 'absint', is_array( $execution['post_ids'] ?? null ) ? $execution['post_ids'] : array() ) ),
+			'selected_count'      => absint( $execution['selected_count'] ?? ( $execution['executed_count'] ?? 0 ) ),
+			'submitted_count'     => absint( $execution['submitted_count'] ?? ( $execution['executed_count'] ?? 0 ) ),
 			'executed_count'      => absint( $execution['executed_count'] ?? 0 ),
 			'failed_count'        => absint( $execution['failed_count'] ?? 0 ),
+			'blocked_count'       => absint( $execution['blocked_count'] ?? 0 ),
+			'partial_success'     => (bool) ( $execution['partial_success'] ?? false ),
+			'retryable'           => (bool) ( $execution['retryable'] ?? false ),
+			'operator_next_action' => sanitize_key( (string) ( $execution['operator_next_action'] ?? '' ) ),
+			'core_preflight_evidence' => is_array( $execution['core_preflight_evidence'] ?? null ) ? $execution['core_preflight_evidence'] : array(),
 			'verification'        => $this->compact_execution_verification( $execution ),
 			'executed_at'         => gmdate( 'c' ),
 		);
@@ -7992,6 +8156,7 @@ final class Controller {
 		$approval_context  = is_array( $preflight['approval_context'] ?? null ) ? $preflight['approval_context'] : array();
 		$first_action      = is_array( $actions[0] ?? null ) ? $actions[0] : array();
 		$failed_action     = is_array( $failed_action ) ? $failed_action : $first_action;
+		$execution_summary = $this->selected_batch_execution_summary( $actions, $results, $failed_action );
 		$execution_mode    = count( $actions ) > 1 || 'batch_write_actions' === (string) ( $first_action['execution_mode'] ?? '' ) ? 'batch_write_actions' : 'single_post';
 		$target_ability_id = sanitize_text_field( (string) ( $failed_action['ability_id'] ?? ( $first_action['ability_id'] ?? ( $proposal['ability_id'] ?? '' ) ) ) );
 		$record            = array(
@@ -8007,11 +8172,28 @@ final class Controller {
 			'commit_execution'    => false,
 			'post_id'             => absint( $failed_action['post_id'] ?? 0 ),
 			'post_ids'            => array_values( array_map( 'absint', array_column( $results, 'post_id' ) ) ),
-			'executed_count'      => count( $results ),
-			'failed_count'        => 1,
+			'selected_count'      => $execution_summary['selected_count'],
+			'submitted_count'     => $execution_summary['submitted_count'],
+			'executed_count'      => $execution_summary['executed_count'],
+			'failed_count'        => $execution_summary['failed_count'],
+			'blocked_count'       => $execution_summary['blocked_count'],
+			'partial_success'     => $execution_summary['partial_success'],
+			'retryable'           => $execution_summary['retryable'],
+			'operator_next_action' => $execution_summary['operator_next_action'],
 			'error_code'          => sanitize_key( $error->get_error_code() ),
 			'failed_action_id'    => sanitize_key( (string) ( $failed_action['action_id'] ?? '' ) ),
 			'failed_action_index' => absint( $failed_action['action_index'] ?? 0 ),
+			'failed_execution_profile' => sanitize_text_field( (string) ( $failed_action['execution_profile'] ?? '' ) ),
+			'failed_idempotency_key' => sanitize_text_field( (string) ( $failed_action['idempotency_key'] ?? '' ) ),
+			'core_preflight_evidence' => array(
+				'authorized'              => true === (bool) ( $approval_context['approval_commit_authorized'] ?? false ),
+				'policy_version'          => sanitize_text_field( (string) ( $approval_context['policy_version'] ?? ( $preflight['policy_version'] ?? '' ) ) ),
+				'approved_input_hash'     => sanitize_text_field( (string) ( $approval_context['approved_input_hash'] ?? ( $preflight['approved_input_hash'] ?? '' ) ) ),
+				'correlation_id'          => sanitize_text_field( $correlation_id ),
+				'preflight_source'        => sanitize_text_field( (string) ( $preflight['adapter_preflight_source'] ?? '' ) ),
+				'commit_execution'        => false,
+				'adapter_preflight_source' => sanitize_text_field( (string) ( $preflight['adapter_preflight_source'] ?? '' ) ),
+			),
 			'failed_at'           => gmdate( 'c' ),
 			'executed_at'         => gmdate( 'c' ),
 		);
@@ -8075,8 +8257,13 @@ final class Controller {
 				'approved_input_hash' => sanitize_text_field( (string) ( $record['approved_input_hash'] ?? '' ) ),
 				'adapter_request_id'  => sanitize_text_field( (string) ( $record['adapter_request_id'] ?? '' ) ),
 				'execution_mode'      => sanitize_key( (string) ( $record['execution_mode'] ?? '' ) ),
+				'selected_count'      => absint( $record['selected_count'] ?? 0 ),
+				'submitted_count'     => absint( $record['submitted_count'] ?? 0 ),
 				'executed_count'      => absint( $record['executed_count'] ?? 0 ),
 				'failed_count'        => absint( $record['failed_count'] ?? 0 ),
+				'blocked_count'       => absint( $record['blocked_count'] ?? 0 ),
+				'partial_success'     => (bool) ( $record['partial_success'] ?? false ),
+				'operator_next_action' => sanitize_key( (string) ( $record['operator_next_action'] ?? '' ) ),
 				'error_code'          => sanitize_key( (string) ( $record['error_code'] ?? '' ) ),
 			)
 		);
@@ -8127,11 +8314,20 @@ final class Controller {
 			'commit_execution'    => (bool) ( $record['commit_execution'] ?? false ),
 			'post_id'             => absint( $record['post_id'] ?? 0 ),
 			'post_ids'            => array_values( array_map( 'absint', is_array( $record['post_ids'] ?? null ) ? $record['post_ids'] : array() ) ),
+			'selected_count'      => absint( $record['selected_count'] ?? ( $record['executed_count'] ?? 0 ) ),
+			'submitted_count'     => absint( $record['submitted_count'] ?? ( $record['executed_count'] ?? 0 ) ),
 			'executed_count'      => absint( $record['executed_count'] ?? 0 ),
 			'failed_count'        => absint( $record['failed_count'] ?? 0 ),
+			'blocked_count'       => absint( $record['blocked_count'] ?? 0 ),
+			'partial_success'     => (bool) ( $record['partial_success'] ?? false ),
+			'retryable'           => (bool) ( $record['retryable'] ?? false ),
+			'operator_next_action' => (string) ( $record['operator_next_action'] ?? '' ),
 			'error_code'          => (string) ( $record['error_code'] ?? '' ),
 			'failed_action_id'    => (string) ( $record['failed_action_id'] ?? '' ),
 			'failed_action_index' => absint( $record['failed_action_index'] ?? 0 ),
+			'failed_execution_profile' => (string) ( $record['failed_execution_profile'] ?? '' ),
+			'failed_idempotency_key' => (string) ( $record['failed_idempotency_key'] ?? '' ),
+			'core_preflight_evidence' => is_array( $record['core_preflight_evidence'] ?? null ) ? $record['core_preflight_evidence'] : null,
 			'verification'        => is_array( $record['verification'] ?? null ) ? $record['verification'] : null,
 			'core_execution_record' => is_array( $record['core_execution_record'] ?? null ) ? $record['core_execution_record'] : null,
 			'failed_at'           => (string) ( $record['failed_at'] ?? '' ),

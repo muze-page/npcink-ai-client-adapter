@@ -61,6 +61,7 @@ final class Supported_Plan_Abilities {
 			'npcink-toolbox/build-article-media-batch-write-plan'             => true,
 			'npcink-toolbox/build-image-candidate-adoption-plan'              => true,
 			'npcink-toolbox/build-site-knowledge-review-plan'                 => true,
+			'npcink-toolbox/build-nightly-inspection-review-plan'             => true,
 		);
 	}
 }

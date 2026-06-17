@@ -16,11 +16,28 @@ h1 {
 	margin: 0 0 16px;
 }
 
+h2 {
+	margin: 0 0 8px;
+	font-size: 18px;
+}
+
 .notice {
 	background: #fff8e5;
 	border-left: 4px solid #dba617;
 	margin: 0 0 20px;
 	padding: 12px 16px;
+}
+
+.secret-panel {
+	margin: 0 0 20px;
+	padding: 16px;
+	border: 2px solid #2271b1;
+	background: #fff;
+}
+
+.secret-panel p {
+	margin: 0 0 12px;
+	color: #50575e;
 }
 
 table {
@@ -58,6 +75,15 @@ textarea {
 	color: #1d2327;
 }
 
+summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+details textarea {
+	margin-top: 10px;
+}
+
 .actions {
 	margin-top: 20px;
 }
@@ -75,6 +101,11 @@ textarea {
 	padding: 8px 14px;
 	text-decoration: none;
 	cursor: pointer;
+}
+
+.button-primary {
+	background: #135e96;
+	border-color: #135e96;
 }
 
 @media (max-width: 720px) {

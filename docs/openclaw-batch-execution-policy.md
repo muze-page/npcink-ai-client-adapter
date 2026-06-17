@@ -141,19 +141,37 @@ Plan action ids must be unique before Adapter forwards the plan to Core.
 Batch execution responses include:
 
 - `execution_mode=batch_write_actions`
+- `selected_count`
+- `submitted_count`
 - `executed_count`
 - `failed_count`
+- `blocked_count`
+- `partial_success`
+- `retryable`
+- `operator_next_action`
+- `core_preflight_evidence`
 - `batch_review_feedback` when Core supplied `preview.batch_review_summary`
 - `results[]`
 - per-action `action_id`
+- per-action `action_index`
 - per-action `target_ability_id`
+- per-action `execution_profile`
+- per-action `idempotency_key`
 - per-action `post_id`
 - per-action `post_status_before`
 - per-action `post_status_after`
 
 Single-post execution keeps the existing response fields and additionally
 returns `execution_mode=single_post`, `post_ids`, `executed_count`,
-`failed_count`, and `results[]`.
+`failed_count`, `selected_count`, `submitted_count`, `retryable`,
+`operator_next_action`, `core_preflight_evidence`, and `results[]`.
+
+If an execution error happens after Core preflight has been consumed, Adapter
+stores a failed execution record with `partial_success=true` when at least one
+prior action executed. That record includes the failed action id/index, failed
+execution profile, failed idempotency key, selected/submitted/executed/failed
+counts, and `operator_next_action=review_partial_failure_and_create_revised_proposal`.
+The original proposal id must not be retried as if it were a fresh batch.
 
 Adapter also exposes `batch_review_feedback` on successful
 `POST /proposals/from-plan` and `POST /proposals/{proposal_id}/commit-preflight`
