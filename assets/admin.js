@@ -6,28 +6,6 @@
 
 	var copiedLabel = root.getAttribute('data-maa-copied-label') || 'Copied';
 	var failedLabel = root.getAttribute('data-maa-copy-failed-label') || 'Copy failed';
-	var tabs = root.querySelectorAll('[data-maa-tab-target]');
-	var panels = root.querySelectorAll('.maa-tab-panel');
-
-	function activateTab(targetId) {
-		tabs.forEach(function (tab) {
-			var isActive = tab.getAttribute('data-maa-tab-target') === targetId;
-			tab.classList.toggle('is-active', isActive);
-			tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
-		});
-
-		panels.forEach(function (panel) {
-			var isActive = panel.id === targetId;
-			panel.classList.toggle('is-active', isActive);
-			panel.hidden = !isActive;
-		});
-	}
-
-	tabs.forEach(function (tab) {
-		tab.addEventListener('click', function () {
-			activateTab(tab.getAttribute('data-maa-tab-target'));
-		});
-	});
 
 	function copyText(text) {
 		if (!text) {
