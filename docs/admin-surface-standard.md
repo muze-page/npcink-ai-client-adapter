@@ -15,18 +15,20 @@ The default page should answer:
 - is Adapter healthy;
 - can Adapter reach Core capabilities;
 - can Adapter reach WordPress Abilities API;
-- what endpoint should OpenClaw use;
-- how to create a simple Application Password connection;
-- where the higher-security signed key-pair CLI lives.
+- which site and endpoint this client should use;
+- how to connect a local client through the signed key-pair path;
+- where to fall back to a simple Application Password connection;
+- how to continue a proposal from a returned Proposal ID.
 
 Primary action:
 
-- `Simple connection`, with the Application Password creation button as the
-  primary action.
-- `Higher security: signed key-pair`, visible as the security recommendation.
+- `Client connection`, with `Copy connect command` as the primary action.
+- `Simple connection`, with the Application Password creation form as a
+  secondary disclosure for clients that have a dedicated secret field.
 
 Default copyable values:
 
+- Site URL;
 - Adapter base URL;
 - WordPress username;
 - connection manifest URL;
@@ -35,7 +37,7 @@ Default copyable values:
 Default workflow bridge:
 
 - Proposal ID status lookup through Adapter's read-only proposal proxy,
-  collapsed by default unless a lookup is active;
+  visible in the default page;
 - link to the matching Core approval detail;
 - copyable Adapter status and approved-execution endpoints;
 - status-specific next-step copy for `pending`, `approved`, `rejected`,
@@ -45,16 +47,27 @@ Default workflow bridge:
 
 Keep these behind explicit advanced sections:
 
-- Adapter base URL, user, and connection manifest URL;
-- authorized key-pair client management;
-- fallback env placeholders without secrets;
-- read shortcut route catalog;
+- authorized key-pair client management and revoke actions;
+- diagnostics URLs;
+- read shortcut route catalog, showing only a short preview before the full
+  list;
 - proposal route examples;
-- diagnostics shortcuts;
 - AI Request Logs correlation smoke details;
 - disabled approval/rejection stub explanation;
 - failure code mapping;
-- verbose handoff prompt.
+- verbose handoff prompt and local AI client session text.
+
+## Created Handoff
+
+After creating an Application Password, the completion page must prioritize the
+one-time secret:
+
+- show the Application Password in the first focused panel;
+- provide a `Copy Application Password` action;
+- keep manifest, env placeholders, WorkBuddy setup, and full handoff text
+  behind detail disclosures;
+- never pass the raw password into copied manifest, env placeholder, WorkBuddy,
+  or handoff text.
 
 ## Time Display
 

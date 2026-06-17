@@ -49,6 +49,10 @@ when every action targets the current execution allowlist
 `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`,
 `npcink-abilities-toolkit/approve-comment`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
+Batch execution responses expose selected/submitted/executed/failed counts,
+per-action status, execution profile, idempotency key, Core preflight evidence,
+retryability, and `operator_next_action` so product surfaces such as Toolbox can
+render approved batch outcomes without owning a queue or write executor.
 
 ## Runtime Boundary
 
@@ -648,7 +652,8 @@ Plan-to-proposal flow:
 	   `npcink-toolbox/build-article-batch-write-plan`, or
 	   `npcink-toolbox/build-article-media-batch-write-plan`, or
 	   `npcink-toolbox/build-image-candidate-adoption-plan`, or
-	   `npcink-toolbox/build-site-knowledge-review-plan`.
+	   `npcink-toolbox/build-site-knowledge-review-plan`, or
+	   `npcink-toolbox/build-nightly-inspection-review-plan`.
 2. The adapter preserves plan fields including `batch_id`, `issue_types`,
    `post_ids`, `attachment_ids`, `write_actions`, `preview`, `risk`,
    `requires_approval`, `commit_execution`, `dry_run`, `manual_review`,
@@ -804,6 +809,11 @@ Plan-to-proposal flow:
 	   blocked review proposal that still requires human `title` and `content`
 	   input. Adapter must not approve, preflight, execute, or write WordPress
 	   content from this handoff.
+	   For Nightly Inspection Morning Brief review, call
+	   `npcink-toolbox/build-nightly-inspection-review-plan`; Core creates a
+	   blocked review proposal from selected review evidence only. Adapter must
+	   not approve, preflight, execute, or write WordPress content from this
+	   handoff.
 
 Proposal-required write flow:
 

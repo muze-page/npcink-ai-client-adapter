@@ -233,6 +233,7 @@ direct reads:
 - `npcink-toolbox/build-article-media-batch-write-plan`
 - `npcink-toolbox/build-image-candidate-adoption-plan`
 - `npcink-toolbox/build-site-knowledge-review-plan`
+- `npcink-toolbox/build-nightly-inspection-review-plan`
 
 OpenClaw may also use direct read execution for media format inspection:
 
