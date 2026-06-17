@@ -33,10 +33,17 @@
 	outline: 2px solid transparent;
 }
 .npcink-openclaw-adapter-connection .maa-tab-panel {
+	display: none;
 	padding-top: 0;
+}
+.npcink-openclaw-adapter-connection .maa-tab-panel[hidden] {
+	display: none;
 }
 .npcink-openclaw-adapter-connection .maa-tab-panel.is-active {
 	display: block;
+}
+.npcink-openclaw-adapter-connection .maa-tab-panel.maa-workspace.is-active {
+	display: grid;
 }
 .npcink-openclaw-adapter-connection .maa-workspace {
 	display: grid;
