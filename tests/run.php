@@ -883,26 +883,21 @@ foreach (
 			'Npcink AI Client Adapter',
 			'Adapter',
 			'AI Client Handoff Created',
-			'Client connection',
-			'Continue proposal',
-			'Advanced details',
-			'Simple connection',
+			'Secure key-pair connection',
+			'Simple key connection',
 			'Recommended path: pair a local signed key',
 			'Copy connect command',
 			'Create Application Password connection',
+			'Developer routes, proposal diagnostics, and verbose handoff text are documented',
+			'docs/admin-developer-reference.md',
 			'add_submenu_page',
 			'PARENT_MENU_SLUG',
 			'WP_Application_Passwords::create_new_application_password',
 		'Include LocalWP TLS setting',
 		'LocalWP TLS option',
 		'Use only for localhost or .local testing',
-			'Connection values',
 			'Copy manifest URL',
 			'Site',
-			'Core is truth',
-			'Diagnostics, route catalog, key management, examples, and boundary notes.',
-			'maa-advanced-group',
-			'adapter_proposal_id',
 			'proposal_lookup',
 			'render_proposal_lookup_result',
 		'Open in Core',
@@ -916,7 +911,7 @@ foreach (
 			'$this->display_datetime( $updated )',
 			"\$this->display_datetime( (string) ( \$record['last_used_at'] ?? '' ) )",
 			'key_pair_summary_text',
-			'Adapter Base URL',
+			'Adapter URL',
 			'WordPress user',
 			'Copy env placeholder',
 			'Connection manifest',
@@ -944,17 +939,7 @@ foreach (
 		'wordpress_application_password',
 		'password_uuid',
 		'Secret must be stored through the AI client credential store or dedicated secret field',
-		'Diagnostics URLs',
-		'Route catalog',
-			'id="maa-advanced" class="maa-section"',
-		'Proposal list',
 			'Proposal detail',
-			'Plan to proposals',
-			'Commit preflight',
-			'Approve and execute',
-			'Example requests',
-		'Handoff prompt',
-		'Boundary',
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD',
 		'NPCINK_OPENCLAW_ADAPTER_APPLICATION_PASSWORD=<store-in-openclaw-secret-vault>',
 			'Copy this Application Password now.',
@@ -982,12 +967,7 @@ foreach (
 			'core_proxy_execute=false',
 			'commit_execution=false',
 			'<client-secret-field-value>',
-			'Key-pair clients',
-			'Device-paired clients',
 			'Copy connect command',
-			'Show all read shortcuts',
-			'Local AI client session opener',
-			'Copy new conversation opener',
 			'local_cli_new_session_opener_text',
 			'already paired local Npcink AI Client Adapter profile',
 		'Read client_policy from /help and treat it as machine-readable policy',
@@ -998,7 +978,6 @@ foreach (
 		'local_cli_read_request_create_template',
 		'local_cli_read_request_status_template',
 		'local_cli_read_ability_template',
-		'Copy local AI CLI instructions',
 		'Copy status command',
 		'local_cli_setup_text',
 		'render_key_pair_clients_table',
@@ -1010,7 +989,6 @@ foreach (
 		'--intent=commit',
 		'final execute routes require --intent=commit',
 		'Do not read, cat, print, summarize, or copy the local keypair profile file',
-		'key_pairs_url',
 		'REVOKE_KEY_ACTION',
 		'Connection approved.',
 		'Return to the terminal or local AI client',
@@ -1019,11 +997,21 @@ foreach (
 		'PAIR_MENU_SLUG',
 		'result_status',
 		'/connection/manifest',
-		'/connection/key-pairs',
-		'Controller::read_shortcuts',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $connection_page, $required ), 'Connection page contains required text: ' . $required );
+}
+foreach (
+	array(
+		'maa-tabs',
+		'data-maa-tab-target',
+		'id="maa-advanced"',
+		'Continue proposal',
+		'Advanced details',
+		'Connection values',
+	) as $removed
+) {
+	maa_adapter_assert( false === strpos( $connection_page, $removed ), 'Connection page omits removed main-page surface: ' . $removed );
 }
 foreach (
 	array(
@@ -1072,14 +1060,15 @@ $admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standar
 foreach (
 	array(
 			'OpenClaw connection surface',
-			'Client connection',
-			'Simple connection',
+			'Secure key-pair connection',
+			'Simple key connection',
 			'Copy connect command',
 			'Proposal ID status lookup',
 			'Created Handoff',
 			'Copy Application Password',
 			'duplicate Core review queue',
 			'read shortcut route catalog',
+			'docs/admin-developer-reference.md',
 			'Core proposal approval tables',
 		'ability definitions',
 		'Cloud Base URL/API key',
@@ -1090,6 +1079,24 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $admin_surface_standard, $required ), 'Admin surface standard documents Adapter page boundary: ' . $required );
+}
+
+$admin_developer_reference = maa_adapter_read( $root . '/docs/admin-developer-reference.md' );
+foreach (
+	array(
+		'Adapter Developer Reference',
+		'Connection Routes',
+		'Proposal Routes',
+		'Read Shortcuts',
+		'AI Request Logs Correlation',
+		'Admin Boundary',
+		'secure signed key-pair connection',
+		'simple WordPress Application Password connection',
+		'core_proxy_execute=false',
+		'commit_execution=false',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $admin_developer_reference, $required ), 'Admin developer reference carries removed advanced detail: ' . $required );
 }
 
 $cloud_boundary = maa_adapter_read( $root . '/docs/cloud-connector-boundary.md' );

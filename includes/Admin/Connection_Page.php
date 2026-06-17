@@ -223,31 +223,18 @@ final class Connection_Page {
 			wp_die( esc_html__( 'You do not have permission to view this page.', 'npcink-ai-client-adapter' ) );
 		}
 
-		$base_url        = rest_url( Controller::NAMESPACE );
-		$health_url      = rest_url( Controller::NAMESPACE . '/health' );
-		$help_url        = rest_url( Controller::NAMESPACE . '/help' );
-		$capabilities_url = rest_url( Controller::NAMESPACE . '/capabilities' );
-		$manifest_url    = rest_url( Controller::NAMESPACE . '/connection/manifest' );
-		$key_pairs_url   = rest_url( Controller::NAMESPACE . '/connection/key-pairs' );
-		$health          = $this->health();
-		$status          = $this->status( $health );
-		$shortcuts       = Controller::read_shortcuts();
-		$example_request = $this->example_request( $health_url );
-		$proposal_request = $this->proposal_request( rest_url( Controller::NAMESPACE . '/proposals' ) );
-		$proposal_status_request = $this->proposal_status_request( rest_url( Controller::NAMESPACE . '/proposals/PROPOSAL_ID' ) );
-		$handoff_prompt  = $this->handoff_prompt( $base_url );
-		$can_create_password = $this->can_create_application_password();
-		$user            = wp_get_current_user();
-		$username        = $user->exists() ? (string) $user->user_login : '';
-		$include_local_tls = $this->is_local_url( home_url() );
-		$client_config   = $this->openclaw_env_text( $username, $include_local_tls );
-		$local_cli_setup = $this->local_cli_setup_text( $include_local_tls );
+		$base_url                  = rest_url( Controller::NAMESPACE );
+		$manifest_url              = rest_url( Controller::NAMESPACE . '/connection/manifest' );
+		$health                    = $this->health();
+		$status                    = $this->status( $health );
+		$can_create_password       = $this->can_create_application_password();
+		$user                      = wp_get_current_user();
+		$username                  = $user->exists() ? (string) $user->user_login : '';
+		$include_local_tls         = $this->is_local_url( home_url() );
+		$client_config             = $this->openclaw_env_text( $username, $include_local_tls );
 		$local_cli_connect_command = $this->local_cli_connect_command( $include_local_tls );
-		$local_cli_status_command = $this->local_cli_status_command( $include_local_tls );
-		$local_cli_new_session_opener = $this->local_cli_new_session_opener_text( $include_local_tls );
-		$key_records     = ( new Controller() )->admin_client_keys( get_current_user_id() );
-		$lookup_id       = $this->proposal_lookup_id_from_request();
-		$lookup_result   = '' !== $lookup_id ? $this->proposal_lookup( $lookup_id ) : null;
+		$local_cli_status_command  = $this->local_cli_status_command( $include_local_tls );
+		$key_records               = ( new Controller() )->admin_client_keys( get_current_user_id() );
 		?>
 		<div
 			class="wrap npcink-openclaw-adapter-connection"
@@ -257,37 +244,20 @@ final class Connection_Page {
 			<h1><?php echo esc_html__( 'Npcink AI Client Adapter', 'npcink-ai-client-adapter' ); ?></h1>
 			<p class="description"><?php echo esc_html__( 'Connect OpenClaw-compatible and similar AI clients to this WordPress site through the Adapter REST surface.', 'npcink-ai-client-adapter' ); ?></p>
 
-			<nav class="maa-tabs" aria-label="<?php echo esc_attr__( 'Adapter admin sections', 'npcink-ai-client-adapter' ); ?>">
-				<a class="maa-tab is-active" href="#maa-connect"><?php echo esc_html__( 'Client connection', 'npcink-ai-client-adapter' ); ?></a>
-				<a class="maa-tab" href="#maa-proposal"><?php echo esc_html__( 'Continue proposal', 'npcink-ai-client-adapter' ); ?></a>
-				<a class="maa-tab" href="#maa-advanced"><?php echo esc_html__( 'Advanced details', 'npcink-ai-client-adapter' ); ?></a>
-			</nav>
-
 			<div class="maa-summary">
 				<div class="maa-summary-item">
 					<span class="maa-label"><?php echo esc_html__( 'Status', 'npcink-ai-client-adapter' ); ?></span>
 					<span class="maa-status maa-status-<?php echo esc_attr( $status['level'] ); ?>"><?php echo esc_html( $status['label'] ); ?></span>
 				</div>
 				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Core capabilities', 'npcink-ai-client-adapter' ); ?></span>
-					<span class="maa-value"><?php echo ! empty( $health['core_capabilities'] ) ? esc_html__( 'Available', 'npcink-ai-client-adapter' ) : esc_html__( 'Missing', 'npcink-ai-client-adapter' ); ?></span>
-				</div>
-				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Abilities API', 'npcink-ai-client-adapter' ); ?></span>
-					<span class="maa-value"><?php echo ! empty( $health['abilities_catalog'] ) ? esc_html__( 'Available', 'npcink-ai-client-adapter' ) : esc_html__( 'Missing', 'npcink-ai-client-adapter' ); ?></span>
-				</div>
-				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Abilities Toolkit', 'npcink-ai-client-adapter' ); ?></span>
-					<span class="maa-value"><?php echo ! empty( $health['abilities_toolkit'] ) ? esc_html__( 'Available', 'npcink-ai-client-adapter' ) : esc_html__( 'Missing', 'npcink-ai-client-adapter' ); ?></span>
-				</div>
-				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Write execution', 'npcink-ai-client-adapter' ); ?></span>
-					<span class="maa-value"><?php echo esc_html__( 'Proposal required', 'npcink-ai-client-adapter' ); ?></span>
-				</div>
-				<div class="maa-summary-item maa-summary-copy">
 					<span class="maa-label"><?php echo esc_html__( 'Site', 'npcink-ai-client-adapter' ); ?></span>
 					<code class="maa-copy-value" id="maa-site-url"><?php echo esc_html( home_url() ); ?></code>
 					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-site-url"><?php echo esc_html__( 'Copy', 'npcink-ai-client-adapter' ); ?></button>
+				</div>
+				<div class="maa-summary-item maa-summary-copy">
+					<span class="maa-label"><?php echo esc_html__( 'Adapter URL', 'npcink-ai-client-adapter' ); ?></span>
+					<code class="maa-copy-value" id="maa-base-url"><?php echo esc_html( $base_url ); ?></code>
+					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-base-url"><?php echo esc_html__( 'Copy', 'npcink-ai-client-adapter' ); ?></button>
 				</div>
 			</div>
 			<?php if ( empty( $health['dependencies_ready'] ) && ! empty( $health['missing_dependencies'] ) && is_array( $health['missing_dependencies'] ) ) : ?>
@@ -299,11 +269,11 @@ final class Connection_Page {
 				</div>
 			<?php endif; ?>
 
-			<div id="maa-connect" class="maa-workspace maa-workspace-main">
-				<section class="maa-section maa-section-highlight">
+			<div id="maa-connect" class="maa-method-grid">
+				<section class="maa-section maa-method-card maa-method-card-recommended">
 					<div class="maa-section-heading">
 						<div>
-							<h2><?php echo esc_html__( 'Client connection', 'npcink-ai-client-adapter' ); ?></h2>
+							<h2><?php echo esc_html__( 'Secure key-pair connection', 'npcink-ai-client-adapter' ); ?></h2>
 							<p class="maa-section-intro"><?php echo esc_html__( 'Recommended path: pair a local signed key so the client never receives a WordPress Application Password.', 'npcink-ai-client-adapter' ); ?></p>
 						</div>
 						<span class="maa-status maa-status-ok"><?php echo esc_html__( 'Recommended', 'npcink-ai-client-adapter' ); ?></span>
@@ -327,12 +297,16 @@ final class Connection_Page {
 					</div>
 					<textarea id="maa-local-cli-status-command" hidden readonly><?php echo esc_textarea( $local_cli_status_command ); ?></textarea>
 					<p class="description"><?php echo esc_html__( 'Run the command in the same environment as the AI client. Adapter stores only the approved public key.', 'npcink-ai-client-adapter' ); ?></p>
+				</section>
 
-					<details class="maa-inline-disclosure">
-						<summary>
-							<strong><?php echo esc_html__( 'Simple connection', 'npcink-ai-client-adapter' ); ?></strong>
-							<span class="description"><?php echo esc_html__( 'Use only when the client has a dedicated secret field for an Application Password.', 'npcink-ai-client-adapter' ); ?></span>
-						</summary>
+				<section class="maa-section maa-method-card">
+					<div class="maa-section-heading">
+						<div>
+							<h2><?php echo esc_html__( 'Simple key connection', 'npcink-ai-client-adapter' ); ?></h2>
+							<p class="maa-section-intro"><?php echo esc_html__( 'Use this when the client has a dedicated secret field for a WordPress Application Password.', 'npcink-ai-client-adapter' ); ?></p>
+						</div>
+						<span class="maa-status maa-status-warning"><?php echo esc_html__( 'Secret field required', 'npcink-ai-client-adapter' ); ?></span>
+					</div>
 					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 						<input type="hidden" name="action" value="<?php echo esc_attr( self::CREATE_ACTION ); ?>" />
 						<?php wp_nonce_field( self::CREATE_ACTION ); ?>
@@ -357,32 +331,6 @@ final class Connection_Page {
 						<?php endif; ?>
 					</form>
 					<p class="description"><?php echo esc_html__( 'The password is shown once. Store it only in the client secret field.', 'npcink-ai-client-adapter' ); ?></p>
-					</details>
-				</section>
-
-				<section class="maa-section">
-					<h2><?php echo esc_html__( 'Connection values', 'npcink-ai-client-adapter' ); ?></h2>
-					<div class="maa-copy-row">
-						<div>
-							<span class="maa-label"><?php echo esc_html__( 'Adapter Base URL', 'npcink-ai-client-adapter' ); ?></span>
-							<code class="maa-copy-value" id="maa-base-url"><?php echo esc_html( $base_url ); ?></code>
-						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-base-url"><?php echo esc_html__( 'Copy', 'npcink-ai-client-adapter' ); ?></button>
-					</div>
-					<div class="maa-copy-row">
-						<div>
-							<span class="maa-label"><?php echo esc_html__( 'WordPress user', 'npcink-ai-client-adapter' ); ?></span>
-							<code class="maa-copy-value" id="maa-username"><?php echo esc_html( $username ); ?></code>
-						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-username"><?php echo esc_html__( 'Copy', 'npcink-ai-client-adapter' ); ?></button>
-					</div>
-					<div class="maa-copy-row">
-						<div>
-							<span class="maa-label"><?php echo esc_html__( 'Connection manifest', 'npcink-ai-client-adapter' ); ?></span>
-							<code class="maa-copy-value" id="maa-manifest-url"><?php echo esc_html( $manifest_url ); ?></code>
-						</div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-manifest-url"><?php echo esc_html__( 'Copy manifest URL', 'npcink-ai-client-adapter' ); ?></button>
-					</div>
 					<div class="maa-copy-row">
 						<div>
 							<span class="maa-label"><?php echo esc_html__( 'Client env placeholder', 'npcink-ai-client-adapter' ); ?></span>
@@ -391,137 +339,21 @@ final class Connection_Page {
 						</div>
 						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-client-config"><?php echo esc_html__( 'Copy env placeholder', 'npcink-ai-client-adapter' ); ?></button>
 					</div>
-					<p class="description"><?php echo esc_html__( 'Writes require Core proposal approval before Adapter execution.', 'npcink-ai-client-adapter' ); ?></p>
 				</section>
 			</div>
 
-			<section id="maa-proposal" class="maa-section maa-section-proposal">
-				<div class="maa-section-heading">
-					<div>
-						<h2><?php echo esc_html__( 'Continue proposal', 'npcink-ai-client-adapter' ); ?></h2>
-						<p class="maa-section-intro"><?php echo esc_html__( 'Paste the Proposal ID returned by the AI client to inspect Core status and continue from the Adapter entry point.', 'npcink-ai-client-adapter' ); ?></p>
-					</div>
-					<span class="maa-status maa-status-warning"><?php echo esc_html__( 'Core is truth', 'npcink-ai-client-adapter' ); ?></span>
-				</div>
-				<p><?php echo esc_html__( 'Use the Proposal ID returned to the AI client to check Core status, open the Core approval screen, and continue execution from Adapter after approval.', 'npcink-ai-client-adapter' ); ?></p>
-				<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
-					<input type="hidden" name="page" value="<?php echo esc_attr( self::MENU_SLUG ); ?>" />
-					<?php wp_nonce_field( self::PROPOSAL_LOOKUP_ACTION, self::PROPOSAL_LOOKUP_NONCE, false ); ?>
-					<p>
-						<label for="npcink-openclaw-adapter-proposal-lookup"><span class="maa-label"><?php echo esc_html__( 'Proposal ID', 'npcink-ai-client-adapter' ); ?></span></label>
-						<input id="npcink-openclaw-adapter-proposal-lookup" class="regular-text" type="text" name="adapter_proposal_id" value="<?php echo esc_attr( $lookup_id ); ?>" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-					</p>
-					<p class="maa-form-actions">
-						<button type="submit" class="button"><?php echo esc_html__( 'Check status', 'npcink-ai-client-adapter' ); ?></button>
-						<a class="button" href="<?php echo esc_url( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?>"><?php echo esc_html__( 'Open proposal API', 'npcink-ai-client-adapter' ); ?></a>
-					</p>
-				</form>
-				<?php $this->render_proposal_lookup_result( $lookup_id, $lookup_result ); ?>
-			</section>
+			<p class="maa-developer-note">
+				<?php
+				printf(
+					/* translators: 1: developer document file name, 2: connection manifest URL. */
+					esc_html__( 'Developer routes, proposal diagnostics, and verbose handoff text are documented in %1$s. Connection manifest: %2$s', 'npcink-ai-client-adapter' ),
+					'<code>docs/admin-developer-reference.md</code>',
+					'<code id="maa-manifest-url">' . esc_html( $manifest_url ) . '</code>'
+				);
+				?>
+				<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-manifest-url"><?php echo esc_html__( 'Copy manifest URL', 'npcink-ai-client-adapter' ); ?></button>
+			</p>
 
-			<details id="maa-advanced" class="maa-section">
-				<summary>
-					<strong><?php echo esc_html__( 'Advanced details', 'npcink-ai-client-adapter' ); ?></strong>
-					<span class="description"><?php echo esc_html__( 'Diagnostics, route catalog, key management, examples, and boundary notes.', 'npcink-ai-client-adapter' ); ?></span>
-				</summary>
-
-				<details class="maa-advanced-group">
-					<summary><strong><?php echo esc_html__( 'Key-pair clients', 'npcink-ai-client-adapter' ); ?></strong></summary>
-					<p><?php echo esc_html__( 'Device-paired clients sign Adapter requests.', 'npcink-ai-client-adapter' ); ?></p>
-					<p><?php echo esc_html__( 'Phase 2 clients generate an Ed25519 key locally. Adapter stores only the public key after WordPress admin approval.', 'npcink-ai-client-adapter' ); ?></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Manifest', 'npcink-ai-client-adapter' ); ?></span><code><?php echo esc_html( $manifest_url ); ?></code></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Key pairs', 'npcink-ai-client-adapter' ); ?></span><code><?php echo esc_html( $key_pairs_url ); ?></code></p>
-					<p><?php echo esc_html__( 'Revoke a public key to stop the matching local profile from authenticating. Adapter never stores the private key.', 'npcink-ai-client-adapter' ); ?></p>
-					<?php $this->render_key_pair_clients_table( $key_records ); ?>
-				</details>
-
-				<details class="maa-advanced-group">
-					<summary><strong><?php echo esc_html__( 'Diagnostics URLs', 'npcink-ai-client-adapter' ); ?></strong></summary>
-					<div class="maa-copy-row">
-						<div><span class="maa-label"><?php echo esc_html__( 'Health', 'npcink-ai-client-adapter' ); ?></span><code class="maa-copy-value" id="maa-health-url"><?php echo esc_html( $health_url ); ?></code></div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-health-url"><?php echo esc_html__( 'Copy', 'npcink-ai-client-adapter' ); ?></button>
-					</div>
-					<div class="maa-copy-row">
-						<div><span class="maa-label"><?php echo esc_html__( 'Help', 'npcink-ai-client-adapter' ); ?></span><code class="maa-copy-value" id="maa-help-url"><?php echo esc_html( $help_url ); ?></code></div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-help-url"><?php echo esc_html__( 'Copy', 'npcink-ai-client-adapter' ); ?></button>
-					</div>
-					<div class="maa-copy-row">
-						<div><span class="maa-label"><?php echo esc_html__( 'Capabilities', 'npcink-ai-client-adapter' ); ?></span><code class="maa-copy-value" id="maa-capabilities-url"><?php echo esc_html( $capabilities_url ); ?></code></div>
-						<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-capabilities-url"><?php echo esc_html__( 'Copy', 'npcink-ai-client-adapter' ); ?></button>
-					</div>
-				</details>
-
-				<details class="maa-advanced-group">
-					<summary><strong><?php echo esc_html__( 'Route catalog', 'npcink-ai-client-adapter' ); ?></strong></summary>
-					<p><strong><?php echo esc_html__( 'Proposal routes', 'npcink-ai-client-adapter' ); ?></strong></p>
-					<p><span class="maa-label"><?php echo esc_html__( 'Proposal list', 'npcink-ai-client-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals' ) ); ?></code></p>
-						<p><span class="maa-label"><?php echo esc_html__( 'Proposal detail', 'npcink-ai-client-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}' ) ); ?></code></p>
-						<p><span class="maa-label"><?php echo esc_html__( 'Plan to proposals', 'npcink-ai-client-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/from-plan' ) ); ?></code></p>
-						<p><span class="maa-label"><?php echo esc_html__( 'Commit preflight', 'npcink-ai-client-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/commit-preflight' ) ); ?></code></p>
-						<p><span class="maa-label"><?php echo esc_html__( 'Approve and execute', 'npcink-ai-client-adapter' ); ?></span><code><?php echo esc_html( rest_url( Controller::NAMESPACE . '/proposals/{proposal_id}/approve-and-execute' ) ); ?></code></p>
-					<h3><?php echo esc_html__( 'Read shortcuts', 'npcink-ai-client-adapter' ); ?></h3>
-					<ul class="maa-route-list maa-route-list-preview">
-						<?php foreach ( array_slice( $shortcuts, 0, 10, true ) as $route => $ability_id ) : ?>
-							<li><code><?php echo esc_html( 'GET /wp-json/' . Controller::NAMESPACE . '/' . $route ); ?></code><br><span class="description"><?php echo esc_html( $ability_id ); ?></span></li>
-						<?php endforeach; ?>
-					</ul>
-					<?php if ( count( $shortcuts ) > 10 ) : ?>
-						<details class="maa-inline-disclosure">
-							<summary>
-								<strong><?php echo esc_html__( 'Show all read shortcuts', 'npcink-ai-client-adapter' ); ?></strong>
-								<span class="description"><?php echo esc_html( sprintf( /* translators: %d: number of read shortcut routes. */ __( '%d routes', 'npcink-ai-client-adapter' ), count( $shortcuts ) ) ); ?></span>
-							</summary>
-							<ul class="maa-route-list">
-								<?php foreach ( $shortcuts as $route => $ability_id ) : ?>
-									<li><code><?php echo esc_html( 'GET /wp-json/' . Controller::NAMESPACE . '/' . $route ); ?></code><br><span class="description"><?php echo esc_html( $ability_id ); ?></span></li>
-								<?php endforeach; ?>
-							</ul>
-						</details>
-					<?php endif; ?>
-				</details>
-
-				<details class="maa-advanced-group">
-					<summary><strong><?php echo esc_html__( 'Example requests', 'npcink-ai-client-adapter' ); ?></strong></summary>
-					<p><?php echo esc_html__( 'Use a dedicated administrator Application Password. Paste the password only into the AI client dedicated secret field, never into chat, tools, files, logs, or proposals.', 'npcink-ai-client-adapter' ); ?></p>
-					<pre><?php echo esc_html( $example_request ); ?></pre>
-					<pre><?php echo esc_html( $proposal_request ); ?></pre>
-					<pre><?php echo esc_html( $proposal_status_request ); ?></pre>
-				</details>
-
-				<details class="maa-advanced-group">
-					<summary><strong><?php echo esc_html__( 'Session handoff text', 'npcink-ai-client-adapter' ); ?></strong></summary>
-					<details class="maa-inline-disclosure">
-						<summary>
-							<strong><?php echo esc_html__( 'Local AI client session opener', 'npcink-ai-client-adapter' ); ?></strong>
-							<span class="description"><?php echo esc_html__( 'Copy this into later local AI client sessions after this machine has already connected once.', 'npcink-ai-client-adapter' ); ?></span>
-						</summary>
-						<textarea id="maa-local-cli-new-session-opener" rows="12" readonly><?php echo esc_textarea( $local_cli_new_session_opener ); ?></textarea>
-						<p class="maa-action-row">
-							<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-new-session-opener"><?php echo esc_html__( 'Copy new conversation opener', 'npcink-ai-client-adapter' ); ?></button>
-						</p>
-					</details>
-					<details class="maa-inline-disclosure">
-						<summary>
-							<strong><?php echo esc_html__( 'Full local AI client instructions', 'npcink-ai-client-adapter' ); ?></strong>
-							<span class="description"><?php echo esc_html__( 'Copy only when the client needs the longer setup text.', 'npcink-ai-client-adapter' ); ?></span>
-						</summary>
-						<p class="description"><?php echo esc_html__( 'Do not ask the local AI client to read the keypair profile file. Writes still require Core proposal, approval, and preflight.', 'npcink-ai-client-adapter' ); ?></p>
-						<textarea id="maa-local-cli-setup" rows="14" readonly><?php echo esc_textarea( $local_cli_setup ); ?></textarea>
-						<p class="maa-action-row">
-							<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-local-cli-setup"><?php echo esc_html__( 'Copy local AI CLI instructions', 'npcink-ai-client-adapter' ); ?></button>
-						</p>
-					</details>
-					<h3><?php echo esc_html__( 'Handoff prompt', 'npcink-ai-client-adapter' ); ?></h3>
-					<textarea readonly><?php echo esc_textarea( $handoff_prompt ); ?></textarea>
-				</details>
-
-				<div class="maa-advanced-group">
-						<h3><?php echo esc_html__( 'Boundary', 'npcink-ai-client-adapter' ); ?></h3>
-						<p><?php echo esc_html__( 'AI clients connect to Adapter. Core approval admin is the human governance surface behind Adapter. Reads run only when Core marks an ability as direct_read on wp_abilities_rest. Writes create Core proposals and stop at commit preflight.', 'npcink-ai-client-adapter' ); ?></p>
-						<p><code>core_proxy_execute=false</code></p>
-						<p><code>commit_execution=false</code></p>
-				</div>
-			</details>
 		</div>
 		<?php
 	}
