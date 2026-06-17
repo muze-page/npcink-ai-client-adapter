@@ -1114,6 +1114,22 @@ msgstr ""
 msgid "Core commit preflight policy version is not accepted by Adapter execution."
 msgstr ""
 
+#: includes/Rest/Controller.php:7711
+msgid "Core authorization context is expired or missing a valid expiry."
+msgstr ""
+
+#: includes/Rest/Controller.php:7743
+msgid "Core authorization context includes an invalid signed client fingerprint."
+msgstr ""
+
+#: includes/Rest/Controller.php:7751
+msgid "Core authorization context signed client fingerprint aliases do not match."
+msgstr ""
+
+#: includes/Rest/Controller.php:7765
+msgid "Core authorization context was issued for a different signed local client."
+msgstr ""
+
 #: includes/Rest/Controller.php:7505
 msgid "Core commit preflight did not return an Adapter execution handoff."
 msgstr ""

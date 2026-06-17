@@ -63,6 +63,13 @@ final class Controller {
 	private $current_request_log_context = array();
 
 	/**
+	 * Current signed local client fingerprint for the REST request.
+	 *
+	 * @var string
+	 */
+	private $current_signed_client_fingerprint = '';
+
+	/**
 	 * Returns Adapter-owned execution profiles for abilities that may run after
 	 * Core approval and commit preflight.
 	 *
@@ -989,6 +996,8 @@ final class Controller {
 	 * @return bool
 	 */
 	public function can_use_adapter( ?WP_REST_Request $request = null ): bool {
+		$this->current_signed_client_fingerprint = '';
+
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
 		}
@@ -1853,6 +1862,8 @@ final class Controller {
 	 * @return bool
 	 */
 	private function authenticate_signed_request( WP_REST_Request $request ): bool {
+		$this->current_signed_client_fingerprint = '';
+
 		if ( ! function_exists( 'sodium_crypto_sign_verify_detached' ) ) {
 			return false;
 		}
@@ -1911,8 +1922,18 @@ final class Controller {
 			update_option( self::CLIENT_KEYS_OPTION, $keys, false );
 		}
 		wp_set_current_user( $user_id );
+		$this->current_signed_client_fingerprint = $this->sanitize_signed_client_fingerprint( (string) ( $record['fingerprint'] ?? '' ) );
 
 		return true;
+	}
+
+	/**
+	 * Returns the currently authenticated signed local client fingerprint.
+	 *
+	 * @return string
+	 */
+	private function current_signed_client_fingerprint(): string {
+		return $this->sanitize_signed_client_fingerprint( $this->current_signed_client_fingerprint );
 	}
 
 	/**
@@ -1996,18 +2017,18 @@ final class Controller {
 		$method = strtoupper( $request->get_method() );
 
 		if ( false !== strpos( $route, '/proposals' ) || false !== strpos( $route, '/execute-approved-proposal' ) ) {
-			return ! empty( $scopes['npcink.propose'] );
+			return ! empty( $scopes['npcink.propose'] ) || ! empty( $scopes['magick.propose'] );
 		}
 
 		if ( false !== strpos( $route, '/media-derivative-runs' ) || false !== strpos( $route, '/media-derivative-proposal-payload' ) ) {
-			return ! empty( $scopes['npcink.propose'] );
+			return ! empty( $scopes['npcink.propose'] ) || ! empty( $scopes['magick.propose'] );
 		}
 
 		if ( 'GET' === $method && ( false !== strpos( $route, '/health' ) || false !== strpos( $route, '/help' ) || false !== strpos( $route, '/capabilities' ) || false !== strpos( $route, '/connection/' ) ) ) {
-			return ! empty( $scopes['npcink.status'] );
+			return ! empty( $scopes['npcink.status'] ) || ! empty( $scopes['magick.status'] );
 		}
 
-		return ! empty( $scopes['npcink.read'] );
+		return ! empty( $scopes['npcink.read'] ) || ! empty( $scopes['magick.read'] );
 	}
 
 	/**
@@ -7484,6 +7505,22 @@ final class Controller {
 		if ( is_wp_error( $handoff_site_binding ) ) {
 			return $handoff_site_binding;
 		}
+		$approval_expiry = $this->validate_core_context_expiry( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
+		if ( is_wp_error( $approval_expiry ) ) {
+			return $approval_expiry;
+		}
+		$handoff_expiry = $this->validate_core_context_expiry( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+		if ( is_wp_error( $handoff_expiry ) ) {
+			return $handoff_expiry;
+		}
+		$approval_client_binding = $this->validate_core_context_signed_client_binding( $approval_context, 'npcink_openclaw_adapter_preflight', 409 );
+		if ( is_wp_error( $approval_client_binding ) ) {
+			return $approval_client_binding;
+		}
+		$handoff_client_binding = $this->validate_core_context_signed_client_binding( $execution_handoff, 'npcink_openclaw_adapter_preflight_handoff', 409 );
+		if ( is_wp_error( $handoff_client_binding ) ) {
+			return $handoff_client_binding;
+		}
 
 		return true;
 	}
@@ -7688,6 +7725,99 @@ final class Controller {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Validates the Core-issued handoff TTL.
+	 *
+	 * @param array<string,mixed> $context Core-provided context.
+	 * @param string              $code_prefix Error code prefix.
+	 * @param int                 $status HTTP status.
+	 * @return true|WP_Error
+	 */
+	private function validate_core_context_expiry( array $context, string $code_prefix, int $status ) {
+		// Error families include npcink_openclaw_adapter_preflight_expired and npcink_openclaw_adapter_preflight_handoff_expired.
+		$expires_at = sanitize_text_field( (string) ( $context['expires_at'] ?? '' ) );
+		$expires_ts = '' === $expires_at ? false : strtotime( $expires_at );
+		if ( false === $expires_ts || $expires_ts <= time() ) {
+			return new WP_Error(
+				$code_prefix . '_expired',
+				__( 'Core authorization context is expired or missing a valid expiry.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'     => $status,
+					'expires_at' => $expires_at,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validates optional Core signed-client binding fields when present.
+	 *
+	 * @param array<string,mixed> $context Core-provided context.
+	 * @param string              $code_prefix Error code prefix.
+	 * @param int                 $status HTTP status.
+	 * @return true|WP_Error
+	 */
+	private function validate_core_context_signed_client_binding( array $context, string $code_prefix, int $status ) {
+		// Error families include npcink_openclaw_adapter_preflight_signed_client_fingerprint_mismatch, npcink_openclaw_adapter_preflight_handoff_signed_client_fingerprint_mismatch, and npcink_openclaw_adapter_core_read_grant_signed_client_fingerprint_mismatch.
+		$primary_raw = sanitize_text_field( (string) ( $context['signed_client_fingerprint'] ?? '' ) );
+		$alias_raw   = sanitize_text_field( (string) ( $context['client_key_fingerprint'] ?? '' ) );
+		$primary     = $this->sanitize_signed_client_fingerprint( $primary_raw );
+		$alias       = $this->sanitize_signed_client_fingerprint( $alias_raw );
+
+		if ( ( '' !== $primary_raw && '' === $primary ) || ( '' !== $alias_raw && '' === $alias ) ) {
+			return new WP_Error(
+				$code_prefix . '_signed_client_fingerprint_invalid',
+				__( 'Core authorization context includes an invalid signed client fingerprint.', 'npcink-ai-client-adapter' ),
+				array( 'status' => $status )
+			);
+		}
+
+		if ( '' !== $primary && '' !== $alias && ! hash_equals( $primary, $alias ) ) {
+			return new WP_Error(
+				$code_prefix . '_signed_client_fingerprint_alias_mismatch',
+				__( 'Core authorization context signed client fingerprint aliases do not match.', 'npcink-ai-client-adapter' ),
+				array( 'status' => $status )
+			);
+		}
+
+		$context_fingerprint = '' !== $primary ? $primary : $alias;
+		if ( '' === $context_fingerprint ) {
+			return true;
+		}
+
+		$current_fingerprint = $this->current_signed_client_fingerprint();
+		if ( '' === $current_fingerprint || ! hash_equals( $current_fingerprint, $context_fingerprint ) ) {
+			return new WP_Error(
+				$code_prefix . '_signed_client_fingerprint_mismatch',
+				__( 'Core authorization context was issued for a different signed local client.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'                       => $status,
+					'expected_client_fingerprint'  => $current_fingerprint,
+					'context_client_fingerprint'   => $context_fingerprint,
+				)
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sanitizes a signed local client fingerprint.
+	 *
+	 * @param string $fingerprint Fingerprint.
+	 * @return string
+	 */
+	private function sanitize_signed_client_fingerprint( string $fingerprint ): string {
+		$fingerprint = sanitize_text_field( $fingerprint );
+		if ( 1 !== preg_match( '/^sha256:[a-f0-9]{64}$/', $fingerprint ) ) {
+			return '';
+		}
+
+		return $fingerprint;
 	}
 
 	/**
@@ -8419,13 +8549,17 @@ final class Controller {
 			);
 		}
 
-		$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
-		if ( is_wp_error( $site_binding ) ) {
-			return $site_binding;
-		}
+			$site_binding = $this->validate_core_context_site_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+			if ( is_wp_error( $site_binding ) ) {
+				return $site_binding;
+			}
+			$client_binding = $this->validate_core_context_signed_client_binding( $context, 'npcink_openclaw_adapter_core_read_grant', 403 );
+			if ( is_wp_error( $client_binding ) ) {
+				return $client_binding;
+			}
 
-		$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
-		if ( false === $expires_at || $expires_at <= time() ) {
+			$expires_at = strtotime( (string) ( $context['expires_at'] ?? '' ) );
+			if ( false === $expires_at || $expires_at <= time() ) {
 			return new WP_Error(
 				'npcink_openclaw_adapter_core_read_grant_expired',
 				__( 'Core read authorization context is expired.', 'npcink-ai-client-adapter' ),
@@ -8451,10 +8585,12 @@ final class Controller {
 			'approved_input_hash'         => sanitize_text_field( (string) ( $context['approved_input_hash'] ?? '' ) ),
 			'correlation_id'              => sanitize_text_field( (string) ( $context['correlation_id'] ?? '' ) ),
 			'policy_version'              => sanitize_text_field( (string) ( $context['policy_version'] ?? '' ) ),
-			'site_url'                    => sanitize_text_field( (string) ( $context['site_url'] ?? '' ) ),
-			'home_url'                    => sanitize_text_field( (string) ( $context['home_url'] ?? '' ) ),
-			'blog_id'                     => absint( $context['blog_id'] ?? 0 ),
-			'sensitivity'                 => sanitize_key( (string) ( $context['sensitivity'] ?? 'sensitive' ) ),
+				'site_url'                    => sanitize_text_field( (string) ( $context['site_url'] ?? '' ) ),
+				'home_url'                    => sanitize_text_field( (string) ( $context['home_url'] ?? '' ) ),
+				'blog_id'                     => absint( $context['blog_id'] ?? 0 ),
+				'signed_client_fingerprint'   => $this->sanitize_signed_client_fingerprint( (string) ( $context['signed_client_fingerprint'] ?? '' ) ),
+				'client_key_fingerprint'      => $this->sanitize_signed_client_fingerprint( (string) ( $context['client_key_fingerprint'] ?? '' ) ),
+				'sensitivity'                 => sanitize_key( (string) ( $context['sensitivity'] ?? 'sensitive' ) ),
 			'data_classes'                => $this->sanitize_string_list( is_array( $context['data_classes'] ?? null ) ? (array) $context['data_classes'] : array() ),
 			'redaction_level'             => sanitize_key( (string) ( $context['redaction_level'] ?? 'strict' ) ),
 			'expires_at'                  => sanitize_text_field( (string) ( $context['expires_at'] ?? '' ) ),
@@ -8847,6 +8983,11 @@ final class Controller {
 
 		if ( '' !== $token && 0 === strpos( $route, '/npcink-governance-core/v1/' ) ) {
 			$request->set_header( 'x-npcink-governance-core-app-token', $token );
+			$fingerprint = $this->current_signed_client_fingerprint();
+			if ( '' !== $fingerprint ) {
+				$request->set_header( 'x-npcink-adapter-signed-client-fingerprint', $fingerprint );
+				$request->set_header( 'x-npcink-adapter-client-key-fingerprint', $fingerprint );
+			}
 			wp_set_current_user( 0 );
 		}
 
