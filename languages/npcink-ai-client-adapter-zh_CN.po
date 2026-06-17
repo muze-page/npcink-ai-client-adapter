@@ -1757,6 +1757,25 @@ msgstr "trash-comment 执行输入必须包含 comment_id。"
 msgid "approve-comment execution input must include comment_id."
 msgstr "approve-comment 执行输入必须包含 comment_id。"
 
+msgid "Secure key-pair connection"
+msgstr "安全密钥连接"
+
+msgid "Simple key connection"
+msgstr "简单密钥连接"
+
+msgid ""
+"Use this when the client has a dedicated secret field for a WordPress "
+"Application Password."
+msgstr "当客户端有专用密钥字段可保存 WordPress 应用密码时使用。"
+
+msgid "Secret field required"
+msgstr "需要专用密钥字段"
+
+msgid ""
+"Developer routes, proposal diagnostics, and verbose handoff text are "
+"documented in %1$s. Connection manifest: %2$s"
+msgstr "开发者路由、提案诊断和详细交接文案已移至 %1$s。连接清单：%2$s"
+
 #~ msgid "Higher security: signed key-pair"
 #~ msgstr "更高安全性：签名密钥对"
 

@@ -247,6 +247,24 @@ msgstr ""
 msgid "Create Application Password connection"
 msgstr ""
 
+msgid "Adapter URL"
+msgstr ""
+
+msgid "Secure key-pair connection"
+msgstr ""
+
+msgid "Simple key connection"
+msgstr ""
+
+msgid "Use this when the client has a dedicated secret field for a WordPress Application Password."
+msgstr ""
+
+msgid "Secret field required"
+msgstr ""
+
+msgid "Developer routes, proposal diagnostics, and verbose handoff text are documented in %1$s. Connection manifest: %2$s"
+msgstr ""
+
 #: includes/Admin/Connection_Page.php:356
 #: includes/Admin/Connection_Page.php:666
 msgid "Application Passwords are not available for this user or site."
