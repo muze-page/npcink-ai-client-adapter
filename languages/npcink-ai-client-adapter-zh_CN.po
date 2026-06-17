@@ -267,25 +267,23 @@ msgid "Connection approved."
 msgstr "连接已批准。"
 
 #: includes/Admin/Connection_Page.php:387
-#, fuzzy
 msgid ""
 "Return to the terminal or local AI client that started pairing. Wait for it "
 "to report ready; this browser page can be closed. Adapter stores only the "
 "public key; the private key was never sent to WordPress."
 msgstr ""
-"请返回终端或本地 AI 客户端。客户端会完成轮询并保存本地配置。适配器只保存公"
-"钥；私钥从未发送到 WordPress。"
+"请返回发起配对的终端或本地 AI 客户端。等待它显示 ready；此浏览器页面可以关"
+"闭。适配器只保存公钥；私钥从未发送到 WordPress。"
 
 #: includes/Admin/Connection_Page.php:389
 msgid ""
 "If you did not start this pairing, revoke this client from the Adapter page "
 "immediately."
-msgstr ""
+msgstr "如果您没有发起此次配对，请立即在适配器页面撤销此客户端。"
 
 #: includes/Admin/Connection_Page.php:389
-#, fuzzy
 msgid "Manage paired clients"
-msgstr "已配对客户端"
+msgstr "管理已配对客户端"
 
 #: includes/Admin/Connection_Page.php:392
 msgid "Connection rejected."
@@ -312,41 +310,39 @@ msgstr "客户端"
 
 #: includes/Admin/Connection_Page.php:401
 msgid "Device reported by client"
-msgstr ""
+msgstr "客户端报告的设备"
 
 #: includes/Admin/Connection_Page.php:402
 msgid "Local verifier"
-msgstr ""
+msgstr "本地验证程序"
 
 #: includes/Admin/Connection_Page.php:403
 msgid "User code"
 msgstr "用户代码"
 
 #: includes/Admin/Connection_Page.php:403
-#, fuzzy
 msgid "Used pairing code"
-msgstr "用户代码"
+msgstr "已使用的配对代码"
 
 #: includes/Admin/Connection_Page.php:404
 msgid "Started"
-msgstr ""
+msgstr "发起时间"
 
 #: includes/Admin/Connection_Page.php:406
 msgid "Approved"
-msgstr ""
+msgstr "批准时间"
 
 #: includes/Admin/Connection_Page.php:409
 msgid "Expires"
-msgstr ""
+msgstr "过期时间"
 
 #: includes/Admin/Connection_Page.php:414
-#, fuzzy
 msgid "Approved access"
-msgstr "批准并执行"
+msgstr "已批准的访问权限"
 
 #: includes/Admin/Connection_Page.php:414
 msgid "Requested access"
-msgstr ""
+msgstr "请求的访问权限"
 
 #: includes/Admin/Connection_Page.php:420
 msgid ""
@@ -355,15 +351,17 @@ msgid ""
 "authority. Writes must still go through Core proposal, approval, and commit-"
 "preflight; Adapter remains the client channel."
 msgstr ""
+"此批准不会授予直接 WordPress 写入、审批、发布、提供商凭据、提示词、模型路由或"
+"生产工作负载执行权限。写入仍必须经过 Core 提案、审批和提交预检；Adapter 仍然"
+"只是客户端通道。"
 
 #: includes/Admin/Connection_Page.php:424
-#, fuzzy
 msgid "Diagnostic details"
-msgstr "诊断 URL"
+msgstr "诊断详情"
 
 #: includes/Admin/Connection_Page.php:425
 msgid "IDs and fingerprints for support; these are not client setup secrets."
-msgstr ""
+msgstr "用于支持排查的 ID 和指纹；这些不是客户端配置密钥。"
 
 #: includes/Admin/Connection_Page.php:427
 msgid ""
@@ -371,25 +369,24 @@ msgid ""
 "setup text unless a support workflow explicitly asks for diagnostic "
 "identifiers."
 msgstr ""
+"除非支持流程明确要求诊断标识符，否则不要把这些值粘贴到聊天、工具命令、提案负"
+"载或配置文本中。"
 
 #: includes/Admin/Connection_Page.php:430
-#, fuzzy
 msgid "Public key fingerprint"
-msgstr "指纹"
+msgstr "公钥指纹"
 
 #: includes/Admin/Connection_Page.php:431
-#, fuzzy
 msgid "Scope IDs"
-msgstr "权限范围"
+msgstr "权限范围 ID"
 
 #: includes/Admin/Connection_Page.php:433
-#, fuzzy
 msgid "Connection record ID"
-msgstr "连接 ID"
+msgstr "连接记录 ID"
 
 #: includes/Admin/Connection_Page.php:434
 msgid "Client key record ID"
-msgstr ""
+msgstr "客户端密钥记录 ID"
 
 #: includes/Admin/Connection_Page.php:444
 msgid "Approve connection"
@@ -400,31 +397,28 @@ msgid "Reject"
 msgstr "拒绝"
 
 #: includes/Admin/Connection_Page.php:461
-#, fuzzy
 msgid "Npcink client approved"
-msgstr "Npcink AI 客户端适配器"
+msgstr "Npcink 客户端已批准"
 
 #: includes/Admin/Connection_Page.php:465
-#, fuzzy
 msgid "Npcink client rejected"
-msgstr "Npcink AI 客户端适配器"
+msgstr "Npcink 客户端已拒绝"
 
 #: includes/Admin/Connection_Page.php:479
 msgid "Read approved Adapter and WordPress Abilities API routes."
-msgstr ""
+msgstr "读取已批准的 Adapter 和 WordPress Abilities API 路由。"
 
 #: includes/Admin/Connection_Page.php:480
-#, fuzzy
 msgid "Create Core-governed proposals for reviewed writes."
-msgstr "为同一预期写入创建新提案。"
+msgstr "为已审核的写入创建由 Core 治理的提案。"
 
 #: includes/Admin/Connection_Page.php:481
 msgid "Check Adapter, Core proposal, and execution status."
-msgstr ""
+msgstr "检查 Adapter、Core 提案和执行状态。"
 
 #: includes/Admin/Connection_Page.php:493
 msgid "No recognized Adapter scopes were requested."
-msgstr ""
+msgstr "未请求可识别的 Adapter 权限范围。"
 
 #: includes/Admin/Connection_Page.php:545
 msgid "You do not have permission to revoke client keys."
