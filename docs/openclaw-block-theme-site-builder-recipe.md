@@ -226,6 +226,10 @@ composer dev:article-template-visual
 It is equivalent to running the generic harness with
 `MAA_ADAPTER_BLOCK_THEME_VISUAL_PROFILE=article_standard`.
 
+For the accepted three-profile milestone, including the local Site Editor check,
+see
+[`2026-06-18-block-theme-template-milestone.md`](2026-06-18-block-theme-template-milestone.md).
+
 After execution, verify:
 
 - changed templates still parse as Gutenberg blocks;

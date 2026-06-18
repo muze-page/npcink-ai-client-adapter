@@ -2256,6 +2256,8 @@ foreach (
 		'MAA_ADAPTER_DEV_ARTICLE_VISUAL_POST_ID',
 		'minimum_padded_sections',
 		'block_theme_template',
+		'block_editor_url',
+		'site-editor.php?postType=wp_template',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $dev_article_template_visual_php, $required ), 'Dev article template visual PHP contains required text: ' . $required );
@@ -2297,6 +2299,8 @@ foreach (
 		'minimum_padded_sections',
 		'block_theme_template',
 		'block_theme_homepage',
+		'block_editor_url',
+		'site-editor.php?postType=wp_template',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $dev_block_theme_template_visual_php, $required ), 'Dev block theme template visual PHP contains required text: ' . $required );
@@ -3050,6 +3054,34 @@ foreach (
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $gutenberg_design_system, $required ), 'Gutenberg design system doc contains required text: ' . $required );
+}
+
+$block_theme_template_milestone = maa_adapter_read( $root . '/docs/2026-06-18-block-theme-template-milestone.md' );
+foreach (
+	array(
+		'Block Theme Template Customization Milestone',
+		'Status: accepted',
+		'front-page',
+		'single',
+		'page',
+		'article_standard',
+		'page_standard',
+		'homepage_landing',
+		'MAA_ADAPTER_VISUAL_ACCEPTANCE_CREATE_TEMP_ADMIN=1',
+		'composer dev:block-theme-template-visual',
+		'MAA_ADAPTER_BLOCK_THEME_OPENCLAW_ACCEPTANCE_COMMIT=1',
+		'composer accept:block-theme-openclaw',
+		'editor checks are not skipped',
+		'invalid block recovery prompts',
+		'This is not a generic AI site builder',
+		'npcink-abilities-toolkit',
+		'npcink-governance-core',
+		'Deferred Work',
+		'arbitrary CSS',
+		'theme.json',
+	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $block_theme_template_milestone, $required ), 'Block theme template milestone doc contains required text: ' . $required );
 }
 
 $image_candidate_adoption_recipe = maa_adapter_read( $root . '/docs/openclaw-image-candidate-adoption-plan-recipe.md' );

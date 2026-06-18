@@ -361,6 +361,7 @@ $manifest                = array(
 			'template_slug'           => $template_slug,
 			'post_id'                 => $frontend_target['id'],
 			'front_end_url'           => $frontend_target['url'],
+			'block_editor_url'        => admin_url( 'site-editor.php?postType=wp_template&postId=' . rawurlencode( get_stylesheet() . '//' . $template_slug ) . '&canvas=edit' ),
 			'required_blocks'         => is_array( $config['required_blocks'] ?? null ) ? $config['required_blocks'] : array(),
 			'minimum_padded_sections' => $minimum_padded_sections,
 			'require_images'          => false,

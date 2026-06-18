@@ -288,6 +288,7 @@ $manifest = array(
 			'template_slug'           => $template_slug,
 			'post_id'                 => $post_target['id'],
 			'front_end_url'           => $post_target['url'],
+			'block_editor_url'        => admin_url( 'site-editor.php?postType=wp_template&postId=' . rawurlencode( get_stylesheet() . '//' . $template_slug ) . '&canvas=edit' ),
 			'required_blocks'         => array( 'post_content', 'latest_posts' ),
 			'minimum_padded_sections' => $minimum_padded_sections,
 			'require_images'          => false,
