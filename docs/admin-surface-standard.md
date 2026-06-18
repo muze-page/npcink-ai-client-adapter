@@ -26,23 +26,23 @@ Primary actions:
   action.
 - `Manage devices`, which opens the authorized signed key-pair devices list
   without adding a separate control surface.
-- `Simple key connection`, with `Create Application Password connection` as the
-  fallback action for clients that have a dedicated secret field.
+- `Fallback: WordPress Application Password connection`, with `Create
+  Application Password connection` as the fallback action for clients that have
+  a dedicated secret field.
 
 Default copyable values:
 
-- Site URL;
 - Adapter URL;
-- signed key-pair connect command;
-- signed key-pair status command;
-- connection manifest URL;
-- client env placeholders without secrets.
+- signed key-pair connect command.
 
 ## Developer Reference
 
 Do not put developer diagnostics on the default admin page. Keep these in
 `docs/admin-developer-reference.md` or equivalent developer documentation:
 
+- connection manifest URL;
+- client env placeholders without secrets;
+- signed key-pair status command;
 - low-level key-pair client diagnostics;
 - diagnostics URLs;
 - read shortcut route catalog;

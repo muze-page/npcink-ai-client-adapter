@@ -2,10 +2,7 @@
 	max-width: 1180px;
 }
 .npcink-openclaw-adapter-connection .maa-method-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 16px;
-	align-items: start;
+	max-width: 920px;
 }
 .npcink-openclaw-adapter-connection .maa-method-grid > * {
 	min-width: 0;
@@ -92,11 +89,19 @@
 .npcink-openclaw-adapter-connection .maa-pairing-access li {
 	margin-bottom: 6px;
 }
+.npcink-openclaw-adapter-connection .maa-pairing-form {
+	margin-top: 16px;
+	max-width: 860px;
+}
+.npcink-openclaw-adapter-connection .maa-pairing-form .description {
+	display: block;
+	margin-top: 4px;
+}
 .npcink-openclaw-adapter-connection .maa-section-highlight {
 	border-left: 4px solid #2271b1;
 }
 .npcink-openclaw-adapter-connection .maa-method-card {
-	min-height: 100%;
+	min-height: 0;
 }
 .npcink-openclaw-adapter-connection .maa-method-card-recommended {
 	border-left: 4px solid #2271b1;
@@ -179,6 +184,12 @@
 }
 .npcink-openclaw-adapter-connection .maa-device-manager {
 	margin-top: 16px;
+}
+.npcink-openclaw-adapter-connection .maa-backup-connection {
+	margin-top: 16px;
+}
+.npcink-openclaw-adapter-connection .maa-backup-connection > summary {
+	color: #50575e;
 }
 .npcink-openclaw-adapter-connection .maa-device-table th,
 .npcink-openclaw-adapter-connection .maa-device-table td {
@@ -335,6 +346,7 @@
 	flex-wrap: wrap;
 	gap: 8px;
 	align-items: center;
+	max-width: 920px;
 	margin: 0 0 16px;
 	color: #646970;
 }

@@ -829,6 +829,10 @@ $plan_write_input_validation = substr( $controller, (int) strpos( $controller, '
 maa_adapter_assert( false !== strpos( $plan_write_input_validation, "\$proposal_ready = array_key_exists( 'proposal_ready', \$raw_action )" ) && false !== strpos( $plan_write_input_validation, "\$requires_input = array_values( array_map( 'sanitize_key', (array) ( \$raw_action['requires_input'] ?? array() ) ) )" ) && false !== strpos( $plan_write_input_validation, 'if ( ! $proposal_ready && ! empty( $requires_input ) )' ), 'Adapter forwards requires-input blocked plan actions to Core instead of requiring executable proposal input locally.' );
 maa_adapter_assert( false !== strpos( $controller, 'min( self::MAX_PROPOSAL_LIST_LIMIT, max( 1, absint' ), 'Adapter list routes clamp caller supplied limits.' );
 maa_adapter_assert( false === strpos( $controller, 'HTTP_USER_AGENT' ), 'Public pairing rate limit is not weakened by caller-controlled user agents.' );
+maa_adapter_assert( false !== strpos( $controller, "approve_device_pairing( string \$user_code, string \$admin_label = '' )" ), 'Controller accepts an administrator label during device pairing approval.' );
+maa_adapter_assert( false !== strpos( $controller, '$admin_label = $this->bounded_text_field( $admin_label, 80 );' ), 'Controller bounds administrator device labels before storage.' );
+maa_adapter_assert( false !== strpos( $controller, "'admin_label'   => \$admin_label" ), 'Controller stores administrator device labels with key-pair records.' );
+maa_adapter_assert( false !== strpos( $controller, "'admin_label'   => (string) ( \$record['admin_label'] ?? '' )" ), 'Controller exposes administrator device labels to the current administrator key-pair view.' );
 maa_adapter_assert( false === strpos( $controller, '$supported_execute_ability_ids' ), 'Controller derives execute supported profiles from execution profiles.' );
 maa_adapter_assert( false === strpos( $controller, 'include_log_tail' ), 'Adapter does not implement old include_log_tail compatibility.' );
 maa_adapter_assert( false === strpos( $controller, 'include_error_log' ), 'Adapter does not use old include_error_log diagnostics input.' );
@@ -886,7 +890,7 @@ foreach (
 			'Adapter',
 			'AI Client Handoff Created',
 			'Secure key-pair connection',
-			'Simple key connection',
+			'Fallback: WordPress Application Password connection',
 			'Recommended path: pair a local signed key',
 			'Copy connect command',
 			'Authorized devices',
@@ -894,7 +898,7 @@ foreach (
 			'data-maa-open-target="maa-authorized-devices"',
 			'Revoke a device when it is no longer used or was approved by mistake',
 			'Create Application Password connection',
-			'Developer routes, proposal diagnostics, and verbose handoff text are documented',
+				'Developer routes, manifest, proposal diagnostics, and verbose handoff text are documented',
 			'docs/admin-developer-reference.md',
 			'add_submenu_page',
 			'PARENT_MENU_SLUG',
@@ -902,7 +906,6 @@ foreach (
 		'Include LocalWP TLS setting',
 		'LocalWP TLS option',
 		'Use only for localhost or .local testing',
-			'Copy manifest URL',
 			'Site',
 			'proposal_lookup',
 			'render_proposal_lookup_result',
@@ -917,10 +920,7 @@ foreach (
 			'$this->display_datetime( $updated )',
 			"\$this->display_datetime( (string) ( \$record['last_used_at'] ?? '' ) )",
 			'key_pair_summary_text',
-			'Adapter URL',
-			'WordPress user',
-			'Copy env placeholder',
-			'Connection manifest',
+			'Copy Adapter URL',
 		'content_discoverability_suggestions',
 		'ai_article_draft_with_discoverability',
 		'pattern_page_research_brief',
@@ -984,8 +984,7 @@ foreach (
 		'local_cli_read_request_create_template',
 		'local_cli_read_request_status_template',
 		'local_cli_read_ability_template',
-		'Copy status command',
-		'local_cli_setup_text',
+			'local_cli_setup_text',
 		'render_key_pair_clients_table',
 		'maa-device-table',
 		'local_cli_connect_command',
@@ -995,9 +994,17 @@ foreach (
 		'--intent=preflight',
 		'--intent=commit',
 		'final execute routes require --intent=commit',
-		'Do not read, cat, print, summarize, or copy the local keypair profile file',
-			'REVOKE_KEY_ACTION',
-			'Npcink client approved',
+			'Do not read, cat, print, summarize, or copy the local keypair profile file',
+				'REVOKE_KEY_ACTION',
+				'admin_label',
+				'Device note',
+				'Example: Muze MacBook or office OpenClaw',
+				'Optional administrator-only label for later management',
+				'It is not used for authentication or authorization',
+				'maa-pairing-form',
+				'Revoke this device? It must pair again before it can connect.',
+				'Revoke authorization',
+				'Npcink client approved',
 			'Connection approved.',
 			'Return to the terminal or local AI client',
 			'private key was never sent to WordPress',
@@ -1016,11 +1023,14 @@ foreach (
 			'Npcink client rejected',
 			'PAIR_MENU_SLUG',
 			'result_status',
-			'/connection/manifest',
 	) as $required
 ) {
 	maa_adapter_assert( false !== strpos( $connection_page, $required ), 'Connection page contains required text: ' . $required );
 }
+$render_start  = strpos( $connection_page, 'public function render(): void' );
+$render_end    = strpos( $connection_page, 'public function render_pairing_page(): void' );
+$render_source = false !== $render_start && false !== $render_end ? substr( $connection_page, $render_start, $render_end - $render_start ) : '';
+maa_adapter_assert( '' !== $render_source, 'Connection page render source is extractable for default UI checks.' );
 foreach (
 	array(
 		'maa-tabs',
@@ -1029,9 +1039,16 @@ foreach (
 		'Continue proposal',
 		'Advanced details',
 		'Connection values',
+		'Connect command',
+		'Status check',
+		'Copy status command',
+		'Client env placeholder',
+		'Copy env placeholder',
+		'Copy manifest URL',
+		'Connection manifest:',
 	) as $removed
 ) {
-	maa_adapter_assert( false === strpos( $connection_page, $removed ), 'Connection page omits removed main-page surface: ' . $removed );
+	maa_adapter_assert( false === strpos( $render_source, $removed ), 'Default connection UI omits low-frequency surface: ' . $removed );
 }
 foreach (
 	array(
@@ -1088,6 +1105,8 @@ maa_adapter_assert( false === strpos( $connection_page, "echo esc_html( (string)
 maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_connection_manifest_text( string $username, string $password_uuid )' ), 'Connection manifest receives only username and password UUID.' );
 maa_adapter_assert( false !== strpos( $connection_page, 'openclaw_created_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'Created handoff text receives only username, password UUID, and TLS placeholder flag.' );
 maa_adapter_assert( false !== strpos( $connection_page, 'workbuddy_handoff_text( string $username, string $password_uuid, bool $include_local_tls )' ), 'WorkBuddy setup text receives only username, password UUID, and TLS placeholder flag.' );
+maa_adapter_assert( false !== strpos( $connection_page, "admin_url( 'admin.php?page=' . self::MENU_SLUG )" ), 'Created handoff return link targets the Adapter admin page explicitly.' );
+maa_adapter_assert( false === strpos( $connection_page, 'menu_page_url( self::MENU_SLUG, false )' ), 'Created handoff return link does not resolve through current admin-post context.' );
 maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'npcink-ai-client-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Npcink AI Client Adapter', 'npcink-ai-client-adapter' ),\n\t\t\t__( 'Adapter', 'npcink-ai-client-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
 maa_adapter_assert( false === strpos( $connection_page, 'npcink-openclaw-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
@@ -1099,7 +1118,7 @@ foreach (
 	array(
 			'OpenClaw connection surface',
 			'Secure key-pair connection',
-			'Simple key connection',
+			'Fallback: WordPress Application Password connection',
 			'Copy connect command',
 			'Manage devices',
 			'authorized signed key-pair devices',
