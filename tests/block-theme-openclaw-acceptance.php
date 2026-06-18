@@ -867,7 +867,7 @@ if ( $article_execution_enabled ) {
 			'prompt'          => '帮我把普通页面模板整理成标准页面布局：面包屑在页面标题上方，保留页面标题、特色图和正文。',
 			'target_slug'     => 'page',
 			'layout_profile'  => 'page_standard',
-			'profile_version' => 'page_standard@0.1',
+			'profile_version' => 'page_standard@0.2',
 			'required_blocks' => array(
 				'core/template-part',
 				'core/group',
@@ -888,7 +888,7 @@ if ( $article_execution_enabled ) {
 			'prompt'          => '帮我把首页模板整理成落地页：顶部有大标题和介绍，下面有行动按钮，再展示最新文章和分类入口。',
 			'target_slug'     => 'front-page',
 			'layout_profile'  => 'homepage_landing',
-			'profile_version' => 'homepage_landing@0.2',
+			'profile_version' => 'homepage_landing@0.3',
 			'required_blocks' => array(
 				'core/template-part',
 				'core/group',

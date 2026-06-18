@@ -9,6 +9,8 @@ SKIP_SMOKE="${MAA_ADAPTER_VISUAL_ACCEPTANCE_SKIP_SMOKE:-}"
 KEEP_FIXTURES_AFTER_RUN="${MAA_ADAPTER_VISUAL_ACCEPTANCE_KEEP_FIXTURES_AFTER_RUN:-}"
 INSTALL_BROWSER="${MAA_ADAPTER_VISUAL_ACCEPTANCE_INSTALL_BROWSER:-}"
 CREATE_TEMP_ADMIN="${MAA_ADAPTER_VISUAL_ACCEPTANCE_CREATE_TEMP_ADMIN:-}"
+WP_CLI_PHP_ARGS="${WP_CLI_PHP_ARGS:-}"
+WP_CLI_ERROR_REPORTING="${WP_CLI_ERROR_REPORTING:-8191}"
 TEMP_ADMIN_USER_ID=""
 
 mkdir -p "$REPORT_DIR" "$NODE_DEPS_DIR"
@@ -21,7 +23,13 @@ else
 fi
 
 run_wp() {
-	if [[ -n "${WP_CLI:-}" && "$WP_CLI" == *.phar ]]; then
+	wp_bin="${WP_CLI:-$(command -v wp 2>/dev/null || true)}"
+	if [[ -z "$wp_bin" ]]; then
+		echo "Missing WP-CLI. Set WP_CLI=/path/to/wp-cli.phar or install wp on PATH." >&2
+		exit 2
+	fi
+
+	if [[ "$wp_bin" == *.phar || -n "${WP_CLI_MYSQL_SOCKET:-}" || -n "$WP_CLI_PHP_ARGS" ]]; then
 		php_bin="${WP_CLI_PHP:-}"
 		if [[ -z "$php_bin" ]]; then
 			for candidate in \
@@ -35,15 +43,26 @@ run_wp() {
 				fi
 			done
 		fi
+		if [[ -z "$php_bin" ]]; then
+			echo "Missing PHP for WP-CLI. Set WP_CLI_PHP=/path/to/php." >&2
+			exit 2
+		fi
 		php_args=()
+		if [[ -n "$WP_CLI_ERROR_REPORTING" ]]; then
+			php_args+=("-d" "error_reporting=$WP_CLI_ERROR_REPORTING")
+		fi
 		if [[ -n "${WP_CLI_MYSQL_SOCKET:-}" ]]; then
 			php_args+=("-d" "mysqli.default_socket=$WP_CLI_MYSQL_SOCKET")
 		fi
-		"$php_bin" "${php_args[@]}" "$WP_CLI" "${wp_args[@]}" "$@"
+		if [[ -n "$WP_CLI_PHP_ARGS" ]]; then
+			extra_php_args=()
+			read -r -a extra_php_args <<< "$WP_CLI_PHP_ARGS"
+			php_args+=("${extra_php_args[@]}")
+		fi
+		"$php_bin" "${php_args[@]}" "$wp_bin" "${wp_args[@]}" "$@"
 		return
 	fi
 
-	wp_bin="${WP_CLI:-$(command -v wp 2>/dev/null || true)}"
 	"$wp_bin" "${wp_args[@]}" "$@"
 }
 

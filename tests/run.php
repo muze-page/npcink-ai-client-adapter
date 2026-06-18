@@ -2213,6 +2213,8 @@ foreach (
 		'run_wp user delete',
 		'WP_ADMIN_USER',
 		'WP_ADMIN_PASSWORD',
+		'|| -n "${WP_CLI_MYSQL_SOCKET:-}"',
+		'mysqli.default_socket=$WP_CLI_MYSQL_SOCKET',
 		'build/visual-acceptance-node',
 		'npm install --prefix "$NODE_DEPS_DIR" --no-save playwright',
 		'playwright" install chromium',
