@@ -223,7 +223,6 @@ final class Connection_Page {
 			wp_die( esc_html__( 'You do not have permission to view this page.', 'npcink-ai-client-adapter' ) );
 		}
 
-		$base_url                  = rest_url( Controller::NAMESPACE );
 		$health                    = $this->health();
 		$status                    = $this->status( $health );
 		$can_create_password       = $this->can_create_application_password();
@@ -255,10 +254,6 @@ final class Connection_Page {
 					<span class="maa-label"><?php echo esc_html__( 'Authorized devices', 'npcink-ai-client-adapter' ); ?></span>
 					<span class="maa-value"><?php echo esc_html( (string) $active_key_count ); ?></span>
 				</div>
-				<div class="maa-summary-item maa-summary-copy">
-					<textarea id="maa-base-url" hidden readonly><?php echo esc_textarea( $base_url ); ?></textarea>
-					<button type="button" class="button maa-copy-button" data-maa-copy-target="maa-base-url"><?php echo esc_html__( 'Copy Adapter URL', 'npcink-ai-client-adapter' ); ?></button>
-				</div>
 			</div>
 			<?php if ( empty( $health['dependencies_ready'] ) && ! empty( $health['missing_dependencies'] ) && is_array( $health['missing_dependencies'] ) ) : ?>
 				<div class="notice notice-warning">
@@ -273,21 +268,26 @@ final class Connection_Page {
 				<section class="maa-section maa-method-card maa-method-card-recommended">
 					<div class="maa-section-heading">
 						<div>
-							<h2><?php echo esc_html__( 'Secure key-pair connection', 'npcink-ai-client-adapter' ); ?></h2>
+							<h2>
+								<?php echo esc_html__( 'Secure key-pair connection', 'npcink-ai-client-adapter' ); ?>
+								<span class="maa-status maa-status-ok maa-heading-badge"><?php echo esc_html__( 'Recommended', 'npcink-ai-client-adapter' ); ?></span>
+							</h2>
 							<p class="maa-section-intro"><?php echo esc_html__( 'Recommended path: pair a local signed key so the client never receives a WordPress Application Password.', 'npcink-ai-client-adapter' ); ?></p>
 						</div>
-						<span class="maa-status maa-status-ok"><?php echo esc_html__( 'Recommended', 'npcink-ai-client-adapter' ); ?></span>
 					</div>
 					<div class="maa-action-row maa-command-row-primary">
 						<textarea id="maa-local-cli-connect-command" hidden readonly><?php echo esc_textarea( $local_cli_connect_command ); ?></textarea>
 						<button type="button" class="button button-primary maa-copy-button" data-maa-copy-target="maa-local-cli-connect-command"><?php echo esc_html__( 'Copy connect command', 'npcink-ai-client-adapter' ); ?></button>
 						<button type="button" class="button" data-maa-open-target="maa-authorized-devices"><?php echo esc_html__( 'Manage devices', 'npcink-ai-client-adapter' ); ?></button>
 					</div>
-					<p class="description"><?php echo esc_html__( 'Run the command in the same environment as the AI client. Adapter stores only the approved public key.', 'npcink-ai-client-adapter' ); ?></p>
+					<p class="description maa-action-hint"><?php echo esc_html__( 'Run the command in the same environment as the AI client. Adapter stores only the approved public key.', 'npcink-ai-client-adapter' ); ?></p>
 					<details id="maa-authorized-devices" class="maa-inline-disclosure maa-device-manager">
 						<summary>
-							<strong><?php echo esc_html__( 'Authorized devices', 'npcink-ai-client-adapter' ); ?></strong>
-							<span class="description"><?php echo esc_html( $this->key_pair_summary_text( $key_records ) ); ?></span>
+							<span class="maa-disclosure-copy">
+								<strong><?php echo esc_html__( 'Authorized devices', 'npcink-ai-client-adapter' ); ?></strong>
+								<span class="description"><?php echo esc_html( $this->key_pair_summary_text( $key_records ) ); ?></span>
+							</span>
+							<span class="maa-disclosure-icon" aria-hidden="true"></span>
 						</summary>
 						<p class="description"><?php echo esc_html__( 'Revoke a device when it is no longer used or was approved by mistake. Revoked devices must pair again before they can connect.', 'npcink-ai-client-adapter' ); ?></p>
 						<?php $this->render_key_pair_clients_table( $key_records ); ?>
@@ -295,8 +295,11 @@ final class Connection_Page {
 
 					<details class="maa-inline-disclosure maa-backup-connection">
 						<summary>
-							<strong><?php echo esc_html__( 'Fallback: WordPress Application Password connection', 'npcink-ai-client-adapter' ); ?></strong>
-							<span class="description"><?php echo esc_html__( 'Use only when the client has a dedicated secret field.', 'npcink-ai-client-adapter' ); ?></span>
+							<span class="maa-disclosure-copy">
+								<strong><?php echo esc_html__( 'Fallback: WordPress Application Password connection', 'npcink-ai-client-adapter' ); ?></strong>
+								<span class="description"><?php echo esc_html__( 'Use only when the client has a dedicated secret field.', 'npcink-ai-client-adapter' ); ?></span>
+							</span>
+							<span class="maa-disclosure-icon" aria-hidden="true"></span>
 						</summary>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 							<input type="hidden" name="action" value="<?php echo esc_attr( self::CREATE_ACTION ); ?>" />

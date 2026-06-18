@@ -12,10 +12,9 @@
 	flex-wrap: wrap;
 	gap: 10px 18px;
 	align-items: center;
-	margin: 18px 0;
-	border: 1px solid #dcdcde;
-	background: #fff;
-	padding: 10px 14px;
+	max-width: 900px;
+	margin: 18px 0 16px 20px;
+	padding: 0;
 }
 .npcink-openclaw-adapter-connection .maa-section {
 	background: #fff;
@@ -29,14 +28,6 @@
 .npcink-openclaw-adapter-connection .maa-summary-item:first-child {
 	padding-right: 18px;
 	border-right: 1px solid #dcdcde;
-}
-.npcink-openclaw-adapter-connection .maa-summary-copy {
-	margin-left: auto;
-	gap: 8px;
-}
-.npcink-openclaw-adapter-connection .maa-summary-copy .maa-copy-value {
-	max-width: 260px;
-	padding: 4px 6px;
 }
 .npcink-openclaw-adapter-connection .maa-label {
 	display: block;
@@ -119,10 +110,7 @@
 	color: #50575e;
 }
 .npcink-openclaw-adapter-connection .maa-section-heading {
-	display: flex;
-	gap: 12px;
-	align-items: flex-start;
-	justify-content: space-between;
+	display: block;
 	margin-bottom: 12px;
 }
 .npcink-openclaw-adapter-connection .maa-section-heading h2 {
@@ -130,6 +118,10 @@
 }
 .npcink-openclaw-adapter-connection .maa-section-heading .maa-section-intro {
 	margin-bottom: 0;
+}
+.npcink-openclaw-adapter-connection .maa-heading-badge {
+	margin-left: 8px;
+	vertical-align: 2px;
 }
 .npcink-openclaw-adapter-connection details.maa-section > summary {
 	display: flex;
@@ -162,25 +154,39 @@
 	border-top: 1px solid #dcdcde;
 }
 .npcink-openclaw-adapter-connection .maa-inline-disclosure > summary {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	padding: 12px 0;
+	gap: 12px;
+	padding: 14px 0;
 	cursor: pointer;
 }
-.npcink-openclaw-adapter-connection .maa-inline-disclosure > summary strong {
+.npcink-openclaw-adapter-connection .maa-disclosure-copy {
+	display: grid;
+	gap: 3px;
+	min-width: 0;
+}
+.npcink-openclaw-adapter-connection .maa-disclosure-copy strong {
 	font-size: 14px;
+	color: #1d2327;
+}
+.npcink-openclaw-adapter-connection .maa-disclosure-copy .description {
+	margin: 0;
 }
 .npcink-openclaw-adapter-connection .maa-inline-disclosure > summary::after {
-	content: "+";
+	content: none;
+}
+.npcink-openclaw-adapter-connection .maa-disclosure-icon::before {
+	content: "\203A";
+	display: inline-block;
 	color: #2271b1;
 	font-size: 18px;
 	font-weight: 600;
+	line-height: 1;
+	transform: rotate(0deg);
 }
-.npcink-openclaw-adapter-connection .maa-inline-disclosure[open] > summary::after {
-	content: "-";
+.npcink-openclaw-adapter-connection .maa-inline-disclosure[open] .maa-disclosure-icon::before {
+	transform: rotate(90deg);
 }
 .npcink-openclaw-adapter-connection .maa-device-manager {
 	margin-top: 16px;
@@ -190,6 +196,9 @@
 }
 .npcink-openclaw-adapter-connection .maa-backup-connection > summary {
 	color: #50575e;
+}
+.npcink-openclaw-adapter-connection .maa-backup-connection form {
+	max-width: 640px;
 }
 .npcink-openclaw-adapter-connection .maa-device-table th,
 .npcink-openclaw-adapter-connection .maa-device-table td {
@@ -296,6 +305,34 @@
 .npcink-openclaw-adapter-connection .maa-option input {
 	margin-top: 2px;
 }
+.npcink-openclaw-adapter-connection .maa-action-hint {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	box-sizing: border-box;
+	max-width: 720px;
+	margin: 12px 0 0;
+	padding: 8px 10px;
+	border-left: 3px solid #72aee6;
+	background: #f6f7f7;
+	color: #50575e;
+}
+.npcink-openclaw-adapter-connection .maa-action-hint::before {
+	content: "!";
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	margin-top: 1px;
+	border-radius: 50%;
+	background: #2271b1;
+	color: #fff;
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1;
+}
 .npcink-openclaw-adapter-connection .maa-route-list {
 	margin: 0;
 }
@@ -375,9 +412,6 @@
 	.npcink-openclaw-adapter-connection .maa-summary-item:first-child {
 		padding-right: 0;
 		border-right: 0;
-	}
-	.npcink-openclaw-adapter-connection .maa-summary-copy {
-		margin-left: 0;
 	}
 	.npcink-openclaw-adapter-connection .maa-section-heading,
 	.npcink-openclaw-adapter-connection .maa-compact-grid {

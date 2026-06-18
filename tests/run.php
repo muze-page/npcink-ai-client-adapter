@@ -890,10 +890,14 @@ foreach (
 			'Adapter',
 			'AI Client Handoff Created',
 			'Secure key-pair connection',
+			'maa-heading-badge',
 			'Fallback: WordPress Application Password connection',
 			'Recommended path: pair a local signed key',
 			'Copy connect command',
+			'maa-action-hint',
 			'Authorized devices',
+			'maa-disclosure-copy',
+			'maa-disclosure-icon',
 			'Manage devices',
 			'data-maa-open-target="maa-authorized-devices"',
 			'Revoke a device when it is no longer used or was approved by mistake',
@@ -920,7 +924,6 @@ foreach (
 			'$this->display_datetime( $updated )',
 			"\$this->display_datetime( (string) ( \$record['last_used_at'] ?? '' ) )",
 			'key_pair_summary_text',
-			'Copy Adapter URL',
 		'content_discoverability_suggestions',
 		'ai_article_draft_with_discoverability',
 		'pattern_page_research_brief',
@@ -1046,6 +1049,7 @@ foreach (
 		'Copy env placeholder',
 		'Copy manifest URL',
 		'Connection manifest:',
+		'Copy Adapter URL',
 	) as $removed
 ) {
 	maa_adapter_assert( false === strpos( $render_source, $removed ), 'Default connection UI omits low-frequency surface: ' . $removed );
@@ -1054,6 +1058,14 @@ foreach (
 	array(
 		'maa-device-manager',
 		'maa-device-table',
+		'maa-disclosure-copy',
+		'maa-disclosure-icon::before',
+		'maa-backup-connection form',
+		'max-width: 900px',
+		'margin: 18px 0 16px 20px',
+		'padding: 0',
+		'maa-action-hint::before',
+		'border-left: 3px solid #72aee6',
 		'vertical-align: middle',
 	) as $required_css
 ) {
@@ -1062,11 +1074,15 @@ foreach (
 foreach (
 	array(
 		'[data-maa-open-target]',
+		'closeSiblingDisclosures',
+		".maa-method-card details.maa-inline-disclosure",
+		'details.open = false',
 		'target.open = true',
+		'details.addEventListener',
 		'scrollIntoView',
 	) as $required_js
 ) {
-	maa_adapter_assert( false !== strpos( $admin_js, $required_js ), 'Admin JavaScript opens target disclosures from secondary actions: ' . $required_js );
+	maa_adapter_assert( false !== strpos( $admin_js, $required_js ), 'Admin JavaScript keeps connection disclosures mutually exclusive: ' . $required_js );
 }
 foreach (
 	array(

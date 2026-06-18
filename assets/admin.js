@@ -39,6 +39,19 @@
 		});
 	}
 
+	function closeSiblingDisclosures(active) {
+		var group = active.closest('.maa-method-card');
+		if (!group) {
+			return;
+		}
+
+		group.querySelectorAll('details.maa-inline-disclosure').forEach(function (details) {
+			if (details !== active) {
+				details.open = false;
+			}
+		});
+	}
+
 	root.querySelectorAll('[data-maa-copy-target]').forEach(function (button) {
 		button.addEventListener('click', function () {
 			var target = document.getElementById(button.getAttribute('data-maa-copy-target'));
@@ -67,10 +80,19 @@
 			}
 
 			if (target.tagName && target.tagName.toLowerCase() === 'details') {
+				closeSiblingDisclosures(target);
 				target.open = true;
 			}
 
 			target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+		});
+	});
+
+	root.querySelectorAll('.maa-method-card details.maa-inline-disclosure').forEach(function (details) {
+		details.addEventListener('toggle', function () {
+			if (details.open) {
+				closeSiblingDisclosures(details);
+			}
 		});
 	});
 })();
