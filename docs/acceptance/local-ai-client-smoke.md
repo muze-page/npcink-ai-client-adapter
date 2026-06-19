@@ -49,8 +49,10 @@ MAA_ADAPTER_FIXTURE_ALLOW_COMMIT=1 \
 composer accept:local-ai-client-fixture
 ```
 
-This verifies final `approve-and-execute`, duplicate execution rejection, and
-cleanup of the created draft post.
+This verifies final `approve-and-execute`, Core preflight evidence, Core
+execution-result recording, non-dry-run WordPress draft creation, duplicate
+execution rejection with the stored Adapter record, and cleanup of the created
+draft post.
 
 ## Release Baseline
 

@@ -118,4 +118,7 @@ Acceptance is successful when:
 - public reads run through Adapter;
 - sensitive reads fail closed unless Core grants the exact input hash;
 - final writes require explicit commit intent and a profiled ability;
+- commit-enabled fixture writes expose Core preflight evidence, record the
+  Adapter execution outcome back to Core, and read back the created WordPress
+  draft before cleanup;
 - unsupported abilities or unapproved proposals fail closed.

@@ -37,6 +37,23 @@ else console.log(String(value));
 ' "$file" "$expr"
 }
 
+assert_json_field_equals() {
+	local file="$1"
+	local expr="$2"
+	local expected="$3"
+	local label="$4"
+	local actual
+	actual="$(json_field "$file" "$expr")" || fail "$label did not return $expr."
+	[[ "$actual" == "$expected" ]] || fail "$label expected $expr=$expected, got $actual."
+}
+
+assert_json_field_present() {
+	local file="$1"
+	local expr="$2"
+	local label="$3"
+	json_field "$file" "$expr" >/dev/null || fail "$label did not return $expr."
+}
+
 run_cli_json() {
 	local output_file="$1"
 	shift
@@ -105,6 +122,7 @@ status_out="$tmp_dir/proposal-status.out.json"
 no_intent_out="$tmp_dir/no-intent.out"
 no_intent_err="$tmp_dir/no-intent.err"
 execute_out="$tmp_dir/execute.out.json"
+executed_status_out="$tmp_dir/executed-proposal-status.out.json"
 duplicate_out="$tmp_dir/duplicate.out"
 duplicate_err="$tmp_dir/duplicate.err"
 
@@ -168,6 +186,49 @@ execute_ability_id="$(json_field "$execute_out" ability_id)" || fail "Execution 
 post_id="$(json_field "$execute_out" post_id)" || fail "Execution did not return post_id."
 [[ "$success" == "true" ]] || fail "Execution did not report success."
 [[ "$execute_ability_id" == "npcink-abilities-toolkit/create-draft" ]] || fail "Unexpected execution ability id: $execute_ability_id"
+assert_json_field_equals "$execute_out" proposal_id "$proposal_id" "Execution"
+assert_json_field_equals "$execute_out" execution_mode "single_post" "Execution"
+assert_json_field_equals "$execute_out" status_before "pending" "Execution"
+assert_json_field_equals "$execute_out" approved_by_adapter "true" "Execution"
+assert_json_field_equals "$execute_out" core_commit_execution "false" "Execution"
+assert_json_field_equals "$execute_out" preflight_source "core_commit_preflight" "Execution"
+assert_json_field_present "$execute_out" correlation_id "Execution"
+assert_json_field_present "$execute_out" adapter_request_id "Execution"
+assert_json_field_equals "$execute_out" core_preflight_evidence.authorized "true" "Execution Core preflight evidence"
+assert_json_field_equals "$execute_out" core_preflight_evidence.policy_version "core-preflight-v1" "Execution Core preflight evidence"
+assert_json_field_equals "$execute_out" core_preflight_evidence.commit_execution "false" "Execution Core preflight evidence"
+assert_json_field_equals "$execute_out" core_preflight_evidence.preflight_source "core_commit_preflight" "Execution Core preflight evidence"
+assert_json_field_present "$execute_out" core_preflight_evidence.approved_input_hash "Execution Core preflight evidence"
+assert_json_field_equals "$execute_out" selected_count "1" "Execution"
+assert_json_field_equals "$execute_out" submitted_count "1" "Execution"
+assert_json_field_equals "$execute_out" executed_count "1" "Execution"
+assert_json_field_equals "$execute_out" failed_count "0" "Execution"
+assert_json_field_equals "$execute_out" blocked_count "0" "Execution"
+assert_json_field_equals "$execute_out" partial_success "false" "Execution"
+assert_json_field_equals "$execute_out" retryable "false" "Execution"
+assert_json_field_equals "$execute_out" execution.post_status_after "draft" "Execution"
+assert_json_field_equals "$execute_out" execution.result.dry_run "false" "Execution ability result"
+assert_json_field_equals "$execute_out" execution_record.status "succeeded" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.proposal_id "$proposal_id" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.ability_id "npcink-abilities-toolkit/create-draft" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.execution_mode "single_post" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.execution_surface "wp_abilities_rest" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.commit_execution "false" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.executed_count "1" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.failed_count "0" "Execution record"
+assert_json_field_equals "$execute_out" execution_record.core_preflight_evidence.authorized "true" "Execution record Core preflight evidence"
+assert_json_field_equals "$execute_out" execution_record.core_preflight_evidence.policy_version "core-preflight-v1" "Execution record Core preflight evidence"
+assert_json_field_equals "$execute_out" execution_record.core_preflight_evidence.commit_execution "false" "Execution record Core preflight evidence"
+assert_json_field_equals "$execute_out" execution_record.core_execution_record.recorded "true" "Core execution result record"
+assert_json_field_equals "$execute_out" execution_record.core_execution_record.status "executed" "Core execution result record"
+assert_json_field_equals "$execute_out" execution_record.core_execution_record.proposal_id "$proposal_id" "Core execution result record"
+assert_json_field_equals "$execute_out" execution_record.core_execution_record.ability_id "npcink-abilities-toolkit/create-draft" "Core execution result record"
+assert_json_field_equals "$execute_out" execution_record.core_execution_record.commit_execution "false" "Core execution result record"
+
+post_status="$(run_wp post get "$post_id" --field=post_status)" || fail "Created draft post was not readable through WP-CLI."
+[[ "$post_status" == "draft" ]] || fail "Created post status expected draft, got $post_status."
+post_title="$(run_wp post get "$post_id" --field=post_title)" || fail "Created draft post title was not readable through WP-CLI."
+[[ "$post_title" == "Adapter CLI fixture draft" ]] || fail "Created post title mismatch: $post_title"
 
 echo "[accept-fixture] verifying duplicate execution is rejected"
 set +e
@@ -178,6 +239,17 @@ if [[ "$duplicate_code" -eq 0 ]]; then
 	fail "Duplicate approve-and-execute unexpectedly succeeded."
 fi
 grep -q 'npcink_openclaw_adapter_execution_already_completed' "$duplicate_out" || fail "Duplicate execution did not return completed execution code."
+
+echo "[accept-fixture] reading executed proposal status through signed CLI"
+run_cli_json "$executed_status_out" request "${COMMON_ARGS[@]}" GET "/proposals/$proposal_id"
+recorded_post_id="$(json_field "$executed_status_out" adapter_status.execution_record.post_id)" || fail "Executed proposal status did not return stored execution record post_id."
+[[ "$recorded_post_id" == "$post_id" ]] || fail "Executed proposal status record post_id mismatch: $recorded_post_id"
+recorded_adapter_request_id="$(json_field "$executed_status_out" adapter_status.execution_record.adapter_request_id)" || fail "Executed proposal status did not return stored adapter_request_id."
+original_adapter_request_id="$(json_field "$execute_out" adapter_request_id)" || fail "Execution did not return adapter_request_id."
+[[ "$recorded_adapter_request_id" == "$original_adapter_request_id" ]] || fail "Executed proposal status did not preserve original adapter_request_id."
+assert_json_field_equals "$executed_status_out" adapter_status.execution_record.status "succeeded" "Executed proposal status"
+assert_json_field_equals "$executed_status_out" adapter_status.execution_record.core_execution_record.recorded "true" "Executed proposal status Core record"
+assert_json_field_equals "$executed_status_out" adapter_status.execution_record.core_execution_record.status "executed" "Executed proposal status Core record"
 
 if [[ "$CLEANUP_POST" == "1" && "$post_id" =~ ^[0-9]+$ && "$post_id" -gt 0 ]]; then
 	echo "[accept-fixture] cleaning created draft post $post_id with WP-CLI"
