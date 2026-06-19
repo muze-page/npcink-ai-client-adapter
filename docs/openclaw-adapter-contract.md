@@ -162,45 +162,17 @@ This remains a fail-closed boundary without a valid Core grant. Adapter must not
 treat OpenClaw prompts, chat instructions, direct database access, filesystem
 reads, logs, or custom scripts as substitutes for Core read authorization.
 
-## Media Derivative Cloud Contract
+## Media Derivative Cloud Boundary
 
-For optimized media derivative generation, Adapter exposes a bounded Cloud
-Addon orchestration seam:
+Adapter does not expose media derivative Cloud orchestration routes. There is
+no Adapter-owned `/media-derivative-runs`, artifact preview proxy, or derivative
+proposal-payload route. Cloud Addon owns Cloud run/result/artifact transport.
+Toolkit/Core plan abilities own request and proposal payload shaping.
 
-```text
-POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs
-GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}
-GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result
-GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview
-POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload
-```
-
-`POST /media-derivative-runs` builds the local
-`npcink-abilities-toolkit/build-media-derivative-cloud-request` direct-read ability response,
-uses Core media derivative defaults when available, and dispatches only through
-the Cloud Addon public media derivative helper. Source media can be sent as the
-local attachment file or as a caller-provided short-TTL source artifact
-descriptor. Image watermark media can be sent as a caller-provided short-TTL
-artifact or as the locally configured Core watermark attachment when an image
-watermark plan is present. Text watermark plans do not require watermark media;
-Adapter passes their text, font, color, background, margin, opacity, and
-position through the Cloud Addon dispatch seam.
-
-The route returns a Cloud run projection and the local ability response. It
-does not store run truth, artifact truth, Cloud credentials, approval truth, or
-media registry state. `GET /media-derivative-runs/{run_id}` and
-`GET /media-derivative-runs/{run_id}/result` read bounded run/result
-projections through Cloud Addon. The result projection may include a same-origin
-`preview_url`; `GET /media-derivative-artifacts/{artifact_id}/preview` serves
-one non-expired derivative artifact through Cloud Addon for local preview only.
-Browser image requests may use WordPress REST auth or the short-lived local
-`preview_sig` embedded in the URL. It does not store artifact truth, expose a
-public Cloud URL, expose local filesystem paths, return inline artifact
-`bytes`/`content` in JSON projections, act as a large-file download channel, or
-write WordPress media. `POST
-/media-derivative-proposal-payload` builds a Core-ready local proposal payload
-from the ability response, Cloud result, and derivative artifact, but does not
-create, approve, preflight, or execute a proposal.
+Adapter may expose proposal-specific media optimization readiness and may
+execute the explicit post-Core `npcink-abilities-toolkit/adopt-cloud-media-derivative`
+profile after Core approval and commit preflight. It must not store run truth,
+artifact truth, Cloud credentials, approval truth, or media registry state.
 
 The returned payloads must preserve:
 
@@ -862,24 +834,11 @@ governance_source=npcink-governance-core
 Core Governance Audit is the governance log. WordPress `ai` plugin AI Request
 Logs are the provider request log. Adapter carries identifiers between them but
 does not store provider credentials, prompts, responses, token details, or AI
-Request Logs in Core. If the AI Request Logs provider column is blank for a
-local connector, OpenClaw should inspect Adapter context fields for the
-explicit `ai_provider` and `ai_model` sent to the provider smoke route. Local
-Ollama examples use `ai_model=qwen3.5:0.8b` when that model is available.
-AI Request Logs are the provider request log.
-
-For local readiness smoke, Adapter exposes:
-
-```text
-POST /wp-json/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke
-```
-
-This route is bounded to proving WordPress AI Client / provider request log
-correlation. It is an administrator-triggered diagnostics route, not a
-production workload route. The request prompt is used only for the bounded
-smoke request and must not become Adapter prompt storage, prompt management, or
-product UX. It is not workflow runtime, MCP runtime, model routing policy, or
-final WordPress mutation.
+Request Logs in Core. Adapter does not expose a provider smoke route and does
+not own model routing, prompt execution, provider credentials, or product UX.
+Provider request log correlation should use bounded Adapter/Core request
+context fields such as `adapter_request_id`, `proposal_id`, and
+`correlation_id`.
 
 ## Proposal Status Read Proxy
 
@@ -987,22 +946,12 @@ Read shortcuts:
 - `GET /wp-json/npcink-openclaw-adapter/v1/cron-events-detail`
 - `GET /wp-json/npcink-openclaw-adapter/v1/ssl-https-status`
 - `GET /wp-json/npcink-openclaw-adapter/v1/custom-post-types`
-- `GET /wp-json/npcink-openclaw-adapter/v1/roles-capabilities`
-- `GET /wp-json/npcink-openclaw-adapter/v1/widgets-sidebars`
-- `GET /wp-json/npcink-openclaw-adapter/v1/block-theme-assets`
-- `GET /wp-json/npcink-openclaw-adapter/v1/search-index-status`
-- `GET /wp-json/npcink-openclaw-adapter/v1/server-info`
-- `GET /wp-json/npcink-openclaw-adapter/v1/integrations-status`
-- `GET /wp-json/npcink-openclaw-adapter/v1/seo-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/security-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/performance-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/workflow-recipes`
-- `GET /wp-json/npcink-openclaw-adapter/v1/workflow-recipe?recipe_id=workflow/...`
-- `GET /wp-json/npcink-openclaw-adapter/v1/posts`
-- `GET /wp-json/npcink-openclaw-adapter/v1/post-context`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media`
-- `GET /wp-json/npcink-openclaw-adapter/v1/terms`
-- `GET /wp-json/npcink-openclaw-adapter/v1/taxonomy-terms`
+Direct reads must use:
+
+- `POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`
+
+Adapter does not expose direct-read shortcut routes or workflow recipe shortcut
+routes. The caller supplies the allowlisted `ability_id` and bounded input.
 - `GET /wp-json/npcink-openclaw-adapter/v1/categories`
 - `GET /wp-json/npcink-openclaw-adapter/v1/tags`
 - `GET /wp-json/npcink-openclaw-adapter/v1/term?id={terms.result.items[].id}`

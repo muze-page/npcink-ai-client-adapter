@@ -106,73 +106,17 @@ authentication, such as an administrator Application Password.
 - `POST /wp-json/npcink-openclaw-adapter/v1/read-requests`
 - `GET /wp-json/npcink-openclaw-adapter/v1/read-requests`
 - `GET /wp-json/npcink-openclaw-adapter/v1/read-requests/{request_id}`
-- `POST /wp-json/npcink-openclaw-adapter/v1/media-metadata-optimization`
-- `POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview`
-- `POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload`
-- `POST /wp-json/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke`
-- `GET /wp-json/npcink-openclaw-adapter/v1/site-info`
-- `GET /wp-json/npcink-openclaw-adapter/v1/site-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/wp-diagnostics-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/wp-ops-diagnostics-detail`
-- `GET /wp-json/npcink-openclaw-adapter/v1/active-plugins-detail`
-- `GET /wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics`
-- `GET /wp-json/npcink-openclaw-adapter/v1/recent-error-log`
-- `GET /wp-json/npcink-openclaw-adapter/v1/recent-error-log-tail`
-- `GET /wp-json/npcink-openclaw-adapter/v1/current-user-permissions`
-- `GET /wp-json/npcink-openclaw-adapter/v1/php-extensions`
-- `GET /wp-json/npcink-openclaw-adapter/v1/object-cache-status`
-- `GET /wp-json/npcink-openclaw-adapter/v1/database-info`
-- `GET /wp-json/npcink-openclaw-adapter/v1/rewrite-rules-status`
-- `GET /wp-json/npcink-openclaw-adapter/v1/cron-events-detail`
-- `GET /wp-json/npcink-openclaw-adapter/v1/ssl-https-status`
-- `GET /wp-json/npcink-openclaw-adapter/v1/custom-post-types`
-- `GET /wp-json/npcink-openclaw-adapter/v1/roles-capabilities`
-- `GET /wp-json/npcink-openclaw-adapter/v1/widgets-sidebars`
-- `GET /wp-json/npcink-openclaw-adapter/v1/block-theme-assets`
-- `GET /wp-json/npcink-openclaw-adapter/v1/search-index-status`
-- `GET /wp-json/npcink-openclaw-adapter/v1/server-info`
-- `GET /wp-json/npcink-openclaw-adapter/v1/integrations-status`
-- `GET /wp-json/npcink-openclaw-adapter/v1/seo-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/security-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/performance-summary`
-- `GET /wp-json/npcink-openclaw-adapter/v1/workflow-recipes`
-- `GET /wp-json/npcink-openclaw-adapter/v1/workflow-recipe?recipe_id=workflow/...`
-- `GET /wp-json/npcink-openclaw-adapter/v1/posts`
-- `GET /wp-json/npcink-openclaw-adapter/v1/post-context`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media-attachment-by-url?url={uploads_url}`
-- `GET /wp-json/npcink-openclaw-adapter/v1/terms`
-- `GET /wp-json/npcink-openclaw-adapter/v1/taxonomy-terms`
-- `GET /wp-json/npcink-openclaw-adapter/v1/categories`
-- `GET /wp-json/npcink-openclaw-adapter/v1/tags`
-- `GET /wp-json/npcink-openclaw-adapter/v1/term?id={terms.result.items[].id}`
-- `GET /wp-json/npcink-openclaw-adapter/v1/comments`
-- `GET /wp-json/npcink-openclaw-adapter/v1/users`
-- `GET /wp-json/npcink-openclaw-adapter/v1/menu`
-- `GET /wp-json/npcink-openclaw-adapter/v1/internal-link-targets`
-- `GET /wp-json/npcink-openclaw-adapter/v1/post-stats`
-- `GET /wp-json/npcink-openclaw-adapter/v1/post-revisions`
-- `GET /wp-json/npcink-openclaw-adapter/v1/post-meta`
-- `GET /wp-json/npcink-openclaw-adapter/v1/post-blocks`
-- `GET /wp-json/npcink-openclaw-adapter/v1/pages`
-- `GET /wp-json/npcink-openclaw-adapter/v1/page`
-- `GET /wp-json/npcink-openclaw-adapter/v1/page-structure`
-- `GET /wp-json/npcink-openclaw-adapter/v1/pages-tree`
-- `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-health`
-- `GET /wp-json/npcink-openclaw-adapter/v1/content-inventory-fix-plan`
-- `GET /wp-json/npcink-openclaw-adapter/v1/nonproduction-content-cleanup-plan`
-- `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context`
-- `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation`
-- `GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief`
-- `GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack`
-- `GET /wp-json/npcink-openclaw-adapter/v1/site-operations-dashboard`
-- `GET /wp-json/npcink-openclaw-adapter/v1/publishing-calendar-context`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media-inventory-health`
-- `GET /wp-json/npcink-openclaw-adapter/v1/media-inventory-fix-plan`
-- `GET /wp-json/npcink-openclaw-adapter/v1/taxonomy-inventory-health`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/media-optimization-readiness`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`
+- `POST /wp-json/npcink-openclaw-adapter/v1/execute-approved-proposal`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/execute`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`
+
+Adapter does not expose direct-read shortcut routes, workflow recipe routes,
+provider/model smoke routes, or Cloud/media derivative façade routes. Use
+`POST /run-read-ability` for approved reads, Core proposal routes for governed
+writes, and `npcink-cloud-addon` for Cloud runtime transport.
 - `GET /wp-json/npcink-openclaw-adapter/v1/proposals`
 - `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
 - `POST /wp-json/npcink-openclaw-adapter/v1/proposals`
@@ -257,63 +201,29 @@ including the current `npcink-abilities-toolkit/list-posts` filters, richer
 `author_profile`, comment post context, media `attached_to`/`usage`, and
 `npcink-abilities-toolkit/get-menu` tree output.
 
-For media metadata optimization, `POST /media-metadata-optimization` calls the
-read-only `npcink-abilities-toolkit/optimize-media-metadata` ability and returns suggestions
-for attachment title, alt, caption, description, `source_type`, source,
-photographer, attribution, and copyright fields. It does not write media
-records or replace files. To apply reviewed suggestions, create a governed
-Core proposal for `npcink-abilities-toolkit/update-media-details`, then execute through
-Adapter's existing Core-approved allowlisted path.
+For media metadata optimization, call `POST /run-read-ability` with the
+read-only `npcink-abilities-toolkit/optimize-media-metadata` ability. Adapter
+does not own a dedicated metadata shortcut route. To apply reviewed
+suggestions, create a governed Core proposal for
+`npcink-abilities-toolkit/update-media-details`, then execute through Adapter's
+existing Core-approved allowlisted path.
 
-For media format attention, `run-read-ability` may call
-`npcink-abilities-toolkit/inspect-media-asset` directly, and the shortcut key
-`media-asset-inspection` maps to the same read-only ability. The response
-contains file size, dimensions, target format, compression, resize, and
-derivative recommendations only.
+For media format attention, `POST /run-read-ability` may call
+`npcink-abilities-toolkit/inspect-media-asset`,
+`npcink-abilities-toolkit/resolve-media-attachment-by-url`, or the relevant
+Toolkit planning ability directly. Adapter does not own shortcut aliases for
+these reads.
 
-For a hard-coded local uploads URL, `GET /media-attachment-by-url?url={url}`
-maps to `npcink-abilities-toolkit/resolve-media-attachment-by-url`. It returns bounded
-read-only attachment candidates and match evidence so the caller can continue
-through preview, Core proposal, approval, preflight, and execution without using
-database, WP-CLI, or filesystem lookup.
-
-For Cloud-generated media derivatives, use `POST /media-derivative-runs`.
-Adapter builds the local read-only
-`npcink-abilities-toolkit/build-media-derivative-cloud-request` contract, uses Core media
-policy defaults when available, supplies the local source attachment file or a
-caller-provided short-TTL artifact reference, and dispatches only through
-`npcink-cloud-addon`. Image watermark plans may supply a watermark artifact
-or use the local Core watermark attachment; text watermark plans are dispatched
-as structured text options without a watermark artifact. The route returns a
-Cloud run projection plus the ability response. Poll
-`GET /media-derivative-runs/{run_id}` and
-`GET /media-derivative-runs/{run_id}/result`. The result projection may include
-a same-origin `preview_url`; browser clients can load it through
-`GET /media-derivative-artifacts/{artifact_id}/preview` with WordPress REST
-auth or the short-lived local `preview_sig` emitted in the URL. Before Core
-proposal submission, call `POST /run-read-ability` with
-`npcink-abilities-toolkit/build-media-adoption-preflight-summary` using the
-selected `attachment_id`, derivative artifact, and reviewed file name when
-available; review readiness, artifact expiry, and hard-coded content reference
-impact. Then call
-`POST /media-derivative-proposal-payload` with the ability response, Cloud
-result, derivative artifact, and reviewed `media_details_input` when the user
-intent is full image optimization. Adapter returns a legacy single derivative
-`proposal_payload` plus a `from_plan_request` for
-`npcink-abilities-toolkit/build-media-optimization-plan`; submit that request to
-`POST /proposals/from-plan` so Core creates one batch proposal containing
-`npcink-abilities-toolkit/update-media-details` and
-`npcink-abilities-toolkit/adopt-cloud-media-derivative`. The payload is Core-ready but not
-submitted, approved, or executed by Adapter. If `media_details_input` is
-missing, stop and collect reviewed metadata before creating a Core proposal; do
-not create a derivative-only proposal for the same optimize-image intent. If Core reports the media
-optimization plan ability is unavailable, surface that version/capability guard
-and update the local Abilities/Core stack; do not split the same optimize-image
-intent into separate metadata and derivative proposals. See
-[OpenClaw Media Derivative Cloud Recipe](docs/openclaw-media-derivative-cloud-recipe.md)
-and [AI Media Derivative Calling Guide](docs/ai-media-derivative-calling-guide.md).
-Third-party AI callers should use the Adapter recipe routes above instead of
-calling Cloud directly.
+For Cloud-generated media derivatives, Cloud transport and run/result truth
+belong to `npcink-cloud-addon`. Adapter may check proposal-specific readiness
+and may execute the explicit
+`npcink-abilities-toolkit/adopt-cloud-media-derivative` profile after Core
+approval and commit preflight, but it does not expose
+`/media-derivative-runs`, artifact preview, or derivative proposal-payload
+routes. Build Cloud derivative payloads in Cloud Addon or Toolkit/Core plan
+abilities such as `npcink-abilities-toolkit/build-media-optimization-plan` and
+`npcink-abilities-toolkit/build-media-adoption-preflight-summary`, then submit
+reviewed write actions through `POST /proposals/from-plan`.
 
 Adapter does not create a media registry, artifact registry, Cloud settings
 surface, approval truth, attachment metadata update, or file replacement. To
@@ -900,25 +810,11 @@ should pass those values to Adapter read or future execution requests as
 `npcink_openclaw_adapter`, top-level context fields, and nested `npcink_governance_core`
 context for provider request log correlation.
 
-For local readiness smoke, administrators can manually call the provider log
-route with a configured text generation provider/model. This route is a
-diagnostic-only operability surface for AI Request Logs correlation. It must not
-be used as model routing, prompt management, product UX, or production workload
-execution. The prompt is used only for the bounded smoke request and is not
-stored by Adapter.
-
-This example uses local Ollama when `qwen3.5:0.8b` is available:
-
-```bash
-curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  -H "Content-Type: application/json" \
-  -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"npcink-abilities-toolkit/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
-  "https://example.test/wp-json/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke"
-```
-
-If the AI Request Logs provider column is blank for a local connector, inspect
-the Adapter context fields instead. They preserve the explicit `ai_provider`
-and explicit `ai_model` sent to the smoke route.
+Adapter does not expose a provider/model smoke route. Provider credentials,
+model routing, prompt execution, and AI Request Logs provider calls belong to
+the AI client, Cloud/Add-on runtime, or the relevant provider integration.
+Adapter only carries bounded request context such as `adapter_request_id`,
+`proposal_id`, `correlation_id`, and nested Core context for observability.
 
 `POST /proposals/{proposal_id}/approve` and
 `POST /proposals/{proposal_id}/reject` are disabled stubs. They return HTTP 403
@@ -1067,9 +963,9 @@ composer smoke:package-install
 
 This temporarily installs `build/npcink-ai-client-adapter.zip` into the
 configured local WordPress site, verifies that only `Npcink AI Client Adapter`
-is visible as a plugin, checks that the legacy bootstrap is not independently
-activatable, confirms the compatible REST namespace, and restores the previous
-local plugin directory or symlink on exit.
+is visible as a plugin, checks that the removed legacy bootstrap is not
+packaged, confirms the compatible REST namespace, and restores the previous local
+plugin directory or symlink on exit.
 
 The release surface is defined by `.distignore`. It excludes development-only
 artifacts such as `tests/`, `AGENTS.md`, `.gitignore`, Composer metadata, and

@@ -6,6 +6,9 @@ This milestone keeps Npcink AI Client Adapter as the thin OpenClaw channel while
 proving that natural-language block-theme template customization can complete a
 governed WordPress write loop.
 
+For the phase summary and next-stage recommendation, see
+[`2026-06-18-block-theme-template-closeout-summary.md`](2026-06-18-block-theme-template-closeout-summary.md).
+
 ## Goal
 
 Prove this bounded loop for `front-page`, `single`, and `page` templates:

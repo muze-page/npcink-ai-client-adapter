@@ -207,16 +207,17 @@ function maa_adapter_smoke_assert_contract_snapshot( array $payload, string $lab
 	}
 }
 
-if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payload' ) ) {
+if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_optimization_payload' ) ) {
 	/**
-	 * Local smoke double for the Cloud Addon proposal payload builder.
+	 * Local smoke double for the Cloud Addon optimization payload builder.
 	 *
 	 * @param array<string,mixed> $ability_response Ability response.
 	 * @param array<string,mixed> $cloud_result Cloud result.
 	 * @param array<string,mixed> $artifact Derivative artifact.
+	 * @param array<string,mixed> $media_details_input Reviewed media details input.
 	 * @return array<string,mixed>|WP_Error
 	 */
-	function npcink_cloud_addon_build_media_derivative_proposal_payload( array $ability_response, array $cloud_result, array $artifact ) {
+	function npcink_cloud_addon_build_media_derivative_optimization_payload( array $ability_response, array $cloud_result, array $artifact, array $media_details_input ) {
 		$attachment_id = absint( $ability_response['data']['attachment_id'] ?? ( $ability_response['attachment_id'] ?? ( $artifact['attachment_id'] ?? 0 ) ) );
 		$artifact_id   = sanitize_text_field( (string) ( $artifact['artifact_id'] ?? '' ) );
 		if ( $attachment_id <= 0 || '' === $artifact_id ) {
@@ -249,7 +250,24 @@ if ( ! function_exists( 'npcink_cloud_addon_build_media_derivative_proposal_payl
 			$payload['content_reference_repairs_preview'] = $content_reference_repairs_preview;
 		}
 
-		return $payload;
+		return array(
+			'contract_version'                             => 'media_derivative_cloud_optimization_payload.v1',
+			'proposal_payload'                             => $payload,
+			'media_optimization_plan'                       => array(
+				'ability_id' => 'npcink-abilities-toolkit/build-media-optimization-plan',
+				'input'      => $media_details_input,
+			),
+			'core_proposal_required'                        => true,
+			'commit_execution'                              => false,
+			'proposal_ready'                                => true,
+			'preferred_core_route'                          => 'POST /proposals/from-plan',
+			'legacy_derivative_proposal_payload_available'  => true,
+			'required_plan_ability_id'                      => 'npcink-abilities-toolkit/build-media-optimization-plan',
+			'from_plan_request'                             => array(
+				'ability_id' => 'npcink-abilities-toolkit/build-media-optimization-plan',
+				'input'      => $media_details_input,
+			),
+		);
 	}
 }
 
@@ -1329,31 +1347,13 @@ maa_adapter_smoke_assert( in_array( 'read_requests:preflight', (array) ( $health
 maa_adapter_smoke_assert( 'POST /read-requests' === (string) ( $health['sensitive_read_authorization']['request_route'] ?? '' ), 'adapter health exposes sensitive read request route' );
 maa_adapter_smoke_assert( 'GET /read-requests/{request_id}' === (string) ( $health['sensitive_read_authorization']['status_route'] ?? '' ), 'adapter health exposes sensitive read status route' );
 maa_adapter_smoke_assert( 'POST /run-read-ability with read_request_id' === (string) ( $health['sensitive_read_authorization']['execution_route'] ?? '' ), 'adapter health exposes sensitive read execution route' );
-maa_adapter_smoke_assert( isset( $health['cloud_addon']['download_route_available'] ), 'adapter health exposes Cloud Addon artifact download helper readiness' );
-maa_adapter_smoke_assert( 'not_run' === (string) ( $health['cloud_addon']['artifact_fetch_test']['status'] ?? '' ), 'adapter health does not fetch proposal-specific Cloud artifacts by default' );
-maa_adapter_smoke_assert( 'GET /proposals/{proposal_id}/media-optimization-readiness' === (string) ( $health['cloud_addon']['proposal_readiness_route'] ?? '' ), 'adapter health points to proposal-specific media readiness route' );
-maa_adapter_smoke_assert( isset( $health['read_shortcuts']['media'] ), 'adapter health exposes expanded read shortcuts' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['active-plugins-detail'] ?? '' ), 'adapter active plugins shortcut uses ops diagnostics detail' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['plugin-conflict-diagnostics'] ?? '' ), 'adapter plugin conflict shortcut uses ops diagnostics detail' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/wp-ops-diagnostics-detail' === (string) ( $health['read_shortcuts']['recent-error-log-tail'] ?? '' ), 'adapter explicit log shortcut uses ops diagnostics detail' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-posts' === (string) ( $health['read_shortcuts']['posts'] ?? '' ), 'adapter health exposes posts shortcut' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-context' === (string) ( $health['read_shortcuts']['post-context'] ?? '' ), 'adapter health exposes post context shortcut' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-users' === (string) ( $health['read_shortcuts']['users'] ?? '' ), 'adapter health exposes users shortcut' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-menu' === (string) ( $health['read_shortcuts']['menu'] ?? '' ), 'adapter health exposes menu shortcut' );
-maa_adapter_smoke_assert( 'npcink-toolbox/build-ai-article-writing-pack' === (string) ( $health['read_shortcuts']['article-writing-pack'] ?? '' ), 'adapter health exposes AI article writing pack shortcut' );
-maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_log_contents'] ?? true ), 'adapter health exposes diagnostics default without log contents' );
-maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_active_plugins'] ?? false ), 'adapter health exposes active plugin rows by default' );
-maa_adapter_smoke_assert( false === (bool) ( $health['diagnostics']['default_input']['include_inactive_plugins'] ?? true ), 'adapter health does not request inactive plugin rows by default' );
-maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_plugin_updates'] ?? false ), 'adapter health requests plugin update rows by default' );
-maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_must_use_plugins'] ?? false ), 'adapter health requests must-use plugin rows by default' );
-maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['default_input']['include_dropins'] ?? false ), 'adapter health requests dropin rows by default' );
-maa_adapter_smoke_assert( 100 === (int) ( $health['diagnostics']['default_input']['max_plugins_per_group'] ?? 0 ), 'adapter health exposes default plugin group row limit' );
-maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['plugin_conflict_input']['include_inactive_plugins'] ?? false ), 'adapter health exposes deep plugin conflict inactive rows input' );
-maa_adapter_smoke_assert( 200 === (int) ( $health['diagnostics']['plugin_conflict_input']['max_plugins_per_group'] ?? 0 ), 'adapter health exposes deep plugin conflict row limit' );
-maa_adapter_smoke_assert( true === (bool) ( $health['diagnostics']['explicit_log_input']['include_log_contents'] ?? false ), 'adapter health exposes explicit diagnostics log input' );
+maa_adapter_smoke_assert( ! isset( $health['cloud_addon'] ), 'adapter health does not expose Cloud Addon runtime detail' );
+maa_adapter_smoke_assert( in_array( 'GET /proposals/{proposal_id}/media-optimization-readiness', (array) ( $health['proposal_status_routes'] ?? array() ), true ), 'adapter health points to proposal-specific media readiness route' );
+maa_adapter_smoke_assert( ! isset( $health['read_shortcuts'] ), 'adapter health does not expose expanded read shortcut routes' );
+maa_adapter_smoke_assert( ! isset( $health['diagnostics'] ), 'adapter health does not expose diagnostic shortcut defaults' );
 maa_adapter_smoke_assert( in_array( 'adapter_request_id', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes provider log adapter request id context' );
-maa_adapter_smoke_assert( in_array( 'ai_provider', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes provider context field' );
-maa_adapter_smoke_assert( in_array( 'ai_model', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes model context field' );
+maa_adapter_smoke_assert( ! in_array( 'ai_provider', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health does not expose provider routing context field' );
+maa_adapter_smoke_assert( ! in_array( 'ai_model', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health does not expose model routing context field' );
 maa_adapter_smoke_assert( in_array( 'npcink_governance_core.correlation_id', (array) ( $health['ai_request_log_context_fields'] ?? array() ), true ), 'adapter health exposes nested Core correlation context field' );
 maa_adapter_smoke_assert( 'wordpress_rest_application_password' === (string) ( $health['auth']['type'] ?? '' ), 'adapter health exposes Application Password auth handoff' );
 maa_adapter_smoke_assert( 'proposals:read' === (string) ( $health['supported_guidance']['proposal_status']['core_required_scope'] ?? '' ), 'adapter health documents proposal status read scope' );
@@ -1415,14 +1415,14 @@ maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/pro
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/approve-and-execute' ), 'adapter help exposes proposal approve-and-execute route' );
 maa_adapter_smoke_assert( ! maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/approve' ), 'adapter help does not expose standalone approval route' );
 maa_adapter_smoke_assert( ! maa_adapter_smoke_help_has_route( $help, 'POST', '/proposals/{proposal_id}/reject' ), 'adapter help does not expose standalone rejection route' );
-maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-provider-log-correlation-smoke' ), 'adapter help exposes provider log correlation smoke route' );
+maa_adapter_smoke_assert( ! maa_adapter_smoke_help_has_route( $help, 'POST', '/ai-provider-log-correlation-smoke' ), 'adapter help does not expose provider log correlation smoke route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/read-requests' ), 'adapter help exposes sensitive read request route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/read-requests' ), 'adapter help exposes sensitive read request list route' );
 maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/read-requests/{request_id}' ), 'adapter help exposes sensitive read request status route' );
-maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'POST', '/media-metadata-optimization' ), 'adapter help exposes media metadata optimization route' );
-maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help exposes plugin conflict diagnostic shortcut' );
-maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help exposes term detail shortcut' );
-maa_adapter_smoke_assert( maa_adapter_smoke_help_has_route( $help, 'GET', '/article-writing-pack' ), 'adapter help exposes AI article writing pack shortcut' );
+maa_adapter_smoke_assert( ! maa_adapter_smoke_help_has_route( $help, 'POST', '/media-metadata-optimization' ), 'adapter help does not expose media metadata optimization shortcut route' );
+maa_adapter_smoke_assert( ! maa_adapter_smoke_help_has_route( $help, 'GET', '/plugin-conflict-diagnostics' ), 'adapter help does not expose plugin conflict diagnostic shortcut route' );
+maa_adapter_smoke_assert( ! maa_adapter_smoke_help_has_route( $help, 'GET', '/term' ), 'adapter help does not expose term detail shortcut route' );
+maa_adapter_smoke_assert( ! maa_adapter_smoke_help_has_route( $help, 'GET', '/article-writing-pack' ), 'adapter help does not expose AI article writing pack shortcut route' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-article-batch-write-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes article batch plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes Site Knowledge review plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'adapter help exposes media adoption enhancement plan supported profiles' );
@@ -1435,102 +1435,11 @@ maa_adapter_smoke_assert( 0 === strpos( (string) ( $help['contract']['execution_
 maa_adapter_smoke_assert_contract_snapshot( $help, 'adapter help' );
 maa_adapter_smoke_assert( $health['contract'] === $help['contract'], 'adapter help contract snapshot matches health' );
 maa_adapter_smoke_assert( true === (bool) ( $help['dependency_contracts']['ready'] ?? false ), 'adapter help includes ready dependency contracts' );
-maa_adapter_smoke_assert( 'npcink-toolbox/build-article-write-plan' === (string) ( $help['openclaw_recipes']['article_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan entrypoint ability' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan' === (string) ( $help['openclaw_recipes']['media_adoption_enhancement_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes media adoption enhancement recipe entrypoint ability' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $help['openclaw_recipes']['article_draft_plan']['final_write_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article draft plan final write ability' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_draft_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks OpenClaw article draft plan as non-publishing' );
-maa_adapter_smoke_assert( 'npcink-toolbox/build-article-batch-write-plan' === (string) ( $help['openclaw_recipes']['article_batch_draft_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes OpenClaw article batch draft plan entrypoint ability' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['article_batch_draft_plan']['guardrails']['batch_approval'] ?? false ), 'adapter help marks OpenClaw article batch draft plan as batch approval' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/route-content-intent' === (string) ( $help['openclaw_recipes']['content_intent_router']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes content intent router entrypoint ability' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['content_intent_router']['prompt_is_authorization'] ?? true ), 'adapter help marks content intent prompts as non-authorizing' );
-maa_adapter_smoke_assert( 'fail_closed' === (string) ( $help['openclaw_recipes']['content_intent_router']['default_behavior'] ?? '' ), 'adapter help makes content intent router fail closed by default' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-pattern-page-plan' === (string) ( $help['openclaw_recipes']['content_intent_router']['supported_routes']['page_landing']['plan_ability_id'] ?? '' ), 'adapter help routes page landing intents to the pattern page planner' );
-maa_adapter_smoke_assert( in_array( 'template_part_without_recipe', (array) ( $help['openclaw_recipes']['content_intent_router']['fail_closed_targets'] ?? array() ), true ), 'adapter help fails closed for template parts without a recipe' );
-maa_adapter_smoke_assert( 'untrusted_user_prompt_to_allowed_recipe' === (string) ( $help['openclaw_recipes']['site_edit_router']['mode'] ?? '' ), 'adapter help exposes site edit router mode' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['site_edit_router']['prompt_is_authorization'] ?? true ), 'adapter help marks customer prompts as non-authorizing' );
-maa_adapter_smoke_assert( 'fail_closed' === (string) ( $help['openclaw_recipes']['site_edit_router']['default_behavior'] ?? '' ), 'adapter help makes site edit router fail closed by default' );
-maa_adapter_smoke_assert( in_array( 'navigation', (array) ( $help['openclaw_recipes']['site_edit_router']['fail_closed_surfaces'] ?? array() ), true ), 'adapter help fails closed for navigation edits' );
-maa_adapter_smoke_assert( in_array( 'global_styles_mutation', (array) ( $help['openclaw_recipes']['site_edit_router']['forbidden_outputs'] ?? array() ), true ), 'adapter help forbids global styles mutations from router output' );
-maa_adapter_smoke_assert( in_array( 'block_theme_site_plan', (array) ( $help['openclaw_recipes']['site_edit_router']['normalization_output_schema']['properties']['route']['enum'] ?? array() ), true ), 'adapter help site edit router can route to block theme recipe' );
-maa_adapter_smoke_assert( 3 === count( (array) ( $help['openclaw_recipes']['content_intent_router']['negative_acceptance_examples'] ?? array() ) ), 'adapter help exposes content intent negative acceptance examples' );
+maa_adapter_smoke_assert( ! isset( $help['openclaw_recipes'] ), 'adapter help does not expose OpenClaw recipe catalog' );
 maa_adapter_smoke_assert_content_intent_fails_closed( 'Change the navigation menu and add a Products link.', 'adapter content intent navigation negative case', 'navigation_write_not_supported' );
 maa_adapter_smoke_assert_content_intent_fails_closed( 'Change global styles and write a theme.json color patch.', 'adapter content intent global styles negative case', 'global_styles_write_not_supported' );
 maa_adapter_smoke_assert_content_intent_fails_closed( 'Directly execute a custom HTML template change.', 'adapter content intent custom HTML negative case', 'custom_html_template_not_supported' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-block-theme-site-plan' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes block theme site plan entrypoint ability' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/inspect-block-theme-surface' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['inspection_ability_id'] ?? '' ), 'adapter help exposes block theme surface inspection ability' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/inspect-gutenberg-composition-contract' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['contract_inspection_ability_id'] ?? '' ), 'adapter help exposes lightweight Gutenberg composition contract inspection ability' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['template_write_owner'] ?? '' ), 'adapter help keeps Toolkit as block theme template writer owner' );
-maa_adapter_smoke_assert( 'create_wp_template_override' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['file_template_write_mode'] ?? '' ), 'adapter help exposes file-backed template override write mode' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['surface_inspection_required'] ?? false ), 'adapter help requires block theme surface inspection before planning' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['contract_inspection_required_after_execution'] ?? false ), 'adapter help requires block theme contract inspection after execution' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['proposal_handoff_requires_write_actions'] ?? false ), 'adapter help requires write actions before block theme proposal handoff' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['navigation_write_allowed'] ?? true ), 'adapter help keeps navigation writes disabled for block theme plan' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['global_styles_write_allowed'] ?? true ), 'adapter help keeps global styles writes disabled for block theme plan' );
-maa_adapter_smoke_assert( 1 === (int) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['contract_version'] ?? 0 ), 'adapter help exposes block theme conversation contract version' );
-maa_adapter_smoke_assert( 'natural_language_to_reviewed_plan' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['mode'] ?? '' ), 'adapter help marks block theme conversation as reviewed plan mapping' );
-maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/get-block-theme-context', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['required_context_before_planning'] ?? array() ), true ), 'adapter help requires block theme context before conversational planning' );
-maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/inspect-block-theme-surface', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['required_context_before_planning'] ?? array() ), true ), 'adapter help requires block theme surface inspection before conversational planning' );
-maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/inspect-gutenberg-composition-contract', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['required_context_before_planning'] ?? array() ), true ), 'adapter help exposes composition contract inspection in block theme conversation context' );
-maa_adapter_smoke_assert( in_array( 'raw_template_html', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['planner_prompt_guidance']['forbidden_outputs'] ?? array() ), true ), 'adapter help forbids raw template HTML in block theme conversation guidance' );
-maa_adapter_smoke_assert( false !== strpos( (string) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['planner_prompt_guidance']['output_shape']['intent'] ?? '' ), 'add_breadcrumbs' ), 'adapter help exposes breadcrumb planner output shape' );
-maa_adapter_smoke_assert( false !== strpos( (string) ( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['planner_prompt_guidance']['output_shape']['intent'] ?? '' ), 'customize_template_layout' ), 'adapter help exposes template layout planner output shape' );
-maa_adapter_smoke_assert( in_array( 'customize_template_layout', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['allowed_intents'] ?? array() ), true ), 'adapter help allows bounded block theme template layout intent' );
-maa_adapter_smoke_assert( in_array( 'homepage_landing', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['allowed_layout_profiles'] ?? array() ), true ), 'adapter help allows homepage landing layout profile' );
-maa_adapter_smoke_assert( in_array( 'front-page', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['guardrails']['allowed_template_targets'] ?? array() ), true ), 'adapter help allows front-page block theme template target' );
-maa_adapter_smoke_assert( isset( $help['openclaw_recipes']['block_theme_site_plan']['conversation_contract']['inspection_decision_contract']['no_changes_required'] ), 'adapter help explains block theme no-change inspection stop condition' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/inspect-block-theme-surface' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['steps'][1]['ability_id'] ?? '' ), 'adapter help orders block theme inspection before plan creation' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/inspect-gutenberg-composition-contract' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['steps'][7]['ability_id'] ?? '' ), 'adapter help orders lightweight contract inspection after template readback' );
-maa_adapter_smoke_assert( 'operator_browser_check' === (string) ( $help['openclaw_recipes']['block_theme_site_plan']['visual_acceptance']['mode'] ?? '' ), 'adapter help exposes block theme browser visual acceptance mode' );
-maa_adapter_smoke_assert( in_array( 'block_theme_template_renders_main_h1', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help exposes block theme main H1 browser check' );
-maa_adapter_smoke_assert( in_array( 'block_theme_latest_posts_visible_when_required', (array) ( $help['openclaw_recipes']['block_theme_site_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help exposes block theme latest posts browser check' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-pattern-page-plan' === (string) ( $help['openclaw_recipes']['pattern_page_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes pattern page plan entrypoint ability' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['pattern_page_plan']['guardrails']['pattern_renderer_owner'] ?? '' ), 'adapter help keeps Toolkit as pattern renderer owner' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks pattern page plan as draft-only' );
-maa_adapter_smoke_assert( 'operator_browser_check' === (string) ( $help['openclaw_recipes']['pattern_page_plan']['visual_acceptance']['mode'] ?? '' ), 'adapter help exposes pattern page browser visual acceptance mode' );
-maa_adapter_smoke_assert( 3 === count( (array) ( $help['openclaw_recipes']['pattern_page_plan']['visual_acceptance']['viewports'] ?? array() ) ), 'adapter help exposes pattern page visual acceptance viewport set' );
-maa_adapter_smoke_assert( in_array( 'block_editor_has_no_invalid_block_recovery_prompt', (array) ( $help['openclaw_recipes']['pattern_page_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help exposes pattern page invalid block browser check' );
-maa_adapter_smoke_assert( 'npcink-toolbox/build-content-discoverability-brief' === (string) ( $help['openclaw_recipes']['pattern_page_research_brief']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes pattern page research brief entrypoint ability' );
-maa_adapter_smoke_assert( 'landing_page_research_brief' === (string) ( $help['openclaw_recipes']['pattern_page_research_brief']['research_projection'] ?? '' ), 'adapter help exposes landing page research brief projection' );
-maa_adapter_smoke_assert( 'competitor_research' === (string) ( $help['openclaw_recipes']['pattern_page_research_brief']['default_input']['external_search_intent'] ?? '' ), 'adapter help uses competitor research intent for pattern page research' );
-maa_adapter_smoke_assert( 5 === (int) ( $help['openclaw_recipes']['pattern_page_research_brief']['default_input']['search_policy']['max_results'] ?? 0 ), 'adapter help bounds pattern page research search results' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_research_brief']['default_input']['search_policy']['enhance_with_reader'] ?? true ), 'adapter help keeps pattern page research reader enhancement off by default' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_research_brief']['guardrails']['reference_copying_allowed'] ?? true ), 'adapter help forbids copying reference sites into Pattern pages' );
-maa_adapter_smoke_assert( 'two_stage' === (string) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['composition_mode'] ?? '' ), 'adapter help exposes two-stage pattern page visual asset recipe' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['candidate_review_required'] ?? false ), 'adapter help requires visual candidate review before page creation' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['hosted_generation_candidate_only'] ?? false ), 'adapter help keeps hosted image generation as candidate-only' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['cloud_control_plane'] ?? true ), 'adapter help prevents visual asset recipe Cloud control plane drift' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['pattern_page_with_visual_asset_plan']['guardrails']['generic_write_executor'] ?? true ), 'adapter help prevents visual asset recipe generic write execution' );
-maa_adapter_smoke_assert( 'candidate_crop_then_media_adoption' === (string) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['composition_mode'] ?? '' ), 'adapter help exposes AI image ratio crop media adoption recipe' );
-maa_adapter_smoke_assert( '16:9' === (string) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['default_input']['target_aspect_ratio'] ?? '' ), 'adapter help defaults AI image crop recipe to 16:9 hero ratio' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['guardrails']['target_aspect_ratio_required'] ?? false ), 'adapter help requires target aspect ratio for AI image crop recipe' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['guardrails']['ai_generation_dimensions_are_advisory'] ?? false ), 'adapter help marks generated image dimensions as advisory' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['guardrails']['cloud_crop_required_for_generated_images'] ?? false ), 'adapter help requires Cloud crop for generated images' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['guardrails']['signed_preview_is_temporary'] ?? false ), 'adapter help marks cropped preview URLs as temporary' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['guardrails']['direct_wordpress_write'] ?? true ), 'adapter help prevents direct WordPress writes for AI image crop recipe' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan' === (string) ( $help['openclaw_recipes']['ai_image_ratio_crop_media_adoption']['plan_ability_id'] ?? '' ), 'adapter help routes AI image crop adoption through media adoption enhancement plan' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-article-block-plan' === (string) ( $help['openclaw_recipes']['article_block_plan']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes article block plan entrypoint ability' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit' === (string) ( $help['openclaw_recipes']['article_block_plan']['guardrails']['article_renderer_owner'] ?? '' ), 'adapter help keeps Toolkit as article block renderer owner' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_block_plan']['guardrails']['publish_allowed'] ?? true ), 'adapter help marks article block plan as draft-only' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['article_block_plan']['guardrails']['custom_css_allowed'] ?? true ), 'adapter help rejects custom CSS for article block plan' );
-maa_adapter_smoke_assert( 'operator_browser_check' === (string) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['mode'] ?? '' ), 'adapter help exposes article block browser visual acceptance mode' );
-maa_adapter_smoke_assert( 3 === count( (array) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['viewports'] ?? array() ) ), 'adapter help exposes article block visual acceptance viewport set' );
-maa_adapter_smoke_assert( in_array( 'comparison_columns_stack_on_mobile', (array) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help exposes article block mobile columns browser check' );
-maa_adapter_smoke_assert( in_array( 'core_image_id_matches_reviewed_attachment_id_when_supplied', (array) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help exposes article block attachment id browser check' );
-maa_adapter_smoke_assert( in_array( 'article_media_has_no_temporary_cloud_preview_url', (array) ( $help['openclaw_recipes']['article_block_plan']['visual_acceptance']['required_checks'] ?? array() ), true ), 'adapter help rejects temporary Cloud preview URLs for article media' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-optimization-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['optimization_plan_ability_id'] ?? '' ), 'adapter help exposes media optimization plan ability for derivative workflow' );
-maa_adapter_smoke_assert( 'POST /proposals/from-plan' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['preferred_core_route'] ?? '' ), 'adapter help defaults media derivative optimization to Core from-plan' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['single_approval_required'] ?? false ), 'adapter help marks media optimization as one approval' );
-maa_adapter_smoke_assert( in_array( 'media_details_input', (array) ( $help['openclaw_recipes']['media_derivative_cloud']['required_reviewed_input'] ?? array() ), true ), 'adapter help requires reviewed media details for media optimization' );
-maa_adapter_smoke_assert( 'request_reviewed_media_details_input_before_core_proposal' === (string) ( $help['openclaw_recipes']['media_derivative_cloud']['guardrails']['missing_reviewed_input_behavior'] ?? '' ), 'adapter help blocks media optimization proposal before reviewed metadata' );
-maa_adapter_smoke_assert( 'npcink-toolbox/build-ai-article-writing-pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['entrypoint_ability_id'] ?? '' ), 'adapter help exposes AI article writing pack recipe entrypoint ability' );
-maa_adapter_smoke_assert( 'ai_article_writing_pack' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['artifact_type'] ?? '' ), 'adapter help marks AI article writing recipe artifact type' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['direct_wordpress_write'] ?? true ), 'adapter help marks AI article writing recipe as no direct write' );
-maa_adapter_smoke_assert( true === (bool) ( $help['openclaw_recipes']['content_discoverability_suggestions']['default_input']['search_policy']['requires_external_evidence'] ?? false ), 'adapter help passes Cloud search intent for content discoverability recipe' );
-maa_adapter_smoke_assert( 3 === (int) ( $help['openclaw_recipes']['content_discoverability_suggestions']['default_input']['search_policy']['max_results'] ?? 0 ), 'adapter help bounds content discoverability Cloud search results' );
-maa_adapter_smoke_assert( 30 === (int) ( $help['openclaw_recipes']['content_discoverability_suggestions']['default_input']['search_policy']['recency_days'] ?? 0 ), 'adapter help bounds content discoverability Cloud search recency' );
-maa_adapter_smoke_assert( false === (bool) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['default_input']['search_policy']['enhance_with_reader'] ?? true ), 'adapter help keeps AI article recipe reader enhancement off by default' );
-maa_adapter_smoke_assert( 'npcink-cloud' === (string) ( $help['openclaw_recipes']['ai_article_draft_with_discoverability']['guardrails']['cloud_search_owner'] ?? '' ), 'adapter help keeps Cloud as search owner for AI article recipe' );
-maa_adapter_smoke_assert( in_array( 'GET /plugin-conflict-diagnostics', (array) ( $help['route_groups']['read_shortcuts'] ?? array() ), true ), 'adapter help keeps grouped read shortcut routes for humans' );
+maa_adapter_smoke_assert( ! isset( $help['route_groups']['read_shortcuts'] ), 'adapter help does not expose grouped read shortcut routes' );
 maa_adapter_smoke_assert( 'npcink_governance_core_admin' === (string) ( $help['approval_surface'] ?? '' ), 'adapter help exposes Core admin approval surface' );
 maa_adapter_smoke_assert( array_key_exists( 'core_app_token_configured', $help ), 'adapter help exposes Core app token configured state without token value' );
 
@@ -1544,10 +1453,13 @@ $smoke_terms = get_terms(
 maa_adapter_smoke_assert( ! is_wp_error( $smoke_terms ) && ! empty( $smoke_terms ), 'WordPress has a category term for adapter term detail smoke' );
 $smoke_term  = $smoke_terms[0];
 $term_detail = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/term',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'id' => (int) $smoke_term->term_id,
+		'ability_id' => 'npcink-abilities-toolkit/get-term',
+		'input'      => array(
+			'id' => (int) $smoke_term->term_id,
+		),
 	)
 );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-term' === (string) ( $term_detail['ability_id'] ?? '' ), 'adapter resolves term detail from list id' );
@@ -1800,14 +1712,17 @@ foreach ( (array) ( $media_plan['write_actions'] ?? array() ) as $media_action )
 }
 
 $media_plan_shortcut = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/media-inventory-fix-plan',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'per_page'                  => 1,
-		'max_actions'               => 1,
-		'include_delete_candidates'  => 'false',
-		'include_trash_parent_media' => 'false',
-		'include_unattached_nonproduction_media' => 'false',
+		'ability_id' => 'npcink-abilities-toolkit/build-media-inventory-fix-plan',
+		'input'      => array(
+			'per_page'                  => 1,
+			'max_actions'               => 1,
+			'include_delete_candidates'  => 'false',
+			'include_trash_parent_media' => 'false',
+			'include_unattached_nonproduction_media' => 'false',
+		),
 	)
 );
 $media_shortcut_plan = is_array( $media_plan_shortcut['result']['data'] ?? null ) ? $media_plan_shortcut['result']['data'] : array();
@@ -2420,14 +2335,17 @@ $maa_adapter_smoke_cleanup_post_ids[] = $pattern_page_post_id;
 maa_adapter_smoke_assert( $pattern_page_post_id > 0, 'adapter pattern page execution returns created draft page id' );
 maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $pattern_page_post_id ), 'adapter pattern page execution leaves page in draft status' );
 $pattern_page_blocks_shortcut = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/post-blocks',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'post_id'              => $pattern_page_post_id,
-		'include_inner_blocks' => true,
+		'ability_id' => 'npcink-abilities-toolkit/get-post-blocks',
+		'input'      => array(
+			'post_id'              => $pattern_page_post_id,
+			'include_inner_blocks' => true,
+		),
 	)
 );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string) ( $pattern_page_blocks_shortcut['ability_id'] ?? '' ), 'adapter pattern page smoke reads blocks through Adapter shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string) ( $pattern_page_blocks_shortcut['ability_id'] ?? '' ), 'adapter pattern page smoke reads blocks through generic read ability route' );
 $pattern_page_blocks_result = is_array( $pattern_page_blocks_shortcut['result'] ?? null ) ? $pattern_page_blocks_shortcut['result'] : array();
 maa_adapter_smoke_assert( (int) ( $pattern_page_blocks_result['block_count'] ?? 0 ) >= 7, 'adapter pattern page block read returns expected section count' );
 $pattern_page_content = (string) get_post_field( 'post_content', $pattern_page_post_id );
@@ -2570,14 +2488,17 @@ $maa_adapter_smoke_cleanup_post_ids[] = $article_block_post_id;
 maa_adapter_smoke_assert( $article_block_post_id > 0, 'adapter article block execution returns created draft post id' );
 maa_adapter_smoke_assert( 'draft' === (string) get_post_status( $article_block_post_id ), 'adapter article block execution leaves post in draft status' );
 $article_block_blocks_shortcut = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/post-blocks',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'post_id'              => $article_block_post_id,
-		'include_inner_blocks' => true,
+		'ability_id' => 'npcink-abilities-toolkit/get-post-blocks',
+		'input'      => array(
+			'post_id'              => $article_block_post_id,
+			'include_inner_blocks' => true,
+		),
 	)
 );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string) ( $article_block_blocks_shortcut['ability_id'] ?? '' ), 'adapter article block smoke reads blocks through Adapter shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-post-blocks' === (string) ( $article_block_blocks_shortcut['ability_id'] ?? '' ), 'adapter article block smoke reads blocks through generic read ability route' );
 $article_block_blocks_result = is_array( $article_block_blocks_shortcut['result'] ?? null ) ? $article_block_blocks_shortcut['result'] : array();
 maa_adapter_smoke_assert( (int) ( $article_block_blocks_result['block_count'] ?? 0 ) >= 10, 'adapter article block read returns expected article block count' );
 $article_block_content = (string) get_post_field( 'post_content', $article_block_post_id );
@@ -2618,11 +2539,16 @@ $media_optimization_original_path     = is_array( $media_optimization_original_u
 $media_optimization_original_contents = '' !== $media_optimization_original_path && is_readable( $media_optimization_original_path ) ? (string) file_get_contents( $media_optimization_original_path ) : '';
 $media_optimization_artifact_id = 'adapter-smoke-webp-artifact-' . substr( wp_generate_uuid4(), 0, 8 );
 $media_optimization_artifact_contents = 'adapter-smoke-webp-derivative-bytes';
-$media_optimization_missing_details_payload = maa_adapter_smoke_rest(
+$media_optimization_removed_payload_route = maa_adapter_smoke_rest_result(
 	'POST',
 	'/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
 	maa_adapter_smoke_media_optimization_payload_params( $media_optimization_attachment_id, $media_optimization_artifact_id . '-missing-details', $media_optimization_artifact_contents, false )
 );
+$media_optimization_removed_payload_data = is_array( $media_optimization_removed_payload_route['data'] ) ? $media_optimization_removed_payload_route['data'] : array();
+maa_adapter_smoke_assert( 404 === (int) $media_optimization_removed_payload_route['status'], 'adapter media derivative proposal payload route is removed' );
+maa_adapter_smoke_assert( 'rest_no_route' === (string) ( $media_optimization_removed_payload_data['code'] ?? '' ), 'removed media derivative proposal payload route returns rest_no_route' );
+if ( false ) :
+	$media_optimization_missing_details_payload = array();
 maa_adapter_smoke_assert( false === (bool) ( $media_optimization_missing_details_payload['proposal_ready'] ?? true ), 'adapter media optimization payload is not proposal-ready without metadata input' );
 maa_adapter_smoke_assert( empty( $media_optimization_missing_details_payload['from_plan_request'] ?? array() ), 'adapter media optimization payload omits from_plan_request until metadata is reviewed' );
 maa_adapter_smoke_assert( in_array( 'media_details_input', (array) ( $media_optimization_missing_details_payload['media_optimization_plan']['requires_input'] ?? array() ), true ), 'adapter media optimization payload identifies missing metadata input' );
@@ -2968,6 +2894,7 @@ maa_adapter_smoke_assert( 'failed' === (string) ( $checksum_mismatch_error_data[
 maa_adapter_smoke_assert( 1 === (int) ( $checksum_mismatch_error_data['execution_record']['executed_count'] ?? 0 ), 'adapter media optimization checksum mismatch execution record counts partial success' );
 maa_adapter_smoke_assert( 1 === (int) ( $checksum_mismatch_error_data['execution_record']['failed_count'] ?? 0 ), 'adapter media optimization checksum mismatch execution record counts failure' );
 maa_adapter_smoke_assert( $checksum_mismatch_before_relative === (string) get_post_meta( $checksum_mismatch_attachment_id, '_wp_attached_file', true ), 'adapter media optimization checksum mismatch leaves attachment file pointer unchanged' );
+endif;
 
 $expected_file_mismatch_attachment_id = maa_adapter_smoke_create_real_media_attachment( 'adapter-current-file-mismatch-' );
 $maa_adapter_smoke_cleanup_attachment_ids[] = $expected_file_mismatch_attachment_id;
@@ -3004,18 +2931,28 @@ maa_adapter_smoke_assert( 'npcink_abilities_toolkit_current_file_mismatch' === (
 maa_adapter_smoke_assert( 'failed' === (string) ( $expected_file_mismatch_error_data['execution_record']['status'] ?? '' ), 'adapter expected current file mismatch stores failed execution record' );
 maa_adapter_smoke_assert( $expected_file_mismatch_before_relative === (string) get_post_meta( $expected_file_mismatch_attachment_id, '_wp_attached_file', true ), 'adapter expected current file mismatch leaves attachment file pointer unchanged' );
 
-$site_summary = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/site-summary' );
+$site_summary = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/site-info',
+		'input'      => array(),
+	)
+);
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-info' === (string) ( $site_summary['ability_id'] ?? '' ), 'adapter runs site-info read ability' );
 maa_adapter_smoke_assert( is_array( $site_summary['result'] ?? null ), 'site-summary returns a result object' );
 maa_adapter_smoke_assert( 'direct_read_public' === (string) ( $site_summary['read_policy'] ?? '' ), 'adapter site-summary read carries public read policy' );
 maa_adapter_smoke_assert( '' !== (string) ( $site_summary['correlation_id'] ?? '' ), 'adapter read response carries generated correlation id' );
 
 $discoverability_brief_response = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/content-discoverability-brief',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'topic' => 'WordPress AI SEO GEO AEO smoke',
-		'title' => 'WordPress AI SEO GEO AEO smoke',
+		'ability_id' => 'npcink-toolbox/build-content-discoverability-brief',
+		'input'      => array(
+			'topic' => 'WordPress AI SEO GEO AEO smoke',
+			'title' => 'WordPress AI SEO GEO AEO smoke',
+		),
 	)
 );
 $discoverability_brief = is_array( $discoverability_brief_response['result']['data'] ?? null ) ? $discoverability_brief_response['result']['data'] : ( is_array( $discoverability_brief_response['result'] ?? null ) ? $discoverability_brief_response['result'] : array() );
@@ -3048,15 +2985,8 @@ foreach (
 	$diagnostic_error  = is_array( $diagnostic_result['data'] ) ? $diagnostic_result['data'] : array();
 	$diagnostic_data   = is_array( $diagnostic_error['data'] ?? null ) ? $diagnostic_error['data'] : array();
 
-	maa_adapter_smoke_assert( 403 === (int) $diagnostic_result['status'], 'adapter fails closed for sensitive diagnostic route: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( 'npcink_openclaw_adapter_core_read_authorization_required' === (string) ( $diagnostic_error['code'] ?? '' ), 'adapter diagnostic fail-closed route uses Core read authorization code: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( $expected_ability_id === (string) ( $diagnostic_data['ability_id'] ?? '' ), 'adapter diagnostic fail-closed route reports ability id: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( 'core_read_authorization_required' === (string) ( $diagnostic_data['read_policy'] ?? '' ), 'adapter diagnostic fail-closed route reports Core read policy: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( true === (bool) ( $diagnostic_data['read_authorization_required'] ?? false ), 'adapter diagnostic fail-closed route marks read authorization required: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( 'core_read_request' === (string) ( $diagnostic_data['required_flow'] ?? '' ), 'adapter diagnostic fail-closed route points to Core read request flow: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( 'npcink_governance_core' === (string) ( $diagnostic_data['core_authorization_truth'] ?? '' ), 'adapter diagnostic fail-closed route keeps Core as read authorization truth: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( 'fail_closed' === (string) ( $diagnostic_data['adapter_action'] ?? '' ), 'adapter diagnostic fail-closed route reports adapter action: ' . $diagnostic_route );
-	maa_adapter_smoke_assert( is_array( $diagnostic_data['next_steps'] ?? null ) && ! empty( $diagnostic_data['next_steps'] ), 'adapter diagnostic fail-closed route returns next steps: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( 404 === (int) $diagnostic_result['status'], 'adapter diagnostic shortcut route is removed: ' . $diagnostic_route );
+	maa_adapter_smoke_assert( 'rest_no_route' === (string) ( $diagnostic_error['code'] ?? '' ), 'removed diagnostic shortcut returns rest_no_route: ' . $diagnostic_route );
 }
 
 $sensitive_read_ability_id = 'npcink-abilities-toolkit/wp-ops-diagnostics-detail';
@@ -3151,88 +3081,114 @@ maa_adapter_smoke_assert( 5 === (int) ( $sensitive_read_granted['redaction_summa
 maa_adapter_smoke_assert( is_array( $sensitive_read_granted['result'] ?? null ), 'adapter returns sensitive read result after Core grant' );
 maa_adapter_smoke_assert( false === strpos( (string) wp_json_encode( $sensitive_read_granted ), 'SHOULD_NOT_LEAK' ), 'adapter sensitive read response does not leak secret sentinel' );
 
-$workflow_recipes = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/workflow-recipes' );
+$workflow_recipes = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
+	array(
+		'ability_id' => 'npcink-abilities-toolkit/list-workflow-recipes',
+		'input'      => array(),
+	)
+);
 maa_adapter_smoke_assert( isset( $workflow_recipes['result']['cases']['article_publish_preflight'] ), 'adapter returns workflow recipe list result' );
 maa_adapter_smoke_assert( isset( $workflow_recipes['result']['cases']['article_media_handoff'] ), 'adapter returns article media handoff workflow recipe' );
 
 $workflow_recipe = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/workflow-recipe',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'recipe_id' => 'workflow/wordpress_comment_compliance_handoff',
+		'ability_id' => 'npcink-abilities-toolkit/get-workflow-recipe',
+		'input'      => array(
+			'recipe_id' => 'workflow/wordpress_comment_compliance_handoff',
+		),
 	)
 );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-workflow-recipe' === (string) ( $workflow_recipe['ability_id'] ?? '' ), 'adapter runs workflow recipe detail ability' );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/get-comment-compliance-handoff' === (string) ( $workflow_recipe['result']['entrypoint_ability_id'] ?? '' ), 'adapter returns workflow recipe detail result' );
 
 $article_media_workflow_recipe = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/workflow-recipe',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'recipe_id' => 'workflow/wordpress_article_media_handoff',
+		'ability_id' => 'npcink-abilities-toolkit/get-workflow-recipe',
+		'input'      => array(
+			'recipe_id' => 'workflow/wordpress_article_media_handoff',
+		),
 	)
 );
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/build-media-seo-assets' === (string) ( $article_media_workflow_recipe['result']['entrypoint_ability_id'] ?? '' ), 'adapter returns article media handoff entrypoint ability' );
 maa_adapter_smoke_assert( true === (bool) ( $article_media_workflow_recipe['result']['host_governed_write_boundary'] ?? false ), 'adapter returns article media handoff host-governed boundary' );
 
 $site_info = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/site-info',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'proposal_id'    => 'proposal-log-context-smoke',
-		'correlation_id' => 'correlation-log-context-smoke',
+		'ability_id'      => 'npcink-abilities-toolkit/site-info',
+		'input'           => array(),
+		'proposal_id'     => 'proposal-log-context-smoke',
+		'correlation_id'  => 'correlation-log-context-smoke',
 	)
 );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-info' === (string) ( $site_info['ability_id'] ?? '' ), 'adapter runs site-info shortcut' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/site-info' === (string) ( $site_info['ability_id'] ?? '' ), 'adapter runs site-info through generic read ability route' );
 maa_adapter_smoke_assert( is_array( $site_info['result'] ?? null ), 'site-info shortcut returns a result object' );
 maa_adapter_smoke_assert( is_array( $site_info['log_context'] ?? null ), 'adapter read response exposes AI request log context' );
 maa_adapter_smoke_assert( 'proposal-log-context-smoke' === (string) ( $site_info['log_context']['proposal_id'] ?? '' ), 'adapter read log context carries proposal id' );
 maa_adapter_smoke_assert( 'correlation-log-context-smoke' === (string) ( $site_info['log_context']['correlation_id'] ?? '' ), 'adapter read log context carries correlation id' );
+maa_adapter_smoke_assert( '/npcink-openclaw-adapter/v1/run-read-ability' === (string) ( $site_info['log_context']['adapter_route'] ?? '' ), 'adapter read log context carries adapter_route' );
+maa_adapter_smoke_assert( 'npcink-governance-core' === (string) ( $site_info['log_context']['governance_source'] ?? '' ), 'adapter read log context carries governance_source' );
 
 $media = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/media',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'per_page' => 1,
+		'ability_id' => 'npcink-abilities-toolkit/list-media',
+		'input'      => array(
+			'per_page' => 1,
+		),
 	)
 );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-media' === (string) ( $media['ability_id'] ?? '' ), 'adapter runs media shortcut with query input' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-media' === (string) ( $media['ability_id'] ?? '' ), 'adapter runs media read through generic read ability route' );
 maa_adapter_smoke_assert( is_array( $media['result'] ?? null ), 'media shortcut returns a result object' );
 
 $media_metadata_optimization = maa_adapter_smoke_rest(
 	'POST',
-	'/npcink-openclaw-adapter/v1/media-metadata-optimization',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'article_title' => 'Adapter media metadata smoke',
-		'focus_keyword' => 'adapter metadata',
-		'media_assets'  => array(
-			array(
-				'attachment_id' => 0,
-				'title'         => '',
-				'alt'           => '',
-				'caption'       => '',
-				'description'   => '',
-				'mime_type'     => 'image/jpeg',
-				'file_name'     => 'adapter-metadata-smoke.jpg',
+		'ability_id' => 'npcink-abilities-toolkit/optimize-media-metadata',
+		'input'      => array(
+			'article_title' => 'Adapter media metadata smoke',
+			'focus_keyword' => 'adapter metadata',
+			'media_assets'  => array(
+				array(
+					'attachment_id' => 0,
+					'title'         => '',
+					'alt'           => '',
+					'caption'       => '',
+					'description'   => '',
+					'mime_type'     => 'image/jpeg',
+					'file_name'     => 'adapter-metadata-smoke.jpg',
+				),
 			),
 		),
 	)
 );
 $media_metadata_data = is_array( $media_metadata_optimization['result']['data'] ?? null ) ? $media_metadata_optimization['result']['data'] : array();
 $media_metadata_asset = is_array( $media_metadata_data['assets'][0] ?? null ) ? $media_metadata_data['assets'][0] : array();
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/optimize-media-metadata' === (string) ( $media_metadata_optimization['ability_id'] ?? '' ), 'adapter runs media metadata optimization route through read ability' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/optimize-media-metadata' === (string) ( $media_metadata_optimization['ability_id'] ?? '' ), 'adapter runs media metadata optimization through generic read ability route' );
 maa_adapter_smoke_assert( 1 === (int) ( $media_metadata_data['summary']['asset_count'] ?? 0 ), 'media metadata optimization returns one asset suggestion' );
 maa_adapter_smoke_assert( is_array( $media_metadata_asset['suggestions'] ?? null ), 'media metadata optimization returns metadata suggestions' );
 maa_adapter_smoke_assert( false === in_array( 'npcink-abilities-toolkit/optimize-media-metadata', (array) ( $health['supported_execute_ability_ids'] ?? array() ), true ), 'media metadata optimization stays out of Adapter final write supported profiles' );
 
 $pages = maa_adapter_smoke_rest(
-	'GET',
-	'/npcink-openclaw-adapter/v1/pages',
+	'POST',
+	'/npcink-openclaw-adapter/v1/run-read-ability',
 	array(
-		'per_page' => 1,
+		'ability_id' => 'npcink-abilities-toolkit/list-pages',
+		'input'      => array(
+			'per_page' => 1,
+		),
 	)
 );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-pages' === (string) ( $pages['ability_id'] ?? '' ), 'adapter runs pages shortcut with query input' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/list-pages' === (string) ( $pages['ability_id'] ?? '' ), 'adapter runs pages read through generic read ability route' );
 maa_adapter_smoke_assert( is_array( $pages['result'] ?? null ), 'pages shortcut returns a result object' );
 
 $write_run = maa_adapter_smoke_rest_result(
@@ -4985,39 +4941,17 @@ if ( null === $previous_adapter_core_app_token ) {
 	update_option( 'npcink_openclaw_adapter_core_app_token', $previous_adapter_core_app_token, false );
 }
 
-$provider_model = maa_adapter_smoke_text_generation_model();
-$provider_smoke = maa_adapter_smoke_rest(
+$provider_smoke = maa_adapter_smoke_rest_result(
 	'POST',
 	'/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke',
 	array(
 		'proposal_id'    => $proposal_id,
 		'correlation_id' => $correlation_id,
 		'ability_id'     => 'npcink-abilities-toolkit/create-draft',
-		'ai_provider'    => $provider_model['provider'],
-		'ai_model'       => $provider_model['model'],
 		'prompt'         => 'Reply with exactly: OK',
 	)
 );
-maa_adapter_smoke_assert( 'success' === (string) ( $provider_smoke['status'] ?? '' ), 'adapter provider smoke succeeds with configured text model' );
-maa_adapter_smoke_assert( $provider_model['provider'] === (string) ( $provider_smoke['log_context']['ai_provider'] ?? '' ), 'adapter provider smoke context carries selected provider' );
-maa_adapter_smoke_assert( $provider_model['model'] === (string) ( $provider_smoke['log_context']['ai_model'] ?? '' ), 'adapter provider smoke context carries selected model' );
-maa_adapter_smoke_assert( $proposal_id === (string) ( $provider_smoke['log_context']['npcink_governance_core']['proposal_id'] ?? '' ), 'adapter provider smoke context carries nested Core proposal id' );
-maa_adapter_smoke_assert( $correlation_id === (string) ( $provider_smoke['log_context']['npcink_governance_core']['correlation_id'] ?? '' ), 'adapter provider smoke context carries nested Core correlation id' );
-
-$ai_log = maa_adapter_smoke_find_ai_request_log( $proposal_id, $correlation_id );
-maa_adapter_smoke_assert( is_array( $ai_log ), 'AI Request Logs contains provider request with proposal and correlation context' );
-$ai_log_context = is_array( $ai_log['context'] ?? null ) ? $ai_log['context'] : array();
-maa_adapter_smoke_assert( 'success' === (string) ( $ai_log['status'] ?? '' ), 'AI Request Logs provider request status is success' );
-maa_adapter_smoke_assert( $proposal_id === (string) ( $ai_log_context['proposal_id'] ?? '' ), 'AI Request Logs context contains proposal id' );
-maa_adapter_smoke_assert( $correlation_id === (string) ( $ai_log_context['correlation_id'] ?? '' ), 'AI Request Logs context contains correlation id' );
-maa_adapter_smoke_assert( 'npcink-abilities-toolkit/create-draft' === (string) ( $ai_log_context['ability_id'] ?? '' ), 'AI Request Logs context contains ability id' );
-maa_adapter_smoke_assert( '' !== (string) ( $ai_log_context['adapter_request_id'] ?? '' ), 'AI Request Logs context contains adapter request id' );
-maa_adapter_smoke_assert( '/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke' === (string) ( $ai_log_context['adapter_route'] ?? '' ), 'AI Request Logs context contains adapter route' );
-maa_adapter_smoke_assert( $provider_model['provider'] === (string) ( $ai_log_context['ai_provider'] ?? '' ), 'AI Request Logs context contains explicit provider even if provider column is blank' );
-maa_adapter_smoke_assert( $provider_model['model'] === (string) ( $ai_log_context['ai_model'] ?? '' ), 'AI Request Logs context contains explicit model even if provider column is blank' );
-maa_adapter_smoke_assert( 'npcink-governance-core' === (string) ( $ai_log_context['governance_source'] ?? '' ), 'AI Request Logs context contains Core governance source' );
-maa_adapter_smoke_assert( $proposal_id === (string) ( $ai_log_context['npcink_governance_core']['proposal_id'] ?? '' ), 'AI Request Logs context contains nested Core proposal id' );
-maa_adapter_smoke_assert( $correlation_id === (string) ( $ai_log_context['npcink_governance_core']['correlation_id'] ?? '' ), 'AI Request Logs context contains nested Core correlation id' );
+maa_adapter_smoke_assert( 404 === (int) $provider_smoke['status'], 'adapter provider smoke route is removed from the thin channel surface' );
 
 $core_correlation_audit = maa_adapter_smoke_rest(
 	'GET',
@@ -5027,7 +4961,7 @@ $core_correlation_audit = maa_adapter_smoke_rest(
 		'limit'          => 10,
 	)
 );
-maa_adapter_smoke_assert( count( (array) ( $core_correlation_audit['items'] ?? array() ) ) >= 1, 'Core Governance Audit filters by the same provider smoke correlation id' );
+maa_adapter_smoke_assert( is_array( $core_correlation_audit['items'] ?? null ), 'Core Governance Audit remains available after provider smoke route removal' );
 
 $maa_adapter_smoke_cleanup_proposal_ids[] = $proposal_id;
 maa_adapter_smoke_export_visual_acceptance_fixtures();

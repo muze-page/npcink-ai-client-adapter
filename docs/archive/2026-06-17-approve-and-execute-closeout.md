@@ -97,7 +97,7 @@ Adapter 负责验证 context 是否绑定当前请求客户端。
 - `includes/Rest/Controller.php`
 - `docs/openclaw-adapter-contract.md`
 - `docs/architecture/adapter-boundary.md`
-- `docs/2026-06-17-adapter-release-acceptance.md`
+- `docs/archive/2026-06-17-adapter-release-acceptance.md`
 - `tests/run.php`
 - `languages/npcink-ai-client-adapter.pot`
 - `languages/npcink-ai-client-adapter-zh_CN.po`
@@ -175,4 +175,3 @@ git diff HEAD origin/codex/approve-and-execute = empty
 3. 合并后用同一套 `composer test:all` 与 WP smoke 作为回归门；
 4. 如果继续做能力扩展，应保持 Adapter 只做 channel + explicit profile execution，
    不增加通用写入执行器。
-

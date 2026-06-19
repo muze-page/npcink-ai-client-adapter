@@ -137,9 +137,8 @@ legacy_count="$(run_wp plugin list --name=npcink-openclaw-adapter --format=count
 [[ "$file" == "$PLUGIN_SLUG/npcink-ai-client-adapter.php" ]] || fail "Unexpected package plugin file: $file"
 [[ "$legacy_count" == "0" ]] || fail "Legacy bootstrap is visible as an independent plugin."
 
-unzip -p "$PACKAGE_PATH" "$PLUGIN_SLUG/npcink-openclaw-adapter.php" | grep -q 'Legacy bootstrap' || fail "Legacy bootstrap file is missing from package."
-if unzip -p "$PACKAGE_PATH" "$PLUGIN_SLUG/npcink-openclaw-adapter.php" | grep -q 'Plugin Name:'; then
-	fail "Legacy bootstrap contains an independent WordPress plugin header."
+if unzip -l "$PACKAGE_PATH" "$PLUGIN_SLUG/npcink-openclaw-adapter.php" >/dev/null 2>&1; then
+	fail "Legacy bootstrap file should not be packaged."
 fi
 
 run_wp eval '

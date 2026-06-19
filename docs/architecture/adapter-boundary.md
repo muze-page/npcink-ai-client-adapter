@@ -84,4 +84,4 @@ the existing `site_url`, `home_url`, and `blog_id` bindings.
 
 - [`../openclaw-adapter-contract.md`](../openclaw-adapter-contract.md)
 - [`../cloud-connector-boundary.md`](../cloud-connector-boundary.md)
-- [`../2026-06-17-adapter-release-acceptance.md`](../2026-06-17-adapter-release-acceptance.md)
+- [`../archive/2026-06-17-adapter-release-acceptance.md`](../archive/2026-06-17-adapter-release-acceptance.md)

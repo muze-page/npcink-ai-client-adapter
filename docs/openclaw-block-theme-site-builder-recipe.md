@@ -228,7 +228,7 @@ It is equivalent to running the generic harness with
 
 For the accepted three-profile milestone, including the local Site Editor check,
 see
-[`2026-06-18-block-theme-template-milestone.md`](2026-06-18-block-theme-template-milestone.md).
+[`2026-06-18-block-theme-template-milestone.md`](archive/2026-06-18-block-theme-template-milestone.md).
 
 After execution, verify:
 

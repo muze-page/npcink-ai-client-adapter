@@ -114,30 +114,24 @@ or proposal input for local review.
 Adapter may consume only the Cloud Addon public seam. Current examples include:
 
 - `npcink_cloud_addon_runtime_client()`;
-- `npcink_cloud_addon_verified_runtime_client()`;
 - `npcink_cloud_addon_dispatch_media_derivative_cloud_request()`;
-- `npcink_cloud_addon_build_media_derivative_proposal_payload()`.
+- `npcink_cloud_addon_get_media_derivative_run()`;
+- `npcink_cloud_addon_get_media_derivative_run_result()`;
+- `npcink_cloud_addon_public_media_derivative_cloud_projection()`;
+- `npcink_cloud_addon_build_media_derivative_optimization_payload()`;
+- `npcink_cloud_addon_download_media_derivative_artifact()`.
 
 Adapter must not expose a parallel `/cloud/*` REST surface or duplicate Cloud
 Addon settings. If OpenClaw needs Cloud health, run status, results, stats,
 entitlement, or observability detail, Adapter should either link the operator to
 Cloud Addon or return a bounded projection obtained through Cloud Addon.
 
-For media derivatives, Adapter may expose only the bounded OpenClaw channel
-routes:
-
-- `POST /media-derivative-runs`;
-- `GET /media-derivative-runs/{run_id}`;
-- `GET /media-derivative-runs/{run_id}/result`;
-- `GET /media-derivative-artifacts/{artifact_id}/preview`;
-- `POST /media-derivative-proposal-payload`.
-
-Those routes build the local read-only request contract, pass source or
-watermark uploads/artifact references through Cloud Addon, return Cloud
-run/result projections, stream one same-origin local preview through Cloud
-Addon, and build a Core-ready proposal payload. They must not create Core
-proposals, approve adoption, update attachment metadata, replace media files,
-or store artifact truth.
+For media derivatives, Adapter must not expose Cloud façade routes such as
+`/media-derivative-runs`, artifact preview proxy routes, or derivative
+proposal-payload builders. Cloud Addon owns the Cloud run/result/artifact
+transport seam. Adapter may only expose proposal-specific readiness and execute
+the explicit post-Core `adopt-cloud-media-derivative` profile after Core
+approval and commit preflight.
 
 ## Forbidden Adapter Shapes
 

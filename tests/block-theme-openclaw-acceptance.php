@@ -573,8 +573,8 @@ $help         = maa_adapter_btoa_rest( 'GET', '/npcink-openclaw-adapter/v1/help'
 $capabilities = maa_adapter_btoa_rest( 'GET', '/npcink-openclaw-adapter/v1/capabilities', array(), $assertions );
 
 maa_adapter_btoa_assert( $assertions, true === (bool) ( $health['dependencies_ready'] ?? false ), 'Adapter dependencies are ready' );
-maa_adapter_btoa_assert( $assertions, isset( $help['openclaw_recipes']['block_theme_site_plan'] ), 'Help exposes block_theme_site_plan recipe' );
-maa_adapter_btoa_assert( $assertions, isset( $help['openclaw_recipes']['block_theme_site_plan']['contract_inspection_ability_id'] ), 'Help exposes contract inspection ability' );
+maa_adapter_btoa_assert( $assertions, ! isset( $help['openclaw_recipes'] ), 'Help does not expose Adapter-owned recipe catalog' );
+maa_adapter_btoa_assert( $assertions, in_array( 'npcink-abilities-toolkit/build-block-theme-site-plan', (array) ( $help['supported_plan_ability_ids'] ?? array() ), true ), 'Help exposes block theme site plan as supported plan ability' );
 maa_adapter_btoa_assert( $assertions, ! empty( $capabilities['items'] ?? array() ), 'Capabilities are available' );
 
 $report['startup'] = array(

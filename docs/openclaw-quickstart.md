@@ -181,13 +181,51 @@ Administrators manage authorized public keys from `Npcink -> Adapter` in the
 higher-security signed key-pair section. Revoke a key there to stop the
 corresponding local profile from authenticating.
 
+### `GET /health` returns `401 rest_forbidden`
+
+`GET /health` is a private Adapter route. A raw unauthenticated request, such as
+direct `curl` without the signed local request wrapper, should be rejected by
+WordPress REST before any Toolkit, Core, composer, proposal, or execution step
+runs. Treat that `401 rest_forbidden` response as an authentication failure, not
+as evidence that `route-content-intent`, the Gutenberg block catalog, or Core
+proposal intake failed.
+
+For local OpenClaw validation, first confirm the same profile works through the
+signed wrapper:
+
+```bash
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /help
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
+```
+
+Use `--insecure-local-tls` only for LocalWP or other `.local` self-signed HTTPS
+testing. If the same command fails with `self-signed certificate`, retry with
+that flag or configure a trusted local CA. If it fails with `rest_forbidden`,
+re-pair the profile or verify in WordPress that the stored public key is not
+revoked and belongs to an administrator-capable user.
+
+Do not treat a displayed `scopes_effective` list as proof that the actual REST
+request was signed. If `status --profile=local --insecure-local-tls` reports
+ready, but OpenClaw still receives `401 rest_forbidden`, the likely causes are:
+
+- OpenClaw bypassed the local signed request wrapper.
+- OpenClaw used a different profile or profile path.
+- OpenClaw omitted the LocalWP TLS option.
+- OpenClaw sent an unsigned or incorrectly signed Adapter-relative request.
+
+Never read, print, summarize, or copy
+`~/.npcink-openclaw-adapter/keypair-profiles/*.json`. Use the CLI wrapper or an
+equivalent Ed25519 signing implementation instead.
+
 ## Connection Check
 
 1. Call `GET /health`.
 2. Confirm:
    - `core_capabilities=true`
    - `abilities_catalog=true`
-   -    - `approval_surface=npcink_governance_core_admin`
+   - `approval_surface=npcink_governance_core_admin`
    - `core_proxy_execute=false`
    - `commit_execution=false`
 3. Call `GET /help` to confirm route discovery includes proposal list/detail,
