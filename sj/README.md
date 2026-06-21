@@ -25,6 +25,17 @@ top-level `assets/` directory:
 - `exports/wordpress-org/banner-772x250.png`
 - `exports/wordpress-org/icon-256x256.png`
 - `exports/wordpress-org/icon-128x128.png`
+- `exports/wordpress-org/screenshot-1.png`
+- `exports/wordpress-org/screenshot-2.png`
+- `exports/wordpress-org/screenshot-3.png`
+
+Screenshot captions are defined in the `== Screenshots ==` section of the
+root `readme.txt`. Keep the exported screenshot filenames and readme numbering
+in sync:
+
+1. Adapter connection overview.
+2. Active key-pair devices with a revoked-device summary.
+3. WordPress Application Password fallback flow.
 
 Do not copy this whole `sj` folder into the plugin zip.
 

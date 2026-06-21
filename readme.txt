@@ -9,19 +9,32 @@ Stable tag: 0.3.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Thin AI client channel plugin for Npcink Governance Core and WordPress Abilities execution.
+Connect local AI clients such as OpenClaw to governed WordPress abilities through a thin REST adapter.
 
 == Description ==
 
-Npcink AI Client Adapter gives OpenClaw-compatible and similar AI clients one WordPress REST namespace for reading Npcink Governance Core capability guidance, routing approved read abilities through the WordPress Abilities API, and forwarding governed write requests to Npcink Governance Core proposal and commit-preflight endpoints.
+Npcink AI Client Adapter connects local AI clients, such as OpenClaw-compatible tools, to a WordPress site through a focused REST adapter.
 
-Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, or execute final write mutations without Core approval and commit-preflight.
+It is designed for sites that use Npcink Governance Core for reviewable AI operations and WordPress Abilities API providers, such as Npcink Abilities Toolkit, for concrete WordPress capabilities. The Adapter gives clients one stable WordPress REST surface for checking readiness, reading governance guidance, running approved read abilities, creating governed proposals, and executing supported writes only after Core approval and commit-preflight.
 
-Adapter can be distributed as the Npcink AI suite entry plugin while Core and Toolkit remain separate plugins. Adapter health reports missing dependencies and dependency-sensitive routes fail closed with a structured missing dependency error.
+The default connection path uses signed key-pair pairing so the AI client does not need to receive a WordPress Application Password. A WordPress Application Password fallback is available for clients that already have a dedicated secret field or credential vault.
 
-Adapter exposes a machine-readable `client_policy` on health, help, and the connection manifest so OpenClaw-compatible clients, Qclaw-style clients, WorkBuddy-style clients, or other local AI clients can consume explicit route, output, sensitive-read, and write-flow boundaries. The local CLI also redacts profile paths, key ids, signing headers, tokens, passwords, and secrets from output.
+Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, act as an MCP server, manage model providers, store prompts, or execute arbitrary final write mutations. Governance remains in Npcink Governance Core. Ability definitions and callbacks remain in Npcink Abilities Toolkit or another WordPress Abilities API provider.
 
-Current governed execution support covers individually approved proposal execution for explicit Adapter profiles, including `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/update-template-blocks`, `npcink-abilities-toolkit/upsert-template-blocks`, `npcink-abilities-toolkit/update-template-part-blocks`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
+Adapter exposes a machine-readable `client_policy` on health, help, and the connection manifest so compatible clients can consume explicit route, output, sensitive-read, and write-flow boundaries. The local CLI also redacts profile paths, key ids, signing headers, tokens, passwords, and secrets from output.
+
+Current governed execution support covers explicit Adapter profiles after Core approval, including `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
+
+Key features:
+
+* Connect OpenClaw-compatible and similar local AI clients to WordPress through one Adapter REST namespace.
+* Check Adapter readiness and dependency status before a client starts work.
+* Expose a machine-readable `client_policy` so clients can understand route, read, write, and sensitive-data boundaries.
+* Route approved direct-read requests through the WordPress Abilities API.
+* Forward governed write requests to Npcink Governance Core proposal and commit-preflight endpoints.
+* Support a user-triggered approve-and-execute path for explicit, allowlisted execution profiles after Core approval.
+* Prefer signed key-pair pairing for local clients, with an Application Password fallback when appropriate.
+* Keep channel, governance, ability, cloud, and model-provider responsibilities separate.
 
 == Installation ==
 
@@ -34,11 +47,37 @@ Current governed execution support covers individually approved proposal executi
 
 = Does Adapter approve proposals? =
 
-Adapter provides an explicit `approve-and-execute` user action for supported execution profiles. Npcink Governance Core remains the governance backend for proposal storage, approval, commit-preflight, and audit.
+Adapter provides a user-triggered `approve-and-execute` action for supported execution profiles, but Npcink Governance Core remains the governance backend for proposal storage, approval, commit-preflight, and audit.
 
 = Does Adapter execute arbitrary abilities? =
 
-Adapter executes supported execution profiles after Core approval and commit-preflight. Current profiles include draft, post update, taxonomy, media metadata/upload/featured-image, media derivative, comment, and bounded destructive operations documented in the OpenClaw batch execution policy.
+No. Adapter executes only explicit, supported execution profiles after Core approval and commit-preflight. It is not a generic ability executor and does not bypass Core governance.
+
+= Do I need other Npcink plugins? =
+
+Yes. Npcink Abilities Toolkit provides the ability definitions and callbacks used by the Adapter. Npcink Governance Core is required for governed proposals, approval, commit-preflight, and audit.
+
+= Which AI clients can connect? =
+
+Adapter is built for OpenClaw-compatible local clients and similar tools that can call authenticated WordPress REST endpoints and consume the Adapter `client_policy`.
+
+= Does Adapter send my WordPress password to an AI client? =
+
+The recommended signed key-pair path avoids giving the client a WordPress Application Password. Adapter stores only the approved public key. The Application Password path remains available as a fallback for clients with a dedicated secret field or credential vault.
+
+= Does Adapter run AI models or store prompts? =
+
+No. Adapter is a channel layer. It does not provide model routing, prompt management, provider credentials, workflow queues, or hosted AI execution.
+
+= What happens if dependencies are missing? =
+
+Adapter health and help routes can report dependency status. Routes that require Npcink Governance Core or a WordPress Abilities API provider fail closed with a structured missing dependency error.
+
+== Screenshots ==
+
+1. Adapter connection overview with site readiness, active device count, and the recommended signed key-pair pairing flow.
+2. Active key-pair devices with device identifiers, last-used timestamps, status labels, revoke actions, and a revoked-device summary.
+3. WordPress Application Password fallback connection flow for clients that use a dedicated secret field or credential vault.
 
 == Changelog ==
 

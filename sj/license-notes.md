@@ -22,16 +22,23 @@ Final WordPress.org exports:
 - `exports/wordpress-org/banner-772x250.png`
 - `exports/wordpress-org/icon-256x256.png`
 - `exports/wordpress-org/icon-128x128.png`
+- `exports/wordpress-org/screenshot-1.png`
+- `exports/wordpress-org/screenshot-2.png`
+- `exports/wordpress-org/screenshot-3.png`
 
 ## Creation Method
 
 The artwork was generated from text prompts prepared by the project maintainer.
+The screenshots were captured from a local WordPress development site with
+temporary demo key-pair records and a temporary administrator account that were
+removed after capture.
 
 - Tool used: AI image generation tool selected by the project maintainer.
-- Generation date: 2026-05-31.
+- Generation/export date: 2026-06-21.
 - Prompt file: `image-prompts.md`.
 - Human edits: resized, center-cropped where needed, and exported to
-  WordPress.org asset dimensions.
+  WordPress.org asset dimensions. The banner export corrects the `AI` acronym
+  casing in the rendered title.
 - Reference images used: none recorded.
 - Third-party logos used: none.
 - Trademarked marks used: none.
