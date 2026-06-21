@@ -194,7 +194,7 @@ function maa_adapter_smoke_assert_contract_snapshot( array $payload, string $lab
 		'toolkit_plugin_min_version'           => '0.5.1',
 		'execution_profile_registry_hash'      => 'sha256:cbf4526e77729afbf29143687d0ccbacac61f3817595120130c9042d0695ea87',
 		'supported_execute_ability_ids_hash'   => 'sha256:c09978a7d53804457b58a1d5233ea18bc1d06eb8a1485da74ae35ccd32ea4ac6',
-		'supported_plan_ability_ids_hash'      => 'sha256:a527b1ab5e243b9a3507edaf796aec9e88be7b8a693543daa2e4570c2d028be8',
+		'supported_plan_ability_ids_hash'      => 'sha256:ffed82aca7ea91cdde4a55262dca0960bf7e251b826604073c313c2d76e586b5',
 		'max_execution_actions'                => 200,
 		'core_proxy_execute'                   => false,
 		'commit_execution'                     => false,
@@ -1365,6 +1365,7 @@ maa_adapter_smoke_assert( in_array( 'npcink-toolbox/build-site-knowledge-review-
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-optimization-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media optimization plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-adoption-enhancement-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media adoption enhancement plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-media-rename-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes media rename plan supported profiles' );
+maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-content-metadata-apply-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes content metadata apply plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-optimization-apply-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article optimization apply plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-article-block-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes article block plan supported profiles' );
 maa_adapter_smoke_assert( in_array( 'npcink-abilities-toolkit/build-block-theme-site-plan', (array) ( $health['supported_plan_ability_ids'] ?? array() ), true ), 'adapter health exposes block theme site plan supported profiles' );
@@ -1956,6 +1957,138 @@ maa_adapter_smoke_assert( $output_reference_plan_post_id > 0, 'adapter from-plan
 maa_adapter_smoke_assert( $output_reference_plan_post_id === (int) ( $output_reference_plan_result['results'][1]['post_id'] ?? 0 ), 'adapter from-plan output-reference batch updates the created draft' );
 maa_adapter_smoke_assert( $output_reference_plan_post_id === (int) ( $output_reference_plan_result['results'][2]['post_id'] ?? 0 ), 'adapter from-plan output-reference batch trashes the created draft' );
 maa_adapter_smoke_assert( 'trash' === (string) get_post_status( $output_reference_plan_post_id ), 'adapter from-plan output-reference batch leaves created draft trashed' );
+
+$content_metadata_post_id = maa_adapter_smoke_create_trash_post_fixture();
+$maa_adapter_smoke_cleanup_post_ids[] = $content_metadata_post_id;
+$content_metadata_category = wp_insert_term( 'Adapter Metadata Category ' . wp_generate_uuid4(), 'category' );
+maa_adapter_smoke_assert( ! is_wp_error( $content_metadata_category ) && (int) ( $content_metadata_category['term_id'] ?? 0 ) > 0, 'adapter smoke created content metadata category fixture' );
+$content_metadata_category_id = (int) $content_metadata_category['term_id'];
+$maa_adapter_smoke_cleanup_terms[] = array(
+	'term_id'  => $content_metadata_category_id,
+	'taxonomy' => 'category',
+);
+$content_metadata_tag = wp_insert_term( 'Adapter Metadata Tag ' . wp_generate_uuid4(), 'post_tag' );
+maa_adapter_smoke_assert( ! is_wp_error( $content_metadata_tag ) && (int) ( $content_metadata_tag['term_id'] ?? 0 ) > 0, 'adapter smoke created content metadata tag fixture' );
+$content_metadata_tag_id = (int) $content_metadata_tag['term_id'];
+$maa_adapter_smoke_cleanup_terms[] = array(
+	'term_id'  => $content_metadata_tag_id,
+	'taxonomy' => 'post_tag',
+);
+$content_metadata_excerpt = 'Adapter content metadata apply excerpt smoke.';
+$content_metadata_bridge = maa_adapter_smoke_rest(
+	'POST',
+	'/npcink-openclaw-adapter/v1/proposals/from-plan',
+	array(
+		'plan_ability_id' => 'npcink-abilities-toolkit/build-content-metadata-apply-plan',
+		'plan'            => array(
+			'success' => true,
+			'data'    => array(
+				'artifact_type'           => 'content_metadata_apply_plan',
+				'version'                 => 1,
+				'batch_id'                => 'adapter-content-metadata-apply-smoke',
+				'proposal_mode'           => 'batch',
+				'batch_approval'          => true,
+				'target_post_id'          => $content_metadata_post_id,
+				'post'                    => array(
+					'post_id' => $content_metadata_post_id,
+				),
+				'accepted_choices'        => array(
+					'excerpt'      => $content_metadata_excerpt,
+					'category_ids' => array( $content_metadata_category_id ),
+					'tag_ids'      => array( $content_metadata_tag_id ),
+				),
+				'authorization'           => array(
+					'classification'    => 'core_proposal_required',
+					'decision_version'  => 'operation-classification-v1',
+					'decision_envelope' => array(
+						'classification'             => 'core_proposal_required',
+						'request_source'             => 'external_adapter',
+						'actor_presence'             => 'delegated',
+						'preview_completeness'       => 'sufficient',
+						'scope'                      => 'one_object',
+						'reversibility'              => 'easy_undo',
+						'operation_kind'             => 'batch_plan',
+						'writes_wordpress_state'     => true,
+					),
+				),
+				'write_actions'           => array(
+					array(
+						'action_id'         => 'apply-reviewed-excerpt',
+						'target_ability_id' => 'npcink-abilities-toolkit/update-post',
+						'input'             => array(
+							'post_id' => $content_metadata_post_id,
+							'excerpt' => $content_metadata_excerpt,
+							'dry_run' => true,
+							'commit'  => false,
+						),
+						'requires_approval' => true,
+						'commit_execution'  => false,
+						'proposal_ready'    => true,
+					),
+					array(
+						'action_id'         => 'apply-reviewed-categories',
+						'target_ability_id' => 'npcink-abilities-toolkit/set-post-terms',
+						'input'             => array(
+							'post_id'        => $content_metadata_post_id,
+							'taxonomy'       => 'category',
+							'mode'           => 'append',
+							'term_ids'       => array( $content_metadata_category_id ),
+							'terms'          => array(),
+							'create_missing' => false,
+							'dry_run'        => true,
+							'commit'         => false,
+						),
+						'requires_approval' => true,
+						'commit_execution'  => false,
+						'proposal_ready'    => true,
+					),
+					array(
+						'action_id'         => 'apply-reviewed-tags',
+						'target_ability_id' => 'npcink-abilities-toolkit/set-post-terms',
+						'input'             => array(
+							'post_id'        => $content_metadata_post_id,
+							'taxonomy'       => 'post_tag',
+							'mode'           => 'append',
+							'term_ids'       => array( $content_metadata_tag_id ),
+							'terms'          => array(),
+							'create_missing' => false,
+							'dry_run'        => true,
+							'commit'         => false,
+						),
+						'requires_approval' => true,
+						'commit_execution'  => false,
+						'proposal_ready'    => true,
+					),
+				),
+				'manual_review'           => array(),
+				'skipped_destructive_candidates' => array(),
+				'risk'                    => array(
+					'level'  => 'medium',
+					'reason' => 'Adapter content metadata apply smoke.',
+				),
+				'requires_approval'       => true,
+				'direct_wordpress_write'  => false,
+				'commit_execution'        => false,
+				'dry_run'                 => true,
+			),
+		),
+	)
+);
+maa_adapter_smoke_assert( 1 === (int) ( $content_metadata_bridge['proposal_count'] ?? 0 ), 'adapter content metadata apply plan creates one Core batch proposal' );
+$content_metadata_proposal = is_array( $content_metadata_bridge['proposals'][0] ?? null ) ? $content_metadata_bridge['proposals'][0] : array();
+$content_metadata_proposal_id = (string) ( $content_metadata_proposal['proposal_id'] ?? '' );
+$maa_adapter_smoke_cleanup_proposal_ids[] = $content_metadata_proposal_id;
+maa_adapter_smoke_assert( 'plan_to_proposal_batch' === (string) ( $content_metadata_proposal['preview']['source']['type'] ?? '' ), 'adapter content metadata apply proposal records batch source' );
+maa_adapter_smoke_assert( 'content_metadata_apply_plan' === (string) ( $content_metadata_proposal['preview']['content_metadata_apply']['artifact_type'] ?? '' ), 'adapter content metadata apply proposal preserves metadata preview' );
+$content_metadata_execute = maa_adapter_smoke_rest( 'POST', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $content_metadata_proposal_id ) . '/approve-and-execute' );
+maa_adapter_smoke_assert( true === (bool) ( $content_metadata_execute['success'] ?? false ), 'adapter content metadata apply batch approve-and-execute succeeds' );
+maa_adapter_smoke_assert( 3 === (int) ( $content_metadata_execute['executed_count'] ?? 0 ), 'adapter content metadata apply batch executes excerpt, category, and tag actions' );
+$content_metadata_post_after = get_post( $content_metadata_post_id );
+maa_adapter_smoke_assert( is_object( $content_metadata_post_after ) && $content_metadata_excerpt === (string) $content_metadata_post_after->post_excerpt, 'adapter content metadata apply batch writes reviewed excerpt' );
+$content_metadata_category_ids = wp_get_post_terms( $content_metadata_post_id, 'category', array( 'fields' => 'ids' ) );
+maa_adapter_smoke_assert( ! is_wp_error( $content_metadata_category_ids ) && in_array( $content_metadata_category_id, array_map( 'intval', (array) $content_metadata_category_ids ), true ), 'adapter content metadata apply batch assigns reviewed category' );
+$content_metadata_tag_ids = wp_get_post_terms( $content_metadata_post_id, 'post_tag', array( 'fields' => 'ids' ) );
+maa_adapter_smoke_assert( ! is_wp_error( $content_metadata_tag_ids ) && in_array( $content_metadata_tag_id, array_map( 'intval', (array) $content_metadata_tag_ids ), true ), 'adapter content metadata apply batch assigns reviewed tag' );
 
 $article_plan = array(
 	'artifact_type'           => 'article_write_plan',
