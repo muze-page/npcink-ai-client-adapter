@@ -29,6 +29,9 @@
 	padding-right: 18px;
 	border-right: 1px solid #dcdcde;
 }
+.npcink-openclaw-adapter-connection .maa-summary .maa-label {
+	margin-bottom: 0;
+}
 .npcink-openclaw-adapter-connection .maa-label {
 	display: block;
 	margin-bottom: 4px;

@@ -160,7 +160,7 @@ final class Connection_Page {
 				<tbody>
 					<?php
 					$this->render_overview_row( __( 'Core', 'npcink-ai-client-adapter' ), __( 'Review proposals, approval decisions, commit preflight, audit, and Core app keys.', 'npcink-ai-client-adapter' ), 'npcink-governance-core' );
-					$this->render_overview_row( __( 'Adapter', 'npcink-ai-client-adapter' ), __( 'Connect AI clients through the Adapter surface.', 'npcink-ai-client-adapter' ), self::MENU_SLUG );
+					$this->render_overview_row( __( 'Adapter', 'npcink-ai-client-adapter' ), __( 'Connect this site to local AI clients.', 'npcink-ai-client-adapter' ), self::MENU_SLUG );
 					$this->render_overview_row( __( 'Abilities', 'npcink-ai-client-adapter' ), __( 'Verify WordPress Abilities API packages and demo ability controls.', 'npcink-ai-client-adapter' ), 'npcink-abilities-toolkit' );
 					$this->render_overview_row( __( 'Cloud Addon', 'npcink-ai-client-adapter' ), __( 'Connect this site to Npcink Cloud without moving local control-plane truth.', 'npcink-ai-client-adapter' ), 'npcink-cloud-addon' );
 					?>
@@ -237,8 +237,8 @@ final class Connection_Page {
 			data-maa-copied-label="<?php echo esc_attr__( 'Copied', 'npcink-ai-client-adapter' ); ?>"
 			data-maa-copy-failed-label="<?php echo esc_attr__( 'Copy failed', 'npcink-ai-client-adapter' ); ?>"
 		>
-			<h1><?php echo esc_html__( 'Npcink AI Client Adapter', 'npcink-ai-client-adapter' ); ?></h1>
-			<p class="description"><?php echo esc_html__( 'Connect OpenClaw-compatible and similar AI clients to this WordPress site through the Adapter REST surface.', 'npcink-ai-client-adapter' ); ?></p>
+			<h1><?php echo esc_html__( 'Client Adapter', 'npcink-ai-client-adapter' ); ?></h1>
+			<p class="description"><?php echo esc_html__( 'Connect this WordPress site to OpenClaw or other local AI clients.', 'npcink-ai-client-adapter' ); ?></p>
 
 			<div class="maa-summary">
 				<div class="maa-summary-item">
@@ -333,16 +333,6 @@ final class Connection_Page {
 					</details>
 				</section>
 			</div>
-
-			<p class="maa-developer-note">
-				<?php
-				printf(
-					/* translators: %s: developer document file name. */
-						esc_html__( 'Developer route details and local testing notes are documented in %s.', 'npcink-ai-client-adapter' ),
-					'<code>docs/admin-developer-reference.md</code>'
-				);
-				?>
-			</p>
 
 		</div>
 		<?php

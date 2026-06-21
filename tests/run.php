@@ -1254,6 +1254,9 @@ maa_adapter_assert( false !== strpos( $connection_page, "const PARENT_MENU_SLUG 
 foreach (
 	array(
 			'Npcink AI Client Adapter',
+			'Client Adapter',
+			'Connect this site to local AI clients.',
+			'Connect this WordPress site to OpenClaw or other local AI clients.',
 			'Adapter',
 				'AI Client Connection Created',
 			'Secure key-pair connection',
@@ -1269,8 +1272,6 @@ foreach (
 			'data-maa-open-target="maa-authorized-devices"',
 			'Revoke a device when it is no longer used or was approved by mistake',
 			'Create Application Password connection',
-					'Developer route details and local testing notes are documented',
-			'docs/admin-developer-reference.md',
 			'add_submenu_page',
 			'PARENT_MENU_SLUG',
 				'WP_Application_Passwords::create_new_application_password',
@@ -1442,6 +1443,8 @@ foreach (
 		'max-width: 900px',
 		'margin: 18px 0 16px 20px',
 		'padding: 0',
+		'.maa-summary .maa-label',
+		'margin-bottom: 0',
 		'maa-action-hint::before',
 		'border-left: 3px solid #72aee6',
 		'vertical-align: middle',
@@ -1503,6 +1506,10 @@ maa_adapter_assert( false !== strpos( $connection_page, "admin_url( 'admin.php?p
 maa_adapter_assert( false === strpos( $connection_page, 'menu_page_url( self::MENU_SLUG, false )' ), 'Created handoff return link does not resolve through current admin-post context.' );
 maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'npcink-ai-client-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Npcink AI Client Adapter', 'npcink-ai-client-adapter' ),\n\t\t\t__( 'Adapter', 'npcink-ai-client-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
+maa_adapter_assert( false !== strpos( $connection_page, "esc_html__( 'Client Adapter', 'npcink-ai-client-adapter' )" ), 'Connection page uses a localized functional admin heading.' );
+maa_adapter_assert( false === strpos( $connection_page, 'Developer route details and local testing notes are documented' ), 'Connection page default view does not show developer route notes.' );
+maa_adapter_assert( false === strpos( $connection_page, '<code>docs/admin-developer-reference.md</code>' ), 'Connection page default view keeps developer reference out of the admin surface.' );
+maa_adapter_assert( false === strpos( $connection_page, 'Connect AI clients through the Adapter surface.' ), 'Connection page avoids the old Adapter-surface connection wording.' );
 maa_adapter_assert( false === strpos( $connection_page, 'npcink-openclaw-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "'npcink-cloud-addon'" ), 'Connection page overview links to the canonical Cloud Addon slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Cloud Addon', 'npcink-ai-client-adapter' )" ), 'Connection page overview labels the Cloud Addon surface.' );
