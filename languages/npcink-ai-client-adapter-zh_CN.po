@@ -38,7 +38,7 @@ msgstr "Npcink"
 
 #: includes/Admin/Connection_Page.php:51 includes/Admin/Connection_Page.php:163
 msgid "Adapter"
-msgstr "适配器"
+msgstr "渠道适配器"
 
 #: includes/Admin/Connection_Page.php:60 includes/Admin/Connection_Page.php:61
 #: includes/Admin/Connection_Page.php:457
@@ -120,7 +120,7 @@ msgstr "复制失败"
 
 #: includes/Admin/Connection_Page.php:240
 msgid "Client Adapter"
-msgstr "客户端适配器"
+msgstr "渠道适配器"
 
 #: includes/Admin/Connection_Page.php:241
 msgid "Connect this WordPress site to OpenClaw or other local AI clients."
