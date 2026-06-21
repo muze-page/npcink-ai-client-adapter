@@ -21,7 +21,7 @@ msgstr ""
 #: npcink-ai-client-adapter.php includes/Admin/Connection_Page.php:51
 #: includes/Admin/Connection_Page.php:242
 msgid "Npcink AI Client Adapter"
-msgstr "Npcink AI 客户端适配器"
+msgstr "Npcink AI Client Adapter"
 
 #. Description of the plugin
 #: npcink-ai-client-adapter.php
