@@ -9,9 +9,11 @@ This guide tells AI callers how to request Cloud-generated media derivatives
 without bypassing local WordPress governance.
 
 The media derivative capability is exposed through local WordPress abilities
-and Adapter recipe routes. Cloud is a runtime processor only. It does not
+and Cloud Addon transport. Cloud is a runtime processor only. It does not
 publish a second ability registry, approve writes, replace files, or update
-attachment metadata.
+attachment metadata. Adapter remains the OpenClaw channel for read abilities,
+Core proposals, and approved execution; it does not expose media derivative
+run, result, artifact preview, or proposal-payload facade routes.
 
 ## Canonical Ability Entry
 
@@ -65,20 +67,16 @@ write WordPress.
 
 ## Recommended AI Flow
 
-AI callers should use Adapter's bounded media derivative recipe, not direct
-Cloud runtime calls:
+AI callers should use Adapter only for local read abilities and governed
+proposal handoff. Cloud derivative transport belongs to Cloud Addon or approved
+Cloud tooling:
 
 1. Select or receive a WordPress image `attachment_id`. For bulk requests, first
    call `npcink-abilities-toolkit/build-media-derivative-batch-plan` through
    `/run-read-ability`, review `candidates` and `skipped`, and process only a
    small approved slice.
-2. Call:
-
-   ```http
-   POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs
-   ```
-
-   Example body:
+2. Ask Cloud Addon or approved Cloud tooling to create the derivative run.
+   Example Cloud Addon request body:
 
    ```json
    {
@@ -103,30 +101,15 @@ Cloud runtime calls:
    }
    ```
 
-3. Poll:
+3. Poll and read the result through Cloud Addon or Cloud tooling.
+4. Show the reviewed same-origin preview URL from the result when present.
+5. Build a local plan with `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`
+   or `npcink-abilities-toolkit/build-media-optimization-plan` through
+   `POST /run-read-ability`. Include the reviewed preview URL, Cloud result
+   evidence, derivative artifact details, and reviewed metadata when the user
+   intent is full media optimization.
 
-   ```http
-   GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}
-   ```
-
-4. Read result:
-
-   ```http
-   GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result
-   ```
-
-5. Show the local same-origin preview URL from the result when present.
-6. Build proposal payload:
-
-   ```http
-   POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload
-   ```
-
-   Include `ability_response`, `cloud_result`, `derivative_artifact`, and
-   reviewed `media_details_input` when the requested user intent is full media
-   optimization.
-
-7. For full media optimization, submit the returned `from_plan_request` to:
+6. For full media optimization, submit the returned plan to:
 
    ```text
    POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan
@@ -139,15 +122,16 @@ Cloud runtime calls:
    post/count expectations into the adoption input; it must not add a separate
    `npcink-abilities-toolkit/patch-post-content` action for the same media
    optimization intent.
-   If `media_details_input` is missing, collect reviewed title/alt/caption/
-   description/source metadata first and retry `POST /media-derivative-proposal-payload`;
+   If reviewed media details are missing, collect reviewed title/alt/caption/
+   description/source metadata first and rebuild the local plan through
+   `POST /run-read-ability`;
    do not create a derivative-only Core proposal for the same optimization
    request.
    If Core reports the plan ability is unavailable, treat that as a local
    capability/version guard and ask for the local stack to be updated. Do not
    split the same media optimization user intent into two proposal approvals.
 
-8. Let Core approval, preflight, audit, execution, and rollback govern the
+7. Let Core approval, preflight, audit, execution, and rollback govern the
    final WordPress write.
 
 ## Direct Ability Flow
@@ -176,7 +160,7 @@ Example body:
 ```
 
 This returns only the local request contract. The caller must still use Cloud
-Addon or Adapter recipe routes to dispatch the Cloud job.
+Addon or approved Cloud tooling to dispatch the Cloud job.
 
 For batch planning:
 
@@ -193,8 +177,8 @@ For batch planning:
 }
 ```
 
-Then call `POST /media-derivative-runs` once per reviewed candidate using that
-candidate's `cloud_request_input`.
+Then dispatch one Cloud Addon or Cloud-tooling derivative run per reviewed
+candidate using that candidate's `cloud_request_input`.
 
 ## Adoption Write Ability
 
@@ -222,7 +206,8 @@ execution path.
 
 Do:
 
-- use `POST /media-derivative-runs` as the normal entrypoint;
+- use Cloud Addon or approved Cloud tooling for media derivative run/result
+  transport;
 - use `npcink-abilities-toolkit/build-media-derivative-batch-plan` before bulk conversion
   requests;
 - treat Cloud artifacts as short-lived previews;
@@ -233,7 +218,8 @@ Do:
 
 Do not:
 
-- call Cloud directly from third-party AI clients;
+- call Cloud directly from third-party AI clients unless the environment has an
+  explicit approved Cloud tool for that purpose;
 - store Cloud artifact ids as media registry truth;
 - expose Cloud download URLs publicly;
 - decide WordPress writes from Cloud responses;
@@ -244,11 +230,8 @@ Do not:
 ## Related Routes
 
 ```text
-POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs
-GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}
-GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result
-GET  /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview
-POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
+POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan
 POST /wp-json/npcink-openclaw-adapter/v1/proposals
 POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute
 ```

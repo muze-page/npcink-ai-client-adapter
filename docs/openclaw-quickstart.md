@@ -529,21 +529,12 @@ provider credentials, prompts, responses, token details, or AI Request Logs into
 Core.
 AI Request Logs are the provider request log.
 
-Provider log readiness smoke after Core approval and Adapter commit-preflight.
-This example uses local Ollama when `qwen3.5:0.8b` is available; otherwise use
-a configured text generation provider/model from
-`GET /ai/v1/providers?capability=text_generation`:
-
-```bash
-curl -sS --user "1:<openclaw-secret-field-value>" \
-  -H "Content-Type: application/json" \
-  -d '{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID","ability_id":"npcink-abilities-toolkit/create-draft","ai_provider":"ollama","ai_model":"qwen3.5:0.8b","prompt":"Reply with exactly: OK"}' \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/ai-provider-log-correlation-smoke"
-```
-
-Then open AI Request Logs and search the same `proposal_id` or
-`correlation_id`. If the provider column is blank, use the Adapter context
-fields for the explicit `ai_provider` and `ai_model` sent to the smoke route.
+Provider log correlation is verified only when a downstream AI client, Cloud
+runtime, or provider integration emits an AI Request Logs row under Adapter
+context. Adapter does not expose a provider/model smoke endpoint. Open AI
+Request Logs and search the same `proposal_id` or `correlation_id`; if the
+provider column is blank, use the Adapter context fields for the explicit
+`ai_provider` and `ai_model` recorded by the downstream provider integration.
 
 Approval and rejection endpoints are visible only as generic approval proxy routes:
 

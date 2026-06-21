@@ -30,12 +30,19 @@ final class Controller {
 	const DEVICE_PAIRING_TTL       = 600;
 	const SIGNATURE_NONCE_TTL      = 300;
 	const DEVICE_PAIRING_RATE_LIMIT_TTL = 60;
+	const DEVICE_PAIRING_POLL_RATE_LIMIT_TTL = 60;
 	const MAX_DEVICE_PAIRINGS          = 100;
 	const MAX_DEVICE_PAIRING_STARTS_PER_WINDOW = 20;
+	const MAX_DEVICE_PAIRING_POLLS_PER_WINDOW = 60;
 	const MAX_DEVICE_PAIRING_BODY_BYTES = 8192;
 	const MAX_DEVICE_PAIRING_POLL_BODY_BYTES = 1024;
 	const MAX_EXECUTION_RECORDS        = 500;
 	const MAX_PREFLIGHT_HANDOFFS       = 500;
+	const EXECUTION_LOCK_TTL           = 300;
+	const DISCOVERY_CACHE_TTL          = 60;
+	const PREFLIGHT_HANDOFF_RETENTION_TTL = 900;
+	const EXECUTION_RECORD_RETENTION_TTL = 604800;
+	const MAX_UPSTREAM_ERROR_DETAIL_BYTES = 8192;
 	const CLIENT_KEY_LAST_USED_WRITE_TTL = 60;
 	const MAX_REST_BODY_BYTES         = 1048576;
 	const MAX_ACTION_INPUT_BYTES      = 1048576;
@@ -66,6 +73,20 @@ final class Controller {
 	 * @var string
 	 */
 	private $current_signed_client_fingerprint = '';
+
+	/**
+	 * Request-local dependency contract cache.
+	 *
+	 * @var array<string,mixed>|null
+	 */
+	private $dependency_contracts_cache = null;
+
+	/**
+	 * Request-local Core capability discovery cache.
+	 *
+	 * @var array<string,mixed>|null
+	 */
+	private $core_capabilities_cache = null;
 
 	/**
 	 * Returns Adapter-owned execution profiles for abilities that may run after
@@ -123,6 +144,16 @@ final class Controller {
 	 * @return array<string,mixed>
 	 */
 	private function dependency_contracts(): array {
+		if ( is_array( $this->dependency_contracts_cache ) ) {
+			return $this->dependency_contracts_cache;
+		}
+
+		$cached = get_transient( 'npcink_openclaw_adapter_dependency_contracts_v1' );
+		if ( is_array( $cached ) ) {
+			$this->dependency_contracts_cache = $cached;
+			return $cached;
+		}
+
 		$core    = $this->dependency_contract_summary(
 			'npcink-governance-core',
 			'/npcink-governance-core/v1/contract',
@@ -140,11 +171,16 @@ final class Controller {
 			self::TOOLKIT_PLUGIN_MIN_VERSION
 		);
 
-		return array(
+		$contracts = array(
 			'ready'                    => ! empty( $core['compatible'] ) && ! empty( $toolkit['compatible'] ),
 			'npcink-governance-core'   => $core,
 			'npcink-abilities-toolkit' => $toolkit,
 		);
+
+		$this->dependency_contracts_cache = $contracts;
+		set_transient( 'npcink_openclaw_adapter_dependency_contracts_v1', $contracts, self::DISCOVERY_CACHE_TTL );
+
+		return $contracts;
 	}
 
 	/**
@@ -873,6 +909,12 @@ final class Controller {
 		}
 
 		$device_code = sanitize_text_field( (string) ( $body['device_code'] ?? '' ) );
+		$rate_limit  = $this->enforce_device_pairing_poll_rate_limit( $device_code );
+		if ( is_wp_error( $rate_limit ) ) {
+			$this->emit_operation_event( 'adapter.device_pairing.poll', $started, $rate_limit );
+			return $rate_limit;
+		}
+
 		$pairing     = $this->device_pairing_by_device_code( $device_code );
 
 		if ( empty( $pairing ) || time() > (int) ( $pairing['expires_at'] ?? 0 ) ) {
@@ -1186,6 +1228,33 @@ final class Controller {
 	}
 
 	/**
+	 * Applies a lightweight public pairing poll rate limit.
+	 *
+	 * @param string $device_code Device code.
+	 * @return true|WP_Error
+	 */
+	private function enforce_device_pairing_poll_rate_limit( string $device_code ) {
+		$key   = 'npcink_openclaw_adapter_pairing_poll_' . md5( $this->request_rate_limit_fingerprint() . '|' . hash( 'sha256', $device_code ) );
+		$count = absint( get_transient( $key ) );
+		if ( $count >= self::MAX_DEVICE_PAIRING_POLLS_PER_WINDOW ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_device_pairing_poll_rate_limited',
+				__( 'Too many device pairing polls. Try again shortly.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'       => 429,
+					'retry_after'  => self::DEVICE_PAIRING_POLL_RATE_LIMIT_TTL,
+					'window'       => self::DEVICE_PAIRING_POLL_RATE_LIMIT_TTL,
+					'max_attempts' => self::MAX_DEVICE_PAIRING_POLLS_PER_WINDOW,
+				)
+			);
+		}
+
+		set_transient( $key, $count + 1, self::DEVICE_PAIRING_POLL_RATE_LIMIT_TTL );
+
+		return true;
+	}
+
+	/**
 	 * Returns a coarse local request fingerprint for unauthenticated throttles.
 	 *
 	 * @return string
@@ -1465,7 +1534,9 @@ final class Controller {
 			'npcink.read'    => true,
 			'npcink.propose' => true,
 			'npcink.status'  => true,
+			'npcink.execute' => true,
 		);
+		$default_scopes = array( 'npcink.read', 'npcink.propose', 'npcink.status' );
 		$scopes  = array();
 
 		foreach ( $requested as $scope ) {
@@ -1475,7 +1546,7 @@ final class Controller {
 			}
 		}
 
-		return ! empty( $scopes ) ? array_values( array_unique( $scopes ) ) : array_keys( $allowed );
+		return ! empty( $scopes ) ? array_values( array_unique( $scopes ) ) : $default_scopes;
 	}
 
 	/**
@@ -1747,7 +1818,11 @@ final class Controller {
 		$route  = $request->get_route();
 		$method = strtoupper( $request->get_method() );
 
-		if ( false !== strpos( $route, '/proposals' ) || false !== strpos( $route, '/execute-approved-proposal' ) ) {
+		if ( 'POST' === $method && $this->client_key_route_requires_execute_scope( $route ) ) {
+			return ! empty( $scopes['npcink.execute'] ) || ! empty( $scopes['magick.execute'] );
+		}
+
+		if ( false !== strpos( $route, '/proposals' ) ) {
 			return ! empty( $scopes['npcink.propose'] ) || ! empty( $scopes['magick.propose'] );
 		}
 
@@ -1756,6 +1831,19 @@ final class Controller {
 		}
 
 		return ! empty( $scopes['npcink.read'] ) || ! empty( $scopes['magick.read'] );
+	}
+
+	/**
+	 * Returns whether a signed client request consumes final execution authority.
+	 *
+	 * @param string $route REST route.
+	 * @return bool
+	 */
+	private function client_key_route_requires_execute_scope( string $route ): bool {
+		return false !== strpos( $route, '/execute-approved-proposal' )
+			|| false !== strpos( $route, '/commit-preflight' )
+			|| false !== strpos( $route, '/approve-and-execute' )
+			|| ( false !== strpos( $route, '/proposals/' ) && false !== strpos( $route, '/execute' ) );
 	}
 
 	/**
@@ -1805,7 +1893,8 @@ final class Controller {
 					'core_proxy_execute'     => false,
 					'commit_execution'       => false,
 					'approval_surface'       => 'npcink_governance_core_admin',
-					'core_app_token_configured' => '' !== $this->core_app_token(),
+						'core_app_token_configured' => 'none' !== $this->core_app_token_source(),
+						'core_app_token_source' => $this->core_app_token_source(),
 				'contract'              => $this->adapter_contract_metadata(),
 				'client_policy'         => $this->client_policy(),
 				'ai_request_log_context_fields' => array(
@@ -1998,7 +2087,8 @@ final class Controller {
 						'commit_preflight' => 'commit:preflight',
 					),
 					'approval_surface' => 'npcink_governance_core_admin',
-				'core_app_token_configured' => '' !== $this->core_app_token(),
+				'core_app_token_configured' => 'none' !== $this->core_app_token_source(),
+				'core_app_token_source' => $this->core_app_token_source(),
 				'contract' => $this->adapter_contract_metadata(),
 				'dependency_contracts' => $this->dependency_contracts(),
 				'client_policy' => $this->client_policy(),
@@ -2192,7 +2282,18 @@ final class Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function capabilities() {
-		return $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/capabilities' );
+		$response = $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/capabilities' );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data = $response->get_data();
+		if ( is_array( $data ) ) {
+			$this->core_capabilities_cache = $data;
+			set_transient( 'npcink_openclaw_adapter_core_capabilities_v1', $data, self::DISCOVERY_CACHE_TTL );
+		}
+
+		return $response;
 	}
 
 	/**
@@ -3241,31 +3342,13 @@ final class Controller {
 			);
 
 		return new WP_REST_Response(
-			array(
-				'status'             => 'executed',
-				'proposal_id'        => $proposal_id,
-				'correlation_id'     => $execution['correlation_id'],
-				'ability_id'         => $execution['ability_id'],
-				'post_id'            => $execution['post_id'],
-				'post_ids'           => $execution['post_ids'],
-				'execution_mode'     => $execution['execution_mode'],
-				'adapter_request_id' => $execution['adapter_request_id'],
-				'approval_context'   => $execution['approval_context'],
-				'preflight_source'   => $execution['preflight_source'],
-				'commit_execution'   => false,
-				'execution_surface'  => 'wp_abilities_rest',
-				'selected_count'     => $execution['selected_count'],
-				'submitted_count'    => $execution['submitted_count'],
-				'executed_count'     => $execution['executed_count'],
-				'failed_count'       => $execution['failed_count'],
-				'blocked_count'      => $execution['blocked_count'],
-				'partial_success'    => $execution['partial_success'],
-				'retryable'          => $execution['retryable'],
-				'operator_next_action' => $execution['operator_next_action'],
-				'core_preflight_evidence' => $execution['core_preflight_evidence'],
-				'execution_record'   => $execution['execution_record'],
-				'results'            => $execution['results'],
-				'result'             => $execution['result'],
+			$this->public_execution_response_payload(
+				$execution,
+				array(
+					'status'      => 'executed',
+					'proposal_id' => $proposal_id,
+				),
+				$this->request_wants_full_execution_detail( $request )
 			),
 			200
 		);
@@ -3395,50 +3478,114 @@ final class Controller {
 		);
 
 		return new WP_REST_Response(
-			array(
-				'success'               => true,
-				'proposal_id'           => $proposal_id,
-				'ability_id'            => $execution['ability_id'],
-				'post_id'               => $execution['post_id'],
-				'post_ids'              => $execution['post_ids'],
-				'execution_mode'        => $execution['execution_mode'],
-				'status_before'         => $status_before,
-				'approved_by_adapter'   => $approved_by_adapter,
-				'correlation_id'        => $execution['correlation_id'],
-				'adapter_request_id'    => $execution['adapter_request_id'],
-				'core_commit_execution' => false,
-				'approval_context'      => $execution['approval_context'],
-				'preflight_source'      => $execution['preflight_source'],
-				'batch_review_feedback' => $execution['batch_review_feedback'],
-				'selected_count'        => $execution['selected_count'],
-				'submitted_count'       => $execution['submitted_count'],
-				'executed_count'        => $execution['executed_count'],
-				'failed_count'          => $execution['failed_count'],
-				'blocked_count'         => $execution['blocked_count'],
-				'partial_success'       => $execution['partial_success'],
-				'retryable'             => $execution['retryable'],
-				'operator_next_action'  => $execution['operator_next_action'],
-				'core_preflight_evidence' => $execution['core_preflight_evidence'],
-				'execution_record'      => $execution['execution_record'],
-				'results'               => $execution['results'],
-				'execution'             => array(
-					'success'            => true,
-					'post_status_before' => $execution['post_status_before'],
-					'post_status_after'  => $execution['post_status_after'],
-					'selected_count'     => $execution['selected_count'],
-					'submitted_count'    => $execution['submitted_count'],
-					'executed_count'     => $execution['executed_count'],
-					'failed_count'       => $execution['failed_count'],
-					'blocked_count'      => $execution['blocked_count'],
-					'partial_success'    => $execution['partial_success'],
-					'retryable'          => $execution['retryable'],
-					'operator_next_action' => $execution['operator_next_action'],
-					'result'             => $execution['result'],
-					'results'            => $execution['results'],
+			$this->public_execution_response_payload(
+				$execution,
+				array(
+					'success'             => true,
+					'proposal_id'         => $proposal_id,
+					'status_before'       => $status_before,
+					'approved_by_adapter' => $approved_by_adapter,
 				),
+				$this->request_wants_full_execution_detail( $request )
 			),
 			200
 		);
+	}
+
+	/**
+	 * Returns whether the caller explicitly requested full execution detail.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function request_wants_full_execution_detail( WP_REST_Request $request ): bool {
+		return 'full' === sanitize_key( (string) $request->get_param( 'detail' ) )
+			|| $this->boolean_input_value( $request->get_param( 'debug_detail' ) );
+	}
+
+	/**
+	 * Returns whether a request value is an explicit true boolean.
+	 *
+	 * @param mixed $value Input value.
+	 * @return bool
+	 */
+	private function boolean_input_value( $value ): bool {
+		if ( true === $value ) {
+			return true;
+		}
+
+		if ( is_int( $value ) ) {
+			return 1 === $value;
+		}
+
+		if ( is_string( $value ) ) {
+			return in_array( strtolower( trim( $value ) ), array( '1', 'true', 'yes', 'on' ), true );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Builds the public response for Adapter final execution routes.
+	 *
+	 * @param array<string,mixed> $execution Execution result.
+	 * @param array<string,mixed> $extra Extra top-level fields.
+	 * @param bool                $include_detail Whether to include raw execution detail.
+	 * @return array<string,mixed>
+	 */
+	private function public_execution_response_payload( array $execution, array $extra, bool $include_detail ): array {
+		$payload = array_merge(
+			$extra,
+			array(
+				'correlation_id'          => (string) ( $execution['correlation_id'] ?? '' ),
+				'ability_id'               => (string) ( $execution['ability_id'] ?? '' ),
+				'post_id'                  => absint( $execution['post_id'] ?? 0 ),
+				'post_ids'                 => array_values( array_map( 'absint', is_array( $execution['post_ids'] ?? null ) ? $execution['post_ids'] : array() ) ),
+				'execution_mode'           => sanitize_key( (string) ( $execution['execution_mode'] ?? '' ) ),
+				'adapter_request_id'       => sanitize_text_field( (string) ( $execution['adapter_request_id'] ?? '' ) ),
+				'preflight_source'         => sanitize_key( (string) ( $execution['preflight_source'] ?? '' ) ),
+				'commit_execution'         => false,
+				'core_commit_execution'    => false,
+				'execution_surface'        => 'wp_abilities_rest',
+				'selected_count'           => absint( $execution['selected_count'] ?? 0 ),
+				'submitted_count'          => absint( $execution['submitted_count'] ?? 0 ),
+				'executed_count'           => absint( $execution['executed_count'] ?? 0 ),
+				'failed_count'             => absint( $execution['failed_count'] ?? 0 ),
+				'blocked_count'            => absint( $execution['blocked_count'] ?? 0 ),
+				'partial_success'          => (bool) ( $execution['partial_success'] ?? false ),
+				'retryable'                => (bool) ( $execution['retryable'] ?? false ),
+				'operator_next_action'     => sanitize_key( (string) ( $execution['operator_next_action'] ?? '' ) ),
+				'batch_review_feedback'    => is_array( $execution['batch_review_feedback'] ?? null ) ? $execution['batch_review_feedback'] : array(),
+				'core_preflight_evidence'  => is_array( $execution['core_preflight_evidence'] ?? null ) ? $execution['core_preflight_evidence'] : array(),
+				'execution_record'         => is_array( $execution['execution_record'] ?? null ) ? $execution['execution_record'] : array(),
+				'approval_context'         => is_array( $execution['approval_context'] ?? null ) ? $execution['approval_context'] : array(),
+				'execution_detail_included' => $include_detail,
+			)
+		);
+
+		$payload['results']   = is_array( $execution['results'] ?? null ) ? $execution['results'] : array();
+		$payload['result']    = is_array( $execution['result'] ?? null ) ? $execution['result'] : array();
+		$payload['execution'] = array(
+			'success'              => true,
+			'post_status_before'   => (string) ( $execution['post_status_before'] ?? '' ),
+			'post_status_after'    => (string) ( $execution['post_status_after'] ?? '' ),
+			'selected_count'       => absint( $execution['selected_count'] ?? 0 ),
+			'submitted_count'      => absint( $execution['submitted_count'] ?? 0 ),
+			'executed_count'       => absint( $execution['executed_count'] ?? 0 ),
+			'failed_count'         => absint( $execution['failed_count'] ?? 0 ),
+			'blocked_count'        => absint( $execution['blocked_count'] ?? 0 ),
+			'partial_success'      => (bool) ( $execution['partial_success'] ?? false ),
+			'retryable'            => (bool) ( $execution['retryable'] ?? false ),
+			'operator_next_action' => sanitize_key( (string) ( $execution['operator_next_action'] ?? '' ) ),
+			'result'               => $payload['result'],
+			'results'              => $payload['results'],
+		);
+
+		if ( $include_detail ) {
+			$payload['preflight'] = is_array( $execution['preflight'] ?? null ) ? $execution['preflight'] : array();
+		}
+
+		return $payload;
 	}
 
 	/**
@@ -4479,6 +4626,27 @@ final class Controller {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function execute_core_approved_proposal( WP_REST_Request $request, string $proposal_id, array $proposal ) {
+		$lock_key = $this->acquire_execution_lock( $proposal_id );
+		if ( is_wp_error( $lock_key ) ) {
+			return $lock_key;
+		}
+
+		try {
+			return $this->execute_core_approved_proposal_locked( $request, $proposal_id, $proposal );
+		} finally {
+			$this->release_execution_lock( $lock_key );
+		}
+	}
+
+	/**
+	 * Executes an approved proposal after the per-proposal lock is held.
+	 *
+	 * @param WP_REST_Request     $request Request.
+	 * @param string              $proposal_id Proposal id.
+	 * @param array<string,mixed> $proposal Core proposal.
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function execute_core_approved_proposal_locked( WP_REST_Request $request, string $proposal_id, array $proposal ) {
 		$proposal_ability_id = sanitize_text_field( (string) ( $proposal['ability_id'] ?? '' ) );
 		$existing_record     = $this->completed_execution_record( $proposal_id );
 		if ( is_array( $existing_record ) ) {
@@ -5326,6 +5494,14 @@ final class Controller {
 	 * @return array<string,array<string,mixed>>
 	 */
 	private function prune_preflight_handoffs( array $records ): array {
+		$oldest = time() - self::PREFLIGHT_HANDOFF_RETENTION_TTL;
+		foreach ( $records as $key => $record ) {
+			$issued_at = is_array( $record ) ? strtotime( (string) ( $record['issued_at'] ?? '' ) ) : false;
+			if ( false === $issued_at || $issued_at < $oldest ) {
+				unset( $records[ $key ] );
+			}
+		}
+
 		if ( count( $records ) <= self::MAX_PREFLIGHT_HANDOFFS ) {
 			return $records;
 		}
@@ -5794,6 +5970,64 @@ final class Controller {
 	}
 
 	/**
+	 * Acquires a short per-proposal execution lock.
+	 *
+	 * @param string $proposal_id Proposal id.
+	 * @return string|WP_Error Option key when locked.
+	 */
+	private function acquire_execution_lock( string $proposal_id ) {
+		$key      = 'npcink_openclaw_adapter_exec_lock_' . md5( $proposal_id );
+		$now      = time();
+		$existing = get_option( $key, null );
+		if ( is_array( $existing ) && $now < (int) ( $existing['expires_at'] ?? 0 ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_execution_in_progress',
+				__( 'This proposal is already being executed. Try again shortly.', 'npcink-ai-client-adapter' ),
+				array(
+					'status'      => 409,
+					'proposal_id' => $proposal_id,
+					'retry_after' => self::EXECUTION_LOCK_TTL,
+				)
+			);
+		}
+
+		if ( is_array( $existing ) ) {
+			delete_option( $key );
+		}
+
+		$lock = array(
+			'proposal_id' => $proposal_id,
+			'acquired_at' => gmdate( 'c', $now ),
+			'expires_at'  => $now + self::EXECUTION_LOCK_TTL,
+		);
+		if ( add_option( $key, $lock, '', false ) ) {
+			return $key;
+		}
+
+		return new WP_Error(
+			'npcink_openclaw_adapter_execution_in_progress',
+			__( 'This proposal is already being executed. Try again shortly.', 'npcink-ai-client-adapter' ),
+			array(
+				'status'      => 409,
+				'proposal_id' => $proposal_id,
+				'retry_after' => self::EXECUTION_LOCK_TTL,
+			)
+		);
+	}
+
+	/**
+	 * Releases a per-proposal execution lock.
+	 *
+	 * @param string $lock_key Option key.
+	 * @return void
+	 */
+	private function release_execution_lock( string $lock_key ): void {
+		if ( '' !== $lock_key ) {
+			delete_option( $lock_key );
+		}
+	}
+
+	/**
 	 * Stores one successful execution record.
 	 *
 	 * @param string              $proposal_id Proposal id.
@@ -5915,6 +6149,14 @@ final class Controller {
 	 * @return array<string,array<string,mixed>>
 	 */
 	private function prune_execution_records( array $records ): array {
+		$oldest = time() - self::EXECUTION_RECORD_RETENTION_TTL;
+		foreach ( $records as $key => $record ) {
+			$executed_at = is_array( $record ) ? strtotime( (string) ( $record['executed_at'] ?? ( $record['failed_at'] ?? '' ) ) ) : false;
+			if ( false === $executed_at || $executed_at < $oldest ) {
+				unset( $records[ $key ] );
+			}
+		}
+
 		if ( count( $records ) <= self::MAX_EXECUTION_RECORDS ) {
 			return $records;
 		}
@@ -6866,12 +7108,11 @@ final class Controller {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function find_core_capability( string $ability_id ) {
-		$response = $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/capabilities' );
-		if ( is_wp_error( $response ) ) {
-			return $response;
+		$data = $this->core_capabilities_data();
+		if ( is_wp_error( $data ) ) {
+			return $data;
 		}
 
-		$data = $response->get_data();
 		foreach ( (array) ( is_array( $data ) ? ( $data['items'] ?? array() ) : array() ) as $item ) {
 			if ( is_array( $item ) && $ability_id === (string) ( $item['ability_id'] ?? '' ) ) {
 				return $item;
@@ -6883,6 +7124,42 @@ final class Controller {
 			__( 'The requested ability is not discoverable through Core.', 'npcink-ai-client-adapter' ),
 			array( 'status' => 404 )
 		);
+	}
+
+	/**
+	 * Returns Core capability discovery with request-local and short transient caching.
+	 *
+	 * @return array<string,mixed>|WP_Error
+	 */
+	private function core_capabilities_data() {
+		if ( is_array( $this->core_capabilities_cache ) ) {
+			return $this->core_capabilities_cache;
+		}
+
+		$cached = get_transient( 'npcink_openclaw_adapter_core_capabilities_v1' );
+		if ( is_array( $cached ) ) {
+			$this->core_capabilities_cache = $cached;
+			return $cached;
+		}
+
+		$response = $this->dispatch_upstream( 'GET', '/npcink-governance-core/v1/capabilities' );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$data = $response->get_data();
+		if ( ! is_array( $data ) ) {
+			return new WP_Error(
+				'npcink_openclaw_adapter_invalid_core_capabilities',
+				__( 'Core capabilities response is invalid.', 'npcink-ai-client-adapter' ),
+				array( 'status' => 502 )
+			);
+		}
+
+		$this->core_capabilities_cache = $data;
+		set_transient( 'npcink_openclaw_adapter_core_capabilities_v1', $data, self::DISCOVERY_CACHE_TTL );
+
+		return $data;
 	}
 
 	/**
@@ -6967,7 +7244,7 @@ final class Controller {
 				array(
 					'status'        => $status,
 					'upstream_route' => $route,
-					'upstream_data'  => $data,
+					'upstream_data'  => $this->public_upstream_error_data( $data ),
 				)
 			);
 		}
@@ -6984,6 +7261,90 @@ final class Controller {
 		);
 
 		return new WP_REST_Response( $response->get_data(), $status );
+	}
+
+	/**
+	 * Returns a bounded, redacted upstream error summary for public Adapter errors.
+	 *
+	 * @param mixed $data Upstream response data.
+	 * @return array<string,mixed>
+	 */
+	private function public_upstream_error_data( $data ): array {
+		$summary = $this->sanitize_public_response_value( $data, 0 );
+		if ( ! is_array( $summary ) ) {
+			$summary = array( 'message' => (string) $summary );
+		}
+
+		$encoded = wp_json_encode( $summary );
+		if ( is_string( $encoded ) && strlen( $encoded ) > self::MAX_UPSTREAM_ERROR_DETAIL_BYTES ) {
+			return array(
+				'truncated' => true,
+				'bytes'     => strlen( $encoded ),
+				'code'      => sanitize_key( (string) ( $summary['code'] ?? '' ) ),
+				'message'   => sanitize_text_field( (string) ( $summary['message'] ?? __( 'The upstream WordPress REST request failed.', 'npcink-ai-client-adapter' ) ) ),
+			);
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Sanitizes a value for bounded public diagnostics.
+	 *
+	 * @param mixed $value Value.
+	 * @param int   $depth Current depth.
+	 * @return mixed
+	 */
+	private function sanitize_public_response_value( $value, int $depth ) {
+		if ( $depth > 4 ) {
+			return '[truncated]';
+		}
+
+		if ( is_scalar( $value ) || null === $value ) {
+			if ( is_string( $value ) ) {
+				return $this->bounded_text_field( $value, 500 );
+			}
+			return $value;
+		}
+
+		if ( ! is_array( $value ) ) {
+			return '[unsupported]';
+		}
+
+		$output = array();
+		$index  = 0;
+		foreach ( $value as $key => $child ) {
+			if ( $index >= 50 ) {
+				$output['truncated'] = true;
+				break;
+			}
+			$key_text = is_string( $key ) ? sanitize_key( $key ) : $key;
+			if ( is_string( $key ) && $this->is_sensitive_public_response_key( $key ) ) {
+				$output[ $key_text ] = '[redacted]';
+			} else {
+				$output[ $key_text ] = $this->sanitize_public_response_value( $child, $depth + 1 );
+			}
+			++$index;
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Returns whether a public diagnostic key should be redacted.
+	 *
+	 * @param string $key Key.
+	 * @return bool
+	 */
+	private function is_sensitive_public_response_key( string $key ): bool {
+		$key = strtolower( $key );
+		foreach ( array( 'password', 'token', 'secret', 'credential', 'authorization', 'cookie', 'nonce', 'signature', 'private_key', 'prompt', 'content', 'html', 'blocks' ) as $needle ) {
+			if ( false !== strpos( $key, $needle ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -7096,17 +7457,45 @@ final class Controller {
 	 * @return string
 	 */
 	private function core_app_token(): string {
-		if ( defined( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' ) ) {
+		$source = $this->core_app_token_source();
+		if ( 'constant' === $source ) {
 			return trim( (string) constant( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' ) );
 		}
 
-		$env_token = getenv( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' );
-		if ( is_string( $env_token ) && '' !== trim( $env_token ) ) {
-			return trim( $env_token );
+		if ( 'environment' === $source ) {
+			$env_token = getenv( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' );
+			return trim( (string) $env_token );
+		}
+
+		if ( 'option' !== $source ) {
+			return '';
 		}
 
 		$option = get_option( 'npcink_openclaw_adapter_core_app_token', '' );
 		return is_string( $option ) ? trim( $option ) : '';
+	}
+
+	/**
+	 * Returns the configured Core app token source without exposing the token.
+	 *
+	 * @return string constant|environment|option|none
+	 */
+	private function core_app_token_source(): string {
+		if ( defined( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' ) && '' !== trim( (string) constant( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' ) ) ) {
+			return 'constant';
+		}
+
+		$env_token = getenv( 'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN' );
+		if ( is_string( $env_token ) && '' !== trim( $env_token ) ) {
+			return 'environment';
+		}
+
+		$option = get_option( 'npcink_openclaw_adapter_core_app_token', '' );
+		if ( is_string( $option ) && '' !== trim( $option ) ) {
+			return 'option';
+		}
+
+		return 'none';
 	}
 
 	/**

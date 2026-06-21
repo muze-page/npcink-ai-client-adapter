@@ -525,9 +525,9 @@ candidate-crop-adoption playbook:
 1. collect and review an `image_candidate.v1` from Cloud recommendation first;
 2. use hosted generation only when recommendation fails to produce a
    reviewable fit;
-3. treat requested generation dimensions as advisory, then run
-   `POST /media-derivative-runs` with a bounded `crop` from a local
-   `attachment_id` or same-site `source_artifact`;
+3. treat requested generation dimensions as advisory, then use Cloud Addon or
+   approved Cloud tooling to run a bounded crop from a local `attachment_id` or
+   same-site `source_artifact`;
 4. use the cropped preview URL immediately as input to
    `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`;
 5. submit the returned plan to Core through `POST /proposals/from-plan`.
@@ -818,7 +818,8 @@ ability is running, Adapter adds the sanitized values to AI Request Logs via the
 `npcink_openclaw_adapter` object, top-level provider correlation fields, and nested
 `npcink_governance_core.proposal_id` / `npcink_governance_core.correlation_id` when present.
 
-Every real provider call owned by Adapter must write at least:
+When a downstream provider integration emits an AI Request Logs row under
+Adapter/Core correlation context, that row should include at least:
 
 ```text
 proposal_id
@@ -1162,7 +1163,7 @@ Connection check order:
 1. `GET /health`.
 2. `GET /help`.
 3. `GET /capabilities`.
-4. direct-read shortcut or `POST /run-read-ability`.
+4. direct-read ability execution with `POST /run-read-ability`.
 5. optional plan handoff with `POST /proposals/from-plan`.
 6. proposal-required `POST /proposals`.
 7. proposal status polling with `GET /proposals/{proposal_id}`.

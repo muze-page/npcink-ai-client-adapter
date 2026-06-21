@@ -225,6 +225,7 @@ function maa_adapter_removed_surface_texts(): array {
 		'docs/openclaw-content-discoverability-recipe.md',
 		'docs/openclaw-ai-article-writing-pack-recipe.md',
 		'docs/openclaw-media-derivative-cloud-recipe.md',
+		'docs/external-ai-client-contract.md',
 		'visual_acceptance_required',
 		'pattern_page_research_brief',
 		'pattern_page_with_visual_asset_plan',
@@ -369,6 +370,18 @@ maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'public static 
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'final class Execution_Profile_Registry' ), 'Execution profile registry exists.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'public static function profiles' ), 'Execution profile registry exposes profiles.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abilities-toolkit/update-post-blocks' ), 'Execution profile registry keeps governed block writes supported.' );
+foreach ( array( 'apply_filters', 'do_action', 'add_filter', 'add_action', 'get_option', 'update_option', 'wp_remote_', '$wpdb', 'register_post_type' ) as $dynamic_extension_signal ) {
+	maa_adapter_assert( false === strpos( $execution_profile_registry, $dynamic_extension_signal ), 'Execution profile registry does not use dynamic extension signal: ' . $dynamic_extension_signal );
+}
+preg_match_all( "/'([^']+)'\\s*=>\\s*array\\s*\\(\\s*\\n\\s*'supported_input_fields'/", $execution_profile_registry, $execution_profile_matches );
+$execution_profile_ids = $execution_profile_matches[1] ?? array();
+maa_adapter_assert( count( $execution_profile_ids ) >= 20, 'Execution profile registry exposes the expected explicit profile set.' );
+foreach ( $execution_profile_ids as $execution_profile_id ) {
+	maa_adapter_assert( 1 === preg_match( '/^npcink-abilities-toolkit\\/[a-z0-9-]+$/', $execution_profile_id ), 'Execution profile uses a literal Toolkit ability id: ' . $execution_profile_id );
+	maa_adapter_assert( false === strpos( $execution_profile_id, '*' ), 'Execution profile does not use wildcard ability id: ' . $execution_profile_id );
+}
+$supported_input_field_count = substr_count( $execution_profile_registry, "'supported_input_fields'" );
+maa_adapter_assert( count( $execution_profile_ids ) === $supported_input_field_count, 'Every execution profile starts with a supported_input_fields whitelist.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-post-blocks' ), 'Controller can read back post blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-blocks' ), 'Controller can read back template blocks after execution.' );
 maa_adapter_assert( false !== strpos( $controller, 'npcink-abilities-toolkit/get-template-part-blocks' ), 'Controller can read back template part blocks after execution.' );
@@ -417,9 +430,31 @@ foreach (
 		'docs/contracts/execution-profiles.md'    => array(
 			'Adapter execution profiles are the only Adapter-owned final-write allowlist',
 			'Execution_Profile_Registry.php',
+			'Placement And Extension Rules',
+			'Keep the execution profile registry in Adapter',
+			'Do not expose dynamic extension points for execution profiles',
+			'WordPress filters, actions, options, database rows, remote',
+			'configuration, wildcards, category matches, or ability-id patterns',
+			'Profile Admission Checklist',
+			'Bind exactly one Toolkit ability id.',
+			'Use a literal `npcink-abilities-toolkit/<ability>` id',
+			'Require Core approval and Core commit-preflight evidence',
+			'reject undeclared write fields',
 			'execution_profile_registry_hash',
 			'block-theme-template.update_draft',
 			'npcink-abilities-toolkit/update-template-blocks',
+		),
+		'docs/external-ai-client-contract.md'     => array(
+			'External AI Client Contract',
+			'The client connects to `npcink-ai-client-adapter` only',
+			'a second Governance Core API',
+			'a provider/model runtime',
+			'a Cloud connector',
+			'Use `POST /run-read-ability` with a real `ability_id` from `/capabilities`',
+			'client -> Adapter -> Core proposal -> Core approval -> Core commit-preflight -> Adapter execution profile -> WordPress Abilities API',
+			'Adapter does not expose provider/model smoke routes',
+			'Adapter does not own Cloud run creation',
+			'The client should surface `data.operator_feedback` when present',
 		),
 		'docs/acceptance/local-ai-client-smoke.md' => array(
 			'composer accept:local-ai-client',
@@ -691,11 +726,18 @@ foreach (
 			'core_approved_commit_preflight_required',
 			'wp_abilities_rest_after_core_preflight',
 			'MAX_EXECUTION_ACTIONS',
-			'MAX_DEVICE_PAIRINGS',
-			'MAX_DEVICE_PAIRING_STARTS_PER_WINDOW',
-			'MAX_DEVICE_PAIRING_BODY_BYTES',
-			'MAX_DEVICE_PAIRING_POLL_BODY_BYTES',
-			'CLIENT_KEY_LAST_USED_WRITE_TTL',
+				'MAX_DEVICE_PAIRINGS',
+				'MAX_DEVICE_PAIRING_STARTS_PER_WINDOW',
+				'MAX_DEVICE_PAIRING_POLLS_PER_WINDOW',
+				'DEVICE_PAIRING_POLL_RATE_LIMIT_TTL',
+				'MAX_DEVICE_PAIRING_BODY_BYTES',
+				'MAX_DEVICE_PAIRING_POLL_BODY_BYTES',
+				'EXECUTION_LOCK_TTL',
+				'DISCOVERY_CACHE_TTL',
+				'PREFLIGHT_HANDOFF_RETENTION_TTL',
+				'EXECUTION_RECORD_RETENTION_TTL',
+				'MAX_UPSTREAM_ERROR_DETAIL_BYTES',
+				'CLIENT_KEY_LAST_USED_WRITE_TTL',
 			'MAX_REST_BODY_BYTES',
 			'MAX_ACTION_INPUT_BYTES',
 			'MAX_BLOCK_ITEMS',
@@ -706,10 +748,11 @@ foreach (
 			'MAX_LIGHT_POST_BODY_BYTES',
 			'MAX_MEDIA_DERIVATIVE_PREVIEW_BYTES',
 			'can_use_admin_session',
-			'validate_request_body_size',
-			'enforce_device_pairing_start_rate_limit',
-			'request_rate_limit_fingerprint',
-			'bounded_text_field',
+				'validate_request_body_size',
+				'enforce_device_pairing_start_rate_limit',
+				'enforce_device_pairing_poll_rate_limit',
+				'request_rate_limit_fingerprint',
+				'bounded_text_field',
 			'should_update_client_key_last_used',
 			'validate_execute_action_input_size',
 			'public_media_derivative_artifact_descriptor',
@@ -764,8 +807,11 @@ foreach (
 			'can_retry_after_revision',
 			'core_evidence',
 			'npcink_openclaw_adapter_preflight_correlation_required',
-			'execute_core_approved_proposal',
-			'EXECUTION_RECORDS_OPTION',
+				'execute_core_approved_proposal',
+				'execute_core_approved_proposal_locked',
+				'acquire_execution_lock',
+				'release_execution_lock',
+				'EXECUTION_RECORDS_OPTION',
 			'PREFLIGHT_HANDOFFS_OPTION',
 			'MAX_PREFLIGHT_HANDOFFS',
 			'preflight_handoffs',
@@ -803,17 +849,20 @@ foreach (
 			'adapter_preflight_source',
 			'npcink_governance_core_commit_preflight_already_issued',
 			'completed_execution_record',
-			'store_completed_execution_record',
-			'store_failed_execution_record',
-			'record_core_execution_result',
+				'store_completed_execution_record',
+				'store_failed_execution_record',
+				'public_execution_response_payload',
+				'request_wants_full_execution_detail',
+				'record_core_execution_result',
 			'/record-execution',
 			'core_execution_record',
 			'failed_action_id',
 			'failed_action_index',
 			'failed_execution_profile',
 			'failed_idempotency_key',
-			'npcink_openclaw_adapter_execution_already_completed',
-			'execution_record',
+				'npcink_openclaw_adapter_execution_already_completed',
+				'npcink_openclaw_adapter_execution_in_progress',
+				'execution_record',
 			'augment_proposal_status_response',
 			'proposal_derived_execution_status',
 			'media_optimization_readiness',
@@ -970,17 +1019,21 @@ foreach (
 		'qwen3.5:0.8b',
 		'POST /ai-provider-log-correlation-smoke',
 		'npcink_openclaw_adapter',
-		'proposal_status_routes',
-		'plan_proposal_routes',
-		'core_app_token_configured',
-			'core_app_token_required_scopes',
+			'proposal_status_routes',
+			'plan_proposal_routes',
+			'core_app_token_configured',
+			'core_app_token_source',
+				'core_app_token_required_scopes',
 			'GET /proposals',
 			'GET /proposals/{proposal_id}',
 			'approve-and-execute',
 			'NPCINK_OPENCLAW_ADAPTER_CORE_APP_TOKEN',
 		'npcink_openclaw_adapter_core_app_token',
-		'x-npcink-governance-core-app-token',
-		'npcink_openclaw_adapter_proposal_required',
+			'x-npcink-governance-core-app-token',
+			'core_capabilities_data',
+			'public_upstream_error_data',
+			'sanitize_public_response_value',
+			'npcink_openclaw_adapter_proposal_required',
 		'npcink-abilities-toolkit/site-info',
 			'npcink-abilities-toolkit/site-info',
 			'npcink-abilities-toolkit/wp-diagnostics-summary',
@@ -1122,12 +1175,21 @@ maa_adapter_assert( false === strpos( $key_revoke_route, "array( \$this, 'can_us
 	maa_adapter_assert( false !== strpos( $upstream_dispatch, 'x-npcink-adapter-signed-client-fingerprint' ), 'Adapter forwards signed client fingerprint to Core app-token requests.' );
 	maa_adapter_assert( false !== strpos( $upstream_dispatch, 'x-npcink-adapter-client-key-fingerprint' ), 'Adapter forwards compatible client key fingerprint alias to Core app-token requests.' );
 	$client_key_scope = substr( $controller, (int) strpos( $controller, 'private function client_key_scope_allows_request' ), 1400 );
-		maa_adapter_assert( false === strpos( $client_key_scope, "'/media-derivative-runs'" ), 'Client key scopes no longer special-case media derivative runs.' );
-		maa_adapter_assert( false === strpos( $client_key_scope, "'/media-derivative-proposal-payload'" ), 'Client key scopes no longer special-case media derivative proposal payloads.' );
-	maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.status'" ), 'Client key scopes preserve legacy Magick status scope compatibility.' );
-	maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.propose'" ), 'Client key scopes preserve legacy Magick propose scope compatibility.' );
-	maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.read'" ), 'Client key scopes preserve legacy Magick read scope compatibility.' );
-$plan_batch_metadata = substr( $controller, (int) strpos( $controller, 'private function normalize_plan_batch_metadata' ), 1400 );
+			maa_adapter_assert( false === strpos( $client_key_scope, "'/media-derivative-runs'" ), 'Client key scopes no longer special-case media derivative runs.' );
+			maa_adapter_assert( false === strpos( $client_key_scope, "'/media-derivative-proposal-payload'" ), 'Client key scopes no longer special-case media derivative proposal payloads.' );
+		maa_adapter_assert( false !== strpos( $client_key_scope, 'client_key_route_requires_execute_scope' ), 'Client key scopes route final execution requests through execute scope.' );
+		maa_adapter_assert( false !== strpos( $client_key_scope, "'npcink.execute'" ), 'Client key scopes require npcink.execute for final write routes.' );
+		maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.execute'" ), 'Client key scopes preserve legacy Magick execute scope compatibility.' );
+		maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.status'" ), 'Client key scopes preserve legacy Magick status scope compatibility.' );
+		maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.propose'" ), 'Client key scopes preserve legacy Magick propose scope compatibility.' );
+		maa_adapter_assert( false !== strpos( $client_key_scope, "'magick.read'" ), 'Client key scopes preserve legacy Magick read scope compatibility.' );
+	$execute_scope_routes = substr( $controller, (int) strpos( $controller, 'private function client_key_route_requires_execute_scope' ), 700 );
+	maa_adapter_assert( false !== strpos( $execute_scope_routes, "'/commit-preflight'" ), 'Client key execute scope covers commit-preflight handoff consumption.' );
+	maa_adapter_assert( false !== strpos( $execute_scope_routes, "'/approve-and-execute'" ), 'Client key execute scope covers approve-and-execute.' );
+	$requested_scopes = substr( $controller, (int) strpos( $controller, 'private function connection_requested_scopes' ), 900 );
+	maa_adapter_assert( false !== strpos( $requested_scopes, "'npcink.execute' => true" ), 'Device pairing can explicitly request npcink.execute.' );
+	maa_adapter_assert( false !== strpos( $requested_scopes, "\$default_scopes = array( 'npcink.read', 'npcink.propose', 'npcink.status' );" ), 'Device pairing defaults do not silently grant execute scope.' );
+	$plan_batch_metadata = substr( $controller, (int) strpos( $controller, 'private function normalize_plan_batch_metadata' ), 1400 );
 maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['proposal_mode']  = 'batch';" ), 'Adapter makes dependent plan batches explicit before Core from-plan forwarding.' );
 maa_adapter_assert( false !== strpos( $plan_batch_metadata, "\$plan['batch_approval'] = true;" ), 'Adapter makes dependent plan batch approval explicit before Core from-plan forwarding.' );
 $plan_write_input_validation = substr( $controller, (int) strpos( $controller, 'private function validate_plan_write_action_inputs' ), 2600 );
@@ -1211,11 +1273,16 @@ foreach (
 			'docs/admin-developer-reference.md',
 			'add_submenu_page',
 			'PARENT_MENU_SLUG',
-			'WP_Application_Passwords::create_new_application_password',
-		'Include LocalWP TLS setting',
-		'LocalWP TLS option',
-		'Use only for localhost or .local testing',
-			'Site',
+				'WP_Application_Passwords::create_new_application_password',
+			'Include LocalWP TLS setting',
+			'LocalWP TLS option',
+			'Use only for localhost or .local testing',
+			'APPLICATION_PASSWORD_FALLBACK_CONFIRM_FIELD',
+			'I understand this fallback creates a WordPress Application Password',
+			'NPCINK_OPENCLAW_ADAPTER_DISABLE_APPLICATION_PASSWORD_FALLBACK',
+			'application_password_fallback_enabled',
+			'application_password_unavailable_message',
+				'Site',
 			'proposal_lookup',
 			'render_proposal_lookup_result',
 		'Open in Core',
@@ -1492,8 +1559,9 @@ foreach (
 			'Adapter is not the WordPress-to-Cloud connector',
 			'Cloud Addon is the WordPress-side Cloud connector',
 			'npcink_cloud_addon_runtime_client()',
-			'npcink_cloud_addon_get_media_derivative_run()',
-			'npcink_cloud_addon_build_media_derivative_optimization_payload()',
+			'npcink_cloud_addon_is_configured()',
+			'proposal-specific readiness checks and approved local adoption only',
+			'Cloud Addon and Cloud tooling own run creation',
 			'Adapter must not expose a parallel `/cloud/*` REST surface',
 		'Adapter-owned Cloud settings, signing clients, or `/cloud/*` routes',
 		'Adapter does not register `/cloud/*` routes',
@@ -1536,11 +1604,17 @@ foreach (
 		'docs/openclaw-connection-model-notes.md',
 		'docs/openclaw-consumer-acceptance.md',
 		'docs/openclaw-batch-execution-policy.md',
+		'docs/external-ai-client-contract.md',
 		'Npcink AI Suite Distribution Contract',
 		'npcink_openclaw_adapter_missing_dependency',
 		'input.write_actions[]',
 		'execution profile registry',
 		'Capability discovery may show more proposal-required abilities',
+		'The registry stays in Adapter as post-Core execution policy',
+		'it must not be extended through filters, options',
+		'database rows, remote configuration, wildcards',
+		'Each profile is an explicit post-Core policy entry, not a generic executor',
+		'validate required ids/enums/sizes',
 		'$outputs.create-draft.post_id',
 		'only its hash',
 			'Application Password secret-field',
@@ -1689,11 +1763,32 @@ foreach (
 		'.distignore',
 		'Do not delete',
 	) as $required
-) {
-	maa_adapter_assert( false !== strpos( $readme, $required ), 'README contains required text: ' . $required );
-}
+	) {
+		maa_adapter_assert( false !== strpos( $readme, $required ), 'README contains required text: ' . $required );
+	}
+	$current_boundary_docs = array(
+		'README.md' => $readme,
+		'packages/adapter-cli/README.md' => maa_adapter_read( $root . '/packages/adapter-cli/README.md' ),
+		'docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' ),
+		'docs/openclaw-media-derivative-cloud-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-media-derivative-cloud-recipe.md' ),
+		'docs/ai-media-derivative-calling-guide.md' => maa_adapter_read( $root . '/docs/ai-media-derivative-calling-guide.md' ),
+		'docs/openclaw-consumer-acceptance.md' => maa_adapter_read( $root . '/docs/openclaw-consumer-acceptance.md' ),
+		'docs/openclaw-adapter-contract.md' => maa_adapter_read( $root . '/docs/openclaw-adapter-contract.md' ),
+	);
+	foreach ( $current_boundary_docs as $doc_name => $doc_body ) {
+		foreach (
+			array(
+				'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+				'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+				'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts',
+				'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
+			) as $forbidden
+		) {
+			maa_adapter_assert( false === strpos( $doc_body, $forbidden ), 'Current docs must not document Adapter media derivative facade routes in ' . $doc_name . ': ' . $forbidden );
+		}
+	}
 
-$adapter_cli_package = maa_adapter_read( $root . '/packages/adapter-cli/package.json' );
+	$adapter_cli_package = maa_adapter_read( $root . '/packages/adapter-cli/package.json' );
 foreach (
 	array(
 		'"name": "@npcink/openclaw-adapter-cli"',
@@ -1778,26 +1873,25 @@ foreach (
 		'read-request',
 		'read-ability',
 		'recipe',
-		'ai-image-ratio-crop-media-adoption',
-		'AI_IMAGE_RATIO_CROP_RECIPE_ID',
-		'loadAiImageRatioCropRecipe',
-		'recipeAiImageCrop',
-		'recipeAiImageCropResult',
-		'recipeAiImageAdoptionPlan',
-		'requestJsonViaWrapper',
-		'openclaw_recipes.${AI_IMAGE_RATIO_CROP_RECIPE_ID}',
+			'ai-image-ratio-crop-media-adoption',
+			'AI_IMAGE_RATIO_CROP_RECIPE_ID',
+			'loadAiImageRatioCropRecipe',
+			'recipeAiImageAdoptionPlan',
+			'requestJsonViaWrapper',
+			'openclaw_recipes.${AI_IMAGE_RATIO_CROP_RECIPE_ID}',
 		'target_aspect_ratio_required',
 		'ai_generation_dimensions_are_advisory',
 		'cloud_crop_required_for_generated_images',
 		'adapter_artifact_registry',
 		'--submit-proposal',
-		'--source-type=ai_generated',
-		"copyParsedValue(parsed, input, 'source-type', 'source_type')",
+			'--source-type=ai_generated',
+			"copyParsedValue(parsed, input, 'source-type', 'source_type')",
 		"copyParsedValue(parsed, input, 'source-page-url', 'source_page_url')",
 		"copyParsedValue(parsed, input, 'attribution-text', 'attribution_text')",
 		"copyParsedInt(parsed, input, 'attach-to-post-id', 'attach_to_post_id')",
-		'it never approves or executes final writes',
-		'keypair-device-pairing.mjs',
+			'Cloud crop and result transport belongs to Cloud Addon or Cloud tooling',
+			'reviewed Cloud Addon or Cloud media derivative result',
+			'keypair-device-pairing.mjs',
 		'keypair-adapter-request.mjs',
 		'missing_profile',
 		'health_failed',
@@ -1821,6 +1915,13 @@ foreach (
 maa_adapter_assert( false === strpos( $magick_adapter_tool, 'private_key_jwk:' ), 'Unified local CLI does not read private key material by property access.' );
 maa_adapter_assert( false === strpos( $magick_adapter_tool, 'connection_id: String' ), 'Unified local CLI does not print connection id from status metadata.' );
 maa_adapter_assert( false === strpos( $magick_adapter_tool, 'key_id: String' ), 'Unified local CLI does not print key id from status metadata.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, '/media-derivative-runs' ), 'Unified local CLI does not call Adapter media derivative run routes.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, '/media-derivative-artifacts' ), 'Unified local CLI does not call Adapter media derivative artifact routes.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, '/media-derivative-proposal-payload' ), 'Unified local CLI does not call Adapter media derivative proposal payload routes.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, 'recipeAiImageCrop(' ), 'Unified local CLI no longer owns Cloud crop dispatch.' );
+maa_adapter_assert( false === strpos( $magick_adapter_tool, 'recipeAiImageCropResult(' ), 'Unified local CLI no longer owns Cloud result reads.' );
+maa_adapter_assert( false !== strpos( $keypair_tool, "'npcink.execute'" ), 'Keypair pairing CLI requests explicit execute scope for approved execution routes.' );
+maa_adapter_assert( false !== strpos( $connection_page, "'npcink.execute'" ), 'Connection approval page describes explicit execute scope.' );
 maa_adapter_assert( false === strpos( $magick_adapter_tool, "copyParsedValue(parsed, input, 'source', 'source')" ), 'AI image adoption CLI does not pass unsupported source input.' );
 maa_adapter_assert( false === strpos( $magick_adapter_tool, "copyParsedValue(parsed, input, 'attribution', 'attribution')" ), 'AI image adoption CLI does not pass unsupported attribution input.' );
 maa_adapter_assert( false === strpos( $magick_adapter_tool, "copyParsedValue(parsed, input, 'external-thread-id', 'external_thread_id')" ), 'AI image adoption CLI keeps external thread id in caller metadata only.' );
@@ -2046,8 +2147,8 @@ foreach (
 		'adapter_route',
 		'ai_provider',
 		'ai_model',
-		'qwen3.5:0.8b',
-		'/ai-provider-log-correlation-smoke',
+		'downstream AI client, Cloud',
+		'Adapter does not expose a provider/model smoke endpoint',
 		'Core Governance Audit is the governance log',
 		'AI Request Logs are the provider request log',
 			'/site-info',
@@ -2325,11 +2426,10 @@ foreach (
 		'error_log.summary.by_severity',
 		'Core Governance Audit',
 		'AI Request Logs',
-		'POST /ai-provider-log-correlation-smoke',
-		'configured text',
-		'generation provider/model',
+		'Do not call an Adapter provider/model smoke route',
+		'downstream AI client, Cloud runtime, or provider integration',
 		'explicit `ai_provider`',
-		'`ai_model` sent to the provider smoke',
+		'explicit `ai_model`',
 			'adapter_request_id',
 			'governance_source=npcink-governance-core',
 			'provider request log',
@@ -3520,14 +3620,13 @@ foreach (
 	array(
 		'OpenClaw AI Image Ratio Crop Media Adoption Recipe',
 		'openclaw_recipes.ai_image_ratio_crop_media_adoption',
-		'image_candidate.v1',
-		'npcink-toolbox/generate-image',
-		'Cloud image recommendation should run before generation',
-		'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
-		'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result',
-		'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview',
-		'npcink-abilities-toolkit/build-media-adoption-enhancement-plan',
-		'npcink-abilities-toolkit/upload-media-from-url',
+			'image_candidate.v1',
+			'npcink-toolbox/generate-image',
+			'Cloud image recommendation should run before generation',
+			'Crop/runtime owner: `npcink-cloud-addon` or Cloud tooling, not Adapter routes',
+			'Required handoff input: reviewed cropped preview URL with artifact provenance',
+			'npcink-abilities-toolkit/build-media-adoption-enhancement-plan',
+			'npcink-abilities-toolkit/upload-media-from-url',
 		'npcink-abilities-toolkit/optimize-media-asset',
 		'npcink-abilities-toolkit/patch-post-content',
 		'target_aspect_ratio_required=true',
@@ -3538,8 +3637,10 @@ foreach (
 		'cloud_crop_required_for_generated_images=true',
 		'candidate_review_required=true',
 		'signed_preview_is_temporary=true',
-		'preview_url_must_be_adopted_before_expiry=true',
-		'core_proxy_execute=false',
+			'preview_url_must_be_adopted_before_expiry=true',
+			'cloud_runtime_owner=npcink-cloud-addon',
+			'adapter_media_derivative_routes=false',
+			'core_proxy_execute=false',
 		'commit_execution=false',
 		'cloud_control_plane=false',
 		'adapter_artifact_registry=false',
@@ -3547,9 +3648,19 @@ foreach (
 		'direct_wordpress_write=false',
 		'Do not ask Adapter to crop arbitrary remote URLs',
 	) as $required
-) {
-	maa_adapter_assert( false !== strpos( $ai_image_ratio_crop_media_adoption_recipe, $required ), 'AI image ratio crop media adoption recipe contains required text: ' . $required );
-}
+	) {
+		maa_adapter_assert( false !== strpos( $ai_image_ratio_crop_media_adoption_recipe, $required ), 'AI image ratio crop media adoption recipe contains required text: ' . $required );
+	}
+	foreach (
+		array(
+			'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+			'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+			'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts',
+			'POST /media-derivative-runs',
+		) as $forbidden
+	) {
+		maa_adapter_assert( false === strpos( $ai_image_ratio_crop_media_adoption_recipe, $forbidden ), 'AI image ratio crop recipe does not point media derivative transport at Adapter: ' . $forbidden );
+	}
 
 $pattern_page_research_brief_recipe = maa_adapter_read( $root . '/docs/openclaw-pattern-page-research-brief-recipe.md' );
 foreach (

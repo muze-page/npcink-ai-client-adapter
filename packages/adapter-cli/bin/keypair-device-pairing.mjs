@@ -174,7 +174,7 @@ const start = await requestJson('POST', `${adapterBaseUrl}/connect/device/start`
     alg: 'Ed25519',
     public_key: publicJwk.x,
   },
-  requested_scopes: ['npcink.read', 'npcink.propose', 'npcink.status'],
+  requested_scopes: ['npcink.read', 'npcink.propose', 'npcink.status', 'npcink.execute'],
 });
 
 const opened = openApprovalUrl(start.verification_uri_complete);

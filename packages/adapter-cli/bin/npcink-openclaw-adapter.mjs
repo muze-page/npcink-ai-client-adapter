@@ -27,8 +27,6 @@ function printUsage() {
     '  npcink-openclaw-adapter read-request status --profile=local REQUEST_ID',
     '  npcink-openclaw-adapter read-ability --profile=local --ability-id=ABILITY_ID --input-file=/tmp/input.json [--read-request-id=REQUEST_ID]',
     '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption inspect --profile=local',
-    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption crop --profile=local --attachment-id=123 [--aspect-ratio=16:9]',
-    '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption result --profile=local RUN_ID',
     '  npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=local --preview-url=URL --post-id=123 [--old-url=URL] [--source-type=ai_generated] [--submit-proposal]',
   ].join('\n'));
 }
@@ -214,13 +212,13 @@ async function recipe(args) {
     process.exitCode = 2;
     return;
   }
-  if (!['inspect', 'crop', 'result', 'adoption-plan'].includes(action)) {
+  if (!['inspect', 'adoption-plan'].includes(action)) {
     printUsage();
     process.exitCode = 2;
     return;
   }
 
-  const { parsed, positionals } = parseArgs(subArgs);
+  const { parsed } = parseArgs(subArgs);
   const recipeContract = await loadAiImageRatioCropRecipe(parsed);
   if (action === 'inspect') {
     console.log(JSON.stringify({
@@ -228,17 +226,9 @@ async function recipe(args) {
       recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
       cli_recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_CLI_ID,
       recipe: recipeContract,
-      supported_actions: ['crop', 'result', 'adoption-plan'],
-      note: 'This helper creates crop runs and plan proposals only when explicitly requested; it never approves or executes final writes.',
+      supported_actions: ['adoption-plan'],
+      note: 'Cloud crop and result transport belongs to Cloud Addon or Cloud tooling. This helper accepts a reviewed preview URL and can submit a Core proposal plan when explicitly requested.',
     }, null, 2));
-    return;
-  }
-  if (action === 'crop') {
-    await recipeAiImageCrop(parsed, recipeContract);
-    return;
-  }
-  if (action === 'result') {
-    await recipeAiImageCropResult(parsed, positionals);
     return;
   }
   await recipeAiImageAdoptionPlan(parsed, recipeContract);
@@ -263,71 +253,10 @@ async function loadAiImageRatioCropRecipe(parsed) {
   return recipeContract;
 }
 
-async function recipeAiImageCrop(parsed, recipeContract) {
-  const attachmentId = parsed.get('attachment-id') || '';
-  const sourceArtifactFile = parsed.get('source-artifact-file') || '';
-  if (!attachmentId && !sourceArtifactFile) {
-    throw new Error('recipe crop requires --attachment-id or --source-artifact-file.');
-  }
-
-  const defaultInput = recipeContract.default_input || {};
-  const aspectRatio = parsed.get('aspect-ratio') || defaultInput.target_aspect_ratio || '16:9';
-  const preferredFormat = parsed.get('preferred-format') || defaultInput.preferred_format || 'webp';
-  const quality = positiveInt(parsed.get('quality') || defaultInput.quality || '84');
-  const position = parsed.get('position') || defaultInput.crop?.position || 'center';
-  const body = {
-    preferred_format: preferredFormat,
-    quality,
-    crop: {
-      type: 'aspect_ratio',
-      aspect_ratio: aspectRatio,
-      position,
-    },
-  };
-  if (attachmentId) {
-    body.attachment_id = positiveInt(attachmentId);
-  }
-  if (sourceArtifactFile) {
-    body.source_artifact = JSON.parse(readFileSync(sourceArtifactFile, 'utf8'));
-  }
-  if (parsed.get('trace-id')) {
-    body.trace_id = parsed.get('trace-id');
-  }
-  if (parsed.get('idempotency-key')) {
-    body.idempotency_key = parsed.get('idempotency-key');
-  }
-
-  const response = await requestJsonViaWrapper(parsed, 'POST', '/media-derivative-runs', body);
-  console.log(JSON.stringify({
-    ok: true,
-    recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
-    action: 'crop',
-    target_aspect_ratio: aspectRatio,
-    response,
-    next_step: 'Run recipe ai-image-ratio-crop-media-adoption result RUN_ID, then adoption-plan with the cropped preview URL.',
-  }, null, 2));
-}
-
-async function recipeAiImageCropResult(parsed, positionals) {
-  const runId = parsed.get('run-id') || positionals[0] || '';
-  if (!/^[A-Za-z0-9._:-]+$/.test(runId)) {
-    throw new Error('recipe result requires a safe RUN_ID.');
-  }
-  const response = await requestJsonViaWrapper(parsed, 'GET', `/media-derivative-runs/${encodeURIComponent(runId)}/result`);
-  console.log(JSON.stringify({
-    ok: true,
-    recipe_id: AI_IMAGE_RATIO_CROP_RECIPE_ID,
-    action: 'result',
-    run_id: runId,
-    response,
-    next_step: 'Review dimensions and warnings. If accepted, run adoption-plan with response.cloud_result.preview_url.',
-  }, null, 2));
-}
-
 async function recipeAiImageAdoptionPlan(parsed, recipeContract) {
   const previewUrl = parsed.get('preview-url') || parsed.get('url') || '';
   if (!previewUrl) {
-    throw new Error('recipe adoption-plan requires --preview-url or --url.');
+    throw new Error('recipe adoption-plan requires --preview-url or --url from a reviewed Cloud Addon or Cloud media derivative result.');
   }
 
   const defaultInput = recipeContract.default_input || {};

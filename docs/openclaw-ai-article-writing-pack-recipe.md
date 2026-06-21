@@ -5,10 +5,10 @@ Date: 2026-06-03
 
 This recipe gives OpenClaw one high-level entrypoint for broad article requests
 such as "write an AI topic article". Adapter exposes the Toolbox writing pack
-as a direct-read shortcut; Toolbox builds the context pack; OpenClaw may help
-prepare a local review candidate from that pack; Core remains the only
-proposal, approval, commit-preflight, and audit truth for any final WordPress
-write.
+as a direct-read ability through `/run-read-ability`; Toolbox builds the
+context pack; OpenClaw may help prepare a local review candidate from that
+pack; Core remains the only proposal, approval, commit-preflight, and audit
+truth for any final WordPress write.
 
 For SEO/GEO/AEO suggestions on a known post, title, topic, or draft body, use
 `content-discoverability-brief` as the primary entrypoint.

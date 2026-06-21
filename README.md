@@ -265,7 +265,7 @@ input. Adapter copies `proposal_id`, `correlation_id`, `external_thread_id`,
 `ai_provider`, `ai_model`, `governance_source=npcink-governance-core`, and nested
 `npcink_governance_core.proposal_id` / `npcink_governance_core.correlation_id` into AI Request
 Logs context through the `wpai_request_log_context` filter while an ability or
-bounded provider smoke request is running. POST `/run-read-ability` accepts
+downstream provider integration request is running. POST `/run-read-ability` accepts
 these values in a top-level `log_context` object. This lets AI Request Logs
 execution rows correlate with Core proposal and commit-preflight audit records
 without merging the two log systems.
@@ -386,18 +386,16 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-op
 
 For generated page visuals, the local CLI includes a bounded
 `recipe ai-image-ratio-crop-media-adoption` helper. It reads `/help`, verifies
-`openclaw_recipes.ai_image_ratio_crop_media_adoption`, can submit
-`POST /media-derivative-runs` for the target aspect-ratio crop, can poll
-`GET /media-derivative-runs/{run_id}/result`, and can call
+`openclaw_recipes.ai_image_ratio_crop_media_adoption`, accepts a reviewed
+preview URL produced by Cloud Addon or Cloud tooling, and can call
 `npcink-abilities-toolkit/build-media-adoption-enhancement-plan` for the
-cropped preview URL. It submits `/proposals/from-plan` only when
+reviewed preview URL. It submits `/proposals/from-plan` only when
 `--submit-proposal` is present, and it never approves or executes the final
-proposal.
+proposal. Cloud crop, run polling, artifact preview, and derivative payload
+building do not belong to Adapter CLI.
 
 ```bash
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption inspect --profile=local --insecure-local-tls
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption crop --profile=local --insecure-local-tls --attachment-id=123 --aspect-ratio=16:9
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption result --profile=local --insecure-local-tls RUN_ID
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=local --insecure-local-tls --preview-url=PREVIEW_URL --post-id=7424 --old-url=OLD_URL --title="WordPress AI hero" --alt-text="WordPress AI proposal workflow hero" --source-type=ai_generated --attribution-text="AI-generated image reviewed before adoption"
 ```
 
@@ -428,6 +426,9 @@ for the public-key pairing and request-signing contract.
 See [`docs/local-ai-client-policy.md`](docs/local-ai-client-policy.md)
 for the machine-readable `client_policy` contract and the boundary between
 Adapter-owned controls and customer-selected AI clients.
+See [`docs/external-ai-client-contract.md`](docs/external-ai-client-contract.md)
+for the minimum integration contract for OpenClaw-compatible clients such as
+OpenClaw, WorkBuddy, and Qclaw.
 
 When the current site URL is local (`localhost`, loopback, or `.local`), the
 handoff form can include `NPCINK_OPENCLAW_ADAPTER_INSECURE_SSL=true` in copied
@@ -906,6 +907,14 @@ Write or destructive abilities:
 Adapter derives the execution allowlist from its local execution profile registry.
 Capability discovery may show more proposal-required abilities, but
 only abilities with an Adapter execution profile can run final writes.
+The registry stays in Adapter as post-Core execution policy. It is not migrated
+to Toolkit or Core, and it must not be extended through filters, options,
+database rows, remote configuration, wildcards, category matches, or arbitrary
+ability ids.
+Each profile is an explicit post-Core policy entry, not a generic executor: it
+must bind one ability id, require Core approval plus commit-preflight, accept
+only declared fields, validate required ids/enums/sizes, normalize explicit
+commit intent, and fail closed on any undeclared write shape.
 For profiled abilities, Adapter also validates proposal input at
 `POST /proposals`, rejecting undeclared fields and invalid enum values before
 the proposal is sent to Core. The same Adapter-owned input schema check also

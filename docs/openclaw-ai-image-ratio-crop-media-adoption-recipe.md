@@ -10,8 +10,8 @@ Cloud image recommendation should run before generation when a page brief can
 match an existing, source-backed, owned, or previously generated candidate. AI
 generation is the fallback when recommendation does not produce a reviewable
 fit. AI image generation dimensions are advisory. If the page slot needs a
-specific ratio, request a generated candidate, review it, crop it through the
-Cloud media derivative path, then adopt the cropped preview through a Core
+specific ratio, request a generated candidate, review it, crop it through Cloud
+Addon or Cloud media derivative tooling, then adopt the cropped preview through a Core
 media adoption proposal before the page references it.
 
 Adapter does not generate images, choose providers, store Cloud artifact truth,
@@ -23,12 +23,8 @@ import media, crop images locally, or patch page content by itself.
 - Candidate contract: `image_candidate.v1`
 - Optional candidate source ability: `npcink-toolbox/search-image-source`
 - Optional hosted generation source: `npcink-toolbox/generate-image`
-- Crop dispatch route:
-  `POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs`
-- Crop result route:
-  `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs/{run_id}/result`
-- Crop preview route:
-  `GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/{artifact_id}/preview`
+- Crop/runtime owner: `npcink-cloud-addon` or Cloud tooling, not Adapter routes
+- Required handoff input: reviewed cropped preview URL with artifact provenance
 - Adoption plan ability:
   `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`
 - Handoff route: `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`
@@ -57,17 +53,17 @@ actions:
 4. Review the selected candidate. Reject images with unreadable UI text,
    unwanted logos, visible watermarking, license uncertainty, broken hands or
    faces when relevant, misleading product screenshots, or off-brand imagery.
-5. If the selected candidate is already a local attachment, run
-   `POST /media-derivative-runs` with `input.attachment_id` and bounded
-   `crop`.
-6. If the selected candidate is a same-site short-TTL Cloud artifact, run
-   `POST /media-derivative-runs` with `source_artifact` and bounded `crop`.
+5. If the selected candidate is already a local attachment, use Cloud Addon or
+   approved Cloud tooling to request a bounded crop from `attachment_id`.
+6. If the selected candidate is a same-site short-TTL Cloud artifact, use Cloud
+   Addon or approved Cloud tooling to request a bounded crop from
+   `source_artifact`.
 7. If the selected candidate is only a remote URL, first adopt or import it
    through a Core-governed media adoption proposal, then crop the resulting
    local attachment. Do not ask Adapter to crop arbitrary remote URLs.
-8. Poll the derivative run and read the result. Verify that the returned
-   dimensions match the target aspect ratio and that warnings, if present, are
-   acceptable.
+8. Poll and read the derivative result through Cloud Addon or Cloud tooling.
+   Verify that the returned dimensions match the target aspect ratio and that
+   warnings, if present, are acceptable.
 9. Use the signed cropped preview URL immediately as the selected `url` in
    `npcink-abilities-toolkit/build-media-adoption-enhancement-plan`. If this
    replaces an image already referenced by a page, include `old_url` for exact
@@ -109,7 +105,7 @@ created by the proposal, not the preview URL.
 
 ```json
 {
-  "url": "https://example.test/wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts/artifact-id/preview?preview_sig=...",
+  "url": "https://example.test/cloud-addon-preview/artifact-id?preview_sig=...",
   "old_url": "https://example.test/wp-content/uploads/2026/06/old-hero.webp",
   "post_id": 7424,
   "title": "WordPress AI governed workflow hero",
@@ -129,6 +125,8 @@ created by the proposal, not the preview URL.
 - `reject_text_or_logo_artifacts=true`
 - `signed_preview_is_temporary=true`
 - `preview_url_must_be_adopted_before_expiry=true`
+- `cloud_runtime_owner=npcink-cloud-addon`
+- `adapter_media_derivative_routes=false`
 - `proposal_mode=batch`
 - `core_preflight_required=true`
 - `core_proxy_execute=false`

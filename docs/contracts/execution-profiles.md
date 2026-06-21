@@ -22,6 +22,48 @@ Adapter may execute a write only when all of these are true:
 The registry is implemented in
 [`../../includes/Rest/Execution_Profile_Registry.php`](../../includes/Rest/Execution_Profile_Registry.php).
 
+## Placement And Extension Rules
+
+Keep the execution profile registry in Adapter. It is Adapter's post-Core
+execution policy, not a Toolkit ability definition and not Core approval truth.
+
+Do not migrate this registry to:
+
+- `npcink-abilities-toolkit`, because Toolkit owns ability definitions,
+  schemas, callbacks, permissions, and dry-run previews;
+- `npcink-governance-core`, because Core owns proposal storage, approval,
+  commit-preflight, and audit truth while keeping `core_proxy_execute=false`
+  and `commit_execution=false`;
+- a separate plugin, unless multiple channel adapters must share the same
+  post-Core execution policy and a future ADR accepts that extra dependency.
+
+Do not expose dynamic extension points for execution profiles. The registry
+must not use WordPress filters, actions, options, database rows, remote
+configuration, wildcards, category matches, or ability-id patterns to add final
+write authority. Adding or changing a profile requires a code change, contract
+update, static test update, and WordPress smoke coverage.
+
+## Profile Admission Checklist
+
+Every new profile must stay narrow enough to prove it is not a generic final
+write executor:
+
+- Bind exactly one Toolkit ability id.
+- Use a literal `npcink-abilities-toolkit/<ability>` id; no wildcards, regexes,
+  category executors, or arbitrary ability ids.
+- Require Core approval and Core commit-preflight evidence for the same
+  proposal item.
+- Require explicit commit intent; dry-run or preview-only inputs must not
+  execute.
+- Declare `supported_input_fields` and reject undeclared write fields.
+- Validate required WordPress object ids, text fields, enum fields, array
+  shapes, and size limits in Adapter before forwarding execution.
+- Normalize only the profile-owned `dry_run=false` and `commit=true` execution
+  controls.
+- Preserve idempotency and site/client binding checks from Core handoff data.
+- Add dedicated static and smoke coverage for the exact ability id and
+  expected input shape.
+
 ## Machine-Readable Fingerprints
 
 `GET /health`, `GET /help`, and `GET /connection/manifest` expose:

@@ -107,11 +107,9 @@ Run this order for a local acceptance pass:
    - `POST /proposals/from-plan`
    - `POST /proposals/{proposal_id}/execute`
    - `POST /proposals/{proposal_id}/approve-and-execute`
-   - `POST /media-derivative-runs`
-   - `GET /media-derivative-runs/{run_id}`
-   - `GET /media-derivative-runs/{run_id}/result`
-   - `GET /media-derivative-artifacts/{artifact_id}/preview`
-   - `POST /media-derivative-proposal-payload`
+   - no Adapter-owned `/media-derivative-runs`
+   - no Adapter-owned `/media-derivative-artifacts/{artifact_id}/preview`
+   - no Adapter-owned `/media-derivative-proposal-payload`
    - `GET /term`, whose purpose explains term detail uses list row `id` and
      infers `taxonomy` when possible
    - `route_groups` for human-readable grouped route labels
@@ -173,13 +171,10 @@ Run this order for a local acceptance pass:
    `enhance_with_reader=false`; Adapter must only pass this intent to Toolbox
    and must not expose Cloud search provider keys.
    - disabled approval and rejection stubs
-   - direct-read shortcuts
+   - direct-read ability execution through `/run-read-ability`
 6. Call `GET /capabilities` and use only real `ability_id` values returned by
    Core guidance.
-7. Run at least one direct-read shortcut:
-   - `GET /site-info`
-   - `GET /site-summary`
-   - `GET /media?per_page=1`
+7. Run at least one direct-read ability through `POST /run-read-ability`.
 8. Run at least one diagnostics shortcut:
    - `GET /active-plugins-detail`
    - `GET /plugin-conflict-diagnostics` when testing plugin conflicts
@@ -258,22 +253,19 @@ Run this order for a local acceptance pass:
     attribution is preserved, and every `write_actions[]` item targets only
     `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/upload-media-from-url`,
     `npcink-abilities-toolkit/update-media-details`, or `npcink-abilities-toolkit/set-post-featured-image`.
-    For the media derivative recipe, call `POST /media-derivative-runs` with a
-    test image attachment and confirm the response returns
-    `contract_version=media_derivative_adapter_run.v1`,
-    `request_contract_version=media_derivative_cloud_request.v1`,
+    For the media derivative recipe, create the derivative through Cloud Addon
+    or approved Cloud tooling with a test image attachment and confirm the
+    result evidence includes `request_contract_version=media_derivative_cloud_request.v1`,
     `core_proposal_required=true`, and local adoption fields with
-    `final_write_owner=local_wordpress_host`,
-    `wordpress_write_included=false`, and
-    `attachment_metadata_write_included=false`. Poll status/result only through
-    Adapter's `media-derivative-runs` projection routes, then call
-    `POST /media-derivative-proposal-payload` and confirm it returns a
-    Core-ready payload without creating, approving, or executing a proposal.
-    If the user intent is full media optimization, submit the returned
-    `from_plan_request` to `POST /proposals/from-plan` so Core creates one
+    `final_write_owner=local_wordpress_host`, `wordpress_write_included=false`,
+    and `attachment_metadata_write_included=false`. Build the local plan through
+    `POST /run-read-ability` with the reviewed preview URL and derivative
+    evidence; confirm it returns a Core-ready plan without creating, approving,
+    or executing a proposal. If the user intent is full media optimization,
+    submit the returned plan to `POST /proposals/from-plan` so Core creates one
     batch proposal containing `npcink-abilities-toolkit/update-media-details` and
     `npcink-abilities-toolkit/adopt-cloud-media-derivative`. If reviewed `media_details_input`
-    is missing, collect it first and retry the payload route; do not create a
+    is missing, collect it first and rebuild the local plan; do not create a
     Core proposal yet. If Core reports the plan ability is unavailable, surface
     the capability/version guard and update the local stack. Inline media
     reference repair preview evidence stays inside derivative adoption with
@@ -339,11 +331,11 @@ Run this order for a local acceptance pass:
     proposals do not execute through approve-and-execute.
 20. Pass `proposal_id` and `correlation_id` into later reads as query fields or
     as POST `/run-read-ability` `log_context`.
-21. Call `POST /ai-provider-log-correlation-smoke` with a configured text
-    generation provider/model. Local examples use `ai_provider=ollama` and
-    `ai_model=qwen3.5:0.8b` when that model is available; otherwise use the
-    provider/model returned by `GET /ai/v1/providers?capability=text_generation`.
-22. Confirm the AI Request Logs row has `status=success` and context fields:
+21. Do not call an Adapter provider/model smoke route; Adapter must not expose
+    the removed provider log correlation smoke endpoint.
+22. When a downstream AI client, Cloud runtime, or provider integration emits
+    an AI Request Logs row under Adapter context, confirm it has `status=success`
+    and context fields:
     `proposal_id`, `correlation_id`, `ability_id`, `adapter_request_id`,
     `adapter_route`, `ai_provider`, `ai_model`,
     `governance_source=npcink-governance-core`, and nested `npcink_governance_core`.
@@ -514,8 +506,9 @@ OpenClaw consumer acceptance is complete when:
   `correlation_id`;
 - Core Governance Audit remains the governance log, and WordPress `ai` plugin
   AI Request Logs remain the provider request log;
-- AI Request Logs context records the explicit `ai_provider` and explicit
-  `ai_model` sent to the provider smoke even if the provider column is blank;
+- Adapter does not expose a provider/model smoke route, and downstream provider
+  integrations can still record explicit `ai_provider` and explicit `ai_model`
+  in AI Request Logs context when they run under Adapter/Core correlation;
 - Gutenberg page and article recipes expose visual acceptance metadata, and any
   browser pass uses the shared
   [`openclaw-gutenberg-visual-acceptance.md`](openclaw-gutenberg-visual-acceptance.md)

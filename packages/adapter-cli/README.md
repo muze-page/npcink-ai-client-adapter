@@ -43,13 +43,13 @@ cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-op
 
 For AI-generated page visuals that need a stable aspect ratio, use the bounded
 recipe helper. It reads `GET /help`, verifies
-`openclaw_recipes.ai_image_ratio_crop_media_adoption`, and then runs only the
-requested client-side step. It does not approve or execute proposals:
+`openclaw_recipes.ai_image_ratio_crop_media_adoption`, accepts a reviewed
+preview URL produced by Cloud Addon or Cloud tooling, and then builds the local
+adoption plan. It does not create Cloud crop runs, approve proposals, or execute
+final writes:
 
 ```bash
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption inspect --profile=example
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption crop --profile=example --attachment-id=123 --aspect-ratio=16:9
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption result --profile=example RUN_ID
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter recipe ai-image-ratio-crop-media-adoption adoption-plan --profile=example --preview-url=PREVIEW_URL --post-id=7424 --old-url=OLD_URL --title="WordPress AI hero" --alt-text="WordPress AI proposal workflow hero" --source-type=ai_generated --attribution-text="AI-generated image reviewed before adoption"
 ```
 

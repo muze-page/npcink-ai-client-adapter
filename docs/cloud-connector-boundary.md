@@ -47,15 +47,16 @@ Adapter may add bounded Cloud Addon integration code for:
 - detecting whether `npcink-cloud-addon` is active;
 - calling `npcink_cloud_addon_runtime_client()` or a more specific public
   helper exposed by the addon;
-- returning Cloud Addon status or Cloud run/result projections to OpenClaw when
-  a user action explicitly needs a Cloud-backed operation;
+- returning bounded Cloud Addon readiness or proposal-specific projections to
+  OpenClaw when a governed user action explicitly needs Cloud evidence;
 - carrying `proposal_id`, `correlation_id`, `external_thread_id`, and
   `openclaw_thread_id` across WordPress, Core, Cloud, and AI Request Logs;
 - translating local WordPress context from Abilities into a Cloud request
-  payload when the operation is read-only or already approved by Core.
+  payload only when the operation is read-only, proposal evidence, or already
+  approved by Core.
 
 Adapter must keep these calls thin. It delegates Cloud credentials, signing,
-endpoint supported profiless, durable execution, retry, queueing, analytics, and
+endpoint supported profiles, durable execution, retry, queueing, analytics, and
 Cloud-side projections to `npcink-cloud-addon` and `npcink-cloud`.
 
 Adapter must not register Adapter-owned `/cloud/*` routes unless a future ADR
@@ -111,27 +112,28 @@ or proposal input for local review.
 
 ## Adapter Cloud Addon Seam
 
-Adapter may consume only the Cloud Addon public seam. Current examples include:
+Adapter may consume only the Cloud Addon public seam. The Adapter-safe seam is
+limited to readiness, diagnostics, proposal evidence, and approved execution
+support. Current Adapter-safe examples include:
 
 - `npcink_cloud_addon_runtime_client()`;
-- `npcink_cloud_addon_dispatch_media_derivative_cloud_request()`;
-- `npcink_cloud_addon_get_media_derivative_run()`;
-- `npcink_cloud_addon_get_media_derivative_run_result()`;
-- `npcink_cloud_addon_public_media_derivative_cloud_projection()`;
-- `npcink_cloud_addon_build_media_derivative_optimization_payload()`;
-- `npcink_cloud_addon_download_media_derivative_artifact()`.
+- `npcink_cloud_addon_is_configured()`;
+- `npcink_cloud_addon_download_media_derivative_artifact()` for
+  proposal-specific readiness checks and approved local adoption only.
 
 Adapter must not expose a parallel `/cloud/*` REST surface or duplicate Cloud
 Addon settings. If OpenClaw needs Cloud health, run status, results, stats,
-entitlement, or observability detail, Adapter should either link the operator to
-Cloud Addon or return a bounded projection obtained through Cloud Addon.
+entitlement, or observability detail, Adapter should link the operator to Cloud
+Addon or return only a bounded proposal-specific projection obtained through
+Cloud Addon.
 
 For media derivatives, Adapter must not expose Cloud façade routes such as
 `/media-derivative-runs`, artifact preview proxy routes, or derivative
-proposal-payload builders. Cloud Addon owns the Cloud run/result/artifact
-transport seam. Adapter may only expose proposal-specific readiness and execute
-the explicit post-Core `adopt-cloud-media-derivative` profile after Core
-approval and commit preflight.
+proposal-payload builders. Cloud Addon and Cloud tooling own run creation,
+run/result lookup, artifact preview, artifact registry, payload builders, and
+artifact transport. Adapter may only expose proposal-specific readiness and
+execute the explicit post-Core `adopt-cloud-media-derivative` profile after
+Core approval and commit preflight.
 
 ## Forbidden Adapter Shapes
 

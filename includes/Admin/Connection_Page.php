@@ -28,6 +28,7 @@ final class Connection_Page {
 	const REVOKE_KEY_ACTION = 'npcink_openclaw_adapter_revoke_client_key';
 	const DATETIME_DISPLAY_FORMAT = 'Y-m-d H:i:s';
 	const LOCAL_CLI_PACKAGE = '@npcink/openclaw-adapter-cli@0.2.0';
+	const APPLICATION_PASSWORD_FALLBACK_CONFIRM_FIELD = 'confirm_application_password_fallback';
 
 	/**
 	 * Admin page hook suffixes that should receive Adapter assets.
@@ -313,13 +314,19 @@ final class Connection_Page {
 								</label>
 								<p class="description"><?php echo esc_html__( 'LocalWP TLS option. Use only for localhost or .local testing.', 'npcink-ai-client-adapter' ); ?></p>
 							</div>
+							<div class="maa-option">
+								<label>
+									<input type="checkbox" name="<?php echo esc_attr( self::APPLICATION_PASSWORD_FALLBACK_CONFIRM_FIELD ); ?>" value="1" required />
+									<span><?php echo esc_html__( 'I understand this fallback creates a WordPress Application Password and the signed key-pair connection is preferred.', 'npcink-ai-client-adapter' ); ?></span>
+								</label>
+							</div>
 							<p class="maa-form-actions">
 								<button type="submit" class="button" <?php disabled( ! $can_create_password ); ?>>
 									<?php echo esc_html__( 'Create Application Password connection', 'npcink-ai-client-adapter' ); ?>
 								</button>
 							</p>
 							<?php if ( ! $can_create_password ) : ?>
-								<p class="description"><?php echo esc_html__( 'Application Passwords are not available for this user or site.', 'npcink-ai-client-adapter' ); ?></p>
+								<p class="description"><?php echo esc_html( $this->application_password_unavailable_message() ); ?></p>
 							<?php endif; ?>
 						</form>
 						<p class="description"><?php echo esc_html__( 'The password is shown once. Store it only in the client secret field.', 'npcink-ai-client-adapter' ); ?></p>
@@ -471,6 +478,7 @@ final class Connection_Page {
 				'npcink.read'    => __( 'Read approved Adapter and WordPress Abilities API routes.', 'npcink-ai-client-adapter' ),
 				'npcink.propose' => __( 'Create Core-governed proposals for reviewed writes.', 'npcink-ai-client-adapter' ),
 				'npcink.status'  => __( 'Check Adapter, Core proposal, and execution status.', 'npcink-ai-client-adapter' ),
+				'npcink.execute' => __( 'Execute approved Adapter write routes only after Core approval and commit preflight.', 'npcink-ai-client-adapter' ),
 			);
 
 			$descriptions = array();
@@ -562,8 +570,18 @@ final class Connection_Page {
 
 		check_admin_referer( self::CREATE_ACTION );
 
+		if ( ! $this->application_password_fallback_enabled() ) {
+			wp_die( esc_html__( 'Application Password fallback is disabled for this environment.', 'npcink-ai-client-adapter' ) );
+		}
+
+		$confirmed_fallback = isset( $_POST[ self::APPLICATION_PASSWORD_FALLBACK_CONFIRM_FIELD ] )
+			&& '1' === sanitize_text_field( wp_unslash( (string) $_POST[ self::APPLICATION_PASSWORD_FALLBACK_CONFIRM_FIELD ] ) );
+		if ( ! $confirmed_fallback ) {
+			wp_die( esc_html__( 'Confirm that you understand this fallback creates a WordPress Application Password.', 'npcink-ai-client-adapter' ) );
+		}
+
 		if ( ! $this->can_create_application_password() || ! class_exists( 'WP_Application_Passwords' ) ) {
-			wp_die( esc_html__( 'Application Passwords are not available for this user or site.', 'npcink-ai-client-adapter' ) );
+			wp_die( esc_html( $this->application_password_unavailable_message() ) );
 		}
 
 		$user_id            = get_current_user_id();
@@ -775,12 +793,39 @@ final class Connection_Page {
 	 * @return bool
 	 */
 	private function can_create_application_password(): bool {
+		if ( ! $this->application_password_fallback_enabled() ) {
+			return false;
+		}
+
 		if ( ! function_exists( 'wp_is_application_passwords_available_for_user' ) || ! class_exists( 'WP_Application_Passwords' ) ) {
 			return false;
 		}
 
 		$user = wp_get_current_user();
 		return $user->exists() && wp_is_application_passwords_available_for_user( $user );
+	}
+
+	/**
+	 * Returns whether the Application Password fallback is enabled.
+	 *
+	 * @return bool
+	 */
+	private function application_password_fallback_enabled(): bool {
+		return ! defined( 'NPCINK_OPENCLAW_ADAPTER_DISABLE_APPLICATION_PASSWORD_FALLBACK' )
+			|| ! (bool) constant( 'NPCINK_OPENCLAW_ADAPTER_DISABLE_APPLICATION_PASSWORD_FALLBACK' );
+	}
+
+	/**
+	 * Returns the Application Password unavailable message.
+	 *
+	 * @return string
+	 */
+	private function application_password_unavailable_message(): string {
+		if ( ! $this->application_password_fallback_enabled() ) {
+			return __( 'Application Password fallback is disabled for this environment.', 'npcink-ai-client-adapter' );
+		}
+
+		return __( 'Application Passwords are not available for this user or site.', 'npcink-ai-client-adapter' );
 	}
 
 	/**

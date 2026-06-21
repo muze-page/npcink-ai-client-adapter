@@ -1,6 +1,6 @@
 <?php
 /**
- * Adapter plan-to-proposal supported ability registry.
+ * Adapter plan-to-proposal bridge allowlist.
  *
  * @package NpcinkOpenClawAdapter
  */

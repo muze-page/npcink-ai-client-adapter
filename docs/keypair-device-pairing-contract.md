@@ -54,7 +54,7 @@ Request:
     "public_key": "BASE64URL_RAW_32_BYTE_PUBLIC_KEY",
     "fingerprint": "sha256:..."
   },
-  "requested_scopes": ["magick.read", "magick.propose", "magick.status"]
+  "requested_scopes": ["npcink.read", "npcink.propose", "npcink.status", "npcink.execute"]
 }
 ```
 
