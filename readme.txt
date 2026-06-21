@@ -4,7 +4,7 @@ Tags: ai, governance, automation, rest-api
 Requires at least: 7.0
 Tested up to: 7.0
 Requires PHP: 8.0
-Requires Plugins: npcink-abilities-toolkit
+Requires Plugins: npcink-abilities-toolkit, npcink-governance-core
 Stable tag: 0.3.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -39,7 +39,7 @@ Key features:
 == Installation ==
 
 1. Install and activate `npcink-abilities-toolkit`.
-2. Install and activate Npcink Governance Core.
+2. Install and activate `npcink-governance-core`.
 3. Install and activate Npcink AI Client Adapter.
 4. Open Npcink > Adapter to create the local AI client handoff.
 

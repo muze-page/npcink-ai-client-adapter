@@ -355,7 +355,7 @@ function maa_adapter_removed_admin_connection_texts(): array {
 $main = maa_adapter_read( $root . '/npcink-ai-client-adapter.php' );
 maa_adapter_assert( false !== strpos( $main, 'Plugin Name: Npcink AI Client Adapter' ), 'Main plugin has WordPress plugin header.' );
 maa_adapter_assert( false !== strpos( $main, 'License: GPL-2.0-or-later' ), 'Main plugin declares GPL-compatible license.' );
-maa_adapter_assert( false !== strpos( $main, 'Requires Plugins: npcink-abilities-toolkit' ), 'Main plugin declares confirmed Toolkit dependency slug.' );
+maa_adapter_assert( false !== strpos( $main, 'Requires Plugins: npcink-abilities-toolkit, npcink-governance-core' ), 'Main plugin declares confirmed Toolkit and Core dependency slugs.' );
 maa_adapter_assert( false !== strpos( $main, 'plugins_loaded' ), 'Main plugin boots on plugins_loaded.' );
 maa_adapter_assert( false !== strpos( $main, "defined( 'NPCINK_OPENCLAW_ADAPTER_FILE' )" ), 'Main plugin is guarded against duplicate legacy bootstrap loading.' );
 maa_adapter_assert( ! file_exists( $root . '/npcink-openclaw-adapter.php' ), 'Legacy bootstrap has been removed from the source tree.' );
@@ -1949,7 +1949,7 @@ foreach (
 		'Requires at least: 7.0',
 		'Tested up to: 7.0',
 		'Requires PHP: 8.0',
-		'Requires Plugins: npcink-abilities-toolkit',
+		'Requires Plugins: npcink-abilities-toolkit, npcink-governance-core',
 		'Stable tag: 0.3.2',
 		'License: GPL-2.0-or-later',
 		'structured missing dependency error',
@@ -2085,8 +2085,8 @@ $distribution_contract = maa_adapter_read( $root . '/docs/distribution-contract.
 foreach (
 	array(
 		'Npcink AI Suite Distribution Contract',
-		'`npcink-abilities-toolkit` is the current WordPress.org dependency slug',
-		'Core and Adapter slugs are treated as distribution contract values',
+		'`npcink-abilities-toolkit` and `npcink-governance-core` are the current',
+		"Adapter's own slug is treated as a distribution contract value",
 		'npcink_openclaw_adapter_missing_dependency',
 		'Distribution unifies installation, not responsibilities',
 	) as $required

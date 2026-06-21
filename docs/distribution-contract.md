@@ -20,12 +20,13 @@ and release gate.
 
 ## Slug Policy
 
-`npcink-abilities-toolkit` is the current WordPress.org dependency slug and is
-declared in Adapter's `Requires Plugins` header.
+`npcink-abilities-toolkit` and `npcink-governance-core` are the current
+WordPress.org dependency slugs and are declared in Adapter's `Requires Plugins`
+header.
 
-Core and Adapter slugs are treated as distribution contract values until their
-public WordPress.org slugs are finalized. Runtime checks must therefore prefer
-observable interfaces over display names:
+Adapter's own slug is treated as a distribution contract value until its public
+WordPress.org slug is finalized. Runtime checks must therefore prefer observable
+interfaces over display names:
 
 - Core readiness is detected by
   `/wp-json/npcink-governance-core/v1/capabilities`.
@@ -56,8 +57,9 @@ Required runtime dependencies:
 The current implementation makes Adapter the distribution entry point without
 moving Core or Toolkit code into Adapter:
 
-- Adapter declares only the confirmed WordPress.org dependency slug
-  `npcink-abilities-toolkit` in the plugin header and WordPress readme.
+- Adapter declares the confirmed WordPress.org dependency slugs
+  `npcink-abilities-toolkit` and `npcink-governance-core` in the plugin header
+  and WordPress readme.
 - Adapter `/health` reports `dependencies_ready`, `missing_dependencies`, and
   per-dependency detector details for Core, WordPress Abilities API, and
   Toolkit.

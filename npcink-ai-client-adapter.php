@@ -5,7 +5,7 @@
  * Version: 0.3.2
  * Requires PHP: 8.0
  * Requires at least: 7.0
- * Requires Plugins: npcink-abilities-toolkit
+ * Requires Plugins: npcink-abilities-toolkit, npcink-governance-core
  * Author: Npcink
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
