@@ -16,15 +16,15 @@ The default page should answer only:
 - is Adapter healthy;
 - which site and Adapter URL this client should use;
 - how to connect through the secure signed key-pair path;
-- which signed key-pair devices are already authorized and where to revoke
+- which signed key-pair devices are active and where to revoke
   them;
 - how to fall back to a simple WordPress Application Password connection.
 
 Primary actions:
 
-- `Secure key-pair connection`, with `Copy connect command` as the primary
+- `Secure key pairing`, with `Copy connect command` as the primary
   action.
-- `Manage devices`, which opens the authorized signed key-pair devices list
+- `Manage devices`, which opens the active signed key-pair devices list
   without adding a separate control surface.
 - `Fallback: WordPress Application Password connection`, with `Create
   Application Password connection` as the fallback action for clients that have

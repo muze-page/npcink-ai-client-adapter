@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-06-21T06:07:09+00:00\n"
+"POT-Creation-Date: 2026-06-21T06:45:08+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: npcink-ai-client-adapter\n"
@@ -121,7 +121,7 @@ msgid "Connect this WordPress site to OpenClaw or other local AI clients."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:245
-#: includes/Admin/Connection_Page.php:950
+#: includes/Admin/Connection_Page.php:996
 msgid "Status"
 msgstr ""
 
@@ -131,7 +131,7 @@ msgstr ""
 
 #: includes/Admin/Connection_Page.php:253
 #: includes/Admin/Connection_Page.php:286
-msgid "Authorized devices"
+msgid "Active devices"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:260
@@ -139,7 +139,7 @@ msgid "Suite dependencies need attention."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:271
-msgid "Secure key-pair connection"
+msgid "Secure key pairing"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:272
@@ -159,7 +159,7 @@ msgid "Manage devices"
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:282
-msgid "Run the command in the same environment as the AI client. Adapter stores only the approved public key."
+msgid "Run this command on the computer or terminal where OpenClaw is running. Adapter stores only the approved public key."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:291
@@ -462,39 +462,51 @@ msgid_plural "%d active, not used yet"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/Admin/Connection_Page.php:939
-msgid "No key-pair clients are registered for this administrator yet. Run the reconnect command, approve the browser prompt, then refresh this page."
+#: includes/Admin/Connection_Page.php:951
+msgid "No active key-pair clients are registered for this administrator. Run the connect command, approve the browser prompt, then refresh this page."
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:947
+#: includes/Admin/Connection_Page.php:962
+msgid "Revoked devices"
+msgstr ""
+
+#. translators: %d: number of revoked key-pair clients.
+#: includes/Admin/Connection_Page.php:967
+#, php-format
+msgid "%d revoked device record"
+msgid_plural "%d revoked device records"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/Admin/Connection_Page.php:993
 msgid "Device"
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:948
-msgid "Fingerprint"
+#: includes/Admin/Connection_Page.php:994
+msgid "Device ID"
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:949
+#: includes/Admin/Connection_Page.php:995
 msgid "Last used"
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:951
+#: includes/Admin/Connection_Page.php:998
 msgid "Action"
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:974
+#: includes/Admin/Connection_Page.php:1025
 msgid "Active"
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:974
+#: includes/Admin/Connection_Page.php:1025
 msgid "Revoked"
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:977
+#: includes/Admin/Connection_Page.php:1030
 msgid "Revoke this device? It must pair again before it can connect."
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:981
+#: includes/Admin/Connection_Page.php:1034
 msgid "Revoke authorization"
 msgstr ""
 

@@ -207,6 +207,35 @@
 .npcink-openclaw-adapter-connection .maa-device-table td {
 	vertical-align: middle;
 }
+.npcink-openclaw-adapter-connection .maa-device-table {
+	max-width: 860px;
+}
+.npcink-openclaw-adapter-connection .maa-device-status {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: 600;
+}
+.npcink-openclaw-adapter-connection .maa-device-status-active {
+	background: #edfaef;
+	color: #008a20;
+}
+.npcink-openclaw-adapter-connection .maa-device-status-revoked {
+	background: #f6f7f7;
+	color: #646970;
+}
+.npcink-openclaw-adapter-connection .maa-revoke-button {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	font-size: 13px;
+	text-decoration: none;
+}
+.npcink-openclaw-adapter-connection .maa-revoked-devices {
+	max-width: 860px;
+}
 .npcink-openclaw-adapter-connection details.maa-advanced-group {
 	margin-top: 12px;
 	border: 1px solid #dcdcde;

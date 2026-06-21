@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Npcink AI Client Adapter 0.1.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/npcink-ai-client-"
 "adapter\n"
-"POT-Creation-Date: 2026-06-21T06:07:09+00:00\n"
+"POT-Creation-Date: 2026-06-21T06:45:08+00:00\n"
 "PO-Revision-Date: 2026-06-06 15:10+0800\n"
 "Last-Translator: Npcink <dev@npcink.local>\n"
 "Language-Team: Chinese (China) <zh_CN@li.org>\n"
@@ -127,7 +127,7 @@ msgid "Connect this WordPress site to OpenClaw or other local AI clients."
 msgstr "将此 WordPress 站点连接到 OpenClaw 或其他本地 AI 客户端。"
 
 #: includes/Admin/Connection_Page.php:245
-#: includes/Admin/Connection_Page.php:950
+#: includes/Admin/Connection_Page.php:996
 msgid "Status"
 msgstr "状态"
 
@@ -137,16 +137,16 @@ msgstr "站点"
 
 #: includes/Admin/Connection_Page.php:253
 #: includes/Admin/Connection_Page.php:286
-msgid "Authorized devices"
-msgstr "已授权设备"
+msgid "Active devices"
+msgstr "有效设备"
 
 #: includes/Admin/Connection_Page.php:260
 msgid "Suite dependencies need attention."
 msgstr "套件依赖需要处理。"
 
 #: includes/Admin/Connection_Page.php:271
-msgid "Secure key-pair connection"
-msgstr "安全密钥连接"
+msgid "Secure key pairing"
+msgstr "安全密钥配对"
 
 #: includes/Admin/Connection_Page.php:272
 msgid "Recommended"
@@ -168,9 +168,10 @@ msgstr "管理设备"
 
 #: includes/Admin/Connection_Page.php:282
 msgid ""
-"Run the command in the same environment as the AI client. Adapter stores "
-"only the approved public key."
-msgstr "请在与 AI 客户端相同的环境中运行该命令。适配器只保存已批准的公钥。"
+"Run this command on the computer or terminal where OpenClaw is running. "
+"Adapter stores only the approved public key."
+msgstr ""
+"请在运行 OpenClaw 的电脑或终端中运行该命令。Adapter 只保存已批准的公钥。"
 
 #: includes/Admin/Connection_Page.php:291
 msgid ""
@@ -500,59 +501,70 @@ msgstr "此用户或站点不可用应用密码。"
 
 #: includes/Admin/Connection_Page.php:911
 msgid "No active key-pair clients"
-msgstr "没有活跃的密钥对客户端"
+msgstr "没有有效的密钥配对客户端"
 
 #. translators: 1: number of active clients, 2: formatted last-used timestamp.
 #: includes/Admin/Connection_Page.php:917
 #, php-format
 msgid "%1$d active, last used %2$s"
 msgid_plural "%1$d active, last used %2$s"
-msgstr[0] "%1$d 个活跃，最近使用于 %2$s"
+msgstr[0] "%1$d 个有效，最近使用于 %2$s"
 
 #. translators: %d: number of active clients.
 #: includes/Admin/Connection_Page.php:925
 #, php-format
 msgid "%d active, not used yet"
 msgid_plural "%d active, not used yet"
-msgstr[0] "%d 个活跃，尚未使用"
+msgstr[0] "%d 个有效，尚未使用"
 
-#: includes/Admin/Connection_Page.php:939
+#: includes/Admin/Connection_Page.php:951
 msgid ""
-"No key-pair clients are registered for this administrator yet. Run the "
-"reconnect command, approve the browser prompt, then refresh this page."
+"No active key-pair clients are registered for this administrator. Run the "
+"connect command, approve the browser prompt, then refresh this page."
 msgstr ""
-"此管理员尚未注册密钥对客户端。运行重新连接命令，批准浏览器提示，然后刷新此页"
+"此管理员尚无有效密钥配对客户端。请运行连接命令，批准浏览器提示，然后刷新此页"
 "面。"
 
-#: includes/Admin/Connection_Page.php:947
+#: includes/Admin/Connection_Page.php:962
+msgid "Revoked devices"
+msgstr "已撤销设备"
+
+#. translators: %d: number of revoked key-pair clients.
+#: includes/Admin/Connection_Page.php:967
+#, php-format
+msgid "%d revoked device record"
+msgid_plural "%d revoked device records"
+msgstr[0] "%d 条已撤销设备记录"
+
+#: includes/Admin/Connection_Page.php:993
 msgid "Device"
 msgstr "设备"
 
-#: includes/Admin/Connection_Page.php:948
-msgid "Fingerprint"
-msgstr "指纹"
+#: includes/Admin/Connection_Page.php:994
+msgid "Device ID"
+msgstr "设备标识"
 
-#: includes/Admin/Connection_Page.php:949
+#: includes/Admin/Connection_Page.php:995
 msgid "Last used"
 msgstr "上次使用"
 
-#: includes/Admin/Connection_Page.php:951
+#: includes/Admin/Connection_Page.php:998
 msgid "Action"
 msgstr "操作"
 
-#: includes/Admin/Connection_Page.php:974
+#: includes/Admin/Connection_Page.php:1025
 msgid "Active"
 msgstr "有效"
 
-#: includes/Admin/Connection_Page.php:974
+#: includes/Admin/Connection_Page.php:1025
 msgid "Revoked"
 msgstr "已撤销"
 
-#: includes/Admin/Connection_Page.php:977
+#: includes/Admin/Connection_Page.php:1030
 msgid "Revoke this device? It must pair again before it can connect."
 msgstr "撤销此设备？撤销后它必须重新配对才能连接。"
 
-#: includes/Admin/Connection_Page.php:981
+#: includes/Admin/Connection_Page.php:1034
 msgid "Revoke authorization"
 msgstr "撤销授权"
 

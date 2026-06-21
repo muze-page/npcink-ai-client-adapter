@@ -250,7 +250,7 @@ final class Connection_Page {
 					<span class="maa-value"><?php echo esc_html( $site_host ); ?></span>
 				</div>
 				<div class="maa-summary-item">
-					<span class="maa-label"><?php echo esc_html__( 'Authorized devices', 'npcink-ai-client-adapter' ); ?></span>
+					<span class="maa-label"><?php echo esc_html__( 'Active devices', 'npcink-ai-client-adapter' ); ?></span>
 					<span class="maa-value"><?php echo esc_html( (string) $active_key_count ); ?></span>
 				</div>
 			</div>
@@ -268,7 +268,7 @@ final class Connection_Page {
 					<div class="maa-section-heading">
 						<div>
 							<h2>
-								<?php echo esc_html__( 'Secure key-pair connection', 'npcink-ai-client-adapter' ); ?>
+								<?php echo esc_html__( 'Secure key pairing', 'npcink-ai-client-adapter' ); ?>
 								<span class="maa-status maa-status-ok maa-heading-badge"><?php echo esc_html__( 'Recommended', 'npcink-ai-client-adapter' ); ?></span>
 							</h2>
 							<p class="maa-section-intro"><?php echo esc_html__( 'Recommended path: pair a local signed key so the client never receives a WordPress Application Password.', 'npcink-ai-client-adapter' ); ?></p>
@@ -279,11 +279,11 @@ final class Connection_Page {
 						<button type="button" class="button button-primary maa-copy-button" data-maa-copy-target="maa-local-cli-connect-command"><?php echo esc_html__( 'Copy connect command', 'npcink-ai-client-adapter' ); ?></button>
 						<button type="button" class="button" data-maa-open-target="maa-authorized-devices"><?php echo esc_html__( 'Manage devices', 'npcink-ai-client-adapter' ); ?></button>
 					</div>
-					<p class="description maa-action-hint"><?php echo esc_html__( 'Run the command in the same environment as the AI client. Adapter stores only the approved public key.', 'npcink-ai-client-adapter' ); ?></p>
+					<p class="description maa-action-hint"><?php echo esc_html__( 'Run this command on the computer or terminal where OpenClaw is running. Adapter stores only the approved public key.', 'npcink-ai-client-adapter' ); ?></p>
 					<details id="maa-authorized-devices" class="maa-inline-disclosure maa-device-manager">
 						<summary>
 							<span class="maa-disclosure-copy">
-								<strong><?php echo esc_html__( 'Authorized devices', 'npcink-ai-client-adapter' ); ?></strong>
+								<strong><?php echo esc_html__( 'Active devices', 'npcink-ai-client-adapter' ); ?></strong>
 								<span class="description"><?php echo esc_html( $this->key_pair_summary_text( $key_records ) ); ?></span>
 							</span>
 							<span class="maa-disclosure-icon" aria-hidden="true"></span>
@@ -934,54 +934,107 @@ final class Connection_Page {
 	 * @return void
 	 */
 	private function render_key_pair_clients_table( array $key_records ): void {
-		if ( empty( $key_records ) ) :
+		$active_records  = array();
+		$revoked_records = array();
+
+		foreach ( $key_records as $record ) {
+			if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) {
+				$active_records[] = $record;
+				continue;
+			}
+
+			$revoked_records[] = $record;
+		}
+
+		if ( empty( $active_records ) ) :
 			?>
-			<p class="description"><?php echo esc_html__( 'No key-pair clients are registered for this administrator yet. Run the reconnect command, approve the browser prompt, then refresh this page.', 'npcink-ai-client-adapter' ); ?></p>
+			<p class="description"><?php echo esc_html__( 'No active key-pair clients are registered for this administrator. Run the connect command, approve the browser prompt, then refresh this page.', 'npcink-ai-client-adapter' ); ?></p>
 			<?php
-			return;
+		else :
+			$this->render_key_pair_clients_table_rows( $active_records, true );
 		endif;
+
+		if ( ! empty( $revoked_records ) ) :
+			?>
+			<details class="maa-inline-disclosure maa-revoked-devices">
+				<summary>
+					<span class="maa-disclosure-copy">
+						<strong><?php echo esc_html__( 'Revoked devices', 'npcink-ai-client-adapter' ); ?></strong>
+						<span class="description">
+							<?php
+							printf(
+								/* translators: %d: number of revoked key-pair clients. */
+								esc_html( _n( '%d revoked device record', '%d revoked device records', count( $revoked_records ), 'npcink-ai-client-adapter' ) ),
+								absint( count( $revoked_records ) )
+							);
+							?>
+						</span>
+					</span>
+					<span class="maa-disclosure-icon" aria-hidden="true"></span>
+				</summary>
+				<?php $this->render_key_pair_clients_table_rows( $revoked_records, false ); ?>
+			</details>
+			<?php
+		endif;
+	}
+
+	/**
+	 * Renders a key-pair client table for active or revoked records.
+	 *
+	 * @param array<int,array<string,mixed>> $records Key records.
+	 * @param bool                          $include_actions Whether to render revoke actions.
+	 * @return void
+	 */
+	private function render_key_pair_clients_table_rows( array $records, bool $include_actions ): void {
 		?>
-			<table class="widefat striped maa-device-table">
-				<thead>
-					<tr>
-						<th><?php echo esc_html__( 'Device', 'npcink-ai-client-adapter' ); ?></th>
-						<th><?php echo esc_html__( 'Fingerprint', 'npcink-ai-client-adapter' ); ?></th>
+		<table class="widefat striped maa-device-table">
+			<thead>
+				<tr>
+					<th><?php echo esc_html__( 'Device', 'npcink-ai-client-adapter' ); ?></th>
+					<th><?php echo esc_html__( 'Device ID', 'npcink-ai-client-adapter' ); ?></th>
 					<th><?php echo esc_html__( 'Last used', 'npcink-ai-client-adapter' ); ?></th>
 					<th><?php echo esc_html__( 'Status', 'npcink-ai-client-adapter' ); ?></th>
-					<th><?php echo esc_html__( 'Action', 'npcink-ai-client-adapter' ); ?></th>
+					<?php if ( $include_actions ) : ?>
+						<th><?php echo esc_html__( 'Action', 'npcink-ai-client-adapter' ); ?></th>
+					<?php endif; ?>
 				</tr>
 			</thead>
-				<tbody>
-					<?php foreach ( $key_records as $record ) : ?>
-						<?php
-						$admin_label = (string) ( $record['admin_label'] ?? '' );
-						$client_name = (string) ( $record['client_name'] ?? '' );
-						$device_name = (string) ( $record['device_name'] ?? '' );
-						$fingerprint = (string) ( $record['fingerprint'] ?? '' );
-						$fingerprint = strlen( $fingerprint ) > 12 ? substr( $fingerprint, -12 ) : $fingerprint;
-						?>
-						<tr>
-							<td>
-								<?php if ( '' !== $admin_label ) : ?>
-									<strong><?php echo esc_html( $admin_label ); ?></strong><br>
-									<span class="description"><?php echo esc_html( trim( $client_name . ' / ' . $device_name, ' /' ) ); ?></span>
-								<?php else : ?>
-									<?php echo esc_html( '' !== $client_name ? $client_name : $device_name ); ?>
-								<?php endif; ?>
-							</td>
-							<td><code><?php echo esc_html( $fingerprint ); ?></code></td>
-						<td><?php echo esc_html( $this->display_datetime( (string) ( $record['last_used_at'] ?? '' ) ) ); ?></td>
-						<td><?php echo '' === (string) ( $record['revoked_at'] ?? '' ) ? esc_html__( 'Active', 'npcink-ai-client-adapter' ) : esc_html__( 'Revoked', 'npcink-ai-client-adapter' ); ?></td>
-							<td>
-								<?php if ( '' === (string) ( $record['revoked_at'] ?? '' ) ) : ?>
-									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return window.confirm('<?php echo esc_js( __( 'Revoke this device? It must pair again before it can connect.', 'npcink-ai-client-adapter' ) ); ?>');">
-										<input type="hidden" name="action" value="<?php echo esc_attr( self::REVOKE_KEY_ACTION ); ?>" />
-										<input type="hidden" name="key_id" value="<?php echo esc_attr( (string) ( $record['key_id'] ?? '' ) ); ?>" />
-										<?php wp_nonce_field( self::REVOKE_KEY_ACTION . '_' . (string) ( $record['key_id'] ?? '' ) ); ?>
-										<button type="submit" class="button"><?php echo esc_html__( 'Revoke authorization', 'npcink-ai-client-adapter' ); ?></button>
-									</form>
+			<tbody>
+				<?php foreach ( $records as $record ) : ?>
+					<?php
+					$admin_label = (string) ( $record['admin_label'] ?? '' );
+					$client_name = (string) ( $record['client_name'] ?? '' );
+					$device_name = (string) ( $record['device_name'] ?? '' );
+					$fingerprint = (string) ( $record['fingerprint'] ?? '' );
+					$fingerprint = strlen( $fingerprint ) > 12 ? substr( $fingerprint, -12 ) : $fingerprint;
+					$is_active   = '' === (string) ( $record['revoked_at'] ?? '' );
+					?>
+					<tr>
+						<td>
+							<?php if ( '' !== $admin_label ) : ?>
+								<strong><?php echo esc_html( $admin_label ); ?></strong><br>
+								<span class="description"><?php echo esc_html( trim( $client_name . ' / ' . $device_name, ' /' ) ); ?></span>
+							<?php else : ?>
+								<?php echo esc_html( '' !== $client_name ? $client_name : $device_name ); ?>
 							<?php endif; ?>
 						</td>
+						<td><code><?php echo esc_html( $fingerprint ); ?></code></td>
+						<td><?php echo esc_html( $this->display_datetime( (string) ( $record['last_used_at'] ?? '' ) ) ); ?></td>
+						<td>
+							<span class="maa-device-status maa-device-status-<?php echo $is_active ? 'active' : 'revoked'; ?>">
+								<?php echo $is_active ? esc_html__( 'Active', 'npcink-ai-client-adapter' ) : esc_html__( 'Revoked', 'npcink-ai-client-adapter' ); ?>
+							</span>
+						</td>
+						<?php if ( $include_actions ) : ?>
+							<td>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return window.confirm('<?php echo esc_js( __( 'Revoke this device? It must pair again before it can connect.', 'npcink-ai-client-adapter' ) ); ?>');">
+									<input type="hidden" name="action" value="<?php echo esc_attr( self::REVOKE_KEY_ACTION ); ?>" />
+									<input type="hidden" name="key_id" value="<?php echo esc_attr( (string) ( $record['key_id'] ?? '' ) ); ?>" />
+									<?php wp_nonce_field( self::REVOKE_KEY_ACTION . '_' . (string) ( $record['key_id'] ?? '' ) ); ?>
+									<button type="submit" class="button-link-delete maa-revoke-button"><?php echo esc_html__( 'Revoke authorization', 'npcink-ai-client-adapter' ); ?></button>
+								</form>
+							</td>
+						<?php endif; ?>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
