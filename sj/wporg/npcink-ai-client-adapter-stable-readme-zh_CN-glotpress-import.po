@@ -1,0 +1,248 @@
+# Translation of Plugins - Npcink AI Client Adapter - Stable Readme (latest release) in Chinese (China)
+# This file is distributed under the same license as the Plugins - Npcink AI Client Adapter - Stable Readme (latest release) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: +0000\n"
+"Last-Translator: Npcink <dev@npcink.local>\n"
+"Language-Team: Chinese (China) <zh_CN@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: GlotPress/4.0.3\n"
+"Language: zh_CN\n"
+"Project-Id-Version: Plugins - Npcink AI Client Adapter - Stable Readme (latest release)\n"
+
+#. Short description.
+#, gp-priority: high
+msgid "Connect local AI clients such as OpenClaw to governed WordPress abilities through a thin REST adapter."
+msgstr "通过薄 REST 适配器，将 OpenClaw 等本地 AI 客户端连接到受治理的 WordPress 能力。"
+
+#. Plugin name.
+#, gp-priority: high
+msgid "Npcink AI Client Adapter"
+msgstr "Npcink AI Client Adapter"
+
+#. Found in faq paragraph.
+msgid "Adapter health and help routes can report dependency status. Routes that require Npcink Governance Core or a WordPress Abilities API provider fail closed with a structured missing dependency error."
+msgstr "Adapter 的 health 和 help 路由可以报告依赖状态。需要 Npcink Governance Core 或 WordPress Abilities API provider 的路由会失败关闭，并返回结构化的缺失依赖错误。"
+
+#. Found in faq paragraph.
+msgid "No. Adapter is a channel layer. It does not provide model routing, prompt management, provider credentials, workflow queues, or hosted AI execution."
+msgstr "不会。Adapter 是通道层。它不提供模型路由、提示词管理、provider 凭据、工作流队列或托管 AI 执行。"
+
+#. Found in faq paragraph.
+msgid "The recommended signed key-pair path avoids giving the client a WordPress Application Password. Adapter stores only the approved public key. The Application Password path remains available as a fallback for clients with a dedicated secret field or credential vault."
+msgstr "推荐的签名密钥配对路径避免把 WordPress 应用密码交给客户端。Adapter 只保存已批准的公钥。对于有专用密钥字段或凭据库的客户端，应用密码路径仍作为备用方式保留。"
+
+#. Found in faq paragraph.
+msgid "Adapter is built for OpenClaw-compatible local clients and similar tools that can call authenticated WordPress REST endpoints and consume the Adapter <code>client_policy</code>."
+msgstr "Adapter 面向 OpenClaw 兼容本地客户端和类似工具，这些工具需要能够调用经过认证的 WordPress REST 端点，并读取 Adapter 的 <code>client_policy</code>。"
+
+#. Found in faq paragraph.
+msgid "Yes. Npcink Abilities Toolkit provides the ability definitions and callbacks used by the Adapter. Npcink Governance Core is required for governed proposals, approval, commit-preflight, and audit."
+msgstr "需要。Npcink Abilities Toolkit 提供 Adapter 使用的能力定义和回调。Npcink Governance Core 负责受治理的提案、批准、提交预检和审计。"
+
+#. Found in faq paragraph.
+msgid "No. Adapter executes only explicit, supported execution profiles after Core approval and commit-preflight. It is not a generic ability executor and does not bypass Core governance."
+msgstr "不会。Adapter 只会在 Core 批准和提交预检之后执行明确受支持的执行配置。它不是通用能力执行器，也不会绕过 Core 治理。"
+
+#. Found in faq header.
+msgid "What happens if dependencies are missing?"
+msgstr "如果依赖缺失会怎样？"
+
+#. Found in faq header.
+msgid "Does Adapter run AI models or store prompts?"
+msgstr "Adapter 会运行 AI 模型或保存提示词吗？"
+
+#. Found in faq header.
+msgid "Does Adapter send my WordPress password to an AI client?"
+msgstr "Adapter 会把我的 WordPress 密码发送给 AI 客户端吗？"
+
+#. Found in faq header.
+msgid "Which AI clients can connect?"
+msgstr "哪些 AI 客户端可以连接？"
+
+#. Found in faq header.
+msgid "Do I need other Npcink plugins?"
+msgstr "需要其他 Npcink 插件吗？"
+
+#. Found in installation list item.
+msgid "Install and activate <code>npcink-governance-core</code>."
+msgstr "安装并启用 <code>npcink-governance-core</code>。"
+
+#. Found in description paragraph.
+msgid "Key features:"
+msgstr "核心功能："
+
+#. Found in description paragraph.
+msgid "Current governed execution support covers explicit Adapter profiles after Core approval, including <code>npcink-abilities-toolkit/trash-post</code>, <code>npcink-abilities-toolkit/create-draft</code>, <code>npcink-abilities-toolkit/update-post</code>, <code>npcink-abilities-toolkit/update-post-blocks</code>, <code>npcink-abilities-toolkit/set-post-terms</code>, <code>npcink-abilities-toolkit/reply-comment</code>, and <code>npcink-abilities-toolkit/approve-comment</code>."
+msgstr "当前受治理执行支持覆盖 Core 批准之后的明确 Adapter 配置，包括 <code>npcink-abilities-toolkit/trash-post</code>、<code>npcink-abilities-toolkit/create-draft</code>、<code>npcink-abilities-toolkit/update-post</code>、<code>npcink-abilities-toolkit/update-post-blocks</code>、<code>npcink-abilities-toolkit/set-post-terms</code>、<code>npcink-abilities-toolkit/reply-comment</code> 和 <code>npcink-abilities-toolkit/approve-comment</code>。"
+
+#. Found in description paragraph.
+msgid "Adapter exposes a machine-readable <code>client_policy</code> on health, help, and the connection manifest so compatible clients can consume explicit route, output, sensitive-read, and write-flow boundaries. The local CLI also redacts profile paths, key ids, signing headers, tokens, passwords, and secrets from output."
+msgstr "Adapter 在 health、help 和连接清单中暴露机器可读的 <code>client_policy</code>，让兼容客户端可以读取明确的路由、输出、敏感读取和写入流程边界。本地 CLI 也会从输出中隐藏 profile 路径、key id、签名 header、token、password 和 secret。"
+
+#. Found in description paragraph.
+msgid "Adapter is intentionally thin. It does not define abilities, store approval truth, run workflow queues, act as an MCP server, manage model providers, store prompts, or execute arbitrary final write mutations. Governance remains in Npcink Governance Core. Ability definitions and callbacks remain in Npcink Abilities Toolkit or another WordPress Abilities API provider."
+msgstr "Adapter 有意保持很薄。它不定义能力、不保存批准真相、不运行工作流队列、不充当 MCP server、不管理模型 provider、不保存提示词，也不执行任意最终写入变更。治理仍属于 Npcink Governance Core。能力定义和回调仍属于 Npcink Abilities Toolkit 或其他 WordPress Abilities API provider。"
+
+#. Found in description paragraph.
+msgid "The default connection path uses signed key-pair pairing so the AI client does not need to receive a WordPress Application Password. A WordPress Application Password fallback is available for clients that already have a dedicated secret field or credential vault."
+msgstr "默认连接路径使用签名密钥配对，因此 AI 客户端不需要接收 WordPress 应用密码。对于已经有专用 secret 字段或凭据库的客户端，仍可使用 WordPress 应用密码备用路径。"
+
+#. Found in description paragraph.
+msgid "It is designed for sites that use Npcink Governance Core for reviewable AI operations and WordPress Abilities API providers, such as Npcink Abilities Toolkit, for concrete WordPress capabilities. The Adapter gives clients one stable WordPress REST surface for checking readiness, reading governance guidance, running approved read abilities, creating governed proposals, and executing supported writes only after Core approval and commit-preflight."
+msgstr "它适用于使用 Npcink Governance Core 管理可审查 AI 操作，并使用 Npcink Abilities Toolkit 等 WordPress Abilities API provider 提供具体 WordPress 能力的站点。Adapter 为客户端提供一个稳定的 WordPress REST 入口，用于检查就绪状态、读取治理指引、运行已批准的读取能力、创建受治理的提案，并且只在 Core 批准和提交预检之后执行受支持的写入。"
+
+#. Found in description paragraph.
+msgid "Npcink AI Client Adapter connects local AI clients, such as OpenClaw-compatible tools, to a WordPress site through a focused REST adapter."
+msgstr "Npcink AI Client Adapter 通过聚焦的 REST 适配器，将 OpenClaw 兼容工具等本地 AI 客户端连接到 WordPress 站点。"
+
+#. Found in description list item.
+msgid "Keep channel, governance, ability, cloud, and model-provider responsibilities separate."
+msgstr "保持通道、治理、能力、云端和模型 provider 职责分离。"
+
+#. Found in description list item.
+msgid "Prefer signed key-pair pairing for local clients, with an Application Password fallback when appropriate."
+msgstr "优先为本地客户端使用签名密钥配对，并在合适场景下保留应用密码备用方式。"
+
+#. Found in description list item.
+msgid "Support a user-triggered approve-and-execute path for explicit, allowlisted execution profiles after Core approval."
+msgstr "在 Core 批准之后，为明确列入允许范围的执行配置支持用户触发的 approve-and-execute 路径。"
+
+#. Found in description list item.
+msgid "Forward governed write requests to Npcink Governance Core proposal and commit-preflight endpoints."
+msgstr "将受治理的写入请求转发到 Npcink Governance Core 提案和提交预检端点。"
+
+#. Found in description list item.
+msgid "Route approved direct-read requests through the WordPress Abilities API."
+msgstr "通过 WordPress Abilities API 路由已批准的 direct-read 请求。"
+
+#. Found in description list item.
+msgid "Expose a machine-readable <code>client_policy</code> so clients can understand route, read, write, and sensitive-data boundaries."
+msgstr "暴露机器可读的 <code>client_policy</code>，让客户端理解路由、读取、写入和敏感数据边界。"
+
+#. Found in description list item.
+msgid "Check Adapter readiness and dependency status before a client starts work."
+msgstr "在客户端开始工作前检查 Adapter 就绪状态和依赖状态。"
+
+#. Found in description list item.
+msgid "Connect OpenClaw-compatible and similar local AI clients to WordPress through one Adapter REST namespace."
+msgstr "通过一个 Adapter REST namespace，将 OpenClaw 兼容及类似本地 AI 客户端连接到 WordPress。"
+
+#. Screenshot description.
+msgid "WordPress Application Password fallback connection flow for clients that use a dedicated secret field or credential vault."
+msgstr "适用于使用专用 secret 字段或凭据库客户端的 WordPress 应用密码备用连接流程。"
+
+#. Screenshot description.
+msgid "Active key-pair devices with device identifiers, last-used timestamps, status labels, revoke actions, and a revoked-device summary."
+msgstr "有效密钥配对设备，包括设备标识、上次使用时间、状态标签、撤销操作和已撤销设备摘要。"
+
+#. Screenshot description.
+msgid "Adapter connection overview with site readiness, active device count, and the recommended signed key-pair pairing flow."
+msgstr "Adapter 连接页总览，包括站点就绪状态、有效设备数量和推荐的签名密钥配对流程。"
+
+#. Found in faq paragraph.
+msgid "Adapter provides a user-triggered <code>approve-and-execute</code> action for supported execution profiles, but Npcink Governance Core remains the governance backend for proposal storage, approval, commit-preflight, and audit."
+msgstr "Adapter 为受支持的执行配置提供用户触发的 <code>approve-and-execute</code> 操作，但 Npcink Governance Core 仍是提案存储、批准、提交预检和审计的治理后端。"
+
+#. Found in faq header.
+msgid "Does Adapter execute arbitrary abilities?"
+msgstr "Adapter 会执行任意能力吗？"
+
+#. Found in faq header.
+msgid "Does Adapter approve proposals?"
+msgstr "Adapter 会批准提案吗？"
+
+#. Found in installation list item.
+msgid "Open Npcink &gt; Adapter to create the local AI client handoff."
+msgstr "打开 Npcink &gt; Adapter，创建本地 AI 客户端交接信息。"
+
+#. Found in installation list item.
+msgid "Install and activate Npcink AI Client Adapter."
+msgstr "安装并启用 Npcink AI Client Adapter。"
+
+#. Found in installation list item.
+msgid "Install and activate <code>npcink-abilities-toolkit</code>."
+msgstr "安装并启用 <code>npcink-abilities-toolkit</code>。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Restore Core capability forwarding and default execution response compatibility for consumer smoke coverage."
+msgstr "恢复 Core capability 转发和默认执行响应兼容性，用于 consumer smoke 覆盖。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Require explicit signed-client execute scope for final Adapter write routes."
+msgstr "为最终 Adapter 写入路由要求明确的 signed-client execute scope。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Close the release-candidate boundary by keeping media derivative transport outside Adapter and retaining only reviewed adoption handoff."
+msgstr "通过把媒体派生传输保持在 Adapter 之外，并只保留已审查的采纳交接，关闭 release-candidate 边界。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Validate Core dependency contract semantics for site and signed-client bindings before reporting dependency readiness."
+msgstr "在报告依赖就绪之前，验证站点和 signed-client 绑定的 Core 依赖合约语义。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Forward signed local client fingerprints to trusted Core app-token requests and fail closed on mismatched Core contexts."
+msgstr "将签名本地客户端指纹转发到受信任的 Core app-token 请求，并在 Core 上下文不匹配时失败关闭。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Bind Adapter final execution to Core approval and commit-preflight execution handoffs."
+msgstr "将 Adapter 最终执行绑定到 Core 批准和提交预检执行交接。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Initial thin AI client adapter for Npcink Governance Core and WordPress Abilities API routing."
+msgstr "初始薄 AI 客户端适配器，用于 Npcink Governance Core 和 WordPress Abilities API 路由。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Add local AI client CLI helper commands, output redaction, and machine-readable client policy."
+msgstr "添加本地 AI 客户端 CLI 辅助命令、输出脱敏和机器可读 client policy。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Align block theme visual acceptance, batch review feedback, and release package smoke documentation with the governed execution profile boundary."
+msgstr "使区块主题视觉验收、批量审查反馈和 release package smoke 文档与受治理执行配置边界保持一致。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Add the local AI client acceptance command for non-destructive Adapter/Core boundary checks."
+msgstr "添加本地 AI 客户端验收命令，用于非破坏性的 Adapter/Core 边界检查。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Add machine-readable Adapter contract metadata and stable contract hashes on health, help, and manifest responses."
+msgstr "在 health、help 和 manifest 响应中添加机器可读 Adapter 合约元数据和稳定合约哈希。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Expand negative smoke coverage for <code>core_proxy_execute</code> and <code>commit_execution</code> batch fail-closed behavior."
+msgstr "扩展 <code>core_proxy_execute</code> 和 <code>commit_execution</code> 批处理失败关闭行为的 negative smoke 覆盖。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Reject batch write actions that request <code>core_proxy_execute=true</code> before Adapter execution."
+msgstr "在 Adapter 执行前拒绝请求 <code>core_proxy_execute=true</code> 的批量写入操作。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Add contract snapshot smoke coverage across health, help, and connection manifest responses."
+msgstr "为 health、help 和 connection manifest 响应添加合约快照 smoke 覆盖。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Record a signed local AI client create-draft proposal, approve-and-execute, readback, and cleanup acceptance pass."
+msgstr "记录签名本地 AI 客户端 create-draft 提案、approve-and-execute、读回和清理验收通过。"
+
+#. Found in changelog list item.
+#, gp-priority: low
+msgid "Add Adapter-declared Core and Abilities Toolkit compatibility floors to the machine-readable contract metadata."
+msgstr "在机器可读合约元数据中添加 Adapter 声明的 Core 和 Abilities Toolkit 兼容性下限。"
