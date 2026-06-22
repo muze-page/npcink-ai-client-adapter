@@ -469,6 +469,8 @@ foreach (
 			'managed_source=zhihu_global_search',
 			'managed_source=zhida_deep',
 			'POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability',
+			'tests/fixtures/openclaw-zhihu-atomics/',
+			'composer accept:openclaw-zhihu-atomics',
 			'topic_candidate.v1',
 			'source_evidence.v1',
 			'grounded_answer.v1',
@@ -2030,6 +2032,7 @@ foreach (
 		'"smoke:package-install": "bash tests/package-install-smoke.sh"',
 		'"accept:local-ai-client": "bash tests/local-ai-client-acceptance.sh"',
 		'"accept:local-ai-client-fixture": "bash tests/local-ai-client-fixture-acceptance.sh"',
+		'"accept:openclaw-zhihu-atomics": "bash tests/openclaw-zhihu-atomics-acceptance.sh"',
 		'"visual:wp": "bash tests/visual-acceptance.sh"',
 		'"dev:article-template-visual": "bash tests/dev-article-template-visual.sh"',
 		'"dev:block-theme-template-visual": "bash tests/dev-block-theme-template-visual.sh"',
@@ -2042,6 +2045,48 @@ foreach (
 	maa_adapter_assert( false !== strpos( $composer, $required ), 'composer.json contains required text: ' . $required );
 }
 maa_adapter_assert( false === strpos( $composer, '@eval:lab' ) && false === strpos( $composer, '@eval:project:quality' ), 'Default Adapter test and release scripts do not require eval-lab.' );
+
+$zhihu_atomics_acceptance = maa_adapter_read( $root . '/tests/openclaw-zhihu-atomics-acceptance.sh' );
+foreach (
+	array(
+		'npcink-toolbox/cloud-web-search',
+		'tests/fixtures/openclaw-zhihu-atomics',
+		'read-ability',
+		'zhihu_hot_topics',
+		'zhihu_research',
+		'zhihu_global_search',
+		'zhida_simple',
+		'zhida_deep',
+		'zhida_deepsearch',
+		'article_research_pack.v1',
+		'expected_outputs',
+		'atomic_outputs',
+		'MAA_ADAPTER_ZHIHU_ATOMICS_SLEEP_SECONDS',
+		'write_posture',
+		'direct_wordpress_write',
+		'core_proposal_required',
+	) as $required_zhihu_atomics_acceptance
+) {
+	maa_adapter_assert( false !== strpos( $zhihu_atomics_acceptance, $required_zhihu_atomics_acceptance ), 'Zhihu atomics acceptance script contains required text: ' . $required_zhihu_atomics_acceptance );
+}
+
+foreach (
+	array(
+		'tests/fixtures/openclaw-zhihu-atomics/zhihu-hot-topics.input.json' => array( 'zhihu_hot_topics', 'managed_source' ),
+		'tests/fixtures/openclaw-zhihu-atomics/zhihu-search.input.json' => array( 'zhihu_research', 'managed_source' ),
+		'tests/fixtures/openclaw-zhihu-atomics/global-search.input.json' => array( 'zhihu_global_search', 'managed_source' ),
+		'tests/fixtures/openclaw-zhihu-atomics/zhida-simple.input.json' => array( 'zhida_simple', 'managed_source' ),
+		'tests/fixtures/openclaw-zhihu-atomics/zhida-deep.input.json' => array( 'zhida_deep', 'managed_source' ),
+		'tests/fixtures/openclaw-zhihu-atomics/zhida-deepsearch.input.json' => array( 'zhida_deepsearch', 'managed_source' ),
+		'tests/fixtures/openclaw-zhihu-atomics/article-research-pack.sequence.json' => array( 'article_research_pack.v1', 'openclaw_atoms.zhihu_hot_topics', 'openclaw_atoms.zhihu_search', 'openclaw_atoms.global_search', 'openclaw_atoms.zhida_answer' ),
+	) as $fixture_path => $fixture_required_texts
+) {
+	$fixture = maa_adapter_read( $root . '/' . $fixture_path );
+	maa_adapter_assert( '' !== $fixture, 'OpenClaw Zhihu atom fixture exists: ' . $fixture_path );
+	foreach ( $fixture_required_texts as $fixture_required_text ) {
+		maa_adapter_assert( false !== strpos( $fixture, $fixture_required_text ), 'OpenClaw Zhihu atom fixture contains required text in ' . $fixture_path . ': ' . $fixture_required_text );
+	}
+}
 
 $local_ai_client_acceptance_sh = maa_adapter_read( $root . '/tests/local-ai-client-acceptance.sh' );
 foreach (

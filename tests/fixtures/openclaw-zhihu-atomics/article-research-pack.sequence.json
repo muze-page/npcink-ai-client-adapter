@@ -1,0 +1,29 @@
+{
+  "artifact_type": "article_research_pack.v1",
+  "write_posture": "suggestion_only",
+  "direct_wordpress_write": false,
+  "final_write_path": "core_proposal_required",
+  "ability_id": "npcink-toolbox/cloud-web-search",
+  "atoms": [
+    {
+      "atom": "openclaw_atoms.zhihu_hot_topics",
+      "input_file": "zhihu-hot-topics.input.json",
+      "expected_output": "topic_candidate.v1"
+    },
+    {
+      "atom": "openclaw_atoms.zhihu_search",
+      "input_file": "zhihu-search.input.json",
+      "expected_output": "source_evidence.v1"
+    },
+    {
+      "atom": "openclaw_atoms.global_search",
+      "input_file": "global-search.input.json",
+      "expected_output": "source_evidence.v1"
+    },
+    {
+      "atom": "openclaw_atoms.zhida_answer",
+      "input_file": "zhida-deep.input.json",
+      "expected_output": "grounded_answer.v1"
+    }
+  ]
+}

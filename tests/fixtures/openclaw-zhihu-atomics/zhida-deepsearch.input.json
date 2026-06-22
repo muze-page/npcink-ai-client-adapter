@@ -1,0 +1,7 @@
+{
+  "intent": "zhida_deepsearch",
+  "managed_source": "zhida_deepsearch",
+  "query": "AI 写作辅助产品的最新使用场景、风险和可信来源",
+  "max_results": 5,
+  "recency_days": 30
+}

@@ -1,0 +1,6 @@
+{
+  "intent": "zhihu_hot_topics",
+  "managed_source": "zhihu_hot_topics",
+  "query": "知乎热榜",
+  "max_results": 5
+}

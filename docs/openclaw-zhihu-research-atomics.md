@@ -21,6 +21,19 @@ The canonical ability id is:
 npcink-toolbox/cloud-web-search
 ```
 
+Adapter acceptance fixtures live under:
+
+```text
+tests/fixtures/openclaw-zhihu-atomics/
+```
+
+When a local profile, WordPress site, Toolbox, Cloud Addon, and Cloud Zhihu
+runtime are configured, run:
+
+```text
+composer accept:openclaw-zhihu-atomics
+```
+
 Adapter executes it only when Core capabilities expose the ability as
 `governance_mode=direct_read` and `execution_surface=wp_abilities_rest`.
 Toolbox and the Cloud Addon own provider dispatch, Cloud credentials, usage

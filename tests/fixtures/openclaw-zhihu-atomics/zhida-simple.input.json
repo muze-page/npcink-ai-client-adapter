@@ -1,0 +1,6 @@
+{
+  "intent": "zhida_simple",
+  "managed_source": "zhida_simple",
+  "query": "AI 写作工具适合解决什么问题？",
+  "max_results": 3
+}

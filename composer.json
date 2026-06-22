@@ -13,6 +13,7 @@
     "smoke:package-install": "bash tests/package-install-smoke.sh",
     "accept:local-ai-client": "bash tests/local-ai-client-acceptance.sh",
     "accept:local-ai-client-fixture": "bash tests/local-ai-client-fixture-acceptance.sh",
+    "accept:openclaw-zhihu-atomics": "bash tests/openclaw-zhihu-atomics-acceptance.sh",
     "accept:block-theme-openclaw": "bash tests/block-theme-openclaw-acceptance.sh",
     "visual:wp": "bash tests/visual-acceptance.sh",
     "dev:article-template-visual": "bash tests/dev-article-template-visual.sh",

@@ -1,0 +1,7 @@
+{
+  "intent": "zhihu_global_search",
+  "managed_source": "zhihu_global_search",
+  "query": "AI 写作工具 最新 可信来源",
+  "max_results": 5,
+  "recency_days": 30
+}
