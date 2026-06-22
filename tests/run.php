@@ -367,6 +367,7 @@ $controller_contract = $controller . "\n" . $supported_plan_abilities . "\n" . $
 maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'final class Supported_Plan_Abilities' ), 'Supported plan ability registry exists.' );
 maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'public static function ids' ), 'Supported plan ability exposes ids.' );
 maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'public static function contains' ), 'Supported plan ability exposes membership checks.' );
+maa_adapter_assert( false !== strpos( $supported_plan_abilities, 'npcink-abilities-toolkit/build-content-metadata-apply-plan' ), 'Supported plan ability registry accepts Toolkit content metadata apply plans.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'final class Execution_Profile_Registry' ), 'Execution profile registry exists.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'public static function profiles' ), 'Execution profile registry exposes profiles.' );
 maa_adapter_assert( false !== strpos( $execution_profile_registry, 'npcink-abilities-toolkit/update-post-blocks' ), 'Execution profile registry keeps governed block writes supported.' );
@@ -2800,7 +2801,7 @@ foreach (
 		'/npcink-openclaw-adapter/v1/health',
 		'/npcink-openclaw-adapter/v1/help',
 		'/npcink-openclaw-adapter/v1/capabilities',
-			'/npcink-openclaw-adapter/v1/run-read-ability',
+		'/npcink-openclaw-adapter/v1/run-read-ability',
 		'adapter help does not expose OpenClaw recipe catalog',
 		'adapter forwards Toolbox article plan to Core',
 		'adapter article plan creates one Core proposal',
@@ -2812,6 +2813,11 @@ foreach (
 		'adapter plan action input rejection carries field',
 		'adapter from-plan output references create one batch proposal',
 		'adapter from-plan output-reference batch approve-and-execute succeeds',
+		'adapter content metadata apply plan creates one Core batch proposal',
+		'adapter content metadata apply batch approve-and-execute succeeds',
+		'adapter content metadata apply batch writes reviewed excerpt',
+		'adapter content metadata apply batch assigns reviewed category',
+		'adapter content metadata apply batch assigns reviewed tag',
 		'adapter plan-to-proposal rejects duplicate action ids before Core forwarding',
 		'adapter plan-to-proposal rejects embedded output reference tokens before Core forwarding',
 		'adapter batch approve-and-execute rejects embedded output reference tokens before execution',
