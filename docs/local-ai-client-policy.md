@@ -92,6 +92,11 @@ Required client behavior:
 - If the sensitive read input changes, create a new read request.
 - For writes, use Core proposals, Core approval/preflight, and an Adapter final
   write route only after explicit operator commit intent.
+- For Zhihu or trusted-search research atoms, use
+  `POST /run-read-ability` with the canonical
+  `npcink-toolbox/cloud-web-search` ability id and a documented
+  `managed_source`; do not call Cloud provider endpoints, `/cloud/*` routes, or
+  Zhihu/Open Platform APIs directly from the local client.
 
 ## Preferred Local CLI Commands
 

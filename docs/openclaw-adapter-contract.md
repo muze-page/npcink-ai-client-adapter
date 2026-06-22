@@ -267,6 +267,35 @@ action must still target `npcink-abilities-toolkit/update-template-blocks`,
 plus commit-preflight before Adapter execution. Global styles, navigation,
 template creation, and arbitrary Site Editor writes are not part of this MVP.
 
+## OpenClaw Research Atomics
+
+OpenClaw may use four research atom aliases for Zhihu and trusted-search
+article preparation:
+
+- `openclaw_atoms.zhihu_hot_topics`
+- `openclaw_atoms.zhihu_search`
+- `openclaw_atoms.global_search`
+- `openclaw_atoms.zhida_answer`
+
+These aliases call the canonical Toolbox ability
+`npcink-toolbox/cloud-web-search` through
+`POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability` with a
+`managed_source` such as `zhihu_hot_topics`, `zhihu_research`,
+`zhihu_global_search`, `zhida_simple`, `zhida_deep`, or
+`zhida_deepsearch`.
+
+The atoms are direct-read research inputs only. They may be composed by
+OpenClaw as `openclaw.article_research_pack`, but Adapter must not expose an
+Adapter-owned research recipe catalog, `/cloud/*` route, Cloud signing client,
+provider credential store, prompt runtime, usage counter, cache truth, or
+article generation surface. The output must remain
+`write_posture=suggestion_only`, `direct_wordpress_write=false`, and
+`final_write_path=core_proposal_required`.
+
+See
+[`openclaw-zhihu-research-atomics.md`](openclaw-zhihu-research-atomics.md) for
+the atom input contracts, output artifact expectations, and boundary rules.
+
 ## OpenClaw Recipe Discovery
 
 `GET /help` includes `openclaw_recipes.article_draft_plan` for clients that need
