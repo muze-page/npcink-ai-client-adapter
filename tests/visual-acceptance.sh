@@ -19,13 +19,13 @@ wp_args=()
 if [[ -n "${WP_PATH:-}" ]]; then
 	wp_args+=(--path="$WP_PATH")
 else
-	wp_args+=(--path="/Users/muze/Local Sites/npcink/app/public")
+	wp_args+=(--path="/Users/muze/Local Sites/magick-ai/app/public")
 fi
 
 run_wp() {
 	wp_bin="${WP_CLI:-$(command -v wp 2>/dev/null || true)}"
 	if [[ -z "$wp_bin" ]]; then
-		echo "Missing WP-CLI. Set WP_CLI=/path/to/wp-cli.phar or install wp on PATH." >&2
+		echo "Missing WP-CLI. Set WP_CLI=/path/to/wp or install wp on PATH." >&2
 		exit 2
 	fi
 
