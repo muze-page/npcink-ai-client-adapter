@@ -236,6 +236,11 @@ backup metadata for later restore. To roll back a recorded media replacement,
 create a governed Core proposal for `npcink-abilities-toolkit/restore-media-backup`
 with `attachment_id` and `backup_id`. Adapter does not accept arbitrary
 replacement URLs or replace files outside Core-approved execution.
+Adapter may forward Toolkit storage preflight and drift guard fields such as
+`expected_storage_provider`, `expected_storage_adapter`, and
+`storage_preflight` to those Core-approved media execution profiles. These
+fields are evidence for fail-closed execution; they do not make Adapter an OSS
+configuration, upload, cache-purge, or media-storage owner.
 
 `GET /proposals/{proposal_id}` proxies the Core proposal detail and appends
 Adapter-owned derived fields: `adapter_status`, `execution_status`,

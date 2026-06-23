@@ -173,6 +173,13 @@ Adapter may expose proposal-specific media optimization readiness and may
 execute the explicit post-Core `npcink-abilities-toolkit/adopt-cloud-media-derivative`
 profile after Core approval and commit preflight. It must not store run truth,
 artifact truth, Cloud credentials, approval truth, or media registry state.
+For OSS/CDN/object-storage backed attachments, Adapter only forwards Toolkit
+storage preflight evidence and drift guards such as
+`expected_storage_provider`, `expected_storage_adapter`, and
+`storage_preflight` after Core approval. Adapter does not own object-storage
+credentials, SDK calls, signed source URLs, uploads, restores, or cache purges;
+Toolkit/host storage adapters must fail closed when the current media storage
+state is not writable through the approved ability path.
 
 The returned payloads must preserve:
 

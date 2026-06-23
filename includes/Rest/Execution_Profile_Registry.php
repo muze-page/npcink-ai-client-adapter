@@ -322,7 +322,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/replace-media-file' => array(
-				'supported_input_fields'  => array( 'attachment_id', 'derivative_relative_file', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'derivative_relative_file', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'expected_storage_provider', 'expected_storage_adapter', 'storage_preflight', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
@@ -332,7 +332,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/restore-media-backup' => array(
-				'supported_input_fields'  => array( 'attachment_id', 'backup_id', 'expected_current_relative_file', 'expected_current_mime_type', 'target_conflict_mode', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'backup_id', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_storage_provider', 'expected_storage_adapter', 'storage_preflight', 'target_conflict_mode', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'target_conflict_mode' => array(
 						'allowed' => array( 'fail', 'overwrite' ),
@@ -355,7 +355,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/adopt-cloud-media-derivative' => array(
-				'supported_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'file_name', 'expected_content_reference_post_ids', 'expected_content_reference_post_count', 'expected_content_reference_replacement_count', 'content_reference_repairs', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'attachment_id', 'derivative_artifact', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_derivative_mime_type', 'expected_storage_provider', 'expected_storage_adapter', 'storage_preflight', 'file_name', 'expected_content_reference_post_ids', 'expected_content_reference_post_count', 'expected_content_reference_replacement_count', 'content_reference_repairs', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'required_int_fields'   => array(
 					'attachment_id' => array(
 						'code'    => 'npcink_openclaw_adapter_attachment_id_required',
@@ -370,7 +370,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/rename-media-file' => array(
-				'supported_input_fields'     => array( 'attachment_id', 'target_file_name', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_current_md5', 'expected_current_sha256', 'conflict_mode', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'     => array( 'attachment_id', 'target_file_name', 'expected_current_relative_file', 'expected_current_mime_type', 'expected_current_md5', 'expected_current_sha256', 'expected_storage_provider', 'expected_storage_adapter', 'storage_preflight', 'conflict_mode', 'backup_suffix', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'              => array(
 					'conflict_mode' => array(
 						'allowed' => array( 'fail', 'unique' ),
