@@ -64,7 +64,7 @@ Observed execution:
 - top-level blocks: `8`
 - `roundtrip_ok=true`
 - `validation.valid=true`
-- media URL: `https://magick-ai.local/wp-content/uploads/2026/06/preview.webp`
+- media URL: `https://npcink.local/wp-content/uploads/2026/06/preview.webp`
 - attachment id: `8053`
 - `core/image.attrs.id=8053`
 - `core/media-text.attrs.mediaId=8053`
@@ -95,7 +95,7 @@ Observed execution:
 - top-level blocks: `18`
 - `roundtrip_ok=true`
 - `validation.valid=true`
-- media URL: `https://magick-ai.local/wp-content/uploads/2026/06/preview.webp`
+- media URL: `https://npcink.local/wp-content/uploads/2026/06/preview.webp`
 - attachment id: `8053`
 - `core/image.attrs.id=8053`
 - rendered image markup contains `wp-image-8053`

@@ -5,7 +5,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 adapter_dir="$(cd "${script_dir}/.." && pwd)"
 gitee_dir="$(cd "${adapter_dir}/.." && pwd)"
 
-core_dir="${NPCINK_GOVERNANCE_CORE_DIR:-${gitee_dir}/magick-ai-core}"
+core_dir="${NPCINK_GOVERNANCE_CORE_DIR:-${gitee_dir}/npcink-governance-core}"
 toolkit_dir="${NPCINK_ABILITIES_TOOLKIT_DIR:-${gitee_dir}/npcink-abilities-toolkit}"
 suite_slug="${NPCINK_SUITE_SLUG:-npcink-ai-suite}"
 

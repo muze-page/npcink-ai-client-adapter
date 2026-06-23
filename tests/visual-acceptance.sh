@@ -19,7 +19,7 @@ wp_args=()
 if [[ -n "${WP_PATH:-}" ]]; then
 	wp_args+=(--path="$WP_PATH")
 else
-	wp_args+=(--path="/Users/muze/Local Sites/magick-ai/app/public")
+	wp_args+=(--path="/Users/muze/Local Sites/npcink/app/public")
 fi
 
 run_wp() {

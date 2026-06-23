@@ -94,7 +94,7 @@ provide a manual manifest instead of smoke-generated post fixtures:
     {
       "fixture_type": "block_theme_template",
       "template_slug": "front-page",
-      "front_end_url": "https://magick-ai.local/",
+      "front_end_url": "https://npcink.local/",
       "required_blocks": ["cta", "latest_posts", "categories"],
       "require_images": false,
       "validate_images": false

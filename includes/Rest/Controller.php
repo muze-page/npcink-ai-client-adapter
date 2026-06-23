@@ -1067,7 +1067,7 @@ final class Controller {
 		$public_key    = (string) ( $key['public_key'] ?? '' );
 		$fingerprint   = (string) ( $key['fingerprint'] ?? '' );
 		$key_id        = 'mk_' . substr( hash( 'sha256', rest_url( self::NAMESPACE ) . '|' . $user_id . '|' . $fingerprint ), 0, 24 );
-		$connection_id = 'mag_conn_' . substr( hash( 'sha256', home_url() . '|' . $key_id ), 0, 24 );
+		$connection_id = 'npcink_conn_' . substr( hash( 'sha256', home_url() . '|' . $key_id ), 0, 24 );
 		$record        = array(
 				'key_id'        => $key_id,
 				'connection_id' => $connection_id,

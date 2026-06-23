@@ -344,7 +344,7 @@ For local validation, use the npm CLI on the same machine or execution
 environment as OpenClaw:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter connect --site=https://npcink.local --profile=local --insecure-local-tls
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
@@ -375,7 +375,7 @@ without reading or printing profile secrets:
 ```bash
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /health
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls GET /capabilities
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/npcink-proposal.json
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/commit-preflight --intent=preflight
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/PROPOSAL_ID/approve-and-execute --intent=commit
 ```

@@ -27,8 +27,8 @@ For the connection-model decision notes and guardrails for future agents, see
 
 Current LocalWP development site:
 
-- Site URL: `https://magick-ai.local`
-- WordPress admin URL: `https://magick-ai.local/wp-admin/`
+- Site URL: `https://npcink.local`
+- WordPress admin URL: `https://npcink.local/wp-admin/`
 - WordPress administrator username: `1`
 - WordPress administrator password: `1`
 
@@ -46,25 +46,25 @@ client's dedicated secret field or credential vault.
 Base URL:
 
 ```text
-https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1
+https://npcink.local/wp-json/npcink-openclaw-adapter/v1
 ```
 
 Health:
 
 ```text
-GET https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/health
+GET https://npcink.local/wp-json/npcink-openclaw-adapter/v1/health
 ```
 
 Help:
 
 ```text
-GET https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/help
+GET https://npcink.local/wp-json/npcink-openclaw-adapter/v1/help
 ```
 
 Capabilities:
 
 ```text
-GET https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/capabilities
+GET https://npcink.local/wp-json/npcink-openclaw-adapter/v1/capabilities
 ```
 
 WordPress admin connection page:
@@ -104,7 +104,7 @@ Example:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/health"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/health"
 ```
 
 Do not put the normal WordPress login password in OpenClaw configuration when
@@ -133,7 +133,7 @@ For local validation, run the npm CLI on the same machine or execution
 environment as OpenClaw:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter connect --site=https://magick-ai.local --profile=local --insecure-local-tls
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter connect --site=https://npcink.local --profile=local --insecure-local-tls
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter status --profile=local --insecure-local-tls
 ```
 
@@ -161,7 +161,7 @@ For POST requests, write the non-secret request JSON to a temporary file and
 pass it with `--body-file`, or pass non-secret JSON through stdin:
 
 ```bash
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-file=/tmp/npcink-proposal.json
 printf '%s' '{"plan":{}}' | (cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local --insecure-local-tls POST /proposals/from-plan --body-stdin)
 ```
 
@@ -245,12 +245,12 @@ when the caller already knows it.
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/site-info"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/site-info"
 ```
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/term?id=1"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/term?id=1"
 ```
 
 Planning shortcuts return plan data only. Treat `write_actions` and `preview`
@@ -258,7 +258,7 @@ as proposal input, not as completed writes:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/content-inventory-fix-plan?per_page=1&max_actions=1"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/content-inventory-fix-plan?per_page=1&max_actions=1"
 ```
 
 Send the returned plan to Core through Adapter when a proposal should be
@@ -268,7 +268,7 @@ created:
 curl -sS --user "1:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"plan_ability_id":"npcink-abilities-toolkit/build-content-inventory-fix-plan","plan":{"batch_id":"example","issue_types":[],"requires_approval":true,"commit_execution":false,"dry_run":true,"action_count":0,"write_actions":[],"preview":[],"risk":{"level":"medium"}},"plan_input":{"per_page":1},"caller":{"external_thread_id":"OPENCLAW_THREAD"}}' \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/from-plan"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/from-plan"
 ```
 
 For reviewed article draft planning, use the recipe exposed by `GET /help` at
@@ -288,7 +288,7 @@ Troubleshooting diagnostics:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/active-plugins-detail"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/active-plugins-detail"
 ```
 
 The default diagnostics input requests active plugins, update rows, must-use
@@ -311,7 +311,7 @@ For plugin conflict troubleshooting, explicitly request inactive plugin rows:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics"
 ```
 
 That route sends `include_inactive_plugins=true` and
@@ -319,7 +319,7 @@ That route sends `include_inactive_plugins=true` and
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/recent-error-log"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/recent-error-log"
 ```
 
 `recent-error-log` uses `include_log_contents=false`. Treat log contents as
@@ -332,7 +332,7 @@ tail:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/recent-error-log-tail"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/recent-error-log-tail"
 ```
 
 That route sends:
@@ -351,12 +351,12 @@ Display `error_log.tail_entries` and `contents` only when
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/current-user-permissions"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/current-user-permissions"
 ```
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/database-info"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/database-info"
 ```
 
 All P0/P1/P2 diagnostics detail shortcuts call
@@ -370,27 +370,27 @@ Content context reads:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/posts?author_id=1&orderby=modified&order=desc"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/posts?author_id=1&orderby=modified&order=desc"
 ```
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/terms?taxonomy=category&include_sample_posts=1&sample_post_limit=3"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/terms?taxonomy=category&include_sample_posts=1&sample_post_limit=3"
 ```
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/menu?location=primary"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/menu?location=primary"
 ```
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/media?per_page=1"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/media?per_page=1"
 ```
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/pages?per_page=1"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/pages?per_page=1"
 ```
 
 If a route returns `npcink_openclaw_adapter_proposal_required`, stop and use the
@@ -415,21 +415,21 @@ read-result redaction layer for rows where Core reports
 curl -sS --user "1:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"ability_id":"npcink-abilities-toolkit/create-draft","title":"Draft proposal","summary":"OpenClaw requests a governed draft proposal.","input":{"title":"Local OpenClaw draft","dry_run":true,"commit":false},"preview":{},"caller":{"external_thread_id":"OPENCLAW_THREAD_ID"}}' \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals"
 ```
 
 4. Query proposal status through the adapter:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID"
 ```
 
 For a list view:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals?limit=10"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals?limit=10"
 ```
 
 These are read-only Core status proxies. They preserve proposal fields such as
@@ -448,7 +448,7 @@ returns it.
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
   -X POST \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/execute"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/execute"
 ```
 
 8. Use Adapter commit-preflight only as an advanced diagnostic route. When it
@@ -471,7 +471,7 @@ curl -sS --user "1:<openclaw-secret-field-value>" \
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
   -X POST \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/approve-and-execute"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/approve-and-execute"
 ```
 
 Adapter calls Core approve when the proposal is pending, calls Core
@@ -491,7 +491,7 @@ per-action `results[]` with `execution_mode=batch_write_actions`.
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
   -X POST \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/execute"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/execute"
 ```
 
 Adapter fetches the Core proposal, consumes a cached Adapter preflight handoff
@@ -512,7 +512,7 @@ Adapter on later read or execution requests:
 
 ```bash
 curl -sS --user "1:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
 ```
 
 For `POST /run-read-ability`, send the same values in a top-level

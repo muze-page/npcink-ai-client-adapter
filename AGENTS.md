@@ -48,7 +48,7 @@ It does not own:
 - Never assume the current working directory is the WordPress root. Pass an
   explicit `WP_PATH` or `--path=<wordpress-root>` for every WP-CLI command.
   The common Local.app development root is
-  `/Users/muze/Local Sites/magick-ai/app/public`, but verify it for the task.
+  `/Users/muze/Local Sites/npcink/app/public`, but verify it for the task.
 - If a Local.app site has `DB_HOST=localhost` and WP-CLI cannot connect to the
   database, find the matching Local run socket, usually under
   `$HOME/Library/Application Support/Local/run/*/mysql/mysqld.sock`, and inject

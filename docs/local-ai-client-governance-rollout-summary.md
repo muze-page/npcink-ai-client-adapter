@@ -118,7 +118,7 @@ hiding plugin errors or changing plugin runtime behavior.
 
 ## Implemented Milestones
 
-Core side, in `magick-ai-core`:
+Core side, in `npcink-governance-core`:
 
 - `09e9708 core: add sensitive read authorization`
 - `1804cd6 Harden sensitive read authorization bounds`
