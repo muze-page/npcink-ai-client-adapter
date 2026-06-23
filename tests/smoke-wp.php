@@ -1568,7 +1568,7 @@ $article_optimization_plan_response = maa_adapter_smoke_rest(
 );
 $article_optimization_plan = is_array( $article_optimization_plan_response['result']['data'] ?? null ) ? $article_optimization_plan_response['result']['data'] : array();
 maa_adapter_smoke_assert( 'article_optimization_apply_plan' === (string) ( $article_optimization_plan['artifact_type'] ?? '' ), 'adapter article optimization read returns apply plan artifact' );
-maa_adapter_smoke_assert( 'workflow/wordpress_article_optimization' === (string) ( $article_optimization_plan['source_recipe_ref'] ?? '' ), 'adapter article optimization read preserves source recipe ref' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/recipes/article-optimization' === (string) ( $article_optimization_plan['source_recipe_ref'] ?? '' ), 'adapter article optimization read preserves source recipe ref' );
 maa_adapter_smoke_assert( false === (bool) ( $article_optimization_plan['direct_wordpress_write'] ?? true ), 'adapter article optimization plan disables direct WordPress writes' );
 $article_optimization_bridge = maa_adapter_smoke_rest(
 	'POST',
@@ -1595,7 +1595,7 @@ maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-post' === (string) ( 
 maa_adapter_smoke_assert( $article_optimization_excerpt === (string) ( $article_optimization_proposal['input']['excerpt'] ?? '' ), 'adapter article optimization proposal preserves reviewed excerpt' );
 $article_optimization_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $article_optimization_proposal_id ) );
 maa_adapter_smoke_assert( $article_optimization_proposal_id === (string) ( $article_optimization_detail['proposal_id'] ?? '' ), 'adapter article optimization proposal detail is readable through adapter' );
-maa_adapter_smoke_assert( 'workflow/wordpress_article_optimization' === (string) ( $article_optimization_detail['preview']['article_optimization']['source_recipe_ref'] ?? '' ), 'adapter article optimization detail preserves recipe ref' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/recipes/article-optimization' === (string) ( $article_optimization_detail['preview']['article_optimization']['source_recipe_ref'] ?? '' ), 'adapter article optimization detail preserves recipe ref' );
 maa_adapter_smoke_assert( false === (bool) ( $article_optimization_detail['preview']['article_optimization']['direct_wordpress_write'] ?? true ), 'adapter article optimization detail keeps direct writes disabled' );
 maa_adapter_smoke_assert( 'Original adapter smoke excerpt.' === (string) get_post_field( 'post_excerpt', $article_optimization_post_id ), 'adapter article optimization handoff does not mutate the post excerpt' );
 
@@ -1666,7 +1666,7 @@ $article_media_handoff_proposal = maa_adapter_smoke_rest(
 			'dry_run'               => true,
 			'commit_execution'      => false,
 			'article_media_handoff' => array(
-				'source_recipe_ref'              => 'workflow/wordpress_article_media_handoff',
+				'source_recipe_ref'              => 'npcink-abilities-toolkit/recipes/article-media-handoff',
 				'entrypoint_ability_id'          => 'npcink-abilities-toolkit/build-media-seo-assets',
 				'direct_wordpress_write'         => false,
 				'host_governed_write_boundary'   => true,
@@ -1688,7 +1688,7 @@ maa_adapter_smoke_assert( 'pending' === (string) ( $article_media_handoff_propos
 maa_adapter_smoke_assert( 'npcink-abilities-toolkit/update-media-details' === (string) ( $article_media_handoff_proposal['ability_id'] ?? '' ), 'adapter article media handoff creates update-media-details proposal' );
 $article_media_handoff_detail = maa_adapter_smoke_rest( 'GET', '/npcink-openclaw-adapter/v1/proposals/' . rawurlencode( $article_media_handoff_proposal_id ) );
 maa_adapter_smoke_assert( $article_media_handoff_proposal_id === (string) ( $article_media_handoff_detail['proposal_id'] ?? '' ), 'adapter article media handoff proposal detail is readable through adapter' );
-maa_adapter_smoke_assert( 'workflow/wordpress_article_media_handoff' === (string) ( $article_media_handoff_detail['preview']['article_media_handoff']['source_recipe_ref'] ?? '' ), 'adapter article media handoff detail preserves recipe ref' );
+maa_adapter_smoke_assert( 'npcink-abilities-toolkit/recipes/article-media-handoff' === (string) ( $article_media_handoff_detail['preview']['article_media_handoff']['source_recipe_ref'] ?? '' ), 'adapter article media handoff detail preserves recipe ref' );
 maa_adapter_smoke_assert( false === (bool) ( $article_media_handoff_detail['preview']['article_media_handoff']['direct_wordpress_write'] ?? true ), 'adapter article media handoff detail keeps direct writes disabled' );
 maa_adapter_smoke_assert( 'Adapter Media Plan Smoke' === (string) get_the_title( $article_media_handoff_attachment_id ), 'adapter article media handoff proposal does not mutate media title' );
 maa_adapter_smoke_assert( '' === (string) get_post_meta( $article_media_handoff_attachment_id, '_wp_attachment_image_alt', true ), 'adapter article media handoff proposal does not mutate media alt text' );
@@ -3231,7 +3231,7 @@ $workflow_recipe = maa_adapter_smoke_rest(
 	array(
 		'ability_id' => 'npcink-abilities-toolkit/get-workflow-recipe',
 		'input'      => array(
-			'recipe_id' => 'workflow/wordpress_comment_compliance_handoff',
+			'recipe_id' => 'npcink-abilities-toolkit/recipes/comment-compliance-handoff',
 		),
 	)
 );
@@ -3244,7 +3244,7 @@ $article_media_workflow_recipe = maa_adapter_smoke_rest(
 	array(
 		'ability_id' => 'npcink-abilities-toolkit/get-workflow-recipe',
 		'input'      => array(
-			'recipe_id' => 'workflow/wordpress_article_media_handoff',
+			'recipe_id' => 'npcink-abilities-toolkit/recipes/article-media-handoff',
 		),
 	)
 );

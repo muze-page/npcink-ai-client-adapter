@@ -628,7 +628,7 @@ Plan-to-proposal flow:
 		   Core creates one proposal and Adapter later executes only approved
 		   `npcink-abilities-toolkit/update-post` actions after Core approval and
 		   commit-preflight. The planning source remains
-		   `workflow/wordpress_article_optimization`; direct WordPress writes stay
+		   `npcink-abilities-toolkit/recipes/article-optimization`; direct WordPress writes stay
 		   disabled in the plan output.
 		   For reviewed Gutenberg page pattern drafts, use
 		   `npcink-abilities-toolkit/build-pattern-page-plan`; Core creates one
