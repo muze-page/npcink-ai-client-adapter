@@ -2,11 +2,11 @@
 set -eu
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
-EVAL_LAB_PATH="${MAGICK_AI_EVAL_LAB_PATH:-$(dirname "$ROOT")/magick-ai-eval-lab}"
+EVAL_LAB_PATH="${NPCINK_EVAL_LAB_PATH:-$(dirname "$ROOT")/npcink-eval-lab}"
 
 if [ ! -d "$EVAL_LAB_PATH" ]; then
-	echo "Magick AI Eval Lab not found: $EVAL_LAB_PATH" >&2
-	echo "Set MAGICK_AI_EVAL_LAB_PATH=/path/to/magick-ai-eval-lab." >&2
+	echo "Npcink Eval Lab not found: $EVAL_LAB_PATH" >&2
+	echo "Set NPCINK_EVAL_LAB_PATH=/path/to/npcink-eval-lab." >&2
 	exit 1
 fi
 
