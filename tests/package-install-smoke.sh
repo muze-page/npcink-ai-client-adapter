@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WP_PATH="${WP_PATH:-/Users/muze/Local Sites/npcink/app/public}"
+WP_PATH="${WP_PATH:-/Users/muze/Local Sites/magick-ai/app/public}"
 WP_CLI_BIN="${WP_CLI:-}"
 WP_CLI_PHP="${WP_CLI_PHP:-}"
 WP_CLI_PHP_ARGS="${WP_CLI_PHP_ARGS:-}"
@@ -32,7 +32,7 @@ if [[ -z "$WP_CLI_BIN" ]]; then
 	elif [[ -f /tmp/wp-cli.phar ]]; then
 		WP_CLI_BIN="/tmp/wp-cli.phar"
 	else
-		fail "Missing WP-CLI. Set WP_CLI=/path/to/wp-cli.phar or install wp on PATH."
+		fail "Missing WP-CLI. Set WP_CLI=/path/to/wp or install wp on PATH."
 	fi
 fi
 

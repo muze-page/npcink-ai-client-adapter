@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WP_PATH="${WP_PATH:-/Users/muze/Local Sites/npcink/app/public}"
+WP_PATH="${WP_PATH:-/Users/muze/Local Sites/magick-ai/app/public}"
 WP_CLI_BIN="${WP_CLI:-}"
 WP_CLI_PHP="${WP_CLI_PHP:-}"
 WP_CLI_PHP_ARGS="${WP_CLI_PHP_ARGS:-}"

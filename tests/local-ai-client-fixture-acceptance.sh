@@ -6,7 +6,7 @@ NODE_BIN="${NODE_BIN:-node}"
 PROFILE="${MAA_ADAPTER_ACCEPTANCE_PROFILE:-local}"
 ALLOW_COMMIT="${MAA_ADAPTER_FIXTURE_ALLOW_COMMIT:-}"
 CLEANUP_POST="${MAA_ADAPTER_FIXTURE_CLEANUP_POST:-1}"
-WP_PATH="${WP_PATH:-/Users/muze/Local Sites/npcink/app/public}"
+WP_PATH="${WP_PATH:-/Users/muze/Local Sites/magick-ai/app/public}"
 WP_CLI_BIN="${WP_CLI:-}"
 WP_CLI_PHP="${WP_CLI_PHP:-}"
 WP_CLI_ERROR_REPORTING="${WP_CLI_ERROR_REPORTING:-8191}"
@@ -64,12 +64,12 @@ ensure_wp_cli() {
 	if [[ -n "$WP_CLI_BIN" ]]; then
 		return
 	fi
-	if [[ -f /tmp/wp-cli.phar ]]; then
-		WP_CLI_BIN="/tmp/wp-cli.phar"
-	elif command -v wp >/dev/null 2>&1; then
+	if command -v wp >/dev/null 2>&1; then
 		WP_CLI_BIN="$(command -v wp)"
+	elif [[ -f /tmp/wp-cli.phar ]]; then
+		WP_CLI_BIN="/tmp/wp-cli.phar"
 	else
-		fail "Missing WP-CLI for fixture cleanup."
+		fail "Missing WP-CLI. Set WP_CLI=/path/to/wp or install wp on PATH."
 	fi
 }
 
@@ -92,6 +92,11 @@ ensure_wp_php() {
 
 run_wp() {
 	ensure_wp_cli
+	if [[ "$WP_CLI_BIN" != *.phar ]]; then
+		"$WP_CLI_BIN" --path="$WP_PATH" "$@"
+		return
+	fi
+
 	ensure_wp_php
 	if [[ -z "$WP_CLI_MYSQL_SOCKET" ]]; then
 		local default_socket="$HOME/Library/Application Support/Local/run/NPb24Zg9g/mysql/mysqld.sock"

@@ -2042,7 +2042,9 @@ foreach (
 		'"dev:article-template-visual": "bash tests/dev-article-template-visual.sh"',
 		'"dev:block-theme-template-visual": "bash tests/dev-block-theme-template-visual.sh"',
 		'"eval:project:quality": "sh scripts/eval-lab.sh task=project_quality_gate',
-		'php-8.2.29+0',
+		'Local Sites/magick-ai/app/public',
+		'command -v wp',
+		'php-8.5.3+1',
 		'--exclude-directories=tests,.git,vendor,node_modules,build,sj',
 		'--exclude-files=.gitignore,.distignore,AGENTS.md,composer.json',
 	) as $required
