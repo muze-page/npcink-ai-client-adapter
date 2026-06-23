@@ -472,7 +472,7 @@ apply plans from Toolkit:
 
 - entrypoint ability:
   `npcink-abilities-toolkit/build-article-optimization-apply-plan`
-- source recipe: `workflow/wordpress_article_optimization`
+- source recipe: `npcink-abilities-toolkit/recipes/article-optimization`
 - plan handoff route: `POST /proposals/from-plan`
 - status route: `GET /proposals/{proposal_id}`
 - final route: `POST /proposals/{proposal_id}/approve-and-execute`
