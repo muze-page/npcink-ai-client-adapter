@@ -1201,6 +1201,8 @@ maa_adapter_assert( false === strpos( $key_revoke_route, "array( \$this, 'can_us
 	$upstream_dispatch = substr( $controller, (int) strpos( $controller, 'private function dispatch_upstream( string' ), 1600 );
 	maa_adapter_assert( false !== strpos( $upstream_dispatch, 'x-npcink-adapter-signed-client-fingerprint' ), 'Adapter forwards signed client fingerprint to Core app-token requests.' );
 	maa_adapter_assert( false !== strpos( $upstream_dispatch, 'x-npcink-adapter-client-key-fingerprint' ), 'Adapter forwards compatible client key fingerprint alias to Core app-token requests.' );
+	maa_adapter_assert( false !== strpos( $controller, "'npcink_conn_'" ), 'Device pairing creates Npcink-branded connection ids.' );
+	maa_adapter_assert( false === strpos( $controller, "'mag_conn_'" ), 'Device pairing no longer creates Magick-branded connection ids.' );
 	$client_key_scope = substr( $controller, (int) strpos( $controller, 'private function client_key_scope_allows_request' ), 1400 );
 			maa_adapter_assert( false === strpos( $client_key_scope, "'/media-derivative-runs'" ), 'Client key scopes no longer special-case media derivative runs.' );
 			maa_adapter_assert( false === strpos( $client_key_scope, "'/media-derivative-proposal-payload'" ), 'Client key scopes no longer special-case media derivative proposal payloads.' );
@@ -2204,7 +2206,7 @@ foreach (
 		'OpenClaw Quickstart',
 		'OpenClaw-compatible local AI client',
 		'the local AI client connects to Adapter',
-		'https://magick-ai.local',
+		'https://npcink.local',
 		'WordPress administrator username: `1`',
 		'WordPress administrator password: `1`',
 		'Application Password',

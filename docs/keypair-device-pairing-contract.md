@@ -92,11 +92,11 @@ Approved response:
 ```json
 {
   "ok": true,
-  "connection_id": "mag_conn_...",
+  "connection_id": "npcink_conn_...",
   "key_id": "mk_...",
   "site_url": "https://example.test",
   "adapter_base_url": "https://example.test/wp-json/npcink-openclaw-adapter/v1",
-  "scopes_effective": ["magick.read", "magick.propose", "magick.status"]
+  "scopes_effective": ["npcink.read", "npcink.propose", "npcink.status"]
 }
 ```
 
@@ -183,7 +183,7 @@ OpenClaw-style clients can use the npm CLI after pairing:
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter connect --site=https://example.test --profile=local
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter status --profile=local
 cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local GET /health
-cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local POST /proposals/from-plan --body-file=/tmp/magick-proposal.json
+cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter request --profile=local POST /proposals/from-plan --body-file=/tmp/npcink-proposal.json
 ```
 
 The wrapper:
@@ -198,9 +198,11 @@ The wrapper:
 
 ## Scopes
 
-- `magick.status`: health, help, capabilities, connection metadata.
-- `magick.read`: direct-read ability routes.
-- `magick.propose`: proposal routes, approved-proposal execution routes, and
+- `npcink.status`: health, help, capabilities, connection metadata.
+- `npcink.read`: direct-read ability routes.
+- `npcink.propose`: proposal routes, approved-proposal execution routes, and
   media derivative Cloud run/proposal-payload routes that can consume runtime
   resources before a governed media proposal is created. Core remains the
   proposal, approval, preflight, and audit truth.
+
+Legacy `magick.*` scopes remain accepted only for existing signed clients.

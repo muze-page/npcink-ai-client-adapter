@@ -52,7 +52,7 @@ WordPress work while preserving the current project split:
 OpenClaw connects to:
 
 ```text
-https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1
+https://npcink.local/wp-json/npcink-openclaw-adapter/v1
 ```
 
 OpenClaw must not connect directly to Npcink Governance Core for productized use. Core
@@ -349,28 +349,28 @@ Health:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/health"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/health"
 ```
 
 Capabilities:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/capabilities"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/capabilities"
 ```
 
 Direct read:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/site-info"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/site-info"
 ```
 
 Diagnostics read:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/active-plugins-detail"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/active-plugins-detail"
 ```
 
 Create proposal:
@@ -379,7 +379,7 @@ Create proposal:
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"ability_id":"npcink-abilities-toolkit/create-draft","title":"OpenClaw draft acceptance","summary":"OpenClaw requests a governed draft proposal during acceptance.","input":{"title":"OpenClaw acceptance draft","dry_run":true,"commit":false},"preview":{"dry_run":true,"commit":false},"caller":{"external_thread_id":"OPENCLAW_ACCEPTANCE_THREAD"}}' \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals"
 ```
 
 Create proposals from a read-only plan:
@@ -388,14 +388,14 @@ Create proposals from a read-only plan:
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -H "Content-Type: application/json" \
   -d '{"plan_ability_id":"npcink-abilities-toolkit/build-content-inventory-fix-plan","plan":{"batch_id":"acceptance","issue_types":[],"requires_approval":true,"commit_execution":false,"dry_run":true,"action_count":0,"write_actions":[],"preview":[],"risk":{"level":"medium"}},"plan_input":{"per_page":1},"caller":{"external_thread_id":"OPENCLAW_ACCEPTANCE_THREAD"}}' \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/from-plan"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/from-plan"
 ```
 
 Query proposal status:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID"
 ```
 
 Commit preflight after Core approval:
@@ -403,14 +403,14 @@ Commit preflight after Core approval:
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
   -X POST \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/commit-preflight"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/proposals/PROPOSAL_ID/commit-preflight"
 ```
 
 Correlation read:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://magick-ai.local/wp-json/npcink-openclaw-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
 ```
 
 ## Expected Failure Behavior
