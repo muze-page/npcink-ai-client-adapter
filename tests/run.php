@@ -2151,7 +2151,7 @@ foreach (
 }
 
 $eval_lab_proxy = maa_adapter_read( $root . '/scripts/eval-lab.sh' );
-maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'MAGICK_AI_EVAL_LAB_PATH' ) && false !== strpos( $eval_lab_proxy, 'composer eval:task -- "$@"' ), 'Eval-lab proxy supports override path and task registry dispatch.' );
+maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'NPCINK_EVAL_LAB_PATH' ) && false !== strpos( $eval_lab_proxy, 'composer eval:task -- "$@"' ), 'Eval-lab proxy supports override path and task registry dispatch.' );
 maa_adapter_assert( false !== strpos( $eval_lab_proxy, 'composer "$SCRIPT" -- "$@"' ), 'Eval-lab proxy keeps legacy Composer entrypoint compatibility.' );
 maa_adapter_assert( false === strpos( $composer . "\n" . $eval_lab_proxy, 'sk-' ), 'Eval-lab integration does not contain committed provider keys.' );
 
