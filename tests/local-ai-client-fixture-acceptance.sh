@@ -92,25 +92,27 @@ ensure_wp_php() {
 
 run_wp() {
 	ensure_wp_cli
-	if [[ "$WP_CLI_BIN" != *.phar ]]; then
-		"$WP_CLI_BIN" --path="$WP_PATH" "$@"
-		return
-	fi
-
-	ensure_wp_php
 	if [[ -z "$WP_CLI_MYSQL_SOCKET" ]]; then
 		local default_socket="$HOME/Library/Application Support/Local/run/NPb24Zg9g/mysql/mysqld.sock"
 		if [[ -S "$default_socket" ]]; then
 			WP_CLI_MYSQL_SOCKET="$default_socket"
 		fi
 	fi
+	if [[ "$WP_CLI_BIN" != *.phar && -z "$WP_CLI_MYSQL_SOCKET" ]]; then
+		"$WP_CLI_BIN" --path="$WP_PATH" "$@"
+		return
+	fi
+
+	ensure_wp_php
 
 	local php_args=("-d" "display_errors=0")
 	if [[ -n "$WP_CLI_ERROR_REPORTING" ]]; then
 		php_args+=("-d" "error_reporting=$WP_CLI_ERROR_REPORTING")
 	fi
 	if [[ -n "$WP_CLI_MYSQL_SOCKET" ]]; then
+		php_args+=("-d" "mysql.default_socket=$WP_CLI_MYSQL_SOCKET")
 		php_args+=("-d" "mysqli.default_socket=$WP_CLI_MYSQL_SOCKET")
+		php_args+=("-d" "pdo_mysql.default_socket=$WP_CLI_MYSQL_SOCKET")
 	fi
 	"$WP_CLI_PHP" "${php_args[@]}" "$WP_CLI_BIN" --path="$WP_PATH" "$@"
 }
