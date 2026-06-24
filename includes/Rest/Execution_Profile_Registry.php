@@ -212,7 +212,7 @@ final class Execution_Profile_Registry {
 				'post_id_from_result'   => false,
 			),
 			'npcink-abilities-toolkit/adopt-article-audio' => array(
-				'supported_input_fields'  => array( 'post_id', 'audio_url', 'audio_title', 'audio_kind', 'duration_seconds', 'mime_type', 'source_content_hash', 'source_word_count', 'source_generated_at', 'provider', 'model', 'trace_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'supported_input_fields'  => array( 'post_id', 'audio_url', 'audio_title', 'audio_kind', 'duration_seconds', 'mime_type', 'source_content_hash', 'source_word_count', 'source_generated_at', 'provider', 'model', 'trace_id', 'import_media', 'media_file_name', 'dry_run', 'commit', 'idempotency_key' ),
 				'enum_fields'           => array(
 					'audio_kind' => array(
 						'allowed' => array( 'article_narration', 'article_audio_summary' ),
