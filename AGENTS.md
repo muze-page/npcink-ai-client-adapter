@@ -23,6 +23,11 @@ It does not own:
 
 ## Development Rules
 
+- Start AI-assisted work with `git status --short --branch` and a compact
+  change envelope: target repositories, focused module, intended change,
+  explicit non-goals, public contracts touched, expected files, files or areas
+  that must not change, required gates, cross-repo matrix requirement, and
+  rollback plan.
 - Keep this plugin thin. If a feature needs ability definitions, change
   `npcink-abilities-toolkit`.
 - If a feature needs approval state, change `npcink-governance-core`.
@@ -55,6 +60,21 @@ It does not own:
   it with `WP_CLI_MYSQL_SOCKET` or the equivalent PHP
   `mysqli.default_socket` setting.
 - Run `composer test:all` before committing.
+- For multi-repo milestones, run the central matrix from
+  `/Users/muze/gitee/npcink-toolbox` instead of copying the script into Adapter:
+  `composer quality:matrix` for status and `composer quality:matrix:run` before
+  cross-repo closeout.
+- Before staging, inspect `git status --short --branch` and `git diff --stat`.
+  Stage only files changed for the current task. Do not use `git add -A` in a
+  mixed worktree.
+- Do not run `git reset --hard`, `git checkout -- .`, or equivalent destructive
+  cleanup unless the user explicitly asks for that exact operation.
+- Before committing, verify `git diff --cached --stat` and
+  `git diff --cached --name-only`; after committing, verify
+  `git show --name-status --stat HEAD`.
+- If unexpected files entered a commit, use `git reset --mixed HEAD~1` and
+  recommit the correct scope. This preserves the working tree while fixing the
+  commit boundary.
 - For Plugin Check / PCP, use `composer plugin-check:release` so checks target
   the release/package surface defined by `.distignore`; do not delete
   development-only files such as `tests/` or `AGENTS.md` from the source tree
