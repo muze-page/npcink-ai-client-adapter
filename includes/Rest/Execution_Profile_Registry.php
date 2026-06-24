@@ -211,6 +211,27 @@ final class Execution_Profile_Registry {
 				),
 				'post_id_from_result'   => false,
 			),
+			'npcink-abilities-toolkit/adopt-article-audio' => array(
+				'supported_input_fields'  => array( 'post_id', 'audio_url', 'audio_title', 'audio_kind', 'duration_seconds', 'mime_type', 'source_content_hash', 'source_word_count', 'source_generated_at', 'provider', 'model', 'trace_id', 'dry_run', 'commit', 'idempotency_key' ),
+				'enum_fields'           => array(
+					'audio_kind' => array(
+						'allowed' => array( 'article_narration', 'article_audio_summary' ),
+						'code'    => 'npcink_openclaw_adapter_article_audio_kind_invalid',
+						'message' => __( 'adopt-article-audio audio_kind must be article_narration or article_audio_summary.', 'npcink-ai-client-adapter' ),
+					),
+				),
+				'require_post_id'       => array(
+					'code'    => 'npcink_openclaw_adapter_post_id_required',
+					'message' => __( 'adopt-article-audio execution input must include post_id.', 'npcink-ai-client-adapter' ),
+				),
+				'required_text_fields'  => array(
+					'audio_url' => array(
+						'code'    => 'npcink_openclaw_adapter_article_audio_url_required',
+						'message' => __( 'adopt-article-audio execution input must include audio_url.', 'npcink-ai-client-adapter' ),
+					),
+				),
+				'post_id_from_result'   => false,
+			),
 			'npcink-abilities-toolkit/set-post-slug'   => array(
 				'supported_input_fields'  => array( 'post_id', 'slug', 'dry_run', 'commit', 'idempotency_key' ),
 				'require_post_id'       => array(
