@@ -91,6 +91,16 @@ msgid "Verify WordPress Abilities API packages and demo ability controls."
 msgstr "验证 WordPress Abilities API 包和演示能力控制。"
 
 #: includes/Admin/Connection_Page.php:165
+msgid "Toolbox"
+msgstr "工具箱"
+
+#: includes/Admin/Connection_Page.php:165
+msgid ""
+"Open the operator-facing AI tool surface for suggestions and governed "
+"handoffs."
+msgstr "打开面向操作者的 AI 工具界面，用于建议和治理交接。"
+
+#: includes/Admin/Connection_Page.php:165
 msgid "Cloud Addon"
 msgstr "云端扩展"
 

@@ -1551,6 +1551,8 @@ maa_adapter_assert( false === strpos( $connection_page, 'Connect AI clients thro
 maa_adapter_assert( false === strpos( $connection_page, 'npcink-openclaw-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "'npcink-cloud-addon'" ), 'Connection page overview links to the canonical Cloud Addon slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Cloud Addon', 'npcink-ai-client-adapter' )" ), 'Connection page overview labels the Cloud Addon surface.' );
+maa_adapter_assert( false !== strpos( $connection_page, "'npcink-toolbox'" ), 'Connection page overview links to the canonical Toolbox slug.' );
+maa_adapter_assert( false !== strpos( $connection_page, "__( 'Toolbox', 'npcink-ai-client-adapter' )" ), 'Connection page overview labels the Toolbox surface.' );
 
 $admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standard.md' );
 foreach (

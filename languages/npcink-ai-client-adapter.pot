@@ -86,6 +86,14 @@ msgid "Verify WordPress Abilities API packages and demo ability controls."
 msgstr ""
 
 #: includes/Admin/Connection_Page.php:165
+msgid "Toolbox"
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:165
+msgid "Open the operator-facing AI tool surface for suggestions and governed handoffs."
+msgstr ""
+
+#: includes/Admin/Connection_Page.php:165
 msgid "Cloud Addon"
 msgstr ""
 
