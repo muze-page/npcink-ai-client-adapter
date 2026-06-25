@@ -19,6 +19,11 @@
 - [ ] `composer check:wporg`
 - [ ] `composer smoke:wp` if the change touches activation, REST routing, Core integration, or WordPress runtime behavior.
 
+## Risk
+
+- Residual risk:
+- Rollback plan:
+
 ## Release Impact
 
 - [ ] No release impact.
