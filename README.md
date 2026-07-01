@@ -7,7 +7,7 @@ It gives OpenClaw-compatible and similar AI clients one WordPress REST namespace
 - read Npcink Governance Core capability guidance;
 - run approved direct-read abilities through WordPress Abilities API;
 - create Core proposals for write or destructive operations;
-- orchestrate one user-triggered approve-and-execute action through Core.
+- forward one user-triggered approve-and-execute request to Core.
 
 AI clients should connect through Adapter. Npcink Governance
 Core is the governance service behind Adapter. Core remains the approval,
@@ -17,6 +17,8 @@ actions and does not rely on controlling any specific external AI client.
 It does not define abilities, store approval state, run workflows, expose a
 generic approve/reject proxy, or execute final write mutations without Core
 approval, commit-preflight, and an explicit Adapter execution profile.
+Adapter does not make approval decisions or persist approval state; Core remains
+the only approval, preflight, and audit truth.
 
 When Core or Adapter blocks a plan handoff, rejected proposal, or preflighted
 execution, error responses may include `data.operator_feedback`. Clients should
@@ -61,6 +63,9 @@ when every action targets the current execution allowlist
 `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`,
 `npcink-abilities-toolkit/approve-comment`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
+These abilities remain owned by `npcink-abilities-toolkit`; Adapter only owns the
+post-Core execution profile policy that calls approved abilities after Core
+approval and commit-preflight.
 Batch execution responses expose selected/submitted/executed/failed counts,
 per-action status, execution profile, idempotency key, Core preflight evidence,
 retryability, and `operator_next_action` so product surfaces such as Toolbox can
@@ -391,6 +396,8 @@ execute final writes and standalone approval proxying is disabled; they are not
 an execution-disabled signal. For proposal execution readiness, inspect
 `GET /proposals/{proposal_id}` and use the Adapter approve-and-execute or
 execute routes only after Core approval and commit-preflight.
+In that post-Core phase, Adapter executes only explicit supported execution
+profiles; Core still owns approval state and commit-preflight truth.
 
 After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:

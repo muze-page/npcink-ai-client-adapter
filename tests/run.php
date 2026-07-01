@@ -1827,7 +1827,17 @@ foreach ( $execution_profile_ids as $execution_profile_id ) {
 foreach (
 	array(
 		'GET shortcut query parameters are forwarded',
+		'GET /wp-json/npcink-openclaw-adapter/v1/site-info',
+		'GET /wp-json/npcink-openclaw-adapter/v1/site-summary',
+		'GET /wp-json/npcink-openclaw-adapter/v1/active-plugins-detail',
 		'GET /wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics',
+		'GET /wp-json/npcink-openclaw-adapter/v1/current-user-permissions',
+		'GET /wp-json/npcink-openclaw-adapter/v1/database-info',
+		'GET /wp-json/npcink-openclaw-adapter/v1/recent-error-log-tail',
+		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation',
+		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context',
+		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief',
+		'GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack',
 		'Content shortcuts pass query parameters',
 		'a `Proposal status` lookup',
 		'open the matching Core approval detail',
@@ -1835,24 +1845,24 @@ foreach (
 ) {
 	maa_adapter_assert( false === strpos( $readme, $removed_readme_text ), 'README omits removed positioning text: ' . $removed_readme_text );
 }
-	$current_boundary_docs = array(
-		'README.md' => $readme,
-		'packages/adapter-cli/README.md' => maa_adapter_read( $root . '/packages/adapter-cli/README.md' ),
-		'docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' ),
-		'docs/openclaw-media-derivative-cloud-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-media-derivative-cloud-recipe.md' ),
-		'docs/ai-media-derivative-calling-guide.md' => maa_adapter_read( $root . '/docs/ai-media-derivative-calling-guide.md' ),
-		'docs/openclaw-consumer-acceptance.md' => maa_adapter_read( $root . '/docs/openclaw-consumer-acceptance.md' ),
-		'docs/openclaw-adapter-contract.md' => maa_adapter_read( $root . '/docs/openclaw-adapter-contract.md' ),
-	);
-	foreach ( $current_boundary_docs as $doc_name => $doc_body ) {
-		foreach (
-			array(
-				'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
-				'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
-				'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts',
-				'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
-			) as $forbidden
-		) {
+$current_boundary_docs = array(
+	'README.md' => $readme,
+	'packages/adapter-cli/README.md' => maa_adapter_read( $root . '/packages/adapter-cli/README.md' ),
+	'docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' ),
+	'docs/openclaw-media-derivative-cloud-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-media-derivative-cloud-recipe.md' ),
+	'docs/ai-media-derivative-calling-guide.md' => maa_adapter_read( $root . '/docs/ai-media-derivative-calling-guide.md' ),
+	'docs/openclaw-consumer-acceptance.md' => maa_adapter_read( $root . '/docs/openclaw-consumer-acceptance.md' ),
+	'docs/openclaw-adapter-contract.md' => maa_adapter_read( $root . '/docs/openclaw-adapter-contract.md' ),
+);
+foreach ( $current_boundary_docs as $doc_name => $doc_body ) {
+	foreach (
+		array(
+			'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+			'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+			'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts',
+			'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
+		) as $forbidden
+	) {
 			maa_adapter_assert( false === strpos( $doc_body, $forbidden ), 'Current docs must not document Adapter media derivative facade routes in ' . $doc_name . ': ' . $forbidden );
 		}
 	}
@@ -2608,6 +2618,7 @@ foreach (
 		'generic final write authority',
 		'npcink-workflow-toolbox',
 		'must not register recipes',
+		'external ability ids only',
 		'Do not add provider/model/prompt execution routes',
 		'metadata-only context forwarding',
 		'npcink-cloud-addon',
@@ -3259,6 +3270,9 @@ foreach (
 		'npcink-toolbox/validate-content-discoverability-context',
 		'npcink-toolbox/get-content-discoverability-context',
 		'npcink-toolbox/build-content-discoverability-brief',
+		'external ability namespace currently registered by',
+		'npcink-workflow-toolbox',
+		'POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability',
 		'"ability_id": "npcink-toolbox/validate-content-discoverability-context"',
 		'"ability_id": "npcink-toolbox/get-content-discoverability-context"',
 		'"ability_id": "npcink-toolbox/build-content-discoverability-brief"',
@@ -3289,6 +3303,9 @@ foreach (
 		'For SEO/GEO/AEO suggestions on a known post',
 		'Use `article-writing-pack` only for broad natural-language requests',
 		'npcink-toolbox/build-ai-article-writing-pack',
+		'external ability namespace currently registered by',
+		'npcink-workflow-toolbox',
+		'POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability',
 		'POST /run-read-ability',
 		'"ability_id": "npcink-toolbox/build-ai-article-writing-pack"',
 		'"search_policy"',
