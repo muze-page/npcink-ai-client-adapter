@@ -30,7 +30,7 @@ queues, MCP catalogs, prompt registries, or workflow runtime state.
 Adapter code must treat all `npcink-toolbox/*` and
 `npcink-workflow-toolbox/*` ids as external ability ids only; referencing them
 does not transfer callback, recipe, workflow, prompt, or runtime ownership into
-Adapter.
+Adapter, and Adapter does not own their callbacks.
 
 ## Development Rules
 

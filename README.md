@@ -302,6 +302,8 @@ downstream provider integration request is running. POST `/run-read-ability` acc
 these values in a top-level `log_context` object. This lets AI Request Logs
 execution rows correlate with Core proposal and commit-preflight audit records
 without merging the two log systems.
+Adapter performs identifier passthrough only; Core Audit and AI Request Logs
+remain separate truth sources.
 
 Core Governance Audit is the governance log. WordPress `ai` plugin AI Request
 Logs are the provider request log. Adapter carries identifiers between them but
@@ -398,6 +400,8 @@ an execution-disabled signal. For proposal execution readiness, inspect
 execute routes only after Core approval and commit-preflight.
 In that post-Core phase, Adapter executes only explicit supported execution
 profiles; Core still owns approval state and commit-preflight truth.
+If Core approval or commit-preflight fails, Adapter returns the blocked Core
+evidence/operator feedback and does not mutate Adapter-side approval state.
 
 After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:

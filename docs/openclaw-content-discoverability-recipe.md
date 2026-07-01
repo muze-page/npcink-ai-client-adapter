@@ -23,9 +23,9 @@ Layer ownership stays fixed:
 
 - Toolbox owns the operator-filled content context and the
   `content_discoverability_brief` planning artifact.
-- `npcink-toolbox/*` is the external ability namespace currently registered by
-  `npcink-workflow-toolbox`; Adapter treats those ids as external direct-read
-  abilities and does not own their callbacks or workflow runtime.
+- `npcink-toolbox/*` ability ids are externally registered WordPress ability ids
+  discovered through Adapter capabilities; Adapter treats those ids as external
+  direct-read abilities and does not own their callbacks or workflow runtime.
 - Adapter exposes `POST /run-read-ability` and a machine-readable OpenClaw
   recipe.
 - Core decides whether each ability is `direct_read` and owns proposal,
@@ -100,7 +100,8 @@ POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
 }
 ```
 
-For supplied context instead of a post, use `POST /run-read-ability`:
+For supplied context instead of a post, use
+`POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`:
 
 ```json
 {

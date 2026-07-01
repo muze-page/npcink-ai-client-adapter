@@ -87,6 +87,8 @@ Adapter admin must not add:
   prompt, preset, or provider credential settings;
 - workflow recipe registry or prompt/preset storage owned by
   `npcink-workflow-toolbox` or ability providers;
+- execution profile allowlist ownership or ability callback ownership;
+- AI Request Logs/Core audit merge UI or correlation ownership;
 - generic approval/rejection proxy UX.
 
 Proposal, route, and diagnostics details can exist in developer documentation
