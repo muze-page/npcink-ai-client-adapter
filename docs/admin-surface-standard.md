@@ -45,7 +45,7 @@ Do not put developer diagnostics on the default admin page. Keep these in
 - signed key-pair status command;
 - low-level key-pair client diagnostics;
 - diagnostics URLs;
-- read shortcut route catalog;
+- `POST /run-read-ability` examples for underlying ability ids;
 - proposal route examples;
 - AI Request Logs correlation smoke details;
 - disabled approval/rejection stub explanation;
@@ -85,6 +85,8 @@ Adapter admin must not add:
 - Cloud Base URL/API key, entitlement, billing, or runtime settings;
 - workflow runtime, queues, MCP runtime, Agent Gateway catalogs, router,
   prompt, preset, or provider credential settings;
+- workflow recipe registry or prompt/preset storage owned by
+  `npcink-workflow-toolbox` or ability providers;
 - generic approval/rejection proxy UX.
 
 Proposal, route, and diagnostics details can exist in developer documentation

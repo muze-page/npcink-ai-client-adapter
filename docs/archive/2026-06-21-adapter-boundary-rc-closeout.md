@@ -133,7 +133,7 @@ composer smoke:wp
 
 The first smoke attempt failed because local dependencies were inactive. After
 activating `npcink-abilities-toolkit`, `npcink-governance-core`, and
-`npcink-toolbox`, the smoke passed. That was a local environment dependency
+`npcink-workflow-toolbox`, the smoke passed. That was a local environment dependency
 state issue, not an Adapter runtime-boundary failure.
 
 ## Current Guardrails

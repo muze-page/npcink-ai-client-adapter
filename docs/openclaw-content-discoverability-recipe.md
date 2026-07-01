@@ -14,7 +14,8 @@ Use `article-writing-pack` only for broad natural-language requests such as
 
 For those broad article requests, use
 `openclaw_recipes.ai_article_draft_with_discoverability` and
-`GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack?topic=TOPIC`.
+`POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability` with
+`npcink-toolbox/build-ai-article-writing-pack`.
 
 ## Boundary
 
@@ -22,7 +23,8 @@ Layer ownership stays fixed:
 
 - Toolbox owns the operator-filled content context and the
   `content_discoverability_brief` planning artifact.
-- Adapter exposes read shortcuts and a machine-readable OpenClaw recipe.
+- Adapter exposes `POST /run-read-ability` and a machine-readable OpenClaw
+  recipe.
 - Core decides whether each ability is `direct_read` and owns proposal,
   approval, commit-preflight, and audit truth.
 - WordPress Abilities API runs the Toolbox callbacks.
@@ -51,25 +53,36 @@ npcink-toolbox/get-content-discoverability-context
 npcink-toolbox/build-content-discoverability-brief
 ```
 
-3. Validate the operator-filled Toolbox context:
+3. Validate the operator-filled Toolbox context through `POST /run-read-ability`:
 
-```text
-GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation
+```json
+{
+  "ability_id": "npcink-toolbox/validate-content-discoverability-context",
+  "input": {}
+}
 ```
 
 If the result status is `needs_attention`, stop and ask the operator to update
 Toolbox Content Context.
 
-4. Read the context:
+4. Read the context through `POST /run-read-ability`:
 
-```text
-GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context
+```json
+{
+  "ability_id": "npcink-toolbox/get-content-discoverability-context",
+  "input": {}
+}
 ```
 
-5. Build one brief:
+5. Build one brief through `POST /run-read-ability`:
 
-```text
-GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief?post_id=POST_ID
+```json
+{
+  "ability_id": "npcink-toolbox/build-content-discoverability-brief",
+  "input": {
+    "post_id": "POST_ID"
+  }
+}
 ```
 
 For supplied context instead of a post, use `POST /run-read-ability`:

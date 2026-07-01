@@ -162,7 +162,7 @@ final class Connection_Page {
 					$this->render_overview_row( __( 'Core', 'npcink-ai-client-adapter' ), __( 'Review proposals, approval decisions, commit preflight, audit, and Core app keys.', 'npcink-ai-client-adapter' ), 'npcink-governance-core' );
 					$this->render_overview_row( __( 'Adapter', 'npcink-ai-client-adapter' ), __( 'Connect this site to local AI clients.', 'npcink-ai-client-adapter' ), self::MENU_SLUG );
 					$this->render_overview_row( __( 'Abilities', 'npcink-ai-client-adapter' ), __( 'Verify WordPress Abilities API packages and demo ability controls.', 'npcink-ai-client-adapter' ), 'npcink-abilities-toolkit' );
-					$this->render_overview_row( __( 'Toolbox', 'npcink-ai-client-adapter' ), __( 'Open the operator-facing AI tool surface for suggestions and governed handoffs.', 'npcink-ai-client-adapter' ), 'npcink-toolbox' );
+					$this->render_overview_row( __( 'Toolbox', 'npcink-ai-client-adapter' ), __( 'Open the operator-facing AI tool surface for suggestions and governed handoffs.', 'npcink-ai-client-adapter' ), 'npcink-workflow-toolbox' );
 					$this->render_overview_row( __( 'Cloud Addon', 'npcink-ai-client-adapter' ), __( 'Connect this site to Npcink Cloud without moving local control-plane truth.', 'npcink-ai-client-adapter' ), 'npcink-cloud-addon' );
 					?>
 				</tbody>
