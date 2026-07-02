@@ -7,7 +7,7 @@ It gives OpenClaw-compatible and similar AI clients one WordPress REST namespace
 - read Npcink Governance Core capability guidance;
 - run approved direct-read abilities through WordPress Abilities API;
 - create Core proposals for write or destructive operations;
-- orchestrate one user-triggered approve-and-execute action through Core.
+- forward one user-triggered approve-and-execute request to Core.
 
 AI clients should connect through Adapter. Npcink Governance
 Core is the governance service behind Adapter. Core remains the approval,
@@ -17,6 +17,8 @@ actions and does not rely on controlling any specific external AI client.
 It does not define abilities, store approval state, run workflows, expose a
 generic approve/reject proxy, or execute final write mutations without Core
 approval, commit-preflight, and an explicit Adapter execution profile.
+Adapter does not make approval decisions or persist approval state; Core remains
+the only approval, preflight, and audit truth.
 
 When Core or Adapter blocks a plan handoff, rejected proposal, or preflighted
 execution, error responses may include `data.operator_feedback`. Clients should
@@ -25,7 +27,10 @@ of retrying execution against the blocked proposal id. Core remains the
 governance truth.
 
 AI Client Adapter consumer readiness is complete as of Adapter governance commit
-`b81dc2a`. Productized clients should use Adapter as the only entry point.
+`b81dc2a`. Productized clients should use Adapter as the only entry point for
+WordPress/Core governance and WordPress Abilities API channel operations.
+Adapter is not the entry point for Cloud runtime transport, provider execution,
+workflow runtime, or client-side credential storage.
 See [OpenClaw Adapter Consumer Readiness](docs/openclaw-adapter-consumer-readiness.md)
 for the dependency snapshot, verified routes, closed loop, and next-stage
 execution allowlist rules.
@@ -34,12 +39,21 @@ Batch plan execution is intentionally narrow. Adapter can execute
 `input.write_actions[]` only after Core approval and commit-preflight, and only
 when every action targets the current execution allowlist
 (`npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`,
-`npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/set-post-seo-meta`,
-`npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`,
-`npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/patch-post-content`,
+`npcink-abilities-toolkit/update-post`,
+`npcink-abilities-toolkit/patch-post-content`,
 `npcink-abilities-toolkit/update-post-blocks`,
+`npcink-abilities-toolkit/update-template-blocks`,
+`npcink-abilities-toolkit/upsert-template-blocks`,
+`npcink-abilities-toolkit/update-template-part-blocks`,
 `npcink-abilities-toolkit/patch-setting-value`,
+`npcink-abilities-toolkit/set-post-seo-meta`,
+`npcink-abilities-toolkit/adopt-article-audio`,
+`npcink-abilities-toolkit/set-post-slug`,
+`npcink-abilities-toolkit/set-post-terms`,
+`npcink-abilities-toolkit/delete-term`,
 `npcink-abilities-toolkit/update-media-details`,
+`npcink-abilities-toolkit/upload-media-from-url`,
+`npcink-abilities-toolkit/set-post-featured-image`,
 `npcink-abilities-toolkit/optimize-media-asset`,
 `npcink-abilities-toolkit/replace-media-file`,
 `npcink-abilities-toolkit/restore-media-backup`,
@@ -49,6 +63,9 @@ when every action targets the current execution allowlist
 `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`,
 `npcink-abilities-toolkit/approve-comment`). See
 [OpenClaw Batch Execution Policy](docs/openclaw-batch-execution-policy.md).
+These abilities remain owned by `npcink-abilities-toolkit`; Adapter only owns the
+post-Core execution profile policy that calls approved abilities after Core
+approval and commit-preflight.
 Batch execution responses expose selected/submitted/executed/failed counts,
 per-action status, execution profile, idempotency key, Core preflight evidence,
 retryability, and `operator_next_action` so product surfaces such as Toolbox can
@@ -62,7 +79,13 @@ Layer ownership:
 | --- | --- | --- |
 | Ability layer | `npcink-abilities-toolkit` | Registers canonical abilities, schemas, callbacks, permissions, and dry-run previews. |
 | Governance layer | `npcink-governance-core` | Discovers abilities, classifies risk, stores proposals, handles approval/preflight, and audits governance decisions. |
+| Workflow layer | `npcink-workflow-toolbox` | Owns operator workflow surfaces and registers Toolbox planning abilities. |
 | Channel layer | `npcink-ai-client-adapter` | Gives AI clients a small REST adapter that calls Core and WordPress Abilities API. |
+
+`npcink-workflow-toolbox` is the current plugin slug and repository path for the
+workflow surface. Its registered WordPress ability ids currently retain the
+`npcink-toolbox/*` namespace for compatibility; Adapter treats those ids as
+external abilities and does not own their callbacks or workflow runtime.
 
 ## Suite Distribution
 
@@ -72,11 +95,11 @@ Adapter, Core, and the Abilities Toolkit as separate WordPress plugin zips and
 keeps their REST namespaces, plugin headers, data stores, and tests separate.
 
 The current Adapter plugin header declares `Requires Plugins:
-npcink-abilities-toolkit` because `npcink-abilities-toolkit` is the confirmed
-WordPress.org dependency slug. Core and Adapter slugs are still treated as
-distribution contract values until their public slugs are finalized; runtime
-readiness is detected through REST routes and public functions instead of
-display names.
+npcink-abilities-toolkit, npcink-governance-core`. Runtime readiness is still
+detected through REST routes and public functions, so dependency metadata does
+not make Adapter the owner of Core proposal, approval, preflight, or audit
+truth. Adapter's own slug remains a distribution contract value for suite
+packaging.
 
 Adapter `/health` and `/help` remain available when dependencies are missing.
 Routes that require Core or WordPress Abilities API fail closed with
@@ -101,14 +124,21 @@ authentication, such as an administrator Application Password.
 - `GET /wp-json/npcink-openclaw-adapter/v1/health`
 - `GET /wp-json/npcink-openclaw-adapter/v1/help`
 - `GET /wp-json/npcink-openclaw-adapter/v1/capabilities`
-- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
+- `GET /wp-json/npcink-openclaw-adapter/v1/connection/manifest`
+- `POST /wp-json/npcink-openclaw-adapter/v1/connect/device/start`
+- `POST /wp-json/npcink-openclaw-adapter/v1/connect/device/poll`
+- `GET /wp-json/npcink-openclaw-adapter/v1/connection/key-pairs`
+- `DELETE /wp-json/npcink-openclaw-adapter/v1/connection/key-pairs/{key_id}`
 - `POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`
-- `POST /wp-json/npcink-openclaw-adapter/v1/read-requests`
 - `GET /wp-json/npcink-openclaw-adapter/v1/read-requests`
+- `POST /wp-json/npcink-openclaw-adapter/v1/read-requests`
 - `GET /wp-json/npcink-openclaw-adapter/v1/read-requests/{request_id}`
-- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/media-optimization-readiness`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
 - `POST /wp-json/npcink-openclaw-adapter/v1/proposals`
 - `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`
+- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/media-optimization-readiness`
+- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/commit-preflight`
 - `POST /wp-json/npcink-openclaw-adapter/v1/execute-approved-proposal`
 - `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/execute`
 - `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`
@@ -117,25 +147,23 @@ Adapter does not expose direct-read shortcut routes, workflow recipe routes,
 provider/model smoke routes, or Cloud/media derivative façade routes. Use
 `POST /run-read-ability` for approved reads, Core proposal routes for governed
 writes, and `npcink-cloud-addon` for Cloud runtime transport.
-- `GET /wp-json/npcink-openclaw-adapter/v1/proposals`
-- `GET /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}`
-- `POST /wp-json/npcink-openclaw-adapter/v1/proposals`
-- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/from-plan`
-- `POST /wp-json/npcink-openclaw-adapter/v1/execute-approved-proposal`
-- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/execute`
-- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve-and-execute`
+
+Disabled compatibility stubs:
+
 - `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/approve`
 - `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/reject`
-- `POST /wp-json/npcink-openclaw-adapter/v1/proposals/{proposal_id}/commit-preflight`
 
-GET shortcut query parameters are forwarded as ability `input`. For example,
-`/media?per_page=10&has_empty_alt=1` becomes read input for
-`npcink-abilities-toolkit/list-media`.
+These return HTTP 403 with
+`code=npcink_openclaw_adapter_approval_proxy_disabled`,
+`approval_proxy_enabled=false`, and
+`approval_surface=npcink_governance_core_admin`. Adapter does not forward
+standalone approve/reject decisions to Core.
 
-Diagnostics shortcuts are Adapter aliases over existing direct-read abilities
-from `npcink-abilities-toolkit`; Adapter does not collect these facts itself.
-`wp-diagnostics-summary` is only a quick overview. P0/P1/P2 troubleshooting
-detail shortcuts call `npcink-abilities-toolkit/wp-ops-diagnostics-detail`.
+Diagnostic reads should call `POST /run-read-ability` with the underlying
+Toolkit ability id and input. Adapter does not collect these facts itself.
+`npcink-abilities-toolkit/wp-diagnostics-summary` is only a quick overview.
+P0/P1/P2 troubleshooting detail reads should call
+`npcink-abilities-toolkit/wp-ops-diagnostics-detail`.
 
 Default diagnostics detail input is:
 
@@ -151,9 +179,9 @@ Default diagnostics detail input is:
 }
 ```
 
-For deep plugin conflict troubleshooting, use
-`GET /wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics` or send the
-equivalent input:
+For deep plugin conflict troubleshooting, call
+`POST /run-read-ability` with `ability_id` set to
+`npcink-abilities-toolkit/wp-ops-diagnostics-detail` and input such as:
 
 ```json
 {
@@ -195,11 +223,11 @@ read arbitrary files, expose database names/table names, collect secrets,
 invent diagnostics data, or mix Npcink runtime, MCP, or cloud state into the
 WordPress diagnostics mapping.
 
-Content shortcuts pass query parameters through to the underlying ability input,
-including the current `npcink-abilities-toolkit/list-posts` filters, richer
-`npcink-abilities-toolkit/get-post-context` output, term sample-post flags, user
-`author_profile`, comment post context, media `attached_to`/`usage`, and
-`npcink-abilities-toolkit/get-menu` tree output.
+Content reads should call `POST /run-read-ability` with the underlying ability
+input, including the current `npcink-abilities-toolkit/list-posts` filters,
+richer `npcink-abilities-toolkit/get-post-context` output, term sample-post
+flags, user `author_profile`, comment post context, media
+`attached_to`/`usage`, and `npcink-abilities-toolkit/get-menu` tree output.
 
 For media metadata optimization, call `POST /run-read-ability` with the
 read-only `npcink-abilities-toolkit/optimize-media-metadata` ability. Adapter
@@ -274,6 +302,8 @@ downstream provider integration request is running. POST `/run-read-ability` acc
 these values in a top-level `log_context` object. This lets AI Request Logs
 execution rows correlate with Core proposal and commit-preflight audit records
 without merging the two log systems.
+Adapter performs identifier passthrough only; Core Audit and AI Request Logs
+remain separate truth sources.
 
 Core Governance Audit is the governance log. WordPress `ai` plugin AI Request
 Logs are the provider request log. Adapter carries identifiers between them but
@@ -297,14 +327,13 @@ The page default view shows:
 - Core and WordPress Abilities API connection status;
 - a higher-security signed key-pair flow using `cd ~ && npm exec --yes --package @npcink/openclaw-adapter-cli@0.2.0 -- npcink-openclaw-adapter`;
 - authorized public key management with revoke actions;
-- a `Proposal status` lookup where operators paste the `Proposal ID` returned
-  to OpenClaw, see Core status through Adapter's read-only proposal proxy, open
-  the matching Core approval detail, and copy Adapter status/execution URLs.
+- the minimal information needed to continue in client tooling or Core admin
+  without turning Adapter into a proposal queue.
 
 Advanced disclosures keep lower-frequency reference details available without
 turning the page into a control panel:
 
-- supported read shortcut routes and their real `ability_id` values;
+- supported read ability ids and example `POST /run-read-ability` payloads;
 - flat `GET /help` route rows under `routes`, plus human-readable
   `route_groups`;
 - Application Password secret-field steps;
@@ -316,6 +345,7 @@ turning the page into a control panel:
 - copyable health and proposal example requests;
 - proposal list/detail, plan-to-proposal, commit-preflight, and
   approve-and-execute routes;
+- read-only proposal status examples for developer integration;
 - a copyable local AI client session opener.
 
 The page does not save adapter credentials, approval state, ability definitions,
@@ -368,6 +398,10 @@ execute final writes and standalone approval proxying is disabled; they are not
 an execution-disabled signal. For proposal execution readiness, inspect
 `GET /proposals/{proposal_id}` and use the Adapter approve-and-execute or
 execute routes only after Core approval and commit-preflight.
+In that post-Core phase, Adapter executes only explicit supported execution
+profiles; Core still owns approval state and commit-preflight truth.
+If Core approval or commit-preflight fails, Adapter returns the blocked Core
+evidence/operator feedback and does not mutate Adapter-side approval state.
 
 After pairing, local clients can call Adapter through the signed request command
 without reading or printing profile secrets:
@@ -458,18 +492,17 @@ For the OpenClaw image candidate adoption recipe, use
 For the OpenClaw SEO/AEO/GEO suggestion recipe, use
 [`docs/openclaw-content-discoverability-recipe.md`](docs/openclaw-content-discoverability-recipe.md).
 The primary SEO/GEO/AEO entrypoint is
-`GET /content-discoverability-brief` or
-`npcink-toolbox/build-content-discoverability-brief`.
+`npcink-toolbox/build-content-discoverability-brief` through
+`POST /run-read-ability`.
 Use `article-writing-pack` only for broad natural-language requests such as
 "help me write an article".
 
 For broad natural-language article requests, use
 [`docs/openclaw-ai-article-writing-pack-recipe.md`](docs/openclaw-ai-article-writing-pack-recipe.md).
-The shortcut `GET /article-writing-pack` forwards input to
-`npcink-toolbox/build-ai-article-writing-pack` and returns a
-suggestion-only writing pack for a local OpenClaw review candidate. This is an
-article assistant path, not an article generator, Cloud writer, or batch
-publishing surface.
+Call `POST /run-read-ability` with `npcink-toolbox/build-ai-article-writing-pack`
+to return a suggestion-only writing pack for a local OpenClaw review candidate.
+This is an article assistant path, not an article generator, Cloud writer, or
+batch publishing surface.
 
 For productized OpenClaw acceptance, use
 [`docs/openclaw-consumer-acceptance.md`](docs/openclaw-consumer-acceptance.md).
@@ -521,7 +554,8 @@ Initial connection:
 
 Read-only execution:
 
-1. Use a shortcut route when one exists, or call `POST /run-read-ability`.
+1. Call `POST /run-read-ability`; Adapter does not expose shortcut aliases for
+   these reads.
 2. The adapter re-checks Core for the real `ability_id`.
 3. The adapter runs only rows where `execution_surface=wp_abilities_rest` and
    `governance_mode=direct_read` or a Core sensitive read grant allows the

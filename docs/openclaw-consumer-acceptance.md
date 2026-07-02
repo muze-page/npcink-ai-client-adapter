@@ -175,19 +175,20 @@ Run this order for a local acceptance pass:
 6. Call `GET /capabilities` and use only real `ability_id` values returned by
    Core guidance.
 7. Run at least one direct-read ability through `POST /run-read-ability`.
-8. Run at least one diagnostics shortcut:
-   - `GET /active-plugins-detail`
-   - `GET /plugin-conflict-diagnostics` when testing plugin conflicts
-   - `GET /current-user-permissions`
-   - `GET /database-info`
+8. Run at least one diagnostics read through `POST /run-read-ability` with
+   `npcink-abilities-toolkit/wp-ops-diagnostics-detail`:
+   - active plugin detail input
+   - plugin conflict diagnostic input with `include_inactive_plugins=true`
+   - current user permission input
+   - database info input
    Confirm diagnostics details come from
    `npcink-abilities-toolkit/wp-ops-diagnostics-detail`, not from
    `wp-diagnostics-summary`.
    With default `include_log_contents=false`, log contents are not explicitly
    requested and must not be marked missing.
    With default `include_inactive_plugins=false`, inactive plugin rows are not
-   requested and must not be marked missing. The plugin conflict shortcut must
-   request `include_inactive_plugins=true` and return grouped plugin details for
+   requested and must not be marked missing. The plugin conflict diagnostic input
+   must request `include_inactive_plugins=true` and return grouped plugin details for
    `plugins.active`, `plugins.inactive`, `plugins.update_available`,
    `plugins.must_use`, and `plugins.dropins`.
    Use `error_log.summary.fatal_count`, `error_log.summary.error_count`,
@@ -195,8 +196,10 @@ Run this order for a local acceptance pass:
    `error_log.summary.notice_count`, and `error_log.summary.by_severity` for
    severity display even when log contents are not included.
    When log inspection is explicitly requested, call
-   `GET /recent-error-log-tail` and display `error_log.tail_entries` plus
-   `error_log.summary.by_severity`.
+   `POST /run-read-ability` with
+   `npcink-abilities-toolkit/wp-ops-diagnostics-detail`,
+   `include_log_contents=true`, and bounded `tail_lines`; display
+   `error_log.tail_entries` plus `error_log.summary.by_severity`.
 9. Create a governed write proposal with `POST /proposals`.
 10. Run a planning ability such as
    `npcink-abilities-toolkit/build-content-inventory-fix-plan`,
@@ -215,8 +218,7 @@ Run this order for a local acceptance pass:
    `correlation_id`, and `commit_execution=false`.
    For the SEO/AEO/GEO suggestion recipe, run
    `npcink-toolbox/build-content-discoverability-brief` through
-   `POST /run-read-ability` or
-   `GET /content-discoverability-brief?post_id=POST_ID`; confirm the result has
+   `POST /run-read-ability`; confirm the result has
    `artifact_type=content_discoverability_brief`, `primary_contract=true`,
    `write_posture=suggestion_only`, `direct_wordpress_write=false`, and
    `final_write_path=core_proposal_required`. Confirm it also exposes `seo`,
@@ -224,7 +226,7 @@ Run this order for a local acceptance pass:
    `proposal_allowed_fields`; this is the primary SEO/GEO/AEO entrypoint.
    For broad natural-language article requests, run
    `npcink-toolbox/build-ai-article-writing-pack` through
-   `POST /run-read-ability` or `GET /article-writing-pack?topic=AI_TOPIC`;
+   `POST /run-read-ability`;
    confirm the result has `artifact_type=ai_article_writing_pack`,
    `write_posture=suggestion_only`, `provider_execution=none`,
    `direct_wordpress_write=false`, and
@@ -363,14 +365,18 @@ Direct read:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/site-info"
+  -H "Content-Type: application/json" \
+  -d '{"ability_id":"npcink-abilities-toolkit/site-info","input":{}}' \
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/run-read-ability"
 ```
 
 Diagnostics read:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/active-plugins-detail"
+  -H "Content-Type: application/json" \
+  -d '{"ability_id":"npcink-abilities-toolkit/wp-ops-diagnostics-detail","input":{"include_active_plugins":true,"include_inactive_plugins":false,"include_plugin_updates":true,"include_must_use_plugins":true,"include_dropins":true,"include_log_contents":false}}' \
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/run-read-ability"
 ```
 
 Create proposal:
@@ -410,7 +416,9 @@ Correlation read:
 
 ```bash
 curl -sS --user "OPENCLAW_USERNAME:<openclaw-secret-field-value>" \
-  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/site-info?proposal_id=PROPOSAL_ID&correlation_id=CORRELATION_ID"
+  -H "Content-Type: application/json" \
+  -d '{"ability_id":"npcink-abilities-toolkit/site-info","input":{},"log_context":{"proposal_id":"PROPOSAL_ID","correlation_id":"CORRELATION_ID"}}' \
+  "https://npcink.local/wp-json/npcink-openclaw-adapter/v1/run-read-ability"
 ```
 
 ## Expected Failure Behavior

@@ -1282,28 +1282,27 @@ $admin_js        = maa_adapter_read( $root . '/assets/admin.js' );
 maa_adapter_assert( false !== strpos( $connection_page, "const PARENT_MENU_SLUG = 'npcink-ai';" ), 'Connection page targets the shared Npcink AI parent menu slug.' );
 foreach (
 	array(
-			'Npcink AI Client Adapter',
-			'Client Adapter',
-			'Connect this site to local AI clients.',
-			'Connect this WordPress site to OpenClaw or other local AI clients.',
-			'Adapter',
-				'AI Client Connection Created',
-			'Secure key pairing',
-			'maa-heading-badge',
-			'Fallback: WordPress Application Password connection',
-			'Recommended path: pair a local signed key',
-			'Copy connect command',
-			'maa-action-hint',
-			'Active devices',
-			'maa-disclosure-copy',
-			'maa-disclosure-icon',
-			'Manage devices',
-			'data-maa-open-target="maa-authorized-devices"',
-			'Revoke a device when it is no longer used or was approved by mistake',
-			'Create Application Password connection',
-			'add_submenu_page',
-			'PARENT_MENU_SLUG',
-				'WP_Application_Passwords::create_new_application_password',
+		'Npcink AI Client Adapter',
+		'Connect this site to local AI clients.',
+		'Connect this WordPress site to OpenClaw or other local AI clients.',
+		'Adapter',
+		'AI Client Connection Created',
+		'Secure key pairing',
+		'maa-heading-badge',
+		'Fallback: WordPress Application Password connection',
+		'Recommended path: pair a local signed key',
+		'Copy connect command',
+		'maa-action-hint',
+		'Active devices',
+		'maa-disclosure-copy',
+		'maa-disclosure-icon',
+		'Manage devices',
+		'data-maa-open-target="maa-authorized-devices"',
+		'Revoke a device when it is no longer used or was approved by mistake',
+		'Create Application Password connection',
+		'add_submenu_page',
+		'PARENT_MENU_SLUG',
+		'WP_Application_Passwords::create_new_application_password',
 			'Include LocalWP TLS setting',
 			'LocalWP TLS option',
 			'Use only for localhost or .local testing',
@@ -1544,14 +1543,14 @@ maa_adapter_assert( false !== strpos( $connection_page, "admin_url( 'admin.php?p
 maa_adapter_assert( false === strpos( $connection_page, 'menu_page_url( self::MENU_SLUG, false )' ), 'Created handoff return link does not resolve through current admin-post context.' );
 maa_adapter_assert( false !== strpos( $connection_page, "const MENU_SLUG        = 'npcink-ai-client-adapter';" ), 'Connection page uses the canonical Adapter admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Npcink AI Client Adapter', 'npcink-ai-client-adapter' ),\n\t\t\t__( 'Adapter', 'npcink-ai-client-adapter' )," ), 'Connection page registers the requested page and menu titles.' );
-maa_adapter_assert( false !== strpos( $connection_page, "esc_html__( 'Client Adapter', 'npcink-ai-client-adapter' )" ), 'Connection page uses a localized functional admin heading.' );
+maa_adapter_assert( false !== strpos( $connection_page, "esc_html( 'Npcink AI Client Adapter' )" ), 'Connection page uses the fixed product name for the primary admin heading.' );
 maa_adapter_assert( false === strpos( $connection_page, 'Developer route details and local testing notes are documented' ), 'Connection page default view does not show developer route notes.' );
 maa_adapter_assert( false === strpos( $connection_page, '<code>docs/admin-developer-reference.md</code>' ), 'Connection page default view keeps developer reference out of the admin surface.' );
 maa_adapter_assert( false === strpos( $connection_page, 'Connect AI clients through the Adapter surface.' ), 'Connection page avoids the old Adapter-surface connection wording.' );
 maa_adapter_assert( false === strpos( $connection_page, 'npcink-openclaw-adapter-openclaw' ), 'Connection page does not use the old OpenClaw-specific admin slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "'npcink-cloud-addon'" ), 'Connection page overview links to the canonical Cloud Addon slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Cloud Addon', 'npcink-ai-client-adapter' )" ), 'Connection page overview labels the Cloud Addon surface.' );
-maa_adapter_assert( false !== strpos( $connection_page, "'npcink-toolbox'" ), 'Connection page overview links to the canonical Toolbox slug.' );
+maa_adapter_assert( false !== strpos( $connection_page, "'npcink-workflow-toolbox'" ), 'Connection page overview links to the canonical Toolbox slug.' );
 maa_adapter_assert( false !== strpos( $connection_page, "__( 'Toolbox', 'npcink-ai-client-adapter' )" ), 'Connection page overview labels the Toolbox surface.' );
 
 $admin_surface_standard = maa_adapter_read( $root . '/docs/admin-surface-standard.md' );
@@ -1568,14 +1567,18 @@ foreach (
 			'Created Handoff',
 			'Copy Application Password',
 			'duplicate Core review queue',
-			'read shortcut route catalog',
+			'POST /run-read-ability` examples for underlying ability ids',
 			'docs/admin-developer-reference.md',
 			'Core proposal approval tables',
-		'ability definitions',
-		'Cloud Base URL/API key',
-		'Time Display',
-		'WordPress site timezone',
-		'Y-m-d H:i:s',
+			'ability definitions',
+			'Cloud Base URL/API key',
+			'workflow recipe registry',
+			'execution profile allowlist ownership',
+			'AI Request Logs/Core audit merge',
+			'npcink-workflow-toolbox',
+			'Time Display',
+			'WordPress site timezone',
+			'Y-m-d H:i:s',
 		'Do not print raw UTC strings',
 	) as $required
 ) {
@@ -1624,6 +1627,7 @@ maa_adapter_assert( false === strpos( $controller, 'X-Npcink-Signature' ), 'Adap
 maa_adapter_assert( false === strpos( $cloud_boundary, 'Adapter is the WordPress-to-Cloud connector.' ), 'Cloud boundary no longer assigns Cloud connector ownership to Adapter.' );
 
 $readme = maa_adapter_read( $root . '/README.md' );
+$plugin_readme = maa_adapter_read( $root . '/readme.txt' );
 foreach (
 	array(
 		'thin AI client channel plugin',
@@ -1632,18 +1636,25 @@ foreach (
 		'create Core proposals',
 		'Cloud runtime access belongs to the standalone `npcink-cloud-addon`',
 		'Adapter must not add its own Cloud settings, signing client, or `/cloud/*`',
+		'The current Adapter plugin header declares `Requires Plugins:',
+		'npcink-abilities-toolkit, npcink-governance-core`',
 		'Adapter does not expose direct-read shortcut routes, workflow recipe routes',
 		'Cloud/media derivative façade routes',
+		'Diagnostic reads should call `POST /run-read-ability`',
+		'npcink-abilities-toolkit/wp-ops-diagnostics-detail',
 		'For media metadata optimization, call `POST /run-read-ability`',
 		'For Cloud-generated media derivatives, Cloud transport and run/result truth',
-		'Adapter emits local metadata-only events through',
+			'Adapter emits local metadata-only events through',
+			'Adapter performs identifier passthrough only',
 		'npcink_openclaw_adapter_observability_event',
 		'canonical Adapter event kinds are',
 		'adapter.openclaw.dispatch.completed',
 		'adapter.openclaw.dispatch.failed',
 		'They must not include raw OpenClaw requests',
-		'Proposal status',
-		'Adapter status/execution URLs',
+		'without turning Adapter into a proposal queue',
+			'read-only proposal status examples for developer integration',
+			'Adapter executes only explicit supported execution',
+			'does not mutate Adapter-side approval state',
 		'does not define abilities',
 		'execute final write mutations',
 		'Npcink -> Adapter',
@@ -1810,27 +1821,53 @@ foreach (
 		'.distignore',
 		'Do not delete',
 	) as $required
+) {
+	maa_adapter_assert( false !== strpos( $readme, $required ), 'README contains required text: ' . $required );
+}
+foreach ( $execution_profile_ids as $execution_profile_id ) {
+	maa_adapter_assert( false !== strpos( $readme, $execution_profile_id ), 'README documents execution profile: ' . $execution_profile_id );
+	maa_adapter_assert( false !== strpos( $plugin_readme, $execution_profile_id ), 'readme.txt documents execution profile: ' . $execution_profile_id );
+}
+foreach (
+	array(
+		'GET shortcut query parameters are forwarded',
+		'GET /wp-json/npcink-openclaw-adapter/v1/site-info',
+		'GET /wp-json/npcink-openclaw-adapter/v1/site-summary',
+		'GET /wp-json/npcink-openclaw-adapter/v1/active-plugins-detail',
+		'GET /wp-json/npcink-openclaw-adapter/v1/plugin-conflict-diagnostics',
+		'GET /wp-json/npcink-openclaw-adapter/v1/current-user-permissions',
+		'GET /wp-json/npcink-openclaw-adapter/v1/database-info',
+		'GET /wp-json/npcink-openclaw-adapter/v1/recent-error-log-tail',
+		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation',
+		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context',
+		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief',
+		'GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack',
+		'Content shortcuts pass query parameters',
+		'a `Proposal status` lookup',
+		'open the matching Core approval detail',
+	) as $removed_readme_text
+) {
+	maa_adapter_assert( false === strpos( $readme, $removed_readme_text ), 'README omits removed positioning text: ' . $removed_readme_text );
+}
+$current_boundary_docs = array(
+	'AGENTS.md' => maa_adapter_read( $root . '/AGENTS.md' ),
+	'README.md' => $readme,
+	'packages/adapter-cli/README.md' => maa_adapter_read( $root . '/packages/adapter-cli/README.md' ),
+	'docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' ),
+	'docs/openclaw-media-derivative-cloud-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-media-derivative-cloud-recipe.md' ),
+	'docs/ai-media-derivative-calling-guide.md' => maa_adapter_read( $root . '/docs/ai-media-derivative-calling-guide.md' ),
+	'docs/openclaw-consumer-acceptance.md' => maa_adapter_read( $root . '/docs/openclaw-consumer-acceptance.md' ),
+	'docs/openclaw-adapter-contract.md' => maa_adapter_read( $root . '/docs/openclaw-adapter-contract.md' ),
+);
+foreach ( $current_boundary_docs as $doc_name => $doc_body ) {
+	foreach (
+		array(
+			'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+			'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
+			'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts',
+			'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
+		) as $forbidden
 	) {
-		maa_adapter_assert( false !== strpos( $readme, $required ), 'README contains required text: ' . $required );
-	}
-	$current_boundary_docs = array(
-		'README.md' => $readme,
-		'packages/adapter-cli/README.md' => maa_adapter_read( $root . '/packages/adapter-cli/README.md' ),
-		'docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-ai-image-ratio-crop-media-adoption-recipe.md' ),
-		'docs/openclaw-media-derivative-cloud-recipe.md' => maa_adapter_read( $root . '/docs/openclaw-media-derivative-cloud-recipe.md' ),
-		'docs/ai-media-derivative-calling-guide.md' => maa_adapter_read( $root . '/docs/ai-media-derivative-calling-guide.md' ),
-		'docs/openclaw-consumer-acceptance.md' => maa_adapter_read( $root . '/docs/openclaw-consumer-acceptance.md' ),
-		'docs/openclaw-adapter-contract.md' => maa_adapter_read( $root . '/docs/openclaw-adapter-contract.md' ),
-	);
-	foreach ( $current_boundary_docs as $doc_name => $doc_body ) {
-		foreach (
-			array(
-				'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
-				'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-runs',
-				'GET /wp-json/npcink-openclaw-adapter/v1/media-derivative-artifacts',
-				'POST /wp-json/npcink-openclaw-adapter/v1/media-derivative-proposal-payload',
-			) as $forbidden
-		) {
 			maa_adapter_assert( false === strpos( $doc_body, $forbidden ), 'Current docs must not document Adapter media derivative facade routes in ' . $doc_name . ': ' . $forbidden );
 		}
 	}
@@ -2504,11 +2541,11 @@ foreach (
 		'npcink-abilities-toolkit/reply-comment',
 		'npcink-abilities-toolkit/trash-comment',
 		'npcink-abilities-toolkit/approve-comment',
-		'active-plugins-detail',
-		'plugin-conflict-diagnostics',
-		'current-user-permissions',
-		'database-info',
-		'recent-error-log-tail',
+		'active plugin detail input',
+		'plugin conflict diagnostic input',
+		'current user permission input',
+		'database info input',
+		'include_log_contents=true',
 		'wp-ops-diagnostics-detail',
 		'include_log_contents=false',
 		'include_inactive_plugins=false',
@@ -2579,13 +2616,17 @@ foreach (
 $agents = maa_adapter_read( $root . '/AGENTS.md' );
 foreach (
 	array(
-		'thin OpenClaw channel layer',
+		'Product name: Npcink AI Client Adapter',
+		'thin OpenClaw-compatible channel layer',
 		'does not own',
 		'explicit post-Core execution profile policy',
 		'generic final write authority',
-		'admin-authenticated AI Request Logs correlation smoke route',
-		'manual diagnostics route',
-		'not model routing, prompt management, product UX, or',
+		'npcink-workflow-toolbox',
+		'must not register recipes',
+			'external ability ids only',
+			'does not own their callbacks',
+		'Do not add provider/model/prompt execution routes',
+		'metadata-only context forwarding',
 		'npcink-cloud-addon',
 		'Do not add Adapter-owned Cloud',
 		'npcink-abilities-toolkit',
@@ -3230,13 +3271,17 @@ foreach (
 		'The primary SEO/GEO/AEO entrypoint is `content-discoverability-brief`',
 		'Use `article-writing-pack` only for broad natural-language requests',
 		'openclaw_recipes.ai_article_draft_with_discoverability',
-		'GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack?topic=TOPIC',
+		'POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability',
+		'npcink-toolbox/build-ai-article-writing-pack',
 		'npcink-toolbox/validate-content-discoverability-context',
 		'npcink-toolbox/get-content-discoverability-context',
 		'npcink-toolbox/build-content-discoverability-brief',
-		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-validation',
-		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-context',
-		'GET /wp-json/npcink-openclaw-adapter/v1/content-discoverability-brief?post_id=POST_ID',
+			'externally registered WordPress ability ids',
+			'discovered through Adapter capabilities',
+		'POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability',
+		'"ability_id": "npcink-toolbox/validate-content-discoverability-context"',
+		'"ability_id": "npcink-toolbox/get-content-discoverability-context"',
+		'"ability_id": "npcink-toolbox/build-content-discoverability-brief"',
 		'"search_policy"',
 		'"requires_external_evidence": true',
 		'"max_results": 3',
@@ -3264,7 +3309,10 @@ foreach (
 		'For SEO/GEO/AEO suggestions on a known post',
 		'Use `article-writing-pack` only for broad natural-language requests',
 		'npcink-toolbox/build-ai-article-writing-pack',
-		'GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack?topic=AI_TOPIC',
+			'externally registered WordPress ability ids',
+			'discovered through Adapter capabilities',
+		'POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability',
+		'"ability_id": "npcink-toolbox/build-ai-article-writing-pack"',
 		'"search_policy"',
 		'"requires_external_evidence": true',
 		'"max_results": 3',

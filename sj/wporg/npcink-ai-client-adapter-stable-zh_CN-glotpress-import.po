@@ -319,16 +319,16 @@ msgstr "Core 授权上下文是为另一个已签名本地客户端签发的。"
 #: includes/Rest/Controller.php:5856
 msgid ""
 "Core authorization context signed client fingerprint aliases do not match."
-msgstr "核心指导意外允许代理或提交执行。"
+msgstr "Core 授权上下文中的已签名客户端指纹别名不匹配。"
 
 #: includes/Rest/Controller.php:5848
 msgid ""
 "Core authorization context includes an invalid signed client fingerprint."
-msgstr "核心指导意外允许代理或提交执行。"
+msgstr "Core 授权上下文包含无效的已签名客户端指纹。"
 
 #: includes/Rest/Controller.php:5819
 msgid "Core authorization context is expired or missing a valid expiry."
-msgstr "核心指导意外允许代理或提交执行。"
+msgstr "Core 授权上下文已过期或缺少有效过期时间。"
 
 #: includes/Rest/Controller.php:5715
 msgid ""
@@ -433,15 +433,15 @@ msgstr "adopt-cloud-media-derivative 执行输入必须包含 attachment_id。"
 
 #: includes/Rest/Execution_Profile_Registry.php:352
 msgid "restore-media-backup execution input must include backup_id."
-msgstr "rename-media-file 执行输入必须包含 attachment_id。"
+msgstr "restore-media-backup 执行输入必须包含 backup_id。"
 
 #: includes/Rest/Execution_Profile_Registry.php:346
 msgid "restore-media-backup execution input must include attachment_id."
-msgstr "rename-media-file 执行输入必须包含 attachment_id。"
+msgstr "restore-media-backup 执行输入必须包含 attachment_id。"
 
 #: includes/Rest/Execution_Profile_Registry.php:340
 msgid "restore-media-backup target_conflict_mode must be fail or overwrite."
-msgstr "rename-media-file 的 conflict_mode 必须是 fail 或 unique。"
+msgstr "restore-media-backup 的 target_conflict_mode 必须是 fail 或 overwrite。"
 
 #: includes/Rest/Execution_Profile_Registry.php:329
 msgid "replace-media-file execution input must include attachment_id."
@@ -535,51 +535,51 @@ msgstr "patch-setting-value 的 target_type 必须是 option 或 theme_mod。"
 #: includes/Rest/Execution_Profile_Registry.php:174
 msgid ""
 "update-template-part-blocks execution input must include at least one block."
-msgstr "update-media-details 执行输入必须至少包含一个媒体详情字段。"
+msgstr "update-template-part-blocks 执行输入必须至少包含一个区块。"
 
 #: includes/Rest/Execution_Profile_Registry.php:169
 msgid "update-template-part-blocks execution input must include post_id."
-msgstr "update-post 执行输入必须包含 post_id。"
+msgstr "update-template-part-blocks 执行输入必须包含 post_id。"
 
 #: includes/Rest/Execution_Profile_Registry.php:164
 msgid "update-template-part-blocks mode must be replace."
-msgstr "replace-media-file 模式必须是 replace 或 rollback。"
+msgstr "update-template-part-blocks 模式必须是 replace。"
 
 #: includes/Rest/Execution_Profile_Registry.php:153
 msgid "upsert-template-blocks execution input must include at least one block."
-msgstr "update-media-details 执行输入必须至少包含一个媒体详情字段。"
+msgstr "upsert-template-blocks 执行输入必须至少包含一个区块。"
 
 #: includes/Rest/Execution_Profile_Registry.php:147
 msgid "upsert-template-blocks execution input must include a valid slug."
-msgstr "set-post-slug 执行输入必须包含有效 slug。"
+msgstr "upsert-template-blocks 执行输入必须包含有效 slug。"
 
 #: includes/Rest/Execution_Profile_Registry.php:141
 msgid "upsert-template-blocks mode must be replace."
-msgstr "replace-media-file 模式必须是 replace 或 rollback。"
+msgstr "upsert-template-blocks 模式必须是 replace。"
 
 #: includes/Rest/Execution_Profile_Registry.php:130
 msgid "update-template-blocks execution input must include at least one block."
-msgstr "update-media-details 执行输入必须至少包含一个媒体详情字段。"
+msgstr "update-template-blocks 执行输入必须至少包含一个区块。"
 
 #: includes/Rest/Execution_Profile_Registry.php:125
 msgid "update-template-blocks execution input must include post_id."
-msgstr "update-post 执行输入必须包含 post_id。"
+msgstr "update-template-blocks 执行输入必须包含 post_id。"
 
 #: includes/Rest/Execution_Profile_Registry.php:120
 msgid "update-template-blocks mode must be replace."
-msgstr "replace-media-file 模式必须是 replace 或 rollback。"
+msgstr "update-template-blocks 模式必须是 replace。"
 
 #: includes/Rest/Execution_Profile_Registry.php:109
 msgid "update-post-blocks execution input must include at least one block."
-msgstr "update-post 执行输入必须包含 title、content 或 excerpt。"
+msgstr "update-post-blocks 执行输入必须至少包含一个区块。"
 
 #: includes/Rest/Execution_Profile_Registry.php:104
 msgid "update-post-blocks execution input must include post_id."
-msgstr "update-post 执行输入必须包含 post_id。"
+msgstr "update-post-blocks 执行输入必须包含 post_id。"
 
 #: includes/Rest/Execution_Profile_Registry.php:99
 msgid "update-post-blocks mode must be replace or append."
-msgstr "replace-media-file 模式必须是 replace 或 rollback。"
+msgstr "update-post-blocks 模式必须是 replace 或 append。"
 
 #: includes/Rest/Execution_Profile_Registry.php:89
 msgid "patch-post-content execution input must include operations."
@@ -669,7 +669,7 @@ msgstr "Core 读取授权上下文已过期。"
 #: includes/Rest/Controller.php:6726
 msgid ""
 "Core read authorization context must not enable write or commit execution."
-msgstr "核心指导意外允许代理或提交执行。"
+msgstr "Core 读取授权上下文不得启用写入或提交执行。"
 
 #: includes/Rest/Controller.php:6719
 msgid "Core read authorization context is missing the approved input hash."
@@ -697,7 +697,7 @@ msgstr "Core 读取授权上下文与提供的已批准输入哈希不匹配。"
 
 #: includes/Rest/Controller.php:6661
 msgid "Core read preflight did not return a read authorization context."
-msgstr "核心提交预检未返回 correlation id。"
+msgstr "Core 读取预检未返回读取授权上下文。"
 
 #: includes/Rest/Controller.php:6498
 msgid "Core guidance unexpectedly allows proxy or commit execution."
@@ -713,7 +713,7 @@ msgstr "适配器已完成此提案的执行。"
 
 #: includes/Rest/Controller.php:5792
 msgid "Core authorization context was issued for a different blog id."
-msgstr "核心指导意外允许代理或提交执行。"
+msgstr "Core 授权上下文是为另一个 blog id 签发的。"
 
 #: includes/Rest/Controller.php:5779
 msgid "Core authorization context was issued for a different home URL."
@@ -872,7 +872,7 @@ msgstr "写入操作在适配器执行前必须保持 commit_execution=false。"
 #: includes/Rest/Controller.php:4294
 msgid ""
 "Write actions must keep core_proxy_execute=false before Adapter execution."
-msgstr "写入操作在适配器执行前必须保持 commit_execution=false。"
+msgstr "写入操作在适配器执行前必须保持 core_proxy_execute=false。"
 
 #: includes/Rest/Controller.php:4282
 msgid "Each executable write action must require Core approval."
@@ -979,7 +979,7 @@ msgstr "执行输入缺少必需字段。"
 
 #: includes/Rest/Controller.php:3663
 msgid "Execution input exceeds the adapter action payload limit."
-msgstr "提案 write_actions 超出适配器执行限制。"
+msgstr "执行输入超出适配器操作载荷限制。"
 
 #: includes/Rest/Controller.php:3628
 msgid "This proposal ability is not implemented by Adapter execution profiles."

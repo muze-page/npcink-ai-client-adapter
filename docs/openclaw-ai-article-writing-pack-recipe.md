@@ -25,7 +25,11 @@ Layer ownership stays fixed:
 
 - Toolbox owns the operator-filled SEO/AEO/GEO context and the
   `ai_article_writing_pack` planning artifact.
-- Adapter exposes the read shortcut and machine-readable OpenClaw recipe.
+- `npcink-toolbox/*` ability ids are externally registered WordPress ability ids
+  discovered through Adapter capabilities; Adapter treats those ids as external
+  direct-read abilities and does not own their callbacks or workflow runtime.
+- Adapter exposes `POST /run-read-ability` and the machine-readable OpenClaw
+  recipe.
 - OpenClaw may prepare a draft candidate from the pack, but it must treat that
   output as a local candidate for operator review, not generated WordPress
   content.
@@ -59,13 +63,23 @@ GET /wp-json/npcink-openclaw-adapter/v1/capabilities
 npcink-toolbox/build-ai-article-writing-pack
 ```
 
-3. Build the writing pack through the shortcut:
+3. Build the writing pack through:
 
 ```text
-GET /wp-json/npcink-openclaw-adapter/v1/article-writing-pack?topic=AI_TOPIC
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
 ```
 
-For richer input, use `POST /run-read-ability`:
+```json
+{
+  "ability_id": "npcink-toolbox/build-ai-article-writing-pack",
+  "input": {
+    "topic": "AI_TOPIC"
+  }
+}
+```
+
+For richer input, use
+`POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`:
 
 ```json
 {

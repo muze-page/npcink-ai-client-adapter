@@ -1,8 +1,11 @@
-# AGENTS.md — Npcink OpenClaw Adapter
+# AGENTS.md — Npcink AI Client Adapter
+
+Product name: Npcink AI Client Adapter. The REST namespace keeps
+`npcink-openclaw-adapter/v1` for OpenClaw-compatible client compatibility.
 
 ## Product Boundary
 
-Npcink OpenClaw Adapter is the thin OpenClaw channel layer.
+Npcink AI Client Adapter is the thin OpenClaw-compatible channel layer.
 
 It owns:
 
@@ -21,6 +24,14 @@ It does not own:
 - workflow runtime, queues, MCP runtime, or Agent Gateway catalogs;
 - provider credentials, model routing, prompts, or product UX.
 
+`npcink-workflow-toolbox` is the workflow surface owner. Adapter may reference
+its registered WordPress ability ids, but Adapter must not register recipes,
+queues, MCP catalogs, prompt registries, or workflow runtime state.
+Adapter code must treat all `npcink-toolbox/*` and
+`npcink-workflow-toolbox/*` ids as external ability ids only; referencing them
+does not transfer callback, recipe, workflow, prompt, or runtime ownership into
+Adapter, and Adapter does not own their callbacks.
+
 ## Development Rules
 
 - Start AI-assisted work with `git status --short --branch` and a compact
@@ -36,10 +47,9 @@ It does not own:
   write executor.
 - If a feature needs workflow runtime or long-running task orchestration, write
   a boundary note before implementing it here.
-- Provider/model/prompt execution in Adapter is limited to the
-  admin-authenticated AI Request Logs correlation smoke route. It must stay a
-  manual diagnostics route, not model routing, prompt management, product UX, or
-  production workload execution.
+- Do not add provider/model/prompt execution routes to Adapter. AI Request Logs
+  correlation is metadata-only context forwarding, not model routing, prompt
+  management, product UX, or production workload execution.
 - If a feature needs Cloud runtime or Cloud monitoring, call the standalone
   `npcink-cloud-addon` public PHP seam. Do not add Adapter-owned Cloud
   settings, signing clients, `/cloud/*` routes, or Cloud execution truth.
@@ -61,7 +71,7 @@ It does not own:
   `mysqli.default_socket` setting.
 - Run `composer test:all` before committing.
 - For multi-repo milestones, run the central matrix from
-  `/Users/muze/gitee/npcink-toolbox` instead of copying the script into Adapter:
+  `/Users/muze/gitee/npcink-workflow-toolbox` instead of copying the script into Adapter:
   `composer quality:matrix` for status and `composer quality:matrix:run` before
   cross-repo closeout.
 - Before staging, inspect `git status --short --branch` and `git diff --stat`.

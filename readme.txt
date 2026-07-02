@@ -23,7 +23,7 @@ Adapter is intentionally thin. It does not define abilities, store approval trut
 
 Adapter exposes a machine-readable `client_policy` on health, help, and the connection manifest so compatible clients can consume explicit route, output, sensitive-read, and write-flow boundaries. The local CLI also redacts profile paths, key ids, signing headers, tokens, passwords, and secrets from output.
 
-Current governed execution support covers explicit Adapter profiles after Core approval, including `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/reply-comment`, and `npcink-abilities-toolkit/approve-comment`.
+Current governed execution support covers explicit Adapter profiles after Core approval and commit-preflight: `npcink-abilities-toolkit/trash-post`, `npcink-abilities-toolkit/create-draft`, `npcink-abilities-toolkit/update-post`, `npcink-abilities-toolkit/patch-post-content`, `npcink-abilities-toolkit/update-post-blocks`, `npcink-abilities-toolkit/update-template-blocks`, `npcink-abilities-toolkit/upsert-template-blocks`, `npcink-abilities-toolkit/update-template-part-blocks`, `npcink-abilities-toolkit/patch-setting-value`, `npcink-abilities-toolkit/set-post-seo-meta`, `npcink-abilities-toolkit/adopt-article-audio`, `npcink-abilities-toolkit/set-post-slug`, `npcink-abilities-toolkit/set-post-terms`, `npcink-abilities-toolkit/delete-term`, `npcink-abilities-toolkit/update-media-details`, `npcink-abilities-toolkit/upload-media-from-url`, `npcink-abilities-toolkit/set-post-featured-image`, `npcink-abilities-toolkit/optimize-media-asset`, `npcink-abilities-toolkit/replace-media-file`, `npcink-abilities-toolkit/restore-media-backup`, `npcink-abilities-toolkit/adopt-cloud-media-derivative`, `npcink-abilities-toolkit/rename-media-file`, `npcink-abilities-toolkit/delete-media-permanently`, `npcink-abilities-toolkit/reply-comment`, `npcink-abilities-toolkit/trash-comment`, and `npcink-abilities-toolkit/approve-comment`.
 
 Key features:
 
@@ -32,7 +32,7 @@ Key features:
 * Expose a machine-readable `client_policy` so clients can understand route, read, write, and sensitive-data boundaries.
 * Route approved direct-read requests through the WordPress Abilities API.
 * Forward governed write requests to Npcink Governance Core proposal and commit-preflight endpoints.
-* Support a user-triggered approve-and-execute path for explicit, allowlisted execution profiles after Core approval.
+* Support a user-triggered approve-and-execute path for explicit, supported execution profiles after Core approval.
 * Prefer signed key-pair pairing for local clients, with an Application Password fallback when appropriate.
 * Keep channel, governance, ability, cloud, and model-provider responsibilities separate.
 
@@ -48,6 +48,7 @@ Key features:
 = Does Adapter approve proposals? =
 
 Adapter provides a user-triggered `approve-and-execute` action for supported execution profiles, but Npcink Governance Core remains the governance backend for proposal storage, approval, commit-preflight, and audit.
+Execution abilities are declared by Npcink Abilities Toolkit and approved by Npcink Governance Core; Adapter supplies only the post-preflight channel.
 
 = Does Adapter execute arbitrary abilities? =
 
