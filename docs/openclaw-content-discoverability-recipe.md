@@ -23,6 +23,9 @@ Layer ownership stays fixed:
 
 - Toolbox owns the operator-filled content context and the
   `content_discoverability_brief` planning artifact.
+- `npcink-toolbox/*` ability ids are externally registered WordPress ability ids
+  discovered through Adapter capabilities; Adapter treats those ids as external
+  direct-read abilities and does not own their callbacks or workflow runtime.
 - Adapter exposes `POST /run-read-ability` and a machine-readable OpenClaw
   recipe.
 - Core decides whether each ability is `direct_read` and owns proposal,
@@ -53,7 +56,11 @@ npcink-toolbox/get-content-discoverability-context
 npcink-toolbox/build-content-discoverability-brief
 ```
 
-3. Validate the operator-filled Toolbox context through `POST /run-read-ability`:
+3. Validate the operator-filled Toolbox context through:
+
+```text
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
+```
 
 ```json
 {
@@ -65,7 +72,11 @@ npcink-toolbox/build-content-discoverability-brief
 If the result status is `needs_attention`, stop and ask the operator to update
 Toolbox Content Context.
 
-4. Read the context through `POST /run-read-ability`:
+4. Read the context through:
+
+```text
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
+```
 
 ```json
 {
@@ -74,7 +85,11 @@ Toolbox Content Context.
 }
 ```
 
-5. Build one brief through `POST /run-read-ability`:
+5. Build one brief through:
+
+```text
+POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability
+```
 
 ```json
 {
@@ -85,7 +100,8 @@ Toolbox Content Context.
 }
 ```
 
-For supplied context instead of a post, use `POST /run-read-ability`:
+For supplied context instead of a post, use
+`POST /wp-json/npcink-openclaw-adapter/v1/run-read-ability`:
 
 ```json
 {

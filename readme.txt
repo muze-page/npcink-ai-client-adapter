@@ -32,7 +32,7 @@ Key features:
 * Expose a machine-readable `client_policy` so clients can understand route, read, write, and sensitive-data boundaries.
 * Route approved direct-read requests through the WordPress Abilities API.
 * Forward governed write requests to Npcink Governance Core proposal and commit-preflight endpoints.
-* Support a user-triggered approve-and-execute path for explicit, allowlisted execution profiles after Core approval.
+* Support a user-triggered approve-and-execute path for explicit, supported execution profiles after Core approval.
 * Prefer signed key-pair pairing for local clients, with an Application Password fallback when appropriate.
 * Keep channel, governance, ability, cloud, and model-provider responsibilities separate.
 
@@ -48,6 +48,7 @@ Key features:
 = Does Adapter approve proposals? =
 
 Adapter provides a user-triggered `approve-and-execute` action for supported execution profiles, but Npcink Governance Core remains the governance backend for proposal storage, approval, commit-preflight, and audit.
+Execution abilities are declared by Npcink Abilities Toolkit and approved by Npcink Governance Core; Adapter supplies only the post-preflight channel.
 
 = Does Adapter execute arbitrary abilities? =
 

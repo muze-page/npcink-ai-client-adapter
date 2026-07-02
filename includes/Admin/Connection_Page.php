@@ -238,7 +238,7 @@ final class Connection_Page {
 			data-maa-copied-label="<?php echo esc_attr__( 'Copied', 'npcink-ai-client-adapter' ); ?>"
 			data-maa-copy-failed-label="<?php echo esc_attr__( 'Copy failed', 'npcink-ai-client-adapter' ); ?>"
 		>
-			<h1><?php echo esc_html__( 'Client Adapter', 'npcink-ai-client-adapter' ); ?></h1>
+			<h1><?php echo esc_html( 'Npcink AI Client Adapter' ); ?></h1>
 			<p class="description"><?php echo esc_html__( 'Connect this WordPress site to OpenClaw or other local AI clients.', 'npcink-ai-client-adapter' ); ?></p>
 
 			<div class="maa-summary">

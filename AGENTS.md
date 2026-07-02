@@ -27,6 +27,10 @@ It does not own:
 `npcink-workflow-toolbox` is the workflow surface owner. Adapter may reference
 its registered WordPress ability ids, but Adapter must not register recipes,
 queues, MCP catalogs, prompt registries, or workflow runtime state.
+Adapter code must treat all `npcink-toolbox/*` and
+`npcink-workflow-toolbox/*` ids as external ability ids only; referencing them
+does not transfer callback, recipe, workflow, prompt, or runtime ownership into
+Adapter, and Adapter does not own their callbacks.
 
 ## Development Rules
 
