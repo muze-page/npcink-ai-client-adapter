@@ -120,10 +120,6 @@ msgstr ""
 msgid "Copy failed"
 msgstr ""
 
-#: includes/Admin/Connection_Page.php:240
-msgid "Client Adapter"
-msgstr ""
-
 #: includes/Admin/Connection_Page.php:241
 msgid "Connect this WordPress site to OpenClaw or other local AI clients."
 msgstr ""

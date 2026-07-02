@@ -128,10 +128,6 @@ msgstr "已复制"
 msgid "Copy failed"
 msgstr "复制失败"
 
-#: includes/Admin/Connection_Page.php:240
-msgid "Client Adapter"
-msgstr "渠道适配器"
-
 #: includes/Admin/Connection_Page.php:241
 msgid "Connect this WordPress site to OpenClaw or other local AI clients."
 msgstr "将此 WordPress 站点连接到 OpenClaw 或其他本地 AI 客户端。"
